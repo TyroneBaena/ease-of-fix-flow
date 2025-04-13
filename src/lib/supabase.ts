@@ -1,16 +1,18 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// These environment variables are automatically injected by the Lovable Supabase integration
-// Make sure to allow for fallback values during development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Use the client from the integrations folder which has the correct URL and key
+import { supabase as configuredSupabase } from '@/integrations/supabase/client';
 
-// Check if the environment variables are available
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    'Supabase URL or Anonymous Key is missing. Make sure you have connected your project to Supabase through the Lovable Supabase integration.'
-  );
-}
+// Export the configured client
+export const supabase = configuredSupabase;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// This function can be used to check if Supabase is properly initialized
+export const isSupabaseConfigured = () => {
+  try {
+    return !!supabase?.auth;
+  } catch (error) {
+    console.error("Error checking Supabase configuration:", error);
+    return false;
+  }
+};

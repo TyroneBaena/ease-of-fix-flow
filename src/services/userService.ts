@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 
 export const userService = {
@@ -79,7 +79,9 @@ export const userService = {
   // Delete user (admin only)
   async deleteUser(userId: string): Promise<void> {
     // Delete the auth user (this cascades to the profile through RLS)
-    const { error } = await supabase.auth.admin.deleteUser(userId);
+    const { error } = await supabase.functions.invoke('delete-user', {
+      body: { userId }
+    });
     if (error) throw error;
   },
   

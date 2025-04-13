@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -73,35 +72,30 @@ const UserManagement = () => {
     setIsDialogOpen(true);
   };
   
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     if (!newUser.name || !newUser.email) {
       toast.error("Name and email are required");
       return;
     }
     
-    if (isEditMode && selectedUser) {
-      const updatedUser: User = {
-        ...selectedUser,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        assignedProperties: newUser.role === 'manager' ? newUser.assignedProperties : undefined
-      };
-      updateUser(updatedUser);
-      toast.success(`User ${updatedUser.name} updated successfully`);
-    } else {
-      const user: User = {
-        id: Date.now().toString(),
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        assignedProperties: newUser.role === 'manager' ? newUser.assignedProperties : undefined,
-        createdAt: new Date().toISOString()
-      };
-      addUser(user);
-      toast.success(`User ${user.name} invited successfully`);
+    try {
+      if (isEditMode && selectedUser) {
+        const updatedUser: User = {
+          ...selectedUser,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          assignedProperties: newUser.role === 'manager' ? newUser.assignedProperties : undefined
+        };
+        await updateUser(updatedUser);
+      } else {
+        await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving user:", error);
+      toast.error("Failed to save user");
     }
-    setIsDialogOpen(false);
   };
   
   const handleDeleteUser = (userId: string) => {
