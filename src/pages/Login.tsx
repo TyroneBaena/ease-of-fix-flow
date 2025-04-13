@@ -76,7 +76,7 @@ const Login = () => {
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert({
-            id: Number(data.user.id),
+            id: data.user.id, // Use the UUID directly without converting to number
             Name: 'Demo Admin',
             email: demoEmail,
             role: 'admin',
