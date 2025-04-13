@@ -62,7 +62,7 @@ export const useSupabaseAuth = () => {
           id: String(data.id),
           name: data.Name || '',
           email: String(data.email) || '',
-          role: (data.role as UserRole) || 'manager',
+          role: (String(data.role) as UserRole) || 'manager',
           assignedProperties: data.assigned_properties ? String(data.assigned_properties).split(',') : [],
           createdAt: String(data.created_at) || new Date().toISOString()
         });

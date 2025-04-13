@@ -32,6 +32,7 @@ serve(async (req: Request) => {
     }
     
     // First delete the user profile
+    // Convert string ID to number since the database expects a number
     const { error: profileError } = await supabaseClient
       .from('user_profiles')
       .delete()

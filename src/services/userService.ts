@@ -45,7 +45,8 @@ export const userService = {
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          id: authData.user.id,
+          // Convert string ID to number before inserting
+          id: Number(authData.user.id),
           Name: name,
           email: email,
           role: role,
@@ -71,7 +72,7 @@ export const userService = {
         role: user.role,
         assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
       })
-      .eq('id', user.id);
+      .eq('id', Number(user.id)); // Convert string ID to number
     
     if (error) throw error;
   },
@@ -90,7 +91,7 @@ export const userService = {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('role')
-      .eq('id', userId)
+      .eq('id', Number(userId)) // Convert string ID to number
       .single();
     
     if (error) return false;
