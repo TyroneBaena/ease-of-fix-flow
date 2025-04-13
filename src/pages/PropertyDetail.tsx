@@ -43,7 +43,8 @@ import {
   Trash,
   QrCode,
   ClipboardList,
-  Download
+  Download,
+  Plus
 } from 'lucide-react';
 import { PropertyForm } from '@/components/property/PropertyForm';
 
