@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import {
   Home,
   ClipboardList,
-  BarChart3,
+  FileText,
   Settings,
   Bell,
   Menu,
@@ -24,22 +25,35 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUserContext } from '@/contexts/UserContext';
 
 const Navbar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { currentUser, isAdmin } = useUserContext();
   
   const isActive = (path: string) => {
     return location.pathname === path;
   };
   
-  const navItems = [
-    { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard' },
-    { name: 'Properties', icon: <Building className="h-5 w-5" />, path: '/properties' },
-    { name: 'Requests', icon: <ClipboardList className="h-5 w-5" />, path: '/requests' },
-    { name: 'Analytics', icon: <BarChart3 className="h-5 w-5" />, path: '/analytics' },
-    { name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' },
-  ];
+  // Define navigation items based on user role
+  const getNavItems = () => {
+    const items = [
+      { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard' },
+      { name: 'Properties', icon: <Building className="h-5 w-5" />, path: '/properties' },
+      { name: 'Requests', icon: <ClipboardList className="h-5 w-5" />, path: '/requests' },
+      { name: 'Reports', icon: <FileText className="h-5 w-5" />, path: '/reports' },
+    ];
+    
+    // Add Settings only for admin
+    if (isAdmin()) {
+      items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
+    }
+    
+    return items;
+  };
+  
+  const navItems = getNavItems();
   
   const NavLinks = () => (
     <nav className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8">
@@ -59,6 +73,10 @@ const Navbar = () => {
       ))}
     </nav>
   );
+
+  const userInitials = currentUser?.name 
+    ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()
+    : 'U';
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-30">
@@ -90,7 +108,7 @@ const Navbar = () => {
             
             <Avatar className="h-8 w-8">
               <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback>FM</AvatarFallback>
+              <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
             
             {/* Mobile menu */}
@@ -133,11 +151,11 @@ const Navbar = () => {
                       <div className="flex items-center space-x-3 mb-6">
                         <Avatar>
                           <AvatarImage src="/placeholder.svg" />
-                          <AvatarFallback>FM</AvatarFallback>
+                          <AvatarFallback>{userInitials}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">Facility Manager</p>
-                          <p className="text-sm text-gray-500">manager@example.com</p>
+                          <p className="font-medium">{currentUser?.name}</p>
+                          <p className="text-sm text-gray-500">{currentUser?.email}</p>
                         </div>
                       </div>
                       <Button className="w-full bg-blue-500 hover:bg-blue-600">
