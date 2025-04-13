@@ -14,11 +14,11 @@ export const useSupabaseAuth = () => {
     try {
       console.log("Fetching profile for user ID:", userId);
       
-      // Use UUID directly as string - don't convert to number
+      // Convert UUID string to number for database query
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', parseInt(userId, 10))
         .single();
       
       if (error) {
@@ -128,4 +128,3 @@ export const useSupabaseAuth = () => {
     signOut
   };
 };
-
