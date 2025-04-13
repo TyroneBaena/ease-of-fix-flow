@@ -45,7 +45,7 @@ export const userService = {
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          id: Number(authData.user.id),
+          id: authData.user.id,
           Name: name,
           email: email,
           role: role,
@@ -71,7 +71,7 @@ export const userService = {
         role: user.role,
         assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
       })
-      .eq('id', Number(user.id));
+      .eq('id', user.id);
     
     if (error) throw error;
   },
@@ -90,7 +90,7 @@ export const userService = {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('role')
-      .eq('id', Number(userId))
+      .eq('id', userId)
       .single();
     
     if (error) return false;

@@ -37,18 +37,34 @@ const Login = () => {
   const handleDemoLogin = async () => {
     try {
       setIsLoading(true);
-      // Create a demo admin user if it doesn't exist
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: 'admin@example.com',
-        password: 'password123'
-      });
+      // Use a valid email format for the demo user
+      const demoEmail = "demo.admin@example.com";
+      const demoPassword = "password123";
       
-      if (signUpError && signUpError.message !== 'User already registered') {
-        throw signUpError;
+      // First try to sign in directly - if the user already exists
+      try {
+        await signIn(demoEmail, demoPassword);
+        toast.success("Signed in as demo admin");
+        navigate('/dashboard');
+        return;
+      } catch (signInError) {
+        console.log("Demo user doesn't exist yet, creating...");
       }
       
-      // Sign in with demo credentials
-      await signIn('admin@example.com', 'password123');
+      // If sign-in failed, try to create the user
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: demoEmail,
+        password: demoPassword
+      });
+      
+      if (signUpError) {
+        console.error("Error creating demo user:", signUpError);
+        toast.error("Failed to create demo account");
+        return;
+      }
+      
+      // Now try to sign in with the newly created account
+      await signIn(demoEmail, demoPassword);
       toast.success("Signed in as demo admin");
       navigate('/dashboard');
     } catch (error) {
