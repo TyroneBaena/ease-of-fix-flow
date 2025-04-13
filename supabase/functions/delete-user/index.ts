@@ -42,13 +42,16 @@ serve(async (req: Request) => {
       );
     }
     
-    console.log(`Deleting user profile for ID: ${userId}`);
+    // Convert string userId to number for the database query
+    const numericId = parseInt(userId, 10);
+    
+    console.log(`Deleting user profile for ID: ${userId} (numeric: ${numericId})`);
     
     // First delete the user profile
     const { error: profileError } = await supabaseClient
       .from('user_profiles')
       .delete()
-      .eq('id', userId);
+      .eq('id', numericId);
       
     if (profileError) {
       console.error("Error deleting profile:", profileError);

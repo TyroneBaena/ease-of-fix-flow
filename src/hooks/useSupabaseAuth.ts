@@ -14,10 +14,13 @@ export const useSupabaseAuth = () => {
     try {
       console.log("Fetching profile for user ID:", userId);
       
+      // Convert string UUID to number for database queries
+      const numericId = parseInt(userId, 10);
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', numericId)
         .single();
       
       if (error) {
