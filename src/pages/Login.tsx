@@ -38,7 +38,7 @@ const Login = () => {
     try {
       setIsLoading(true);
       // Use a valid email format that will pass Supabase validation
-      const demoEmail = "demo-admin@example.com";
+      const demoEmail = "demo-user@example.com";
       const demoPassword = "password123";
       
       console.log("Attempting demo login...");
@@ -80,6 +80,7 @@ const Login = () => {
             Name: 'Demo Admin',
             email: demoEmail,
             role: 'admin',
+            password: demoPassword, // Store password in user_profiles since you've added this field
             created_at: new Date().toISOString()
           });
           
