@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Form } from "@/components/ui/form";
-import { RequestFormHeader } from "./RequestFormHeader";
 import { RequestFormTitle } from "./RequestFormTitle";
 import { RequestFormDescription } from "./RequestFormDescription";
 import { RequestFormCategoryLocation } from "./RequestFormCategoryLocation";
@@ -46,42 +45,40 @@ export const RequestForm = () => {
   };
 
   return (
-    <Form>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <RequestFormTitle 
-          value={formState.title}
-          onChange={(value) => updateFormState('title', value)}
-        />
-        
-        <RequestFormDescription 
-          value={formState.description}
-          onChange={(value) => updateFormState('description', value)}
-        />
-        
-        <RequestFormCategoryLocation 
-          category={formState.category}
-          location={formState.location}
-          onCategoryChange={(value) => updateFormState('category', value)}
-          onLocationChange={(value) => updateFormState('location', value)}
-        />
-        
-        <RequestFormPriority 
-          value={formState.priority}
-          onChange={(value) => updateFormState('priority', value)}
-        />
-        
-        <RequestFormAttachments
-          files={files}
-          previewUrls={previewUrls}
-          onFileChange={handleFileChange}
-          onRemoveFile={removeFile}
-        />
-        
-        <RequestFormActions 
-          isSubmitting={isSubmitting}
-          onCancel={() => navigate('/dashboard')}
-        />
-      </form>
-    </Form>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <RequestFormTitle 
+        value={formState.title}
+        onChange={(value) => updateFormState('title', value)}
+      />
+      
+      <RequestFormDescription 
+        value={formState.description}
+        onChange={(value) => updateFormState('description', value)}
+      />
+      
+      <RequestFormCategoryLocation 
+        category={formState.category}
+        location={formState.location}
+        onCategoryChange={(value) => updateFormState('category', value)}
+        onLocationChange={(value) => updateFormState('location', value)}
+      />
+      
+      <RequestFormPriority 
+        value={formState.priority}
+        onChange={(value) => updateFormState('priority', value)}
+      />
+      
+      <RequestFormAttachments
+        files={files}
+        previewUrls={previewUrls}
+        onFileChange={handleFileChange}
+        onRemoveFile={removeFile}
+      />
+      
+      <RequestFormActions 
+        isSubmitting={isSubmitting}
+        onCancel={() => navigate('/dashboard')}
+      />
+    </form>
   );
 };

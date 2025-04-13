@@ -1,7 +1,7 @@
 
+// Export a simplified toast interface based on the sonner library
 import { toast as sonnerToast } from "sonner";
 
-// Re-export toast functions with our configuration
 export const toast = {
   success: (message: string) => sonnerToast.success(message),
   error: (message: string) => sonnerToast.error(message),
