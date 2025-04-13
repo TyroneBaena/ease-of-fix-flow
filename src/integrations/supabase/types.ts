@@ -11,28 +11,28 @@ export type Database = {
     Tables: {
       user_profiles: {
         Row: {
-          assigned_properties: number | null
-          created_at: number | null
-          email: number | null
+          assigned_properties: string | null
+          created_at: string | null
+          email: string | null
           id: number
-          Name: number | null
-          role: number | null
+          Name: string | null
+          role: string | null
         }
         Insert: {
-          assigned_properties?: number | null
-          created_at?: number | null
-          email?: number | null
+          assigned_properties?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: number
-          Name?: number | null
-          role?: number | null
+          Name?: string | null
+          role?: string | null
         }
         Update: {
-          assigned_properties?: number | null
-          created_at?: number | null
-          email?: number | null
+          assigned_properties?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: number
-          Name?: number | null
-          role?: number | null
+          Name?: string | null
+          role?: string | null
         }
         Relationships: []
       }

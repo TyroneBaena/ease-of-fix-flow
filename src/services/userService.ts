@@ -12,12 +12,12 @@ export const userService = {
     if (error) throw error;
     
     return data?.map(profile => ({
-      id: profile.id,
-      name: profile.name || '',
-      email: profile.email || '',
-      role: profile.role as UserRole,
-      assignedProperties: profile.assigned_properties || [],
-      createdAt: profile.created_at
+      id: String(profile.id),
+      name: profile.Name || '',
+      email: String(profile.email) || '',
+      role: String(profile.role) as UserRole,
+      assignedProperties: profile.assigned_properties ? String(profile.assigned_properties).split(',') : [],
+      createdAt: String(profile.created_at)
     })) || [];
   },
   
@@ -45,11 +45,11 @@ export const userService = {
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          id: authData.user.id,
-          email,
-          name,
-          role,
-          assigned_properties: role === 'manager' ? assignedProperties : null,
+          id: Number(authData.user.id),
+          Name: name,
+          email: email,
+          role: role,
+          assigned_properties: assignedProperties.join(','),
           created_at: new Date().toISOString()
         });
       
@@ -66,12 +66,12 @@ export const userService = {
     const { error } = await supabase
       .from('user_profiles')
       .update({
-        name: user.name,
+        Name: user.name,
         email: user.email,
         role: user.role,
-        assigned_properties: user.role === 'manager' ? user.assignedProperties : null
+        assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
       })
-      .eq('id', user.id);
+      .eq('id', Number(user.id));
     
     if (error) throw error;
   },
@@ -90,7 +90,7 @@ export const userService = {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('role')
-      .eq('id', userId)
+      .eq('id', Number(userId))
       .single();
     
     if (error) return false;

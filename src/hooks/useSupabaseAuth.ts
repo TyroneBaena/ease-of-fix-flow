@@ -59,14 +59,15 @@ export const useSupabaseAuth = () => {
       
       if (data) {
         setCurrentUser({
-          id: data.id,
-          name: data.name || '',
-          email: data.email || '',
+          id: String(data.id),
+          name: data.Name || '',
+          email: String(data.email) || '',
           role: data.role as UserRole || 'manager',
-          assignedProperties: data.assigned_properties || [],
-          createdAt: data.created_at || new Date().toISOString()
+          assignedProperties: data.assigned_properties ? String(data.assigned_properties).split(',') : [],
+          createdAt: String(data.created_at) || new Date().toISOString()
         });
-        setSupabaseUser(data.supabase_user);
+        // No supabase_user property in data, so removing this
+        setSupabaseUser(null);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
