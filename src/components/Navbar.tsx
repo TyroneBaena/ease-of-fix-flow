@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   User,
-  Plus
+  Plus,
+  Building
 } from 'lucide-react';
 import { 
   Sheet,
@@ -34,6 +35,7 @@ const Navbar = () => {
   
   const navItems = [
     { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard' },
+    { name: 'Properties', icon: <Building className="h-5 w-5" />, path: '/properties' },
     { name: 'Requests', icon: <ClipboardList className="h-5 w-5" />, path: '/requests' },
     { name: 'Analytics', icon: <BarChart3 className="h-5 w-5" />, path: '/analytics' },
     { name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' },

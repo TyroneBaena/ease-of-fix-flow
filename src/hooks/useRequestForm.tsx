@@ -7,6 +7,7 @@ interface FormState {
   category: string;
   location: string;
   priority: string;
+  propertyId: string;
 }
 
 export const useRequestForm = () => {
@@ -16,6 +17,7 @@ export const useRequestForm = () => {
     category: '',
     location: '',
     priority: 'medium',
+    propertyId: '',
   });
 
   const [files, setFiles] = useState<File[]>([]);
