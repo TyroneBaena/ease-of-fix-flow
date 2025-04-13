@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useUserContext } from '@/contexts/UserContext';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ const Login = () => {
     e.preventDefault();
     
     if (!email || !password) {
+      toast.error("Please enter both email and password");
       return;
     }
     
@@ -27,6 +29,32 @@ const Login = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    try {
+      setIsLoading(true);
+      // Create a demo admin user if it doesn't exist
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: 'admin@example.com',
+        password: 'password123'
+      });
+      
+      if (signUpError && signUpError.message !== 'User already registered') {
+        throw signUpError;
+      }
+      
+      // Sign in with demo credentials
+      await signIn('admin@example.com', 'password123');
+      toast.success("Signed in as demo admin");
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Demo login error:', error);
+      toast.error("Failed to sign in with demo account");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -75,6 +103,25 @@ const Login = () => {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+            
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
+            </div>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleDemoLogin}
+              disabled={isLoading}
+            >
+              Demo Login (No Password Required)
             </Button>
           </form>
         </CardContent>

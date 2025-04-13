@@ -52,7 +52,7 @@ export const useSupabaseAuth = () => {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', Number(userId))
         .single();
       
       if (error) throw error;
@@ -62,11 +62,10 @@ export const useSupabaseAuth = () => {
           id: String(data.id),
           name: data.Name || '',
           email: String(data.email) || '',
-          role: data.role as UserRole || 'manager',
+          role: (data.role as UserRole) || 'manager',
           assignedProperties: data.assigned_properties ? String(data.assigned_properties).split(',') : [],
           createdAt: String(data.created_at) || new Date().toISOString()
         });
-        // No supabase_user property in data, so removing this
         setSupabaseUser(null);
       }
     } catch (error) {
