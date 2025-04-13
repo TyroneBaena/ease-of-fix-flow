@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
@@ -14,10 +13,13 @@ export const useSupabaseAuth = () => {
     try {
       console.log("Fetching profile for user ID:", userId);
       
+      // Convert string UUID to number for database queries
+      const numericId = parseInt(userId, 10) || 0; // Fallback to 0 if parsing fails
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', numericId)
         .single();
       
       if (error) {
