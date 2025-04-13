@@ -49,19 +49,11 @@ export const useSupabaseAuth = () => {
   // Fetch user profile data from "user_profiles" table
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Convert userId to Number since the user_profiles table uses numeric IDs
-      const numericId = Number(userId);
-      
-      // Make sure the ID conversion is valid
-      if (isNaN(numericId)) {
-        console.error("Failed to convert user ID to number:", userId);
-        throw new Error("Invalid user ID format");
-      }
-      
+      // Use the UUID directly as a string when querying
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', numericId) // Use the converted numeric ID
+        .eq('id', userId) // Use the UUID string directly
         .single();
       
       if (error) throw error;

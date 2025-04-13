@@ -45,8 +45,8 @@ export const userService = {
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          // Convert string ID to number before inserting
-          id: Number(authData.user.id),
+          // Use UUID directly without conversion
+          id: authData.user.id,
           Name: name,
           email: email,
           role: role,
@@ -72,7 +72,7 @@ export const userService = {
         role: user.role,
         assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
       })
-      .eq('id', Number(user.id)); // Convert string ID to number
+      .eq('id', user.id); // Use the UUID string directly
     
     if (error) throw error;
   },
@@ -91,7 +91,7 @@ export const userService = {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('role')
-      .eq('id', Number(userId)) // Convert string ID to number
+      .eq('id', userId) // Use the UUID string directly
       .single();
     
     if (error) return false;
