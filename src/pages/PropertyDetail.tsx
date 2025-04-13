@@ -11,7 +11,13 @@ import { PropertyInfo } from '@/components/property/PropertyInfo';
 import { PropertyRequests } from '@/components/property/PropertyRequests';
 import { PropertyQuickActions } from '@/components/property/PropertyQuickActions';
 import { PropertyQrDialog } from '@/components/property/PropertyQrDialog';
-import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  Dialog,
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
 
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -102,7 +108,8 @@ const PropertyDetail = () => {
         />
       )}
 
-      {dialogOpen && (
+      {/* Fix: Wrap DialogContent in Dialog component */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Edit Property</DialogTitle>
@@ -112,7 +119,7 @@ const PropertyDetail = () => {
           </DialogHeader>
           <PropertyForm onClose={handleDialogClose} existingProperty={property} />
         </DialogContent>
-      )}
+      </Dialog>
     </div>
   );
 };
