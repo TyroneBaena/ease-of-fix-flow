@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -23,19 +23,34 @@ import Navbar from '@/components/Navbar';
 import RequestCard from '@/components/RequestCard';
 import StatusChart from '@/components/StatusChart';
 import CategoryChart from '@/components/CategoryChart';
-
-// Sample data
-import { requests } from '@/data/sampleData';
+import { usePropertyContext } from '@/contexts/PropertyContext';
+import { MaintenanceRequest } from '@/types/property';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { properties, getRequestsForProperty } = usePropertyContext();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredRequests, setFilteredRequests] = useState(requests);
+  const [allRequests, setAllRequests] = useState<MaintenanceRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
 
+  // Collect all requests from all properties
+  useEffect(() => {
+    const requests: MaintenanceRequest[] = [];
+    properties.forEach(property => {
+      const propertyRequests = getRequestsForProperty(property.id);
+      requests.push(...propertyRequests);
+    });
+    
+    // Sort by created date (newest first)
+    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    setAllRequests(requests);
+  }, [properties, getRequestsForProperty]);
+
   // Filter requests based on search term and active filter
-  React.useEffect(() => {
-    let result = requests;
+  useEffect(() => {
+    let result = allRequests;
     
     if (searchTerm) {
       result = result.filter(request => 
@@ -49,16 +64,16 @@ const Dashboard = () => {
     }
     
     setFilteredRequests(result);
-  }, [searchTerm, activeFilter]);
+  }, [searchTerm, activeFilter, allRequests]);
 
   const handleFilterChange = (filter: string) => {
     setActiveFilter(filter);
   };
 
   // Count requests by status
-  const openRequests = requests.filter(req => req.status === 'open').length;
-  const inProgressRequests = requests.filter(req => req.status === 'in-progress').length;
-  const completedRequests = requests.filter(req => req.status === 'completed').length;
+  const openRequests = allRequests.filter(req => req.status === 'open').length;
+  const inProgressRequests = allRequests.filter(req => req.status === 'in-progress').length;
+  const completedRequests = allRequests.filter(req => req.status === 'completed').length;
 
   return (
     <div className="min-h-screen bg-gray-50">

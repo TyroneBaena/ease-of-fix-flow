@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,22 +16,33 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import RequestCard from '@/components/RequestCard';
-
-// Sample data
-import { requests } from '@/data/sampleData';
+import { usePropertyContext } from '@/contexts/PropertyContext';
+import { MaintenanceRequest } from '@/types/property';
 
 const AllRequests = () => {
   const navigate = useNavigate();
+  const { properties, getRequestsForProperty } = usePropertyContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [filteredRequests, setFilteredRequests] = useState(requests);
+  const [allRequests, setAllRequests] = useState<MaintenanceRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
+
+  // Collect all requests from all properties
+  useEffect(() => {
+    const requests: MaintenanceRequest[] = [];
+    properties.forEach(property => {
+      const propertyRequests = getRequestsForProperty(property.id);
+      requests.push(...propertyRequests);
+    });
+    setAllRequests(requests);
+  }, [properties, getRequestsForProperty]);
 
   // Filter and sort requests
-  React.useEffect(() => {
-    let result = [...requests];
+  useEffect(() => {
+    let result = [...allRequests];
     
     // Apply search filter
     if (searchTerm) {
@@ -53,14 +64,13 @@ const AllRequests = () => {
     
     // Apply sorting
     result.sort((a, b) => {
-      // Convert date strings to timestamps for comparison
-      if (sortField === 'createdAt' || sortField === 'dueDate') {
-        const aValue = new Date(a[sortField] || '').getTime();
-        const bValue = new Date(b[sortField] || '').getTime();
+      if (sortField === 'createdAt' || sortField === 'updatedAt') {
+        const aValue = new Date(a[sortField]).getTime();
+        const bValue = new Date(b[sortField]).getTime();
         return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
       }
       
-      // Handle string comparisons
+      // Handle other fields
       const aValue = a[sortField] || '';
       const bValue = b[sortField] || '';
       return sortDirection === 'asc' 
@@ -69,7 +79,7 @@ const AllRequests = () => {
     });
     
     setFilteredRequests(result);
-  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection]);
+  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, allRequests]);
 
   const toggleSortDirection = () => {
     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -85,7 +95,7 @@ const AllRequests = () => {
   };
 
   // Get unique categories from requests
-  const categories = Array.from(new Set(requests.map(req => req.category.toLowerCase())));
+  const categories = Array.from(new Set(allRequests.map(req => req.category.toLowerCase())));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,7 +168,7 @@ const AllRequests = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="createdAt">Date Created</SelectItem>
-                  <SelectItem value="dueDate">Due Date</SelectItem>
+                  <SelectItem value="updatedAt">Date Updated</SelectItem>
                   <SelectItem value="priority">Priority</SelectItem>
                   <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
