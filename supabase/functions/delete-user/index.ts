@@ -1,12 +1,23 @@
 
-import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.0'
+// Deno imports for Edge Functions
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface RequestBody {
   userId: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   // Create a Supabase client with the admin role
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -27,33 +38,39 @@ serve(async (req: Request) => {
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "userId is required" }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
+    // Convert string userId to number for the database query
+    const numericId = parseInt(userId, 10) || 0;
+    
+    console.log(`Deleting user profile for ID: ${userId} (numeric: ${numericId})`);
+    
     // First delete the user profile
-    // Convert string ID to number since the database expects a number
     const { error: profileError } = await supabaseClient
       .from('user_profiles')
       .delete()
-      .eq('id', Number(userId));
+      .eq('id', numericId);
       
     if (profileError) {
+      console.error("Error deleting profile:", profileError);
       throw profileError;
     }
     
-    // Then delete the auth user (if needed)
-    // Note: In many cases with proper RLS, deleting the auth user
-    // might be sufficient as it would cascade to the profile
+    // Then delete the auth user (if needed in the future)
+    // const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
+    // if (authError) throw authError;
     
     return new Response(
       JSON.stringify({ success: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    console.error("Delete user error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-})
+});

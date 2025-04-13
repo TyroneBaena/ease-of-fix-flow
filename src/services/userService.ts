@@ -84,10 +84,15 @@ export const userService = {
   
   // Delete user (admin only)
   async deleteUser(userId: string): Promise<void> {
-    // Delete the auth user (this cascades to the profile through RLS)
-    const { error } = await supabase.functions.invoke('delete-user', {
-      body: { userId }
-    });
+    // Convert string ID to number for database deletion
+    const numericId = parseInt(userId, 10) || 0; // Fallback to 0 if parsing fails
+    
+    // Delete the user profile directly (no need for edge function)
+    const { error } = await supabase
+      .from('user_profiles')
+      .delete()
+      .eq('id', numericId);
+    
     if (error) throw error;
   },
   
