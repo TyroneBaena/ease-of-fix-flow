@@ -42,11 +42,13 @@ export const userService = {
     
     // 2. Create user profile
     if (authData.user) {
+      // Convert UUID to a number for the user_profiles table
+      const numericId = parseInt(authData.user.id.replace(/-/g, ''), 16);
+      
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          // Use UUID directly without conversion
-          id: authData.user.id,
+          id: numericId,
           Name: name,
           email: email,
           role: role,
@@ -64,6 +66,9 @@ export const userService = {
   
   // Update user (admin only)
   async updateUser(user: User): Promise<void> {
+    // Convert the string ID to a numeric ID for the database
+    const numericId = parseInt(user.id.replace(/-/g, ''), 16);
+    
     const { error } = await supabase
       .from('user_profiles')
       .update({
@@ -72,7 +77,7 @@ export const userService = {
         role: user.role,
         assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
       })
-      .eq('id', user.id); // Use the UUID string directly
+      .eq('id', numericId);
     
     if (error) throw error;
   },
@@ -88,10 +93,13 @@ export const userService = {
   
   // Check if user is admin
   async isUserAdmin(userId: string): Promise<boolean> {
+    // Convert the string ID to a numeric ID for the database
+    const numericId = parseInt(userId.replace(/-/g, ''), 16);
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .select('role')
-      .eq('id', userId) // Use the UUID string directly
+      .eq('id', numericId)
       .single();
     
     if (error) return false;

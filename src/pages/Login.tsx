@@ -73,15 +73,17 @@ const Login = () => {
       
       // Create user profile manually since we might not have a trigger
       if (data.user) {
-        // Use the UUID directly as string for the user_profiles table
+        // Convert the UUID to a number for the user_profiles table
+        const numericId = parseInt(data.user.id.replace(/-/g, ''), 16);
+        
+        // Use numeric ID for the user_profiles table
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert({
-            id: data.user.id, // Use the UUID directly
+            id: numericId,
             Name: 'Demo Admin',
             email: demoEmail,
             role: 'admin',
-            password: demoPassword,
             created_at: new Date().toISOString()
           });
           

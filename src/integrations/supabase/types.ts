@@ -16,7 +16,6 @@ export type Database = {
           email: string | null
           id: number
           Name: string | null
-          password: string | null
           role: string | null
         }
         Insert: {
@@ -25,7 +24,6 @@ export type Database = {
           email?: string | null
           id?: number
           Name?: string | null
-          password?: string | null
           role?: string | null
         }
         Update: {
@@ -34,7 +32,6 @@ export type Database = {
           email?: string | null
           id?: number
           Name?: string | null
-          password?: string | null
           role?: string | null
         }
         Relationships: []
