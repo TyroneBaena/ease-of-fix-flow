@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
@@ -49,10 +48,11 @@ export const useSupabaseAuth = () => {
   // Fetch user profile data from "user_profiles" table
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Do not convert userId to Number - keep it as string and use it directly
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', Number(userId))
+        .eq('id', userId)
         .single();
       
       if (error) throw error;
