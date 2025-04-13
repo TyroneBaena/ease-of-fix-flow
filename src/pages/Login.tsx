@@ -37,9 +37,11 @@ const Login = () => {
   const handleDemoLogin = async () => {
     try {
       setIsLoading(true);
-      // Use a valid email format for the demo user
-      const demoEmail = "demo.admin@example.com";
+      // Use a proper email format that will pass validation
+      const demoEmail = "demo.admin123@example.com";
       const demoPassword = "password123";
+      
+      console.log("Attempting demo login...");
       
       // First try to sign in directly - if the user already exists
       try {
@@ -52,15 +54,40 @@ const Login = () => {
       }
       
       // If sign-in failed, try to create the user
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: demoEmail,
-        password: demoPassword
+        password: demoPassword,
+        options: {
+          data: {
+            name: 'Demo Admin',
+            role: 'admin'
+          }
+        }
       });
       
       if (signUpError) {
         console.error("Error creating demo user:", signUpError);
-        toast.error("Failed to create demo account");
+        toast.error("Failed to create demo account: " + signUpError.message);
         return;
+      }
+      
+      // Create user profile manually since we might not have a trigger
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: Number(data.user.id),
+            Name: 'Demo Admin',
+            email: demoEmail,
+            role: 'admin',
+            created_at: new Date().toISOString()
+          });
+          
+        if (profileError) {
+          console.error("Error creating demo profile:", profileError);
+          toast.error("Failed to create demo profile");
+          return;
+        }
       }
       
       // Now try to sign in with the newly created account
@@ -69,7 +96,7 @@ const Login = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Demo login error:', error);
-      toast.error("Failed to sign in with demo account");
+      toast.error("Failed to login with demo account");
     } finally {
       setIsLoading(false);
     }
