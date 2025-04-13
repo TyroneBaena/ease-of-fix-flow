@@ -51,14 +51,11 @@ export const useSupabaseAuth = () => {
     try {
       console.log("Fetching profile for user ID:", userId);
       
-      // Convert UUID string to a number for database query
-      // Supabase user_profiles table expects a numeric id
-      const numericId = Number(userId);
-      
+      // Use UUID directly as string - don't convert to number
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', numericId)
+        .eq('id', userId)
         .single();
       
       if (error) {
@@ -69,7 +66,7 @@ export const useSupabaseAuth = () => {
       if (data) {
         console.log("Found user profile:", data);
         setCurrentUser({
-          id: String(data.id), // Convert back to string for the app
+          id: String(data.id),
           name: data.Name || '',
           email: String(data.email) || '',
           role: (String(data.role) as UserRole) || 'manager',

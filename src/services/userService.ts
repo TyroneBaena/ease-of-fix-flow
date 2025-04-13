@@ -12,7 +12,7 @@ export const userService = {
     if (error) throw error;
     
     return data?.map(profile => ({
-      id: String(profile.id), // Convert number to string for the app
+      id: String(profile.id),
       name: profile.Name || '',
       email: String(profile.email) || '',
       role: String(profile.role) as UserRole,
@@ -42,13 +42,11 @@ export const userService = {
     
     // 2. Create user profile
     if (authData.user) {
-      // Convert UUID string to number for the database
-      const numericId = Number(authData.user.id);
-      
+      // Use UUID directly as string
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          id: numericId,
+          id: authData.user.id,
           Name: name,
           email: email,
           role: role,
@@ -66,9 +64,6 @@ export const userService = {
   
   // Update user (admin only)
   async updateUser(user: User): Promise<void> {
-    // Convert string ID to numeric ID for database
-    const numericId = Number(user.id);
-    
     const { error } = await supabase
       .from('user_profiles')
       .update({
@@ -77,7 +72,7 @@ export const userService = {
         role: user.role,
         assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
       })
-      .eq('id', numericId);
+      .eq('id', user.id);
     
     if (error) throw error;
   },
@@ -93,13 +88,10 @@ export const userService = {
   
   // Check if user is admin
   async isUserAdmin(userId: string): Promise<boolean> {
-    // Convert string ID to numeric ID for database
-    const numericId = Number(userId);
-    
     const { data, error } = await supabase
       .from('user_profiles')
       .select('role')
-      .eq('id', numericId)
+      .eq('id', userId)
       .single();
     
     if (error) return false;
