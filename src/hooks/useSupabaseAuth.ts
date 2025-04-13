@@ -49,21 +49,24 @@ export const useSupabaseAuth = () => {
   // Fetch user profile data from "user_profiles" table
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Since the user_profiles table uses numeric IDs, convert the UUID to a number
-      const numericId = parseInt(userId.replace(/-/g, ''), 16);
+      console.log("Fetching profile for user ID:", userId);
       
-      // Use the numeric ID when querying
+      // Use the UUID directly
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', numericId) 
+        .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error details:", error);
+        throw error;
+      }
       
       if (data) {
+        console.log("Found user profile:", data);
         setCurrentUser({
-          id: String(data.id),
+          id: data.id,
           name: data.Name || '',
           email: String(data.email) || '',
           role: (String(data.role) as UserRole) || 'manager',
@@ -71,6 +74,8 @@ export const useSupabaseAuth = () => {
           createdAt: String(data.created_at) || new Date().toISOString()
         });
         setSupabaseUser(null);
+      } else {
+        console.log("No user profile found for ID:", userId);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,14 +72,11 @@ const Login = () => {
       
       // Create user profile manually since we might not have a trigger
       if (data.user) {
-        // Convert the UUID to a number for the user_profiles table
-        const numericId = parseInt(data.user.id.replace(/-/g, ''), 16);
-        
-        // Use numeric ID for the user_profiles table
+        // Use UUID directly
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert({
-            id: numericId,
+            id: data.user.id,
             Name: 'Demo Admin',
             email: demoEmail,
             role: 'admin',
