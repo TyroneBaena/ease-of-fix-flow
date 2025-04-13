@@ -1,53 +1,115 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
-
-// Mock current user for demo purposes
-const MOCK_CURRENT_USER: User = {
-  id: '1',
-  name: 'Admin User',
-  email: 'admin@example.com',
-  role: 'admin',
-  createdAt: new Date().toISOString()
-};
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { userService } from '@/services/userService';
+import { toast } from "sonner";
 
 interface UserContextType {
   currentUser: User | null;
   users: User[];
-  setCurrentUser: (user: User | null) => void;
-  addUser: (user: User) => void;
-  updateUser: (user: User) => void;
-  removeUser: (userId: string) => void;
+  loading: boolean;
+  fetchUsers: () => Promise<void>;
+  addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
+  removeUser: (userId: string) => Promise<void>;
   isAdmin: () => boolean;
   canAccessProperty: (propertyId: string) => boolean;
+  signOut: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(MOCK_CURRENT_USER);
-  const [users, setUsers] = useState<User[]>([
-    MOCK_CURRENT_USER,
-    {
-      id: '2',
-      name: 'Manager User',
-      email: 'manager@example.com',
-      role: 'manager',
-      assignedProperties: ['1', '3'],
-      createdAt: new Date().toISOString()
+  const { currentUser, loading: authLoading, signOut } = useSupabaseAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch users when currentUser changes (if they're an admin)
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      fetchUsers();
+    } else {
+      setLoading(false);
     }
-  ]);
+  }, [currentUser]);
 
-  const addUser = (user: User) => {
-    setUsers([...users, user]);
+  const fetchUsers = async () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const allUsers = await userService.getAllUsers();
+      setUsers(allUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateUser = (updatedUser: User) => {
-    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+  const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []) => {
+    try {
+      setLoading(true);
+      await userService.inviteUser(email, name, role, assignedProperties);
+      toast.success(`User ${name} invited successfully`);
+      
+      if (currentUser?.role === 'admin') {
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('Failed to invite user');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeUser = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
+  const updateUser = async (updatedUser: User) => {
+    try {
+      setLoading(true);
+      await userService.updateUser(updatedUser);
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      ));
+      
+      toast.success(`User ${updatedUser.name} updated successfully`);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeUser = async (userId: string) => {
+    if (userId === currentUser?.id) {
+      toast.error("You cannot delete your own account");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await userService.deleteUser(userId);
+      
+      // Update local state
+      setUsers(users.filter(user => user.id !== userId));
+      
+      toast.success("User removed successfully");
+    } catch (error) {
+      console.error('Error removing user:', error);
+      toast.error('Failed to remove user');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isAdmin = () => {
@@ -64,12 +126,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     <UserContext.Provider value={{
       currentUser,
       users,
-      setCurrentUser,
+      loading: loading || authLoading,
+      fetchUsers,
       addUser,
       updateUser,
       removeUser,
       isAdmin,
-      canAccessProperty
+      canAccessProperty,
+      signOut
     }}>
       {children}
     </UserContext.Provider>

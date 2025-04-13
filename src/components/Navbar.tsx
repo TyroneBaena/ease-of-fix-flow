@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import {
   Home,
@@ -9,7 +9,7 @@ import {
   Settings,
   Bell,
   Menu,
-  X,
+  LogOut,
   User,
   Plus,
   Building
@@ -22,15 +22,21 @@ import {
   SheetTrigger,
   SheetClose
 } from "@/components/ui/sheet";
-import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserContext } from '@/contexts/UserContext';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { currentUser, isAdmin } = useUserContext();
+  const { currentUser, isAdmin, signOut } = useUserContext();
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -54,6 +60,11 @@ const Navbar = () => {
   };
   
   const navItems = getNavItems();
+  
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
   
   const NavLinks = () => (
     <nav className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8">
@@ -106,10 +117,33 @@ const Navbar = () => {
               <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
             </Button>
             
-            <Avatar className="h-8 w-8">
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback>{userInitials}</AvatarFallback>
-            </Avatar>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="h-8 w-8 cursor-pointer">
+                  <AvatarImage src="/placeholder.svg" />
+                  <AvatarFallback>{userInitials}</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="flex items-center justify-start p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    {currentUser && (
+                      <>
+                        <p className="font-medium">{currentUser.name}</p>
+                        <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* Mobile menu */}
             {isMobile && (
@@ -161,6 +195,14 @@ const Navbar = () => {
                       <Button className="w-full bg-blue-500 hover:bg-blue-600">
                         <Plus className="mr-2 h-4 w-4" />
                         New Request
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-2"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign out
                       </Button>
                     </div>
                   </div>
