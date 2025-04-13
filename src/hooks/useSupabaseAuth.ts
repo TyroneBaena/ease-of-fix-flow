@@ -9,43 +9,6 @@ export const useSupabaseAuth = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [supabaseUser, setSupabaseUser] = useState(null);
 
-  // Initialize auth state from session
-  useEffect(() => {
-    const initializeAuth = async () => {
-      setLoading(true);
-      
-      // Get current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setCurrentUser(null);
-        setSupabaseUser(null);
-      }
-      
-      setLoading(false);
-      
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            await fetchUserProfile(session.user.id);
-          } else if (event === 'SIGNED_OUT') {
-            setCurrentUser(null);
-            setSupabaseUser(null);
-          }
-        }
-      );
-      
-      return () => {
-        subscription.unsubscribe();
-      };
-    };
-    
-    initializeAuth();
-  }, []);
-
   // Fetch user profile data from "user_profiles" table
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -70,7 +33,9 @@ export const useSupabaseAuth = () => {
           name: data.Name || '',
           email: String(data.email) || '',
           role: (String(data.role) as UserRole) || 'manager',
-          assignedProperties: data.assigned_properties ? String(data.assigned_properties).split(',') : [],
+          assignedProperties: data.assigned_properties
+            ? String(data.assigned_properties).split(',')
+            : [],
           createdAt: String(data.created_at) || new Date().toISOString()
         });
         setSupabaseUser(null);
@@ -83,14 +48,51 @@ export const useSupabaseAuth = () => {
     }
   };
 
+  useEffect(() => {
+    let subscription: { unsubscribe: () => void } | undefined;
+
+    const initializeAuth = async () => {
+      setLoading(true);
+      
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        setCurrentUser(null);
+        setSupabaseUser(null);
+      }
+      
+      setLoading(false);
+    };
+
+    initializeAuth();
+
+    // Set up listener for auth changes outside the async function.
+    const { data } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          await fetchUserProfile(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+          setSupabaseUser(null);
+        }
+      }
+    );
+    subscription = data.subscription;
+
+    // Cleanup function to unsubscribe when component unmounts.
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
   // Sign in with email/password
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) throw error;
       toast.success("Signed in successfully");
@@ -126,3 +128,4 @@ export const useSupabaseAuth = () => {
     signOut
   };
 };
+
