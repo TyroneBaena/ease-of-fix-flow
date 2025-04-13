@@ -27,10 +27,15 @@ export const userService = {
     const temporaryPassword = Math.random().toString(36).slice(-8);
     
     // 1. Create auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: temporaryPassword,
-      email_confirm: true,
+      options: {
+        data: {
+          name,
+          role
+        }
+      }
     });
     
     if (authError) throw authError;
