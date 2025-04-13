@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Download } from 'lucide-react';
+import { downloadQRCode } from '@/utils/qrCodeGenerator';
 
 interface PropertyQrDialogProps {
   open: boolean;
@@ -27,6 +28,13 @@ export const PropertyQrDialog: React.FC<PropertyQrDialogProps> = ({
   qrCodeUrl,
   onDownload
 }) => {
+  const qrCodeId = `qr-code-${propertyName.replace(/\s+/g, '-').toLowerCase()}`;
+  
+  const handleDownload = () => {
+    downloadQRCode(qrCodeId, propertyName);
+    onDownload();
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -38,14 +46,14 @@ export const PropertyQrDialog: React.FC<PropertyQrDialogProps> = ({
         </DialogHeader>
         <div className="flex justify-center py-6">
           <div className="border p-4 rounded-lg">
-            <QRCodeSVG value={qrCodeUrl} size={200} />
+            <QRCodeSVG id={qrCodeId} value={qrCodeUrl} size={200} />
           </div>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button type="button" onClick={onDownload} className="flex items-center">
+          <Button type="button" onClick={handleDownload} className="flex items-center">
             <Download className="mr-2 h-4 w-4" />
             Download QR Code
           </Button>

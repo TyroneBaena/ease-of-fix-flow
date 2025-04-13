@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -57,8 +56,7 @@ const PropertyDetail = () => {
   };
 
   const handleQrDownload = () => {
-    // This is a placeholder for actual QR code download functionality
-    toast.success('QR Code downloaded');
+    toast.success(`QR Code for ${property.name} downloaded`);
   };
 
   if (!property) {
@@ -108,7 +106,6 @@ const PropertyDetail = () => {
         />
       )}
 
-      {/* Fix: Wrap DialogContent in Dialog component */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
