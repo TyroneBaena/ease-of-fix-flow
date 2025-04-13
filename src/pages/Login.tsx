@@ -73,10 +73,20 @@ const Login = () => {
       
       // Create user profile manually since we might not have a trigger
       if (data.user) {
+        // Convert the UUID to a number for the user_profiles table
+        const numericId = Number(data.user.id);
+        
+        // Make sure the ID conversion is valid
+        if (isNaN(numericId)) {
+          console.error("Failed to convert user ID to number:", data.user.id);
+          toast.error("Failed to create demo profile: Invalid ID format");
+          return;
+        }
+        
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert({
-            id: data.user.id, // Use the UUID directly without converting to number
+            id: numericId, // Use numeric ID for the user_profiles table
             Name: 'Demo Admin',
             email: demoEmail,
             role: 'admin',
