@@ -37,8 +37,8 @@ const Login = () => {
   const handleDemoLogin = async () => {
     try {
       setIsLoading(true);
-      // Use a proper email format that will pass validation
-      const demoEmail = "demo.admin123@example.com";
+      // Use a valid email format that will pass Supabase validation
+      const demoEmail = "demo-admin@example.com";
       const demoPassword = "password123";
       
       console.log("Attempting demo login...");
