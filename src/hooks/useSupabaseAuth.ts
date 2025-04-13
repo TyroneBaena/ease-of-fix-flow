@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
@@ -48,11 +49,19 @@ export const useSupabaseAuth = () => {
   // Fetch user profile data from "user_profiles" table
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Do not convert userId to Number - keep it as string and use it directly
+      // Convert userId to Number since the user_profiles table uses numeric IDs
+      const numericId = Number(userId);
+      
+      // Make sure the ID conversion is valid
+      if (isNaN(numericId)) {
+        console.error("Failed to convert user ID to number:", userId);
+        throw new Error("Invalid user ID format");
+      }
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', numericId) // Use the converted numeric ID
         .single();
       
       if (error) throw error;
