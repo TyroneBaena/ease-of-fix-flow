@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Property, MaintenanceRequest, isAttachmentArray, isHistoryArray } from '../types/property';
 import { supabase } from '@/lib/supabase';
@@ -130,15 +131,15 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         return {
           id: req.id,
-          isParticipantRelated: false,
-          participantName: 'N/A',
-          attemptedFix: '',
-          issueNature: req.title || '',
-          explanation: req.description || '',
+          isParticipantRelated: req.is_participant_related || false,
+          participantName: req.participant_name || 'N/A',
+          attemptedFix: req.attempted_fix || '',
+          issueNature: req.issue_nature || req.title || '',
+          explanation: req.explanation || req.description || '',
           location: req.location || '',
-          reportDate: req.created_at.split('T')[0] || '',
-          site: req.category || '',
-          submittedBy: '',
+          reportDate: req.report_date || req.created_at.split('T')[0] || '',
+          site: req.site || req.category || '',
+          submittedBy: req.submitted_by || '',
           status: req.status || 'open',
           title: req.title,
           description: req.description,
