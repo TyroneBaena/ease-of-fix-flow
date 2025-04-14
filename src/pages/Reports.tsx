@@ -1,15 +1,22 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import { useUserContext } from '@/contexts/UserContext';
 import { Loader2 } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Reports = () => {
-  const { isAdmin, loading } = useUserContext();
+  const { isAdmin, loading, currentUser } = useUserContext();
   const [activeTab, setActiveTab] = useState("maintenance");
+  const [error, setError] = useState<string | null>(null);
+
+  // Reset error state when component mounts or user changes
+  useEffect(() => {
+    setError(null);
+  }, [currentUser]);
 
   // Show loading state if user data is still loading
   if (loading) {
@@ -21,6 +28,23 @@ const Reports = () => {
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             <span className="ml-2 text-blue-500">Loading reports...</span>
           </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show error state if no user is found (should not happen if ProtectedRoute is working)
+  if (!currentUser && !loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Authentication Error</AlertTitle>
+            <AlertDescription>
+              Unable to load user data. Please try refreshing the page or signing out and back in.
+            </AlertDescription>
+          </Alert>
         </main>
       </div>
     );

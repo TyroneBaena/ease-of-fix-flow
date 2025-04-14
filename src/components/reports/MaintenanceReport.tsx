@@ -7,6 +7,7 @@ import { mockMaintenanceRequests } from './data/mockMaintenanceData';
 import ReportHeader from './components/ReportHeader';
 import ReportFilters from './components/ReportFilters';
 import MaintenanceRequestsTable from './components/MaintenanceRequestsTable';
+import { Loader2 } from 'lucide-react';
 
 const MaintenanceReport = () => {
   const { properties } = usePropertyContext();
@@ -14,6 +15,16 @@ const MaintenanceReport = () => {
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  
+  // If properties aren't loaded yet, show loading
+  if (!properties || properties.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
+        <span>Loading property data...</span>
+      </div>
+    );
+  }
   
   // Filter properties based on user role
   const accessibleProperties = isAdmin
