@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { usePropertyContext } from '@/contexts/PropertyContext';
+import { usePropertyContext } from '@/contexts/property';
 import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import { Property } from '@/types/property';
 import PropertyAccessControl from './PropertyAccessControl';
@@ -12,7 +12,47 @@ interface PropertyDetailProps {
 
 const PropertyDetail: React.FC<PropertyDetailProps> = ({ property }) => {
   const { getRequestsForProperty } = useMaintenanceRequestContext();
+  const [isLoaded, setIsLoaded] = useState(false);
   const propertyRequests = getRequestsForProperty(property.id);
+  
+  // Add a useEffect to stabilize rendering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [property.id]);
+
+  if (!isLoaded) {
+    return (
+      <PropertyAccessControl propertyId={property.id}>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="animate-pulse">
+            <div className="h-7 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="h-5 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              </div>
+              <div>
+                <div className="h-5 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PropertyAccessControl>
+    );
+  }
 
   return (
     <PropertyAccessControl propertyId={property.id}>

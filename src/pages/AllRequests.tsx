@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { usePropertyContext } from '@/contexts/PropertyContext';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import { MaintenanceRequest } from '@/types/property';
 import RequestsHeader from '@/components/requests/RequestsHeader';
@@ -19,7 +18,6 @@ const AllRequests = () => {
   const [allRequests, setAllRequests] = useState<MaintenanceRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
 
-  // Collect all requests from all properties
   useEffect(() => {
     const requests: MaintenanceRequest[] = [];
     properties.forEach(property => {
@@ -29,11 +27,9 @@ const AllRequests = () => {
     setAllRequests(requests);
   }, [properties, getRequestsForProperty]);
 
-  // Filter and sort requests
   useEffect(() => {
     let result = [...allRequests];
     
-    // Apply search filter
     if (searchTerm) {
       result = result.filter(request => 
         request.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -41,17 +37,14 @@ const AllRequests = () => {
       );
     }
     
-    // Apply status filter
     if (statusFilter !== 'all') {
       result = result.filter(request => request.status === statusFilter);
     }
     
-    // Apply category filter
     if (categoryFilter !== 'all') {
       result = result.filter(request => request.category.toLowerCase() === categoryFilter);
     }
     
-    // Apply sorting
     result.sort((a, b) => {
       if (sortField === 'createdAt' || sortField === 'updatedAt') {
         const aValue = new Date(a[sortField]).getTime();
@@ -59,7 +52,6 @@ const AllRequests = () => {
         return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
       }
       
-      // Handle other fields
       const aValue = a[sortField] || '';
       const bValue = b[sortField] || '';
       return sortDirection === 'asc' 
@@ -70,10 +62,8 @@ const AllRequests = () => {
     setFilteredRequests(result);
   }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, allRequests]);
 
-  // Get unique categories from requests
   const categories = Array.from(new Set(allRequests.map(req => req.category.toLowerCase())));
 
-  // Get empty message based on filters
   const getEmptyMessage = () => {
     if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all') {
       return "Try adjusting your filters";
@@ -105,7 +95,6 @@ const AllRequests = () => {
           categories={categories}
         />
         
-        {/* Results Count */}
         <div className="mb-4 text-sm text-gray-600">
           Showing {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
         </div>

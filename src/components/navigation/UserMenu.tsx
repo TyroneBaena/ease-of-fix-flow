@@ -25,9 +25,9 @@ export const UserMenu = () => {
     navigate('/login');
   };
 
-  // Log user info for debugging
+  // Log user info for debugging - updated to use isAdmin as boolean
   console.log('UserMenu - Current user:', currentUser);
-  console.log('UserMenu - Is admin?', isAdmin());
+  console.log('UserMenu - Is admin?', isAdmin);
 
   return (
     <DropdownMenu>
@@ -51,8 +51,8 @@ export const UserMenu = () => {
         </div>
         <DropdownMenuSeparator />
         
-        {/* Show Settings link for both admin and manager */}
-        {(isAdmin() || currentUser?.role === 'manager') && (
+        {/* Show Settings link for both admin and manager - updated to use isAdmin as boolean */}
+        {(isAdmin || currentUser?.role === 'manager') && (
           <DropdownMenuItem 
             className="cursor-pointer"
             onClick={() => navigate('/settings')}

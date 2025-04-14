@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { User } from '@/types/user';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -10,16 +9,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Edit, Trash2, Key, UserCircle } from 'lucide-react';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { formatDistanceToNow } from 'date-fns';
+import UserTableRow from './table/UserTableRow';
+import UserTablePagination from './table/UserTablePagination';
 
 interface UserTableProps {
   users: User[];
@@ -28,7 +19,6 @@ interface UserTableProps {
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
   onResetPassword: (userId: string, email: string) => void;
-  // Pagination props
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -36,10 +26,10 @@ interface UserTableProps {
 }
 
 const UserTable: React.FC<UserTableProps> = ({ 
-  users, 
-  currentUser, 
-  isLoading, 
-  onEditUser, 
+  users,
+  currentUser,
+  isLoading,
+  onEditUser,
   onDeleteUser,
   onResetPassword,
   currentPage,
@@ -48,54 +38,9 @@ const UserTable: React.FC<UserTableProps> = ({
   usersPerPage
 }) => {
   // Calculate which users to display on the current page
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-
-  // Generate an array of page numbers to display
-  const getPageNumbers = () => {
-    const pages = [];
-    // Always show first page
-    if (currentPage > 2) {
-      pages.push(1);
-      if (currentPage > 3) {
-        pages.push('ellipsis');
-      }
-    }
-    
-    // Show one page before current if it exists
-    if (currentPage > 1) {
-      pages.push(currentPage - 1);
-    }
-    
-    // Show current page
-    pages.push(currentPage);
-    
-    // Show one page after current if it exists
-    if (currentPage < totalPages) {
-      pages.push(currentPage + 1);
-    }
-    
-    // Always show last page
-    if (currentPage < totalPages - 1) {
-      if (currentPage < totalPages - 2) {
-        pages.push('ellipsis');
-      }
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  };
-
-  // Format creation date to be more readable
-  const formatCreationDate = (dateString: string) => {
-    if (!dateString) return "Unknown";
-    try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (error) {
-      return "Invalid date";
-    }
-  };
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const currentUsers = users.slice(startIndex, endIndex);
 
   return (
     <div>
@@ -112,66 +57,15 @@ const UserTable: React.FC<UserTableProps> = ({
         </TableHeader>
         <TableBody>
           {currentUsers.map(user => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium flex items-center gap-2">
-                <UserCircle className="h-5 w-5 text-gray-400" />
-                {user.name}
-              </TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                <span className={`capitalize px-2 py-1 rounded-full text-xs ${
-                  user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                }`}>
-                  {user.role}
-                </span>
-              </TableCell>
-              <TableCell>
-                {user.role === 'admin' ? (
-                  <span className="text-gray-500">All Properties</span>
-                ) : (
-                  <span>
-                    {user.assignedProperties?.length || 0} properties
-                  </span>
-                )}
-              </TableCell>
-              <TableCell>
-                {formatCreationDate(user.createdAt)}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEditUser(user)}
-                    disabled={isLoading}
-                    title="Edit user"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onResetPassword(user.id, user.email)}
-                    disabled={isLoading}
-                    title="Reset password"
-                  >
-                    <Key className="h-4 w-4" />
-                    <span className="sr-only">Reset Password</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDeleteUser(user.id)}
-                    disabled={isLoading || user.id === currentUser?.id}
-                    title={user.id === currentUser?.id ? "Cannot delete your own account" : "Delete user"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Delete</span>
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
+            <UserTableRow
+              key={user.id}
+              user={user}
+              currentUserId={currentUser?.id}
+              isLoading={isLoading}
+              onEditUser={onEditUser}
+              onDeleteUser={onDeleteUser}
+              onResetPassword={onResetPassword}
+            />
           ))}
           {users.length === 0 && (
             <TableRow>
@@ -183,55 +77,12 @@ const UserTable: React.FC<UserTableProps> = ({
         </TableBody>
       </Table>
 
-      {/* Only show pagination if we have users */}
       {users.length > 0 && (
-        <div className="mt-4">
-          <Pagination>
-            <PaginationContent>
-              {/* Previous page button */}
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => onPageChange(currentPage - 1)} 
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  href="#" 
-                />
-              </PaginationItem>
-
-              {/* Page numbers */}
-              {getPageNumbers().map((page, index) => (
-                <PaginationItem key={index}>
-                  {page === 'ellipsis' ? (
-                    <PaginationItem>
-                      <PaginationLink href="#" onClick={(e) => e.preventDefault()}>
-                        ...
-                      </PaginationLink>
-                    </PaginationItem>
-                  ) : (
-                    <PaginationLink 
-                      href="#" 
-                      isActive={page === currentPage}
-                      onClick={(e) => {
-                        e.preventDefault(); 
-                        onPageChange(page as number);
-                      }}
-                    >
-                      {page}
-                    </PaginationLink>
-                  )}
-                </PaginationItem>
-              ))}
-
-              {/* Next page button */}
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => onPageChange(currentPage + 1)} 
-                  className={currentPage === totalPages || totalPages === 0 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  href="#" 
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <UserTablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
       )}
     </div>
   );
