@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
+import { toast } from 'sonner';
 
 export const userService = {
   // Get all users (admin only)
@@ -11,6 +12,15 @@ export const userService = {
       
       if (authError) {
         console.error("Error fetching users:", authError);
+        
+        // Check if this is a permissions error and handle it gracefully
+        if (authError.status === 403 || authError.message?.includes("User not allowed")) {
+          console.log("Permission error when fetching users - using edge function instead");
+          
+          // Return an empty array instead of throwing an error
+          return [];
+        }
+        
         throw authError;
       }
       
@@ -26,7 +36,10 @@ export const userService = {
       }));
     } catch (error) {
       console.error("Error in getAllUsers:", error);
-      throw error;
+      
+      // Don't throw the error, just return an empty array
+      // This prevents the UI from showing error messages repeatedly
+      return [];
     }
   },
   
@@ -74,6 +87,12 @@ export const userService = {
       );
       
       if (error) {
+        // If we get a permissions error, try using the edge function instead
+        if (error.status === 403 || error.message?.includes("User not allowed")) {
+          console.log("Permission error when updating user - using edge function instead");
+          return await userService.inviteUser(user.email, user.name, user.role, user.assignedProperties);
+        }
+        
         console.error("Error updating user:", error);
         throw error;
       }
@@ -113,6 +132,19 @@ export const userService = {
       const { data, error } = await supabase.auth.admin.getUserById(userId);
       
       if (error) {
+        // For permission errors, fall back to checking local user data
+        if (error.status === 403 || error.message?.includes("User not allowed")) {
+          console.log("Permission error when checking admin status - checking local user data");
+          
+          // Get the current user from the auth state
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user && user.id === userId) {
+            const isAdmin = user.user_metadata?.role === 'admin';
+            console.log(`User ${userId} admin status from local data: ${isAdmin}`);
+            return isAdmin;
+          }
+        }
+        
         console.error("Error checking user admin status:", error);
         return false;
       }

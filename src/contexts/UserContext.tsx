@@ -24,11 +24,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const { currentUser, loading: authLoading, signOut } = useSupabaseAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<Error | null>(null);
 
   // Fetch users when currentUser changes (if they're an admin)
   useEffect(() => {
     if (currentUser && currentUser.role === 'admin') {
-      fetchUsers();
+      fetchUsers().catch(error => {
+        // Only show one error toast maximum
+        if (!loadingError) {
+          setLoadingError(error);
+        }
+      });
     } else {
       setLoading(false);
     }
@@ -43,9 +49,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       const allUsers = await userService.getAllUsers();
       setUsers(allUsers);
+      // Reset loading error if successful
+      setLoadingError(null);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      setLoadingError(error as Error);
+      // Don't show toast here as it might pop up repeatedly
     } finally {
       setLoading(false);
     }
