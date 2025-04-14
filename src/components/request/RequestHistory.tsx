@@ -8,10 +8,19 @@ interface HistoryEvent {
 }
 
 interface RequestHistoryProps {
-  history?: HistoryEvent[];
+  history?: HistoryEvent[] | null;
 }
 
 export const RequestHistory = ({ history = [] }: RequestHistoryProps) => {
+  if (!history || history.length === 0) {
+    return (
+      <Card className="p-6">
+        <h2 className="font-semibold mb-4">History</h2>
+        <p className="text-gray-500 text-sm">No history available</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <h2 className="font-semibold mb-4">History</h2>

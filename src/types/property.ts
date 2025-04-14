@@ -26,6 +26,19 @@ export interface MaintenanceRequest {
   updatedAt?: string; 
   dueDate?: string;
   assignedTo?: string;
-  attachments?: Array<{ url: string }>;
-  history?: Array<{ action: string; timestamp: string }>;
+  attachments?: Array<{ url: string }> | null;
+  history?: Array<{ action: string; timestamp: string }> | null;
+}
+
+// Type guard to check if value is an array of attachment objects
+export function isAttachmentArray(value: any): value is Array<{ url: string }> {
+  return Array.isArray(value) && 
+         value.every(item => typeof item === 'object' && item !== null && 'url' in item);
+}
+
+// Type guard to check if value is an array of history objects
+export function isHistoryArray(value: any): value is Array<{ action: string; timestamp: string }> {
+  return Array.isArray(value) && 
+         value.every(item => typeof item === 'object' && item !== null && 
+                    'action' in item && 'timestamp' in item);
 }

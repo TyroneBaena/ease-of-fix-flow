@@ -23,7 +23,7 @@ interface RequestInfoProps {
     dueDate?: string;
     assignedTo?: string;
     description: string;
-    attachments?: Array<{ url: string }>;
+    attachments?: Array<{ url: string }> | null;
   };
 }
 

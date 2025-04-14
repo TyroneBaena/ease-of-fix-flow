@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { Property, MaintenanceRequest } from '../types/property';
+import { Property, MaintenanceRequest, isAttachmentArray, isHistoryArray } from '../types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { useUserContext } from './UserContext';
@@ -94,22 +94,66 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
 
       // Convert the data to match our MaintenanceRequest type
-      const formattedRequests: MaintenanceRequest[] = data.map(req => ({
-        id: req.id,
-        title: req.title,
-        description: req.description,
-        category: req.category,
-        location: req.location,
-        priority: req.priority,
-        status: req.status,
-        propertyId: req.property_id,
-        createdAt: req.created_at,
-        updatedAt: req.updated_at,
-        dueDate: req.due_date || undefined,
-        assignedTo: req.assigned_to || undefined,
-        attachments: req.attachments || undefined,
-        history: req.history || undefined
-      }));
+      const formattedRequests: MaintenanceRequest[] = data.map(req => {
+        // Process attachments to ensure they match our expected type
+        let processedAttachments;
+        if (req.attachments) {
+          if (isAttachmentArray(req.attachments)) {
+            processedAttachments = req.attachments;
+          } else if (Array.isArray(req.attachments)) {
+            // Try to convert array items to the expected format
+            processedAttachments = req.attachments.map(item => {
+              if (typeof item === 'object' && item !== null && 'url' in item) {
+                return { url: item.url };
+              }
+              return { url: String(item) };
+            });
+          } else {
+            // If it's not an array, set to null
+            processedAttachments = null;
+          }
+        } else {
+          processedAttachments = null;
+        }
+
+        // Process history to ensure it matches our expected type
+        let processedHistory;
+        if (req.history) {
+          if (isHistoryArray(req.history)) {
+            processedHistory = req.history;
+          } else if (Array.isArray(req.history)) {
+            // Try to convert array items to the expected format
+            processedHistory = req.history.map(item => {
+              if (typeof item === 'object' && item !== null && 'action' in item && 'timestamp' in item) {
+                return { action: item.action, timestamp: item.timestamp };
+              }
+              return { action: String(item), timestamp: new Date().toISOString() };
+            });
+          } else {
+            // If it's not an array, set to null
+            processedHistory = null;
+          }
+        } else {
+          processedHistory = null;
+        }
+
+        return {
+          id: req.id,
+          title: req.title,
+          description: req.description,
+          category: req.category,
+          location: req.location,
+          priority: req.priority,
+          status: req.status,
+          propertyId: req.property_id,
+          createdAt: req.created_at,
+          updatedAt: req.updated_at,
+          dueDate: req.due_date || undefined,
+          assignedTo: req.assigned_to || undefined,
+          attachments: processedAttachments,
+          history: processedHistory
+        };
+      });
 
       setRequests(formattedRequests);
     } catch (err) {
@@ -283,6 +327,25 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
+      // Process attachments and history based on the new type guards
+      let processedAttachments = null;
+      if (data.attachments) {
+        if (isAttachmentArray(data.attachments)) {
+          processedAttachments = data.attachments;
+        } else {
+          processedAttachments = null;
+        }
+      }
+
+      let processedHistory = null;
+      if (data.history) {
+        if (isHistoryArray(data.history)) {
+          processedHistory = data.history;
+        } else {
+          processedHistory = null;
+        }
+      }
+
       // Convert to our MaintenanceRequest type
       const newRequest: MaintenanceRequest = {
         id: data.id,
@@ -297,8 +360,8 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         updatedAt: data.updated_at,
         dueDate: data.due_date || undefined,
         assignedTo: data.assigned_to || undefined,
-        attachments: data.attachments || undefined,
-        history: data.history || undefined
+        attachments: processedAttachments,
+        history: processedHistory
       };
 
       setRequests(prev => [...prev, newRequest]);
