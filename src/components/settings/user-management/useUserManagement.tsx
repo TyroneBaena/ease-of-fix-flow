@@ -9,7 +9,7 @@ import { User } from '@/types/user';
 import { toast } from 'sonner';
 
 export const useUserManagement = () => {
-  const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext } = useUserContext();
+  const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -50,6 +50,13 @@ export const useUserManagement = () => {
     handlePageChange,
     USERS_PER_PAGE
   );
+  
+  // Update fetchError if there's an error in the user context
+  useEffect(() => {
+    if (userContextError) {
+      setFetchError(userContextError);
+    }
+  }, [userContextError]);
   
   // Function to safely fetch users
   const fetchUsers = useCallback(async () => {

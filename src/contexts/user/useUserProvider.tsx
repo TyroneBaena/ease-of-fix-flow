@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -63,7 +64,8 @@ export const useUserProvider = () => {
       
       // Only refetch users if we're admin and the invite was successful
       if (isAdmin && result.success) {
-        setHasFetched(false); // Force a refetch next time
+        // Force a refetch next time by resetting the fetch state
+        fetchInProgress.current = false;
         await fetchUsers();
       }
       
