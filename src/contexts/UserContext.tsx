@@ -5,12 +5,21 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
 
+// Define the return type for the addUser function
+interface AddUserResult {
+  success: boolean;
+  message: string;
+  userId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+}
+
 interface UserContextType {
   currentUser: User | null;
   users: User[];
   loading: boolean;
   fetchUsers: () => Promise<void>;
-  addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<void>;
+  addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<AddUserResult>;
   updateUser: (user: User) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
   isAdmin: () => boolean;
@@ -60,14 +69,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []) => {
+  const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
       setLoading(true);
-      await userService.inviteUser(email, name, role, assignedProperties);
+      const result = await userService.inviteUser(email, name, role, assignedProperties);
       
       if (currentUser?.role === 'admin') {
         await fetchUsers();
       }
+      
+      return result;
     } catch (error) {
       console.error('Error adding user:', error);
       throw error;

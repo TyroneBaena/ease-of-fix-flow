@@ -117,13 +117,14 @@ const UserManagement = () => {
           role: newUser.role,
           assignedPropertiesCount: newUser.assignedProperties.length
         });
+        
         const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
         console.log("Add user result:", result);
         
-        if (result?.emailSent) {
+        if (result.emailSent) {
           toast.success(`Invitation sent to ${newUser.email}`);
         } else {
-          const errorMessage = result?.emailError || "Unknown error";
+          const errorMessage = result.emailError || "Unknown error";
           console.error("Email sending failed:", errorMessage);
           toast.error(`User created but invitation email failed to send. ${errorMessage}`);
         }

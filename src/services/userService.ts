@@ -3,6 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 import { toast } from 'sonner';
 
+// Define the return type for the inviteUser function
+interface InviteUserResult {
+  success: boolean;
+  message: string;
+  userId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+}
+
 export const userService = {
   // Get all users (admin only)
   async getAllUsers(): Promise<User[]> {
@@ -44,7 +53,7 @@ export const userService = {
   },
   
   // Invite new user (admin only)
-  async inviteUser(email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<any> {
+  async inviteUser(email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<InviteUserResult> {
     try {
       console.log(`Inviting new user: ${email}, role: ${role}`);
       
@@ -66,7 +75,7 @@ export const userService = {
       }
       
       console.log(`Invitation sent to ${email} successfully`);
-      return data;
+      return data as InviteUserResult;
     } catch (error) {
       console.error("Error in inviteUser:", error);
       throw error;
