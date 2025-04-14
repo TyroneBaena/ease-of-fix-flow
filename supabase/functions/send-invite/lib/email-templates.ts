@@ -27,13 +27,13 @@ export function createEmailHtml(data: EmailData): string {
               <p style="margin: 5px 0;"><strong>Temporary Password:</strong> ${temporaryPassword}</p>
             </div>
             <p>
-              <a href="${loginUrl}/setup-password?email=${encodeURIComponent(data.to)}" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              <a href="${loginUrl}" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Set Up Your Password
               </a>
             </p>
             <p>For security reasons, we recommend changing this temporary password immediately after logging in.</p>
             <p>If the button above doesn't work, copy and paste this URL into your browser:</p>
-            <p style="word-break: break-all; font-size: 12px;">${loginUrl}/setup-password?email=${encodeURIComponent(data.to)}</p>
+            <p style="word-break: break-all; font-size: 12px;">${loginUrl}</p>
             <p>If you have any questions, please contact your administrator.</p>
             <p>Thank you,<br>Property Manager Team</p>
           </div>
@@ -49,12 +49,12 @@ export function createEmailHtml(data: EmailData): string {
             <p>Your account has been updated in the Property Manager system. You now have the role of <strong>${role}</strong>.</p>
             ${role === 'manager' ? `<p>You have been assigned to manage specific properties in the system.</p>` : ''}
             <p>
-              <a href="${loginUrl}/login" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              <a href="${loginUrl}" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Go to Login Page
               </a>
             </p>
             <p>If the button above doesn't work, copy and paste this URL into your browser:</p>
-            <p style="word-break: break-all; font-size: 12px;">${loginUrl}/login</p>
+            <p style="word-break: break-all; font-size: 12px;">${loginUrl}</p>
             <p>If you have any questions, please contact your administrator.</p>
             <p>Thank you,<br>Property Manager Team</p>
           </div>

@@ -119,13 +119,19 @@ serve(async (req: Request) => {
       }
     }
     
-    // Ensure application URL doesn't have trailing slash
-    const cleanAppUrl = applicationUrl.endsWith('/') 
-      ? applicationUrl.slice(0, -1) 
-      : applicationUrl;
+    // Ensure application URL doesn't have trailing slash and doesn't include /login path
+    let cleanAppUrl = applicationUrl;
+    if (cleanAppUrl.endsWith('/')) {
+      cleanAppUrl = cleanAppUrl.slice(0, -1);
+    }
+    
+    // Remove /login if it's at the end of the URL
+    if (cleanAppUrl.endsWith('/login')) {
+      cleanAppUrl = cleanAppUrl.slice(0, -6);
+    }
     
     console.log('Clean Application URL:', cleanAppUrl);
-    const loginUrl = cleanAppUrl;
+    const loginUrl = `${cleanAppUrl}/login`;
     console.log('Login URL to be used in email:', loginUrl);
     
     if (!loginUrl || loginUrl.trim() === '') {
