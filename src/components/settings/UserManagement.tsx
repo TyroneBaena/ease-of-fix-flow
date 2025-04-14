@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -145,7 +146,8 @@ const UserManagement = () => {
     }
   };
   
-  if (!isAdmin()) {
+  // Allow both admin and manager to view settings
+  if (!isAdmin() && currentUser?.role !== 'manager') {
     return <AccessDeniedMessage />;
   }
   
