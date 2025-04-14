@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -96,6 +97,7 @@ const UserManagement = () => {
     
     try {
       setIsLoading(true);
+      console.log("Starting user save operation:", isEditMode ? "update" : "invite");
       
       if (isEditMode && selectedUser) {
         const updatedUser: User = {
@@ -105,11 +107,26 @@ const UserManagement = () => {
           role: newUser.role,
           assignedProperties: newUser.role === 'manager' ? newUser.assignedProperties : []
         };
+        console.log("Updating user:", updatedUser);
         await updateUser(updatedUser);
         toast.success(`User ${updatedUser.name} updated successfully`);
       } else {
-        await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
-        toast.success(`Invitation sent to ${newUser.email}`);
+        console.log("Adding new user:", {
+          email: newUser.email,
+          name: newUser.name,
+          role: newUser.role,
+          assignedPropertiesCount: newUser.assignedProperties.length
+        });
+        const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
+        console.log("Add user result:", result);
+        
+        if (result?.emailSent) {
+          toast.success(`Invitation sent to ${newUser.email}`);
+        } else {
+          const errorMessage = result?.emailError || "Unknown error";
+          console.error("Email sending failed:", errorMessage);
+          toast.error(`User created but invitation email failed to send. ${errorMessage}`);
+        }
       }
       setIsDialogOpen(false);
     } catch (error) {

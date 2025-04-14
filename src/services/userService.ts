@@ -44,12 +44,12 @@ export const userService = {
   },
   
   // Invite new user (admin only)
-  async inviteUser(email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<void> {
+  async inviteUser(email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<any> {
     try {
       console.log(`Inviting new user: ${email}, role: ${role}`);
       
       // Call the send-invite edge function
-      const { error: inviteError } = await supabase.functions.invoke('send-invite', {
+      const { data, error: inviteError } = await supabase.functions.invoke('send-invite', {
         body: {
           email,
           name,
@@ -58,12 +58,15 @@ export const userService = {
         }
       });
       
+      console.log("Invite function response:", data);
+      
       if (inviteError) {
         console.error("Error inviting user:", inviteError);
         throw inviteError;
       }
       
       console.log(`Invitation sent to ${email} successfully`);
+      return data;
     } catch (error) {
       console.error("Error in inviteUser:", error);
       throw error;

@@ -13,6 +13,8 @@ import {
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 serve(async (req: Request) => {
+  console.log("Invite function called");
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -33,6 +35,7 @@ serve(async (req: Request) => {
     const { email, name, role, assignedProperties = [] } = body;
     
     if (!email || !name || !role) {
+      console.error("Missing required fields:", { email, name, role });
       return new Response(
         JSON.stringify({ error: "Email, name, and role are required" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -82,8 +85,17 @@ serve(async (req: Request) => {
     } else {
       isNewUser = true;
       temporaryPassword = generateTemporaryPassword();
-      const newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
-      userId = newUser.id;
+      try {
+        const newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
+        userId = newUser.id;
+        console.log(`New user created with ID: ${userId}`);
+      } catch (createError) {
+        console.error("Error creating new user:", createError);
+        return new Response(
+          JSON.stringify({ error: `Error creating user: ${createError.message}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
     
     // Ensure application URL doesn't have trailing slash
@@ -120,6 +132,7 @@ serve(async (req: Request) => {
     }
     
     try {
+      console.log("Calling Resend API to send email");
       const { data, error } = await resend.emails.send({
         from: 'Property Manager <onboarding@resend.dev>',
         to: [email],
@@ -128,7 +141,7 @@ serve(async (req: Request) => {
       });
       
       if (error) {
-        console.error("Error sending email:", error);
+        console.error("Error sending email via Resend:", error);
         throw error;
       }
       
@@ -152,7 +165,7 @@ serve(async (req: Request) => {
           message: isNewUser ? "User created but email failed" : "User updated but email failed", 
           userId,
           emailSent: false,
-          emailError: emailError.message
+          emailError: JSON.stringify(emailError)
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
