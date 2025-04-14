@@ -8,7 +8,7 @@ import AccessDeniedMessage from './user-management/AccessDeniedMessage';
 import DeleteUserDialog from './user-management/DeleteUserDialog';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 
 const UserManagement = () => {
   const {
@@ -44,48 +44,81 @@ const UserManagement = () => {
     return <AccessDeniedMessage />;
   }
   
-  // Show loading state
+  // Show loading state with timeout indicator
   if (isLoading && users.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
-        <p className="text-gray-600">Loading user data...</p>
+        <p className="text-gray-600 mb-2">Loading user data...</p>
+        <p className="text-sm text-gray-500">This may take a few moments</p>
       </div>
     );
   }
   
-  // Show error state with retry button
+  // Show error state with retry button and more detailed error
   if (fetchError) {
     return (
       <div className="p-4">
         <Alert variant="destructive" className="mb-6">
-          <AlertTitle>Failed to load users</AlertTitle>
-          <AlertDescription>
-            There was an error loading the user data. Please try again.
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          <AlertTitle className="mb-2">Failed to load users</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <p>There was an error loading the user data: {fetchError.message || 'Unknown error'}</p>
+            <p className="text-sm opacity-80">This might be due to database permissions or connection issues.</p>
           </AlertDescription>
         </Alert>
-        <Button 
-          onClick={() => fetchUsers()} 
-          variant="outline"
-          className="mt-2"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Retrying...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Retry
-            </>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => fetchUsers()} 
+            variant="outline"
+            className="mt-2"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Retrying...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </>
+            )}
+          </Button>
+          {users.length > 0 && (
+            <Button 
+              variant="default" 
+              className="mt-2"
+            >
+              Continue with cached data
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
     );
   }
   
+  // Show empty state if no users but no error
+  if (users.length === 0 && !isLoading && !fetchError) {
+    return (
+      <div className="p-4">
+        <UserManagementHeader onInviteUser={() => handleOpenDialog()} />
+        <div className="flex flex-col items-center justify-center p-8 border rounded-md mt-6 bg-gray-50">
+          <p className="text-gray-600 mb-2">No users found</p>
+          <Button 
+            onClick={() => handleOpenDialog()} 
+            variant="default"
+            className="mt-2"
+          >
+            Add your first user
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Regular state with users loaded
   return (
     <div>
       <UserManagementHeader onInviteUser={() => handleOpenDialog()} />

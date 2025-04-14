@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 import { toast } from 'sonner';
@@ -23,7 +22,8 @@ export const userService = {
       // First, try to get data from the profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
       
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
@@ -32,8 +32,13 @@ export const userService = {
       
       console.log(`Found ${profiles?.length || 0} user profiles`);
       
+      // If no data and no error, return empty array
+      if (!profiles || profiles.length === 0) {
+        return [];
+      }
+      
       // Map the profiles to our User type
-      return (profiles || []).map(profile => ({
+      return profiles.map(profile => ({
         id: profile.id,
         name: profile.name || '',
         email: profile.email || '',
@@ -43,7 +48,14 @@ export const userService = {
       }));
     } catch (error) {
       console.error("Error in getAllUsers:", error);
-      throw error;
+      
+      // If it's a known error type from Supabase, rethrow it
+      if (error && typeof error === 'object' && 'code' in error) {
+        throw error;
+      }
+      
+      // For other errors, create a more readable error
+      throw new Error('Unable to fetch users. Please try again later.');
     }
   },
   

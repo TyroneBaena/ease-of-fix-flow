@@ -10,14 +10,20 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 
 const Settings = () => {
-  const { currentUser, isAdmin, loading } = useUserContext();
+  const { currentUser, isAdmin, loading, loadingError } = useUserContext();
   const [stableLoadingState, setStableLoadingState] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Improved stable loading state management
+  // Improved stable loading state management with timeout safety
   useEffect(() => {
     // Reset error state when dependencies change
     setError(null);
+    
+    if (loadingError) {
+      setError(loadingError.message || "Error loading user data");
+      setStableLoadingState(false);
+      return;
+    }
     
     // Start with loading state
     setStableLoadingState(true);
@@ -49,7 +55,7 @@ const Settings = () => {
       clearTimeout(initialDelay);
       clearTimeout(backupTimeout);
     };
-  }, [currentUser, loading]);
+  }, [currentUser, loading, loadingError, error, stableLoadingState]);
   
   // Show consistent loading state
   if (stableLoadingState) {
@@ -66,7 +72,7 @@ const Settings = () => {
     );
   }
   
-  // Show error state if no user is found
+  // Show error state if no user is found or there's an error
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -79,6 +85,9 @@ const Settings = () => {
               {error}
             </AlertDescription>
           </Alert>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
         </main>
       </div>
     );
