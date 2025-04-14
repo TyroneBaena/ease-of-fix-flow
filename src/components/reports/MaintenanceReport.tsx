@@ -16,7 +16,7 @@ const MaintenanceReport = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   
   // Filter properties based on user role
-  const accessibleProperties = isAdmin() 
+  const accessibleProperties = isAdmin
     ? properties 
     : properties.filter(prop => 
         currentUser?.assignedProperties?.includes(prop.id)
@@ -31,7 +31,7 @@ const MaintenanceReport = () => {
     propertyFilter,
     statusFilter,
     searchTerm,
-    isAdmin(),
+    isAdmin,
     currentUser?.assignedProperties
   );
   
