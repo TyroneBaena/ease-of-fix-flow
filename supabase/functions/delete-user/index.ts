@@ -36,6 +36,7 @@ serve(async (req: Request) => {
     const { userId } = body;
     
     if (!userId) {
+      console.error("Missing userId in request");
       return new Response(
         JSON.stringify({ error: "userId is required" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -52,6 +53,7 @@ serve(async (req: Request) => {
       throw authError;
     }
     
+    console.log(`User ${userId} deleted successfully`);
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -33,8 +33,12 @@ export const useSupabaseAuth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
+        console.log("Found existing session for user:", session.user.id);
+        // Use synchronous state updates here
         setCurrentUser(convertToAppUser(session.user));
+        setSupabaseUser(session.user);
       } else {
+        console.log("No existing session found");
         setCurrentUser(null);
         setSupabaseUser(null);
       }
@@ -43,23 +47,27 @@ export const useSupabaseAuth = () => {
     };
 
     // Set up listener for auth changes outside the async function
-    // Prevent deadlocks by not using async function as callback
-    const { data } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Use setTimeout to defer Supabase calls after the callback has finished
-          setTimeout(() => {
-            const appUser = convertToAppUser(session.user);
-            setCurrentUser(appUser);
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          setCurrentUser(null);
-          setSupabaseUser(null);
-        }
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Auth state changed: ${event}`, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Use setTimeout to defer Supabase calls after the callback has finished
+        setTimeout(() => {
+          const appUser = convertToAppUser(session.user);
+          console.log("Setting user after sign in:", appUser);
+          setCurrentUser(appUser);
+          setSupabaseUser(session.user);
+        }, 0);
+      } else if (event === 'SIGNED_OUT') {
+        console.log("User signed out");
+        setCurrentUser(null);
+        setSupabaseUser(null);
       }
-    );
+    });
+    
     subscription = data.subscription;
 
+    // Initialize auth after setting up the listener
     initializeAuth();
 
     // Cleanup function to unsubscribe when component unmounts.
@@ -72,13 +80,24 @@ export const useSupabaseAuth = () => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log(`Signing in with email: ${email}`);
       
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) {
+        console.error("Error signing in:", error);
+        throw error;
+      }
+      
+      console.log("Sign in successful:", data.user?.id);
       toast.success("Signed in successfully");
+      return data;
     } catch (error) {
       console.error("Error signing in:", error);
-      toast.error("Failed to sign in");
+      toast.error("Failed to sign in: " + error.message);
       throw error;
     } finally {
       setLoading(false);

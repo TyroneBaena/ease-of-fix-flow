@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/user';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -24,6 +26,7 @@ const Login = () => {
     
     try {
       setIsLoading(true);
+      console.log(`Attempting to sign in with email: ${email}`);
       await signIn(email, password);
       navigate('/dashboard');
     } catch (error) {
@@ -36,7 +39,6 @@ const Login = () => {
   const handleDemoLogin = async () => {
     try {
       setIsLoading(true);
-      // Use a valid email format that will pass Supabase validation
       const demoEmail = "demo-user@example.com";
       const demoPassword = "password123";
       
@@ -52,14 +54,14 @@ const Login = () => {
         console.log("Demo user doesn't exist yet, creating...");
       }
       
-      // If sign-in failed, try to create the user
+      // If sign-in failed, create the demo user with admin role
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: demoEmail,
         password: demoPassword,
         options: {
           data: {
             name: 'Demo Admin',
-            role: 'admin',
+            role: 'admin' as UserRole,
             assignedProperties: []
           }
         }
@@ -71,7 +73,7 @@ const Login = () => {
         return;
       }
       
-      // Now try to sign in with the newly created account
+      // Now sign in with the newly created account
       await signIn(demoEmail, demoPassword);
       toast.success("Signed in as demo admin");
       navigate('/dashboard');
