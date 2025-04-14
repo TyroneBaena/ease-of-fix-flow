@@ -9,7 +9,6 @@ import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 
 const Settings = () => {
   const { isAdmin, currentUser } = useUserContext();
-  const isManagerOnly = currentUser?.role === 'manager' && !isAdmin();
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -17,14 +16,14 @@ const Settings = () => {
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
         
-        <Tabs defaultValue={isManagerOnly ? "account" : "users"}>
+        <Tabs defaultValue={isAdmin() ? "users" : "account"}>
           <TabsList className="mb-4">
-            {!isManagerOnly && <TabsTrigger value="users">User Management</TabsTrigger>}
+            {isAdmin() && <TabsTrigger value="users">User Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
           
-          {!isManagerOnly && (
+          {isAdmin() && (
             <TabsContent value="users">
               <Card className="p-6">
                 <UserManagement />
