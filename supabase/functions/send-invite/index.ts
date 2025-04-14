@@ -47,6 +47,46 @@ serve(async (req: Request) => {
     
     console.log(`Sending invitation to ${email} with role ${role}`);
     
+    // First, check if the user already exists
+    const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
+      filter: {
+        email: email
+      }
+    });
+    
+    if (searchError) {
+      console.error("Error searching for existing user:", searchError);
+      throw searchError;
+    }
+    
+    // Check if the user already exists
+    if (existingUsers && existingUsers.users && existingUsers.users.length > 0) {
+      console.log(`User with email ${email} already exists`);
+      
+      // Instead of returning an error, update the user's metadata
+      const userId = existingUsers.users[0].id;
+      const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
+        userId,
+        {
+          user_metadata: {
+            name,
+            role,
+            assignedProperties: role === 'manager' ? assignedProperties : [],
+          }
+        }
+      );
+      
+      if (updateError) {
+        console.error("Error updating existing user:", updateError);
+        throw updateError;
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "User updated successfully", userId: userId }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Generate a secure random password
     const generatePassword = () => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
