@@ -13,7 +13,7 @@ interface RequestsListProps {
   allRequests?: MaintenanceRequest[];
 }
 
-const RequestsList = ({ allRequests = sampleRequests }: RequestsListProps) => {
+const RequestsList = ({ allRequests = sampleRequests as MaintenanceRequest[] }: RequestsListProps) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');

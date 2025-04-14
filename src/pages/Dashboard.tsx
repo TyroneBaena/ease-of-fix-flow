@@ -5,7 +5,6 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsOverview from '@/components/dashboard/StatsOverview';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import RequestsList from '@/components/dashboard/RequestsList';
-import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { requests as sampleRequests } from '@/data/sampleData';
 import { useUserContext } from '@/contexts/UserContext';
 
@@ -31,9 +30,6 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-8">
         <DashboardHeader title="Dashboard" />
         
-        {/* Add the AdminRoleUpdater component */}
-        <AdminRoleUpdater />
-
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
           <div className="lg:col-span-3 space-y-6">
             <StatsOverview 
