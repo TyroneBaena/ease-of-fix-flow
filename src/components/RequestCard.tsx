@@ -30,7 +30,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
     }
   };
   
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case 'low':
         return 'bg-gray-100 text-gray-800';
@@ -45,11 +45,14 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
     }
   };
 
-  // Get display title (either title or issueNature)
-  const displayTitle = request.title || request.issueNature;
+  // Get display title (either issueNature or title)
+  const displayTitle = request.issueNature || request.title || 'Untitled Request';
   
-  // Get display description (either description or explanation)
-  const displayDescription = request.description || request.explanation;
+  // Get display description (either explanation or description)
+  const displayDescription = request.explanation || request.description || '';
+  
+  // Get display category (site or category)
+  const displayCategory = request.site || request.category;
   
   // Get display priority (or default to medium)
   const displayPriority = request.priority || 'medium';

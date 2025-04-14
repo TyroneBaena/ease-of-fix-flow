@@ -1,7 +1,7 @@
 
 import { MaintenanceRequest } from '@/types/property';
 
-// Mock maintenance requests data
+// Mock maintenance requests data with both old and new fields
 export const mockMaintenanceRequests: MaintenanceRequest[] = [
   {
     id: '1',

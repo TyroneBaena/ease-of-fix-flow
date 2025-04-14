@@ -26,7 +26,7 @@ export interface MaintenanceRequest {
   site: string;
   submittedBy: string;
   status: string;
-  // Old fields needed for compatibility with existing components
+  // Original fields needed for backward compatibility
   title?: string;
   description?: string;
   category?: string;

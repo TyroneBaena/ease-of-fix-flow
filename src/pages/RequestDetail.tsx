@@ -8,6 +8,7 @@ import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
 import { RequestActions } from '@/components/request/RequestActions';
 import { RequestHistory } from '@/components/request/RequestHistory';
+import { MaintenanceRequest } from '@/types/property';
 
 // Sample data
 import { requests } from '@/data/sampleData';
@@ -16,8 +17,25 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Find the request with the matching ID
-  const request = requests.find(req => req.id === id);
+  // Find the request with the matching ID and convert to MaintenanceRequest type
+  const request = React.useMemo(() => {
+    const foundRequest = requests.find(req => req.id === id);
+    
+    if (!foundRequest) return null;
+    
+    // Convert to complete MaintenanceRequest type
+    return {
+      ...foundRequest,
+      isParticipantRelated: false, // Default values
+      participantName: 'N/A',
+      attemptedFix: '',
+      issueNature: foundRequest.title || '',
+      explanation: foundRequest.description || '',
+      reportDate: foundRequest.createdAt.split('T')[0] || '',
+      site: foundRequest.category || '',
+      submittedBy: '',
+    } as MaintenanceRequest;
+  }, [id]);
   
   if (!request) {
     return <div>Request not found</div>;

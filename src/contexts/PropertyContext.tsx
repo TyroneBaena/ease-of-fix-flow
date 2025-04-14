@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Property, MaintenanceRequest, isAttachmentArray, isHistoryArray } from '../types/property';
 import { supabase } from '@/lib/supabase';
@@ -57,7 +56,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Convert the data to match our Property type
       const formattedProperties: Property[] = data.map(prop => ({
         id: prop.id,
         name: prop.name,
@@ -93,15 +91,12 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Convert the data to match our MaintenanceRequest type
       const formattedRequests: MaintenanceRequest[] = data.map(req => {
-        // Process attachments to ensure they match our expected type
         let processedAttachments;
         if (req.attachments) {
           if (isAttachmentArray(req.attachments)) {
             processedAttachments = req.attachments;
           } else if (Array.isArray(req.attachments)) {
-            // Try to convert array items to the expected format
             processedAttachments = req.attachments.map(item => {
               if (typeof item === 'object' && item !== null && 'url' in item) {
                 return { url: item.url };
@@ -109,20 +104,17 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
               return { url: String(item) };
             });
           } else {
-            // If it's not an array, set to null
             processedAttachments = null;
           }
         } else {
           processedAttachments = null;
         }
 
-        // Process history to ensure it matches our expected type
         let processedHistory;
         if (req.history) {
           if (isHistoryArray(req.history)) {
             processedHistory = req.history;
           } else if (Array.isArray(req.history)) {
-            // Try to convert array items to the expected format
             processedHistory = req.history.map(item => {
               if (typeof item === 'object' && item !== null && 'action' in item && 'timestamp' in item) {
                 return { action: item.action, timestamp: item.timestamp };
@@ -130,7 +122,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
               return { action: String(item), timestamp: new Date().toISOString() };
             });
           } else {
-            // If it's not an array, set to null
             processedHistory = null;
           }
         } else {
@@ -139,16 +130,16 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         return {
           id: req.id,
-          isParticipantRelated: false, // Default values for new fields
+          isParticipantRelated: false,
           participantName: 'N/A',
           attemptedFix: '',
           issueNature: req.title || '',
           explanation: req.description || '',
-          location: req.location,
+          location: req.location || '',
           reportDate: req.created_at.split('T')[0] || '',
-          site: '',
+          site: req.category || '',
           submittedBy: '',
-          status: req.status,
+          status: req.status || 'open',
           title: req.title,
           description: req.description,
           category: req.category,
@@ -202,7 +193,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Convert to our Property type
       const newProperty: Property = {
         id: data.id,
         name: data.name,
@@ -237,7 +227,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Convert our property update to match Supabase column names
       const propertyToUpdate: any = {};
       if ('name' in propertyUpdate) propertyToUpdate.name = propertyUpdate.name;
       if ('address' in propertyUpdate) propertyToUpdate.address = propertyUpdate.address;
@@ -260,7 +249,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Update local state
       setProperties(properties.map(property => 
         property.id === id ? { ...property, ...propertyUpdate } : property
       ));
@@ -290,9 +278,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Update local state
       setProperties(properties.filter(property => property.id !== id));
-      // Maintenance requests with this property ID will be deleted via cascade
       setRequests(requests.filter(request => request.propertyId !== id));
       
       toast.success('Property deleted successfully');
@@ -313,17 +299,14 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Map new request format to database fields
       const requestToInsert = {
-        // Map old fields from new fields
         title: requestData.issueNature,
         description: requestData.explanation,
         category: requestData.site,
         location: requestData.location,
-        priority: 'medium', // default priority
+        priority: requestData.priority || 'medium',
         property_id: requestData.propertyId,
         user_id: currentUser.id,
-        // Include new fields specific to the updated form
         is_participant_related: requestData.isParticipantRelated,
         participant_name: requestData.participantName,
         attempted_fix: requestData.attemptedFix,
@@ -346,7 +329,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
-      // Process attachments and history based on the new type guards
       let processedAttachments = null;
       if (data.attachments) {
         if (isAttachmentArray(data.attachments)) {
@@ -365,7 +347,6 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
       }
 
-      // Convert to our MaintenanceRequest type
       const newRequest: MaintenanceRequest = {
         id: data.id,
         isParticipantRelated: data.is_participant_related || false,
@@ -373,9 +354,9 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         attemptedFix: data.attempted_fix || '',
         issueNature: data.issue_nature || data.title || '',
         explanation: data.explanation || data.description || '',
-        location: data.location,
+        location: data.location || '',
         reportDate: data.report_date || data.created_at.split('T')[0],
-        site: data.site || '',
+        site: data.site || data.category || '',
         submittedBy: data.submitted_by || '',
         status: data.status,
         title: data.title,

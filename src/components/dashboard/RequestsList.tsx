@@ -13,7 +13,7 @@ interface RequestsListProps {
   allRequests?: MaintenanceRequest[];
 }
 
-const RequestsList = ({ allRequests = sampleRequests }: RequestsListProps) => {
+const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRequest[] }: RequestsListProps) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -24,10 +24,12 @@ const RequestsList = ({ allRequests = sampleRequests }: RequestsListProps) => {
     let result = allRequests;
     
     if (searchTerm) {
-      result = result.filter(request => 
-        request.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        request.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      result = result.filter(req => {
+        const title = req.issueNature || req.title || '';
+        const description = req.explanation || req.description || '';
+        return title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+               description.toLowerCase().includes(searchTerm.toLowerCase());
+      });
     }
     
     if (activeFilter !== 'all') {

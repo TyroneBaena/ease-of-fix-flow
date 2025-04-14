@@ -7,22 +7,39 @@ import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import RequestsList from '@/components/dashboard/RequestsList';
 import { requests as sampleRequests } from '@/data/sampleData';
 import { useUserContext } from '@/contexts/UserContext';
+import { MaintenanceRequest } from '@/types/property';
 
 const Dashboard = () => {
   const { currentUser } = useUserContext();
   
+  // Map sample data to MaintenanceRequest type
+  const typedRequests = useMemo(() => {
+    return sampleRequests.map(req => ({
+      ...req,
+      isParticipantRelated: false,
+      participantName: 'N/A',
+      attemptedFix: '',
+      issueNature: req.title || '',
+      explanation: req.description || '',
+      location: req.location || '',
+      reportDate: req.createdAt.split('T')[0] || '',
+      site: req.category || '',
+      submittedBy: '',
+    } as MaintenanceRequest));
+  }, []);
+  
   // Calculate request statistics
   const { openRequests, inProgressRequests, completedRequests } = useMemo(() => {
-    const open = sampleRequests.filter(req => req.status === 'open').length;
-    const inProgress = sampleRequests.filter(req => req.status === 'in-progress').length;
-    const completed = sampleRequests.filter(req => req.status === 'completed').length;
+    const open = typedRequests.filter(req => req.status === 'open').length;
+    const inProgress = typedRequests.filter(req => req.status === 'in-progress').length;
+    const completed = typedRequests.filter(req => req.status === 'completed').length;
     
     return {
       openRequests: open,
       inProgressRequests: inProgress,
       completedRequests: completed
     };
-  }, []);
+  }, [typedRequests]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,7 +54,7 @@ const Dashboard = () => {
               inProgressRequests={inProgressRequests}
               completedRequests={completedRequests}
             />
-            <RequestsList allRequests={sampleRequests} />
+            <RequestsList allRequests={typedRequests} />
           </div>
           <DashboardSidebar />
         </div>
