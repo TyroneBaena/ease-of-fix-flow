@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -13,7 +12,7 @@ interface NewUserFormState {
 }
 
 export const useUserManagement = () => {
-  const { users, addUser, updateUser, removeUser, isAdmin, currentUser, fetchUsers, resetPassword } = useUserContext();
+  const { users, addUser, updateUser, removeUser, isAdmin, currentUser, fetchUsers: fetchUsersFromContext, resetPassword } = useUserContext();
   const { properties } = usePropertyContext();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -32,6 +31,10 @@ export const useUserManagement = () => {
   
   const USERS_PER_PAGE = 5;
   const totalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+  
+  const fetchUsers = useCallback(() => {
+    return fetchUsersFromContext();
+  }, [fetchUsersFromContext]);
   
   const handlePageChange = (pageNumber: number) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -209,6 +212,7 @@ export const useUserManagement = () => {
     handleResetPassword,
     confirmDeleteUser,
     handleDeleteUser,
-    handlePageChange
+    handlePageChange,
+    fetchUsers
   };
 };

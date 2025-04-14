@@ -40,7 +40,7 @@ const UserManagement = () => {
     if (isAdmin()) {
       fetchUsers();
     }
-  }, []);
+  }, [isAdmin, fetchUsers]);
   
   if (!isAdmin()) {
     return <AccessDeniedMessage />;
