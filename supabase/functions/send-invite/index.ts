@@ -1,5 +1,4 @@
 
-// Deno imports for Edge Functions
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@1.0.0";
@@ -48,12 +47,27 @@ serve(async (req: Request) => {
     
     console.log(`Processing invitation for ${email} with role ${role}`);
     
-    // Check for RESEND_API_KEY before initialization
+    // Check for RESEND_API_KEY and APPLICATION_URL before initialization
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const applicationUrl = Deno.env.get('APPLICATION_URL');
+
+    console.log('Environment Checks:', {
+      RESEND_API_KEY: resendApiKey ? 'Present' : 'Missing',
+      APPLICATION_URL: applicationUrl ? 'Present' : 'Missing'
+    });
+    
     if (!resendApiKey) {
       console.error("RESEND_API_KEY is not set in the environment variables");
       return new Response(
-        JSON.stringify({ error: "Email service is not properly configured" }),
+        JSON.stringify({ error: "Resend API Key is not configured" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!applicationUrl) {
+      console.error("APPLICATION_URL is not set in the environment variables");
+      return new Response(
+        JSON.stringify({ error: "Application URL is not configured" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -224,7 +238,7 @@ serve(async (req: Request) => {
       );
     }
   } catch (error) {
-    console.error("Invitation error:", error);
+    console.error("Invitation error (FULL ERROR):", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: error.status || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
