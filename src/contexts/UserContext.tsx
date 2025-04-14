@@ -55,14 +55,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       await userService.inviteUser(email, name, role, assignedProperties);
-      toast.success(`User ${name} invited successfully`);
       
       if (currentUser?.role === 'admin') {
         await fetchUsers();
       }
     } catch (error) {
       console.error('Error adding user:', error);
-      toast.error('Failed to invite user');
       throw error;
     } finally {
       setLoading(false);
@@ -78,11 +76,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setUsers(users.map(user => 
         user.id === updatedUser.id ? updatedUser : user
       ));
-      
-      toast.success(`User ${updatedUser.name} updated successfully`);
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error('Failed to update user');
       throw error;
     } finally {
       setLoading(false);
@@ -91,8 +86,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const removeUser = async (userId: string) => {
     if (userId === currentUser?.id) {
-      toast.error("You cannot delete your own account");
-      return;
+      throw new Error("You cannot delete your own account");
     }
 
     try {
@@ -101,11 +95,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       
       // Update local state
       setUsers(users.filter(user => user.id !== userId));
-      
-      toast.success("User removed successfully");
     } catch (error) {
       console.error('Error removing user:', error);
-      toast.error('Failed to remove user');
       throw error;
     } finally {
       setLoading(false);

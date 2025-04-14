@@ -62,6 +62,13 @@ export const useSupabaseAuth = () => {
         console.log("User signed out");
         setCurrentUser(null);
         setSupabaseUser(null);
+      } else if (event === 'USER_UPDATED') {
+        setTimeout(() => {
+          const appUser = convertToAppUser(session.user);
+          console.log("User updated:", appUser);
+          setCurrentUser(appUser);
+          setSupabaseUser(session.user);
+        }, 0);
       }
     });
     

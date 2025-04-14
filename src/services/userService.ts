@@ -34,29 +34,23 @@ export const userService = {
   async inviteUser(email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<void> {
     try {
       console.log(`Inviting new user: ${email}, role: ${role}`);
-      // Generate a random password for the initial account
-      const temporaryPassword = Math.random().toString(36).slice(-8);
       
-      // Create auth user with metadata
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: temporaryPassword,
-        options: {
-          data: {
-            name,
-            role,
-            assignedProperties: role === 'manager' ? assignedProperties : []
-          }
+      // Call the send-invite edge function
+      const { error: inviteError } = await supabase.functions.invoke('send-invite', {
+        body: {
+          email,
+          name,
+          role,
+          assignedProperties: role === 'manager' ? assignedProperties : []
         }
       });
       
-      if (authError) {
-        console.error("Error inviting user:", authError);
-        throw authError;
+      if (inviteError) {
+        console.error("Error inviting user:", inviteError);
+        throw inviteError;
       }
       
-      // Log for reference (in a real app, would send an email)
-      console.log(`Invited user: ${email} with ID: ${authData?.user?.id}, temp password: ${temporaryPassword}`);
+      console.log(`Invitation sent to ${email} successfully`);
     } catch (error) {
       console.error("Error in inviteUser:", error);
       throw error;
