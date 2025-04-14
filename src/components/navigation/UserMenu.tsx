@@ -51,8 +51,8 @@ export const UserMenu = () => {
         </div>
         <DropdownMenuSeparator />
         
-        {/* Always show Settings link for admins */}
-        {isAdmin() && (
+        {/* Show Settings link for both admin and manager */}
+        {(isAdmin() || currentUser?.role === 'manager') && (
           <DropdownMenuItem 
             className="cursor-pointer"
             onClick={() => navigate('/settings')}

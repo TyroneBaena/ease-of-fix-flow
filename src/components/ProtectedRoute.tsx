@@ -6,11 +6,13 @@ import { useUserContext } from '@/contexts/UserContext';
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
+  allowManager?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireAdmin = false 
+  requireAdmin = false,
+  allowManager = false
 }) => {
   const { currentUser, loading } = useUserContext();
   
@@ -28,9 +30,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
   
-  // Check admin requirement
-  if (requireAdmin && currentUser.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
+  // Check role requirements
+  if (requireAdmin) {
+    // Allow access if user is admin or (when specified) a manager
+    if (currentUser.role !== 'admin' && !(allowManager && currentUser.role === 'manager')) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
   
   // Render children if all checks pass

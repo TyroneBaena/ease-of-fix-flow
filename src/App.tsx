@@ -72,7 +72,7 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={
-                  <ProtectedRoute requireAdmin={true}>
+                  <ProtectedRoute requireAdmin={true} allowManager={true}>
                     <Settings />
                   </ProtectedRoute>
                 } />
