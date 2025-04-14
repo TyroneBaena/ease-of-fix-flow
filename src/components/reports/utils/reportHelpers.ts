@@ -35,7 +35,7 @@ export function filterMaintenanceRequests(
       return (
         request.title?.toLowerCase().includes(searchLower) || 
         request.description?.toLowerCase().includes(searchLower) ||
-        request.requestId?.toLowerCase().includes(searchLower) ||
+        request.id?.toLowerCase().includes(searchLower) || // Changed from requestId to id
         request.issueNature?.toLowerCase().includes(searchLower)
       );
     }

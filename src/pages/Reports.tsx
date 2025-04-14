@@ -5,10 +5,26 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import { useUserContext } from '@/contexts/UserContext';
+import { Loader2 } from 'lucide-react';
 
 const Reports = () => {
-  const { isAdmin } = useUserContext();
+  const { isAdmin, loading } = useUserContext();
   const [activeTab, setActiveTab] = useState("maintenance");
+
+  // Show loading state if user data is still loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <span className="ml-2 text-blue-500">Loading reports...</span>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
