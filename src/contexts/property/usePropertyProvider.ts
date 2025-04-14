@@ -1,30 +1,13 @@
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { Property } from '../types/property';
+import { useState, useEffect } from 'react';
+import { Property } from '@/types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-import { useUserContext } from './UserContext';
+import { useUserContext } from '../UserContext';
+import { PropertyContextType } from './PropertyContextTypes';
+import { fetchProperties } from './propertyOperations';
 
-interface PropertyContextType {
-  properties: Property[];
-  loading: boolean;
-  addProperty: (property: Omit<Property, 'id' | 'createdAt'>) => Promise<Property | undefined>;
-  getProperty: (id: string) => Property | undefined;
-  updateProperty: (id: string, property: Partial<Property>) => Promise<void>;
-  deleteProperty: (id: string) => Promise<void>;
-}
-
-const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
-
-export const usePropertyContext = () => {
-  const context = useContext(PropertyContext);
-  if (!context) {
-    throw new Error('usePropertyContext must be used within a PropertyProvider');
-  }
-  return context;
-};
-
-export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const usePropertyProvider = (): PropertyContextType => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser } = useUserContext();
@@ -46,7 +29,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     // Only fetch if we have a user - add a slight delay to prevent race conditions
     if (currentUser) {
       const timer = setTimeout(() => {
-        fetchProperties();
+        fetchAndSetProperties();
       }, 100);
       
       return () => clearTimeout(timer);
@@ -56,37 +39,15 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [currentUser]);
 
-  const fetchProperties = async () => {
+  // Fetch properties from database
+  const fetchAndSetProperties = async () => {
     try {
       setLoading(true);
       setFetchAttempted(true);
       console.log('PropertyContext: Fetching properties');
       
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*');
-
-      if (error) {
-        console.error('Error fetching properties:', error);
-        toast.error('Failed to fetch properties');
-        setLoading(false);
-        return;
-      }
-
-      const formattedProperties: Property[] = data.map(prop => ({
-        id: prop.id,
-        name: prop.name,
-        address: prop.address,
-        contactNumber: prop.contact_number,
-        email: prop.email,
-        practiceLeader: prop.practice_leader,
-        practiceLeaderEmail: prop.practice_leader_email || '',
-        practiceLeaderPhone: prop.practice_leader_phone || '',
-        renewalDate: prop.renewal_date ? new Date(prop.renewal_date).toISOString() : '',
-        rentAmount: Number(prop.rent_amount) || 0,
-        createdAt: prop.created_at
-      }));
-
+      const formattedProperties = await fetchProperties();
+      
       console.log('PropertyContext: Properties fetched successfully', formattedProperties.length);
       setProperties(formattedProperties);
     } catch (err) {
@@ -223,16 +184,12 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  return (
-    <PropertyContext.Provider value={{
-      properties,
-      loading,
-      addProperty,
-      getProperty,
-      updateProperty,
-      deleteProperty
-    }}>
-      {children}
-    </PropertyContext.Provider>
-  );
+  return {
+    properties,
+    loading,
+    addProperty,
+    getProperty,
+    updateProperty,
+    deleteProperty
+  };
 };

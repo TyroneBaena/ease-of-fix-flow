@@ -4,7 +4,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { PropertyProvider } from "./contexts/PropertyContext";
+import { PropertyProvider } from "./contexts/property/PropertyContext";
 import { MaintenanceRequestProvider } from "./contexts/MaintenanceRequestContext";
 import { UserProvider } from "./contexts/UserContext";
 import Index from "./pages/Index";
