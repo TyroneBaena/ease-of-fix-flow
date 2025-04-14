@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
@@ -13,6 +13,12 @@ interface PropertyDetailProps {
 const PropertyDetail: React.FC<PropertyDetailProps> = ({ property }) => {
   const { getRequestsForProperty } = useMaintenanceRequestContext();
   const propertyRequests = getRequestsForProperty(property.id);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Add a useEffect to stabilize rendering
+  useEffect(() => {
+    setIsLoaded(true);
+  }, [property.id]);
 
   return (
     <PropertyAccessControl propertyId={property.id}>

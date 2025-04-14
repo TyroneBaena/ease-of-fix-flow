@@ -1,3 +1,4 @@
+
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
@@ -13,6 +14,7 @@ export const useUserManagement = () => {
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
+  const [loadingStabilizer, setLoadingStabilizer] = useState(true);
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -80,12 +82,21 @@ export const useUserManagement = () => {
     }
   }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
+  // Stabilize loading state to prevent flicker
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadingStabilizer(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   return {
     users,
     properties,
     currentUser,
     isAdmin,
-    isLoading: isLoading || isLoadingUsers,
+    isLoading: (isLoading || isLoadingUsers || loadingStabilizer) && isAdmin,
     fetchError,
     isDialogOpen,
     setIsDialogOpen,

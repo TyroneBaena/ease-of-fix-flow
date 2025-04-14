@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/settings/UserManagement';
@@ -11,9 +11,19 @@ import { Loader2 } from "lucide-react";
 
 const Settings = () => {
   const { currentUser, isAdmin, loading } = useUserContext();
+  const [pageLoaded, setPageLoaded] = useState(false);
   
-  // Show loading state if user data is still loading
-  if (loading) {
+  // Add a timeout to ensure page eventually loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoaded(true);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Show loading state if user data is still loading and timeout hasn't passed
+  if (loading && !pageLoaded) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -27,8 +37,8 @@ const Settings = () => {
     );
   }
   
-  // Show error state if no user is found
-  if (!currentUser) {
+  // Show error state if no user is found but page has loaded
+  if (!currentUser && pageLoaded) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

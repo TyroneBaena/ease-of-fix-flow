@@ -12,29 +12,29 @@ const Reports = () => {
   const { isAdmin, loading: userLoading, currentUser } = useUserContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
-  const [pageLoaded, setPageLoaded] = useState(false);
+  const [stableLoading, setStableLoading] = useState(true);
   
   // Handle loading and reset error state when component mounts or user changes
   useEffect(() => {
     setError(null);
     
-    // Set a timeout to ensure the page eventually shows even if other loading states are stuck
-    const timer = setTimeout(() => {
-      setPageLoaded(true);
-    }, 1500);
+    // Set a stable loading state to prevent flickering
+    const initialLoadingTimer = setTimeout(() => {
+      setStableLoading(false);
+    }, 1000);
     
-    return () => clearTimeout(timer);
+    return () => clearTimeout(initialLoadingTimer);
   }, []);
 
-  // If the user context is still initializing, show minimal loading indicator
-  if (userLoading && !pageLoaded) {
+  // If the user context is still initializing or in stable loading state
+  if ((userLoading || stableLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <span className="ml-2 text-blue-500">Loading reports...</span>
+          <div className="flex flex-col items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-2" />
+            <span className="text-blue-500">Loading reports...</span>
           </div>
         </main>
       </div>
