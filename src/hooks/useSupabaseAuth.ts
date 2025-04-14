@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
@@ -132,11 +131,50 @@ export const useSupabaseAuth = () => {
     }
   };
 
+  // Update user role
+  const updateUserRole = async (role: UserRole) => {
+    try {
+      setLoading(true);
+      console.log(`Updating current user role to: ${role}`);
+      
+      const { data, error } = await supabase.auth.updateUser({
+        data: {
+          role: role
+        }
+      });
+      
+      if (error) {
+        console.error("Error updating user role:", error);
+        toast.error("Failed to update role: " + error.message);
+        throw error;
+      }
+      
+      console.log("User role updated successfully:", data.user?.user_metadata?.role);
+      
+      // Update the local user state
+      if (data.user) {
+        const updatedUser = convertToAppUser(data.user);
+        setCurrentUser(updatedUser);
+        setSupabaseUser(data.user);
+      }
+      
+      toast.success(`Role updated to ${role}`);
+      return data;
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role: " + error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     currentUser,
     supabaseUser,
     loading,
     signIn,
-    signOut
+    signOut,
+    updateUserRole
   };
 };
