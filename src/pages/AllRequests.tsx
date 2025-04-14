@@ -2,13 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/PropertyContext';
+import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import { MaintenanceRequest } from '@/types/property';
 import RequestsHeader from '@/components/requests/RequestsHeader';
 import RequestFilters from '@/components/requests/RequestFilters';
 import RequestList from '@/components/requests/RequestList';
 
 const AllRequests = () => {
-  const { properties, getRequestsForProperty } = usePropertyContext();
+  const { properties } = usePropertyContext();
+  const { getRequestsForProperty } = useMaintenanceRequestContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');

@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/PropertyContext';
+import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import Navbar from '@/components/Navbar';
 import { generateQRCodeUrl } from '@/utils/qrCodeGenerator';
 import { toast } from '@/lib/toast';
@@ -21,7 +23,8 @@ import {
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getProperty, getRequestsForProperty, deleteProperty } = usePropertyContext();
+  const { getProperty, deleteProperty } = usePropertyContext();
+  const { getRequestsForProperty } = useMaintenanceRequestContext();
   const [property, setProperty] = useState(id ? getProperty(id) : undefined);
   const [requests, setRequests] = useState(id ? getRequestsForProperty(id) : []);
   const [dialogOpen, setDialogOpen] = useState(false);
