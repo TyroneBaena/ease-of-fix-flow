@@ -37,9 +37,10 @@ const UserTable: React.FC<UserTableProps> = ({
   onPageChange,
   usersPerPage
 }) => {
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
+  // Calculate which users to display on the current page
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const currentUsers = users.slice(startIndex, endIndex);
 
   return (
     <div>
