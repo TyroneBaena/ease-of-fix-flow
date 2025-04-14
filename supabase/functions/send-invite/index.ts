@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "./lib/cors.ts";
@@ -10,16 +9,13 @@ import {
   generateTemporaryPassword
 } from "./lib/user-management.ts";
 
-// Update the Resend import to use a version compatible with Deno
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Create a Supabase client with the admin role
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -32,7 +28,6 @@ serve(async (req: Request) => {
   );
   
   try {
-    // Parse request body
     const body = await req.json();
     const { email, name, role, assignedProperties = [] } = body;
     
@@ -45,7 +40,6 @@ serve(async (req: Request) => {
     
     console.log(`Processing invitation for ${email} with role ${role}`);
     
-    // Check for required environment variables
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const applicationUrl = Deno.env.get('APPLICATION_URL');
 
@@ -70,18 +64,15 @@ serve(async (req: Request) => {
       );
     }
     
-    // Initialize Resend with API key - using updated library
     const resend = new Resend(resendApiKey);
     console.log("Resend initialized with API key");
     
-    // Check if the user already exists
     const existingUser = await findExistingUser(supabaseClient, email);
     
     let userId = '';
     let isNewUser = false;
     let temporaryPassword = '';
     
-    // Process user creation or update
     if (existingUser) {
       console.log(`User with email ${email} already exists`);
       userId = existingUser.id;
@@ -93,9 +84,16 @@ serve(async (req: Request) => {
       userId = newUser.id;
     }
     
-    // Ensure the login URL is correct and points to the login page of the application
-    // Make sure it's a complete URL without any route that could cause a 404
+    console.log('Application URL:', applicationUrl);
     const loginUrl = `${applicationUrl}/login`;
+    console.log('Full Login URL:', loginUrl);
+    
+    if (!loginUrl || loginUrl.trim() === '') {
+      return new Response(
+        JSON.stringify({ error: "Login URL is not configured correctly" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const emailHtml = createEmailHtml({
       to: email,
@@ -109,7 +107,6 @@ serve(async (req: Request) => {
     console.log("Attempting to send email...");
     
     try {
-      // Updated Resend API call to match v2.0.0 syntax
       const { data, error } = await resend.emails.send({
         from: 'Property Manager <onboarding@resend.dev>',
         to: [email],
@@ -136,7 +133,6 @@ serve(async (req: Request) => {
       );
     } catch (emailError) {
       console.error("Error in Resend email sending:", emailError);
-      // Continue with the process even if email sending fails
       return new Response(
         JSON.stringify({ 
           success: true, 
