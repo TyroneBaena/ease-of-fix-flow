@@ -11,7 +11,7 @@ import {
   Paperclip,
   User,
   CheckCircle,
-  Tool,
+  Wrench,
   AlertCircle,
 } from 'lucide-react';
 
@@ -140,7 +140,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
       
       <div className="mb-6">
         <h2 className="font-semibold mb-3 flex items-center">
-          <Tool className="h-4 w-4 mr-2" />
+          <Wrench className="h-4 w-4 mr-2" />
           Attempted Fix
         </h2>
         <p className="text-gray-700 whitespace-pre-line">{request.attemptedFix}</p>
