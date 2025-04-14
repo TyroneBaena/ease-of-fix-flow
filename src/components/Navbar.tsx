@@ -26,7 +26,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -131,10 +132,24 @@ const Navbar = () => {
                       <>
                         <p className="font-medium">{currentUser.name}</p>
                         <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                        <p className="text-xs text-muted-foreground">Role: {currentUser.role}</p>
                       </>
                     )}
                   </div>
                 </div>
+                <DropdownMenuSeparator />
+                
+                {/* Add Settings link in dropdown menu for easier access */}
+                {isAdmin() && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate('/settings')}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                )}
+                
                 <DropdownMenuItem 
                   className="cursor-pointer"
                   onClick={handleSignOut}
@@ -190,6 +205,7 @@ const Navbar = () => {
                         <div>
                           <p className="font-medium">{currentUser?.name}</p>
                           <p className="text-sm text-gray-500">{currentUser?.email}</p>
+                          <p className="text-xs text-gray-400">Role: {currentUser?.role}</p>
                         </div>
                       </div>
                       <Button className="w-full bg-blue-500 hover:bg-blue-600">
