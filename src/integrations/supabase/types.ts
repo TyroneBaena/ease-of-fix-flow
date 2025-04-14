@@ -13,16 +13,24 @@ export type Database = {
         Row: {
           assigned_to: string | null
           attachments: Json | null
+          attempted_fix: string | null
           category: string
           created_at: string
           description: string
           due_date: string | null
+          explanation: string | null
           history: Json | null
           id: string
+          is_participant_related: boolean | null
+          issue_nature: string | null
           location: string
+          participant_name: string | null
           priority: string
           property_id: string | null
+          report_date: string | null
+          site: string | null
           status: string
+          submitted_by: string | null
           title: string
           updated_at: string
           user_id: string
@@ -30,16 +38,24 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           attachments?: Json | null
+          attempted_fix?: string | null
           category: string
           created_at?: string
           description: string
           due_date?: string | null
+          explanation?: string | null
           history?: Json | null
           id?: string
+          is_participant_related?: boolean | null
+          issue_nature?: string | null
           location: string
+          participant_name?: string | null
           priority: string
           property_id?: string | null
+          report_date?: string | null
+          site?: string | null
           status?: string
+          submitted_by?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -47,16 +63,24 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           attachments?: Json | null
+          attempted_fix?: string | null
           category?: string
           created_at?: string
           description?: string
           due_date?: string | null
+          explanation?: string | null
           history?: Json | null
           id?: string
+          is_participant_related?: boolean | null
+          issue_nature?: string | null
           location?: string
+          participant_name?: string | null
           priority?: string
           property_id?: string | null
+          report_date?: string | null
+          site?: string | null
           status?: string
+          submitted_by?: string | null
           title?: string
           updated_at?: string
           user_id?: string
