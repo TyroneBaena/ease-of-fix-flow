@@ -19,14 +19,18 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
       filteredRequests.map(request => ({
-        'Title': request.title,
+        'Issue Nature': request.issueNature || request.title || 'N/A',
         'Property': request.propertyId ? getPropertyName(request.propertyId) : 'N/A',
-        'Category': request.category,
+        'Site': request.site || request.category || 'N/A',
         'Location': request.location,
-        'Priority': request.priority,
+        'Priority': request.priority || 'N/A',
         'Status': request.status,
+        'Participant Related': request.isParticipantRelated ? 'Yes' : 'No',
+        'Participant Name': request.participantName || 'N/A',
         'Created At': formatDate(request.createdAt),
-        'Last Updated': request.updatedAt ? formatDate(request.updatedAt) : 'N/A'
+        'Report Date': request.reportDate || formatDate(request.createdAt),
+        'Last Updated': request.updatedAt ? formatDate(request.updatedAt) : 'N/A',
+        'Submitted By': request.submittedBy || 'N/A'
       }))
     );
     

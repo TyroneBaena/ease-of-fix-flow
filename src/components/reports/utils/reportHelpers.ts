@@ -2,27 +2,25 @@
 import { MaintenanceRequest } from '@/types/property';
 import { format } from 'date-fns';
 
-// Get style classes for priority badge
-export const getPriorityClass = (priority: string) => {
-  switch (priority) {
-    case 'high':
-      return 'bg-red-100 text-red-800';
-    case 'medium':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'low':
-      return 'bg-green-100 text-green-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+// Format date for display
+export const formatDate = (dateString: string) => {
+  try {
+    return format(new Date(dateString), 'MMM d, yyyy');
+  } catch (e) {
+    console.error('Invalid date:', dateString);
+    return dateString;
   }
 };
 
-// Get style classes for status badge
+// Get CSS class based on status
 export const getStatusClass = (status: string) => {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case 'open':
-      return 'bg-blue-100 text-blue-800';
+    case 'pending':
+      return 'bg-amber-100 text-amber-800';
     case 'in-progress':
-      return 'bg-purple-100 text-purple-800';
+    case 'in_progress': 
+      return 'bg-blue-100 text-blue-800';
     case 'completed':
       return 'bg-green-100 text-green-800';
     default:
@@ -30,21 +28,34 @@ export const getStatusClass = (status: string) => {
   }
 };
 
-// Format date from ISO string
-export const formatDate = (dateString: string) => {
-  return format(new Date(dateString), 'MMM d, yyyy');
+// Get CSS class based on priority
+export const getPriorityClass = (priority: string | undefined) => {
+  if (!priority) return 'bg-gray-100 text-gray-800';
+
+  switch (priority.toLowerCase()) {
+    case 'low':
+      return 'bg-gray-100 text-gray-800';
+    case 'medium':
+      return 'bg-blue-100 text-blue-800';
+    case 'high':
+      return 'bg-amber-100 text-amber-800';
+    case 'critical':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
 };
 
-// Filter maintenance requests based on filters and user role
+// Helper function to filter maintenance requests
 export const filterMaintenanceRequests = (
-  maintenanceRequests: MaintenanceRequest[], 
+  requests: MaintenanceRequest[],
   propertyFilter: string,
   statusFilter: string,
   searchTerm: string,
   isAdmin: boolean,
-  userAssignedProperties?: string[]
+  assignedProperties?: string[]
 ) => {
-  return maintenanceRequests.filter(request => {
+  return requests.filter(request => {
     // Filter by property
     if (propertyFilter !== 'all' && request.propertyId !== propertyFilter) {
       return false;
@@ -56,13 +67,22 @@ export const filterMaintenanceRequests = (
     }
     
     // Filter by search term
-    if (searchTerm && !request.title.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
+    if (searchTerm) {
+      const displayTitle = request.issueNature || request.title || '';
+      const displayDescription = request.explanation || request.description || '';
+      
+      const matchesSearch = 
+        displayTitle.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        displayDescription.toLowerCase().includes(searchTerm.toLowerCase());
+        
+      if (!matchesSearch) {
+        return false;
+      }
     }
     
-    // Filter by user's properties if not admin
-    if (!isAdmin && !userAssignedProperties?.includes(request.propertyId)) {
-      return false;
+    // Filter by user permissions
+    if (!isAdmin && assignedProperties) {
+      return assignedProperties.includes(request.propertyId || '');
     }
     
     return true;

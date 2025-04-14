@@ -48,8 +48,8 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead>Issue Nature</TableHead>
+                <TableHead>Site</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
@@ -59,27 +59,27 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
             <TableBody>
               {requests.map((request) => (
                 <TableRow key={request.id}>
-                  <TableCell className="font-medium">{request.title}</TableCell>
-                  <TableCell>{request.category}</TableCell>
+                  <TableCell className="font-medium">{request.issueNature || request.title}</TableCell>
+                  <TableCell>{request.site || request.category || 'N/A'}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      request.priority === 'high' ? 'bg-red-100 text-red-800' : 
-                      request.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+                      (request.priority === 'high') ? 'bg-red-100 text-red-800' : 
+                      (request.priority === 'medium') ? 'bg-yellow-100 text-yellow-800' : 
                       'bg-green-100 text-green-800'
                     }`}>
-                      {request.priority}
+                      {request.priority || 'Medium'}
                     </span>
                   </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       request.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                      request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                      request.status === 'in_progress' || request.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {request.status}
                     </span>
                   </TableCell>
-                  <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(request.reportDate || request.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"

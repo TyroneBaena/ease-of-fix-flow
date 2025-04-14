@@ -9,24 +9,10 @@ import {
   User,
   ChevronRight
 } from 'lucide-react';
-
-interface Request {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  category: string;
-  location: string;
-  createdAt: string;
-  dueDate?: string;
-  assignedTo?: string;
-  attachments?: Array<{ url: string }>;
-  history?: Array<{ action: string; timestamp: string }>;
-}
+import { MaintenanceRequest } from '@/types/property';
 
 interface RequestCardProps {
-  request: Request;
+  request: MaintenanceRequest;
   onClick: () => void;
 }
 
@@ -59,6 +45,15 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
     }
   };
 
+  // Get display title (either title or issueNature)
+  const displayTitle = request.title || request.issueNature;
+  
+  // Get display description (either description or explanation)
+  const displayDescription = request.description || request.explanation;
+  
+  // Get display priority (or default to medium)
+  const displayPriority = request.priority || 'medium';
+
   return (
     <Card 
       className="hover:shadow-md transition-shadow cursor-pointer"
@@ -73,12 +68,14 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
                  request.status === 'in-progress' ? 'In Progress' : 
                  'Completed'}
               </Badge>
-              <Badge variant="outline" className={getPriorityColor(request.priority)}>
-                {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)} Priority
-              </Badge>
+              {displayPriority && (
+                <Badge variant="outline" className={getPriorityColor(displayPriority)}>
+                  {displayPriority.charAt(0).toUpperCase() + displayPriority.slice(1)} Priority
+                </Badge>
+              )}
             </div>
-            <h3 className="font-semibold text-lg">{request.title}</h3>
-            <p className="text-gray-600 line-clamp-2">{request.description}</p>
+            <h3 className="font-semibold text-lg">{displayTitle}</h3>
+            <p className="text-gray-600 line-clamp-2">{displayDescription}</p>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-400" />
         </div>
@@ -86,7 +83,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 text-sm text-gray-500">
           <div className="flex items-center">
             <Clock className="h-3.5 w-3.5 mr-1.5" />
-            <span>{request.createdAt}</span>
+            <span>{request.reportDate || request.createdAt}</span>
           </div>
           <div className="flex items-center">
             <MapPin className="h-3.5 w-3.5 mr-1.5" />

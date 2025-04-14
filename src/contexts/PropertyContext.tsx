@@ -139,12 +139,20 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         return {
           id: req.id,
+          isParticipantRelated: false, // Default values for new fields
+          participantName: 'N/A',
+          attemptedFix: '',
+          issueNature: req.title || '',
+          explanation: req.description || '',
+          location: req.location,
+          reportDate: req.created_at.split('T')[0] || '',
+          site: '',
+          submittedBy: '',
+          status: req.status,
           title: req.title,
           description: req.description,
           category: req.category,
-          location: req.location,
           priority: req.priority,
-          status: req.status,
           propertyId: req.property_id,
           createdAt: req.created_at,
           updatedAt: req.updated_at,
@@ -305,14 +313,25 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
+      // Map new request format to database fields
       const requestToInsert = {
-        title: requestData.title,
-        description: requestData.description,
-        category: requestData.category,
+        // Map old fields from new fields
+        title: requestData.issueNature,
+        description: requestData.explanation,
+        category: requestData.site,
         location: requestData.location,
-        priority: requestData.priority,
+        priority: 'medium', // default priority
         property_id: requestData.propertyId,
-        user_id: currentUser.id
+        user_id: currentUser.id,
+        // Include new fields specific to the updated form
+        is_participant_related: requestData.isParticipantRelated,
+        participant_name: requestData.participantName,
+        attempted_fix: requestData.attemptedFix,
+        issue_nature: requestData.issueNature,
+        explanation: requestData.explanation,
+        report_date: requestData.reportDate,
+        site: requestData.site,
+        submitted_by: requestData.submittedBy,
       };
 
       const { data, error } = await supabase
@@ -349,12 +368,20 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Convert to our MaintenanceRequest type
       const newRequest: MaintenanceRequest = {
         id: data.id,
+        isParticipantRelated: data.is_participant_related || false,
+        participantName: data.participant_name || 'N/A',
+        attemptedFix: data.attempted_fix || '',
+        issueNature: data.issue_nature || data.title || '',
+        explanation: data.explanation || data.description || '',
+        location: data.location,
+        reportDate: data.report_date || data.created_at.split('T')[0],
+        site: data.site || '',
+        submittedBy: data.submitted_by || '',
+        status: data.status,
         title: data.title,
         description: data.description,
         category: data.category,
-        location: data.location,
         priority: data.priority,
-        status: data.status,
         propertyId: data.property_id,
         createdAt: data.created_at,
         updatedAt: data.updated_at,

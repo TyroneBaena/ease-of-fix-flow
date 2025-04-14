@@ -15,6 +15,7 @@ export interface Property {
 
 export interface MaintenanceRequest {
   id: string;
+  // New fields for the updated form
   isParticipantRelated: boolean;
   participantName: string;
   attemptedFix: string;
@@ -25,10 +26,16 @@ export interface MaintenanceRequest {
   site: string;
   submittedBy: string;
   status: string;
+  // Old fields needed for compatibility with existing components
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
   propertyId?: string; 
   createdAt: string;
   updatedAt?: string; 
   assignedTo?: string;
+  dueDate?: string;
   attachments?: Array<{ url: string }> | null;
   history?: Array<{ action: string; timestamp: string }> | null;
 }
