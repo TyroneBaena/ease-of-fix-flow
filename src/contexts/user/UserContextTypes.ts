@@ -11,7 +11,7 @@ export interface UserContextType {
   updateUser: (user: User) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
   resetPassword: (userId: string, email: string) => Promise<void>;
-  isAdmin: () => boolean;
+  isAdmin: boolean;  // Changed from function to boolean
   canAccessProperty: (propertyId: string) => boolean;
   signOut: () => Promise<void>;
 }

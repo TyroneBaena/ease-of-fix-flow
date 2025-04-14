@@ -14,7 +14,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false,
   allowManager = false
 }) => {
-  const { currentUser, loading } = useUserContext();
+  const { currentUser, loading, isAdmin } = useUserContext();
   
   // Show loading state if still checking authentication
   if (loading) {
@@ -30,10 +30,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
   
-  // Check role requirements
+  // Check role requirements - updated to use isAdmin as boolean
   if (requireAdmin) {
     // Allow access if user is admin or (when specified) a manager
-    if (currentUser.role !== 'admin' && !(allowManager && currentUser.role === 'manager')) {
+    if (!isAdmin && !(allowManager && currentUser.role === 'manager')) {
       return <Navigate to="/dashboard" replace />;
     }
   }

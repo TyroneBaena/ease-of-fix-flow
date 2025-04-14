@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, ClipboardList, FileText, Settings, Building } from 'lucide-react';
@@ -18,7 +17,7 @@ export const NavLinks = () => {
     return location.pathname === path;
   };
   
-  // Define navigation items based on user role
+  // Define navigation items based on user role - updated to use isAdmin as boolean
   const getNavItems = () => {
     const items: NavItem[] = [
       { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard' },
@@ -27,7 +26,7 @@ export const NavLinks = () => {
       { name: 'Reports', icon: <FileText className="h-5 w-5" />, path: '/reports' },
     ];
     
-    // Add Settings for admin and manager
+    // Add Settings for admin and manager - updated to use isAdmin as boolean
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
@@ -37,7 +36,7 @@ export const NavLinks = () => {
   
   const navItems = getNavItems();
 
-  // Log user role and nav items for debugging
+  // Log user role and nav items for debugging - updated to use isAdmin as boolean
   console.log('Current user:', currentUser);
   console.log('Is admin?', isAdmin);
   console.log('Nav items:', navItems);

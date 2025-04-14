@@ -29,9 +29,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     updateUser,
     removeUser,
     resetPassword,
-    // Use direct role check for isAdmin - don't use a function to prevent unnecessary rerenders
+    // Use direct property for isAdmin
     isAdmin: currentUser?.role === 'admin' || false,
-    // Use direct role check for canAccessProperty - don't use a function to prevent unnecessary rerenders
+    // Use direct function for canAccessProperty
     canAccessProperty: (propertyId: string) => 
       currentUser?.role === 'admin' || currentUser?.assignedProperties?.includes(propertyId) || false,
     signOut

@@ -8,9 +8,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 
 const Settings = () => {
-  const { currentUser } = useUserContext();
-  // Simplify this admin check to avoid potential loops
-  const userIsAdmin = currentUser?.role === 'admin';
+  const { currentUser, isAdmin } = useUserContext();
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -18,14 +16,14 @@ const Settings = () => {
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
         
-        <Tabs defaultValue={userIsAdmin ? "users" : "account"}>
+        <Tabs defaultValue={isAdmin ? "users" : "account"}>
           <TabsList className="mb-4">
-            {userIsAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
           
-          {userIsAdmin && (
+          {isAdmin && (
             <TabsContent value="users">
               <Card className="p-6">
                 <UserManagement />
@@ -36,7 +34,7 @@ const Settings = () => {
           <TabsContent value="account">
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
-              {!userIsAdmin && <AdminRoleUpdater />}
+              {!isAdmin && <AdminRoleUpdater />}
               <p className="text-gray-500">Additional account settings will be implemented in a future update.</p>
             </Card>
           </TabsContent>

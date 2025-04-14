@@ -11,6 +11,7 @@ export const useUserManagement = () => {
   const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext } = useUserContext();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -54,16 +55,19 @@ export const useUserManagement = () => {
       console.log("Initial fetch of users from useUserManagement useEffect");
       const doFetch = async () => {
         try {
+          setIsLoadingUsers(true);
           await fetchUsersFromContext();
           setFetchedOnce(true);
         } catch (error) {
           console.error("Error fetching users:", error);
+        } finally {
+          setIsLoadingUsers(false);
         }
       };
       
       doFetch();
     } else {
-      setLoading(false);
+      setIsLoadingUsers(false);
     }
   }, [isAdmin, fetchedOnce, fetchUsersFromContext]);
 
@@ -72,7 +76,7 @@ export const useUserManagement = () => {
     properties,
     currentUser,
     isAdmin,
-    isLoading,
+    isLoading: isLoading || isLoadingUsers,
     isDialogOpen,
     setIsDialogOpen,
     isEditMode,

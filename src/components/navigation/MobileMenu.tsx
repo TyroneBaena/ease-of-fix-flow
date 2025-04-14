@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Plus, Settings, Menu as MenuIcon } from 'lucide-react';
@@ -33,7 +32,7 @@ export const MobileMenu = () => {
       { name: 'Reports', icon: <MenuIcon className="h-5 w-5" />, path: '/reports' },
     ];
     
-    // Add Settings for admin and manager
+    // Add Settings for admin and manager - updated to use isAdmin as boolean
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
@@ -52,7 +51,7 @@ export const MobileMenu = () => {
     navigate('/login');
   };
 
-  // Log user info for debugging
+  // Log user info for debugging - updated to use isAdmin as boolean
   console.log('MobileMenu - Current user:', currentUser);
   console.log('MobileMenu - Is admin?', isAdmin);
 

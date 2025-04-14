@@ -34,7 +34,7 @@ const UserManagement = () => {
     handlePageChange
   } = useUserManagement();
   
-  // If not admin, show access denied message
+  // If not admin, show access denied message - updated to use isAdmin as boolean
   if (!isAdmin) {
     return <AccessDeniedMessage />;
   }
