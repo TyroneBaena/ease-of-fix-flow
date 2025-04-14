@@ -10,43 +10,54 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Reports = () => {
-  const { isAdmin, loading: userLoading, currentUser } = useUserContext();
-  const { loading: propertiesLoading } = usePropertyContext();
+  const { currentUser, loading: userLoading } = useUserContext();
+  const { loading: propertiesLoading, loadingFailed } = usePropertyContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+  const [stableLoadingState, setStableLoadingState] = useState(true);
   
-  // Use a better loading mechanism with proper debounce
+  // Use a better loading mechanism with stable state
   useEffect(() => {
-    // Clear any previous errors
+    // Reset error state when dependencies change
     setError(null);
     
-    // Create a timeout to handle loading state
-    const timer = setTimeout(() => {
-      if (!userLoading && !propertiesLoading && currentUser?.id) {
-        setReady(true);
-      } else if (!currentUser?.id && !userLoading) {
-        setError("Unable to load user data");
-      }
-    }, 500);
+    // Start with loading state
+    setStableLoadingState(true);
     
-    // Create a backup timer in case something gets stuck
-    const backupTimer = setTimeout(() => {
-      if (!ready) {
-        console.log("Reports: Backup timer triggered");
-        setReady(true);
+    // Short delay to avoid flickering for fast loads
+    const initialDelay = setTimeout(() => {
+      // Only update if both user and properties loading states are settled
+      if (!userLoading && !propertiesLoading) {
+        if (loadingFailed) {
+          setError("Failed to load property data");
+        } else if (!currentUser) {
+          setError("Unable to verify user credentials");
+        }
+        
+        // Set stable loading state to false after short delay
+        setTimeout(() => setStableLoadingState(false), 200);
       }
-    }, 3000);
+    }, 300);
     
-    // Clean up timers
+    // Hard timeout to prevent infinite loading
+    const backupTimeout = setTimeout(() => {
+      if (stableLoadingState) {
+        console.log("Reports: Forcing exit from loading state after timeout");
+        setStableLoadingState(false);
+        if (!error && !currentUser) {
+          setError("Loading timed out - please try refreshing");
+        }
+      }
+    }, 4000);
+    
     return () => {
-      clearTimeout(timer);
-      clearTimeout(backupTimer);
+      clearTimeout(initialDelay);
+      clearTimeout(backupTimeout);
     };
-  }, [currentUser?.id, userLoading, propertiesLoading, ready]);
+  }, [currentUser, userLoading, propertiesLoading, loadingFailed]);
 
-  // Show loading state until everything is ready
-  if (!ready) {
+  // Show consistent loading state
+  if (stableLoadingState) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

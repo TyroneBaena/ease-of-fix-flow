@@ -10,6 +10,7 @@ import { fetchProperties } from './propertyOperations';
 export const usePropertyProvider = (): PropertyContextType => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
   const { currentUser } = useUserContext();
   const [fetchAttempted, setFetchAttempted] = useState(false);
 
@@ -36,6 +37,7 @@ export const usePropertyProvider = (): PropertyContextType => {
     } else {
       setProperties([]);
       setLoading(false);
+      setLoadingFailed(false);
     }
   }, [currentUser]);
 
@@ -43,6 +45,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   const fetchAndSetProperties = async () => {
     try {
       setLoading(true);
+      setLoadingFailed(false);
       setFetchAttempted(true);
       console.log('PropertyContext: Fetching properties');
       
@@ -52,6 +55,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       setProperties(formattedProperties);
     } catch (err) {
       console.error('Unexpected error fetching properties:', err);
+      setLoadingFailed(true);
       toast.error('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -187,6 +191,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   return {
     properties,
     loading,
+    loadingFailed,
     addProperty,
     getProperty,
     updateProperty,

@@ -7,38 +7,52 @@ import { Card } from '@/components/ui/card';
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 const Settings = () => {
   const { currentUser, isAdmin, loading } = useUserContext();
-  const [ready, setReady] = useState(false);
+  const [stableLoadingState, setStableLoadingState] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Improved loading state management
+  // Improved stable loading state management
   useEffect(() => {
-    // Set up primary timer
-    const timer = setTimeout(() => {
-      if (!loading && currentUser) {
-        console.log("Settings: User data loaded successfully");
-        setReady(true);
+    // Reset error state when dependencies change
+    setError(null);
+    
+    // Start with loading state
+    setStableLoadingState(true);
+    
+    // Short delay to avoid flickering for fast loads
+    const initialDelay = setTimeout(() => {
+      if (!loading) {
+        if (!currentUser) {
+          setError("Unable to verify user credentials");
+        }
+        
+        // Set stable loading state to false after short delay
+        setTimeout(() => setStableLoadingState(false), 200);
       }
     }, 300);
     
-    // Set up backup timer to prevent infinite loading
-    const backupTimer = setTimeout(() => {
-      if (!ready) {
-        console.log("Settings: Backup timer triggered to prevent infinite loading");
-        setReady(true);
+    // Hard timeout to prevent infinite loading
+    const backupTimeout = setTimeout(() => {
+      if (stableLoadingState) {
+        console.log("Settings: Forcing exit from loading state after timeout");
+        setStableLoadingState(false);
+        if (!error && !currentUser) {
+          setError("Loading timed out - please try refreshing");
+        }
       }
-    }, 2500);
+    }, 4000);
     
     return () => {
-      clearTimeout(timer);
-      clearTimeout(backupTimer);
+      clearTimeout(initialDelay);
+      clearTimeout(backupTimeout);
     };
-  }, [currentUser, loading, ready]);
+  }, [currentUser, loading]);
   
-  // Show loading state
-  if (!ready) {
+  // Show consistent loading state
+  if (stableLoadingState) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -53,15 +67,16 @@ const Settings = () => {
   }
   
   // Show error state if no user is found
-  if (!currentUser) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="container mx-auto px-4 py-8">
           <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
             <AlertTitle>Authentication Error</AlertTitle>
             <AlertDescription>
-              Unable to load user data. Please try refreshing the page or signing out and back in.
+              {error}
             </AlertDescription>
           </Alert>
         </main>

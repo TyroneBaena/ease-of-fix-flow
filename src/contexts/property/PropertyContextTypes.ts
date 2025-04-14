@@ -8,4 +8,5 @@ export interface PropertyContextType {
   getProperty: (id: string) => Property | undefined;
   updateProperty: (id: string, property: Partial<Property>) => Promise<void>;
   deleteProperty: (id: string) => Promise<void>;
+  loadingFailed: boolean; // Add loading error state
 }

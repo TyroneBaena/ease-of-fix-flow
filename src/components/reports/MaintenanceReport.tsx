@@ -8,46 +8,49 @@ import ReportHeader from './components/ReportHeader';
 import ReportFilters from './components/ReportFilters';
 import MaintenanceRequestsTable from './components/MaintenanceRequestsTable';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from 'lucide-react';
 
 const MaintenanceReport = () => {
-  const { properties, loading: propertiesLoading } = usePropertyContext();
+  const { properties, loading: propertiesLoading, loadingFailed } = usePropertyContext();
   const { currentUser, isAdmin } = useUserContext();
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isReady, setIsReady] = useState(false);
-  const [attempts, setAttempts] = useState(0);
+  const [stableLoadingState, setStableLoadingState] = useState(true);
   
-  // More robust loading state management
+  // Improved stable loading state management
   useEffect(() => {
-    // Reset ready state when properties change or loading status changes
-    setIsReady(false);
+    console.log("MaintenanceReport: Loading state check", { propertiesLoading, properties });
     
-    // Create a timer to set the component as ready
-    const readyTimer = setTimeout(() => {
-      if (properties && !propertiesLoading) {
-        console.log("MaintenanceReport: Setting ready state with", properties.length, "properties");
-        setIsReady(true);
-      }
-    }, 200);
+    // Start with loading state
+    setStableLoadingState(true);
     
-    // Backup timer - if still not ready after 2s, force ready state
-    const backupTimer = setTimeout(() => {
-      if (!isReady) {
-        console.log("MaintenanceReport: Backup timer firing after", attempts, "attempts");
-        setIsReady(true);
-        setAttempts(prev => prev + 1);
+    // Short delay for state to stabilize
+    const initialDelay = setTimeout(() => {
+      if (!propertiesLoading) {
+        console.log("MaintenanceReport: Properties loaded, exiting loading state");
+        // Set stable loading state to false after short delay to prevent flashing
+        setTimeout(() => setStableLoadingState(false), 100);
       }
-    }, 2000);
+    }, 300);
+    
+    // Hard timeout to prevent infinite loading
+    const backupTimeout = setTimeout(() => {
+      if (stableLoadingState) {
+        console.log("MaintenanceReport: Forcing exit from loading state after timeout");
+        setStableLoadingState(false);
+      }
+    }, 3000);
     
     return () => {
-      clearTimeout(readyTimer);
-      clearTimeout(backupTimer);
+      clearTimeout(initialDelay);
+      clearTimeout(backupTimeout);
     };
-  }, [properties, propertiesLoading, attempts]);
+  }, [properties, propertiesLoading]);
 
   // Show skeleton while loading
-  if (!isReady) {
+  if (stableLoadingState) {
     return (
       <div className="space-y-4">
         <div className="flex flex-col space-y-3">
@@ -59,6 +62,21 @@ const MaintenanceReport = () => {
           </div>
         </div>
         <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
+  
+  // Show error state if loading failed
+  if (loadingFailed) {
+    return (
+      <div className="py-4">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Data Loading Error</AlertTitle>
+          <AlertDescription>
+            Unable to load property data. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
