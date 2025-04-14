@@ -102,7 +102,8 @@ export const userService = {
         // If we get a permissions error, try using the edge function instead
         if (error.status === 403 || error.message?.includes("User not allowed")) {
           console.log("Permission error when updating user - using edge function instead");
-          return await userService.inviteUser(user.email, user.name, user.role, user.assignedProperties);
+          await userService.inviteUser(user.email, user.name, user.role, user.assignedProperties);
+          return;
         }
         
         console.error("Error updating user:", error);
