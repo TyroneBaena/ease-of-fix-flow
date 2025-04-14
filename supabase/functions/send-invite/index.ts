@@ -34,9 +34,6 @@ serve(async (req: Request) => {
     }
   );
   
-  // Initialize Resend with API key
-  const resend = new Resend(Deno.env.get('RESEND_API_KEY') ?? '');
-
   try {
     // Parse request body
     const body = await req.json() as InviteRequest;
@@ -50,6 +47,20 @@ serve(async (req: Request) => {
     }
     
     console.log(`Processing invitation for ${email} with role ${role}`);
+    
+    // Check for RESEND_API_KEY before initialization
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY is not set in the environment variables");
+      return new Response(
+        JSON.stringify({ error: "Email service is not properly configured" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Initialize Resend with API key
+    const resend = new Resend(resendApiKey);
+    console.log("Resend initialized with API key");
     
     // First, check if the user already exists
     const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
@@ -171,30 +182,47 @@ serve(async (req: Request) => {
         </html>
       `;
     
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Property Manager <onboarding@resend.dev>',
-      to: [email],
-      subject: isNewUser ? 'Welcome to Property Manager' : 'Your Property Manager Account Has Been Updated',
-      html: emailHtml,
-    });
+    console.log("Attempting to send email...");
     
-    if (emailError) {
-      console.error("Error sending email:", emailError);
-      throw emailError;
+    try {
+      const { data: emailData, error: emailError } = await resend.emails.send({
+        from: 'Property Manager <onboarding@resend.dev>',
+        to: [email],
+        subject: isNewUser ? 'Welcome to Property Manager' : 'Your Property Manager Account Has Been Updated',
+        html: emailHtml,
+      });
+      
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        throw emailError;
+      }
+      
+      console.log(`Email sent successfully to ${email}, EmailID: ${emailData?.id}`);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: isNewUser ? "Invitation sent successfully" : "User updated and notified successfully", 
+          userId,
+          emailSent: true,
+          emailId: emailData?.id
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (emailError) {
+      console.error("Error in Resend email sending:", emailError);
+      // Continue with the process even if email sending fails
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: isNewUser ? "User created but email failed" : "User updated but email failed", 
+          userId,
+          emailSent: false,
+          emailError: emailError.message
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
-    console.log(`Email sent successfully to ${email}, EmailID: ${emailData?.id}`);
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: isNewUser ? "Invitation sent successfully" : "User updated and notified successfully", 
-        userId,
-        emailSent: true,
-        emailId: emailData?.id
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error("Invitation error:", error);
     return new Response(
