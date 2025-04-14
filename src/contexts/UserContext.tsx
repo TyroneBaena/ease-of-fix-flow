@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -23,6 +24,7 @@ interface UserContextType {
   addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<AddUserResult>;
   updateUser: (user: User) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
+  resetPassword: (userId: string, email: string) => Promise<void>;
   isAdmin: () => boolean;
   canAccessProperty: (propertyId: string) => boolean;
   signOut: () => Promise<void>;
@@ -56,11 +58,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       const allUsers = await userService.getAllUsers();
+      console.log("Fetched users:", allUsers);
       setUsers(allUsers);
       setLoadingError(null);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoadingError(error as Error);
+      toast.error("Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -92,8 +96,25 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setUsers(users.map(user => 
         user.id === updatedUser.id ? updatedUser : user
       ));
+      
+      toast.success(`User ${updatedUser.name} updated successfully`);
     } catch (error) {
       console.error('Error updating user:', error);
+      toast.error("Failed to update user");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (userId: string, email: string) => {
+    try {
+      setLoading(true);
+      await userService.resetPassword(email);
+      toast.success(`Password reset email sent to ${email}`);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error("Failed to send password reset email");
       throw error;
     } finally {
       setLoading(false);
@@ -137,6 +158,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       addUser,
       updateUser,
       removeUser,
+      resetPassword,
       isAdmin,
       canAccessProperty,
       signOut

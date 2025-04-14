@@ -43,10 +43,7 @@ export const userService = {
       }));
     } catch (error) {
       console.error("Error in getAllUsers:", error);
-      
-      // Don't throw the error, just return an empty array
-      // This prevents the UI from showing error messages repeatedly
-      return [];
+      throw error;
     }
   },
   
@@ -99,16 +96,34 @@ export const userService = {
       
       if (error) {
         console.error("Error updating user profile:", error);
-        
-        // If there's an error, fall back to the edge function
-        console.log("Using edge function as fallback for user update");
-        await userService.inviteUser(user.email, user.name, user.role, user.assignedProperties);
-        return;
+        throw error;
       }
       
       console.log(`User profile ${user.id} updated successfully`);
     } catch (error) {
       console.error("Error in updateUser:", error);
+      throw error;
+    }
+  },
+  
+  // Reset user password
+  async resetPassword(email: string): Promise<void> {
+    try {
+      console.log(`Requesting password reset for: ${email}`);
+      
+      // Use Supabase's built-in password reset functionality
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      
+      if (error) {
+        console.error("Error requesting password reset:", error);
+        throw error;
+      }
+      
+      console.log(`Password reset email sent to ${email}`);
+    } catch (error) {
+      console.error("Error in resetPassword:", error);
       throw error;
     }
   },

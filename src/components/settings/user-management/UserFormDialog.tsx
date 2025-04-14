@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Check } from 'lucide-react';
+import { Mail, Check, UserCircle } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -62,7 +62,10 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit User' : 'Invite New User'}</DialogTitle>
+          <DialogTitle className="flex items-center">
+            <UserCircle className="mr-2 h-5 w-5" />
+            {isEditMode ? 'Edit User Profile' : 'Invite New User'}
+          </DialogTitle>
         </DialogHeader>
         
         {!isEditMode && (
@@ -76,18 +79,18 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">Name</label>
+            <label htmlFor="name" className="text-sm font-medium">Full Name</label>
             <Input 
               id="name"
               value={user.name}
               onChange={(e) => onUserChange('name', e.target.value)}
-              placeholder="Enter name"
+              placeholder="Enter full name"
               disabled={isLoading}
             />
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
+            <label htmlFor="email" className="text-sm font-medium">Email Address</label>
             <Input 
               id="email"
               type="email"
@@ -113,29 +116,35 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
                 <SelectItem value="manager">Manager</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              {user.role === 'admin' ? 
+                'Admins have full access to all properties and can manage users.' : 
+                'Managers can only access properties assigned to them.'}
+            </p>
           </div>
           
           {user.role === 'manager' && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Assigned Properties</label>
               <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
-                {properties.map(property => (
-                  <div key={property.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`property-${property.id}`}
-                      checked={user.assignedProperties.includes(property.id)}
-                      onCheckedChange={() => onPropertySelection(property.id)}
-                      disabled={isLoading}
-                    />
-                    <label 
-                      htmlFor={`property-${property.id}`}
-                      className="text-sm cursor-pointer"
-                    >
-                      {property.name}
-                    </label>
-                  </div>
-                ))}
-                {properties.length === 0 && (
+                {properties.length > 0 ? (
+                  properties.map(property => (
+                    <div key={property.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`property-${property.id}`}
+                        checked={user.assignedProperties.includes(property.id)}
+                        onCheckedChange={() => onPropertySelection(property.id)}
+                        disabled={isLoading}
+                      />
+                      <label 
+                        htmlFor={`property-${property.id}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {property.name}
+                      </label>
+                    </div>
+                  ))
+                ) : (
                   <p className="text-sm text-gray-500 p-2">No properties available</p>
                 )}
               </div>

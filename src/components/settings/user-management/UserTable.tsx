@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Key, UserCircle } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -19,6 +19,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { formatDistanceToNow } from 'date-fns';
 
 interface UserTableProps {
   users: User[];
@@ -26,6 +27,7 @@ interface UserTableProps {
   isLoading: boolean;
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
+  onResetPassword: (userId: string, email: string) => void;
   // Pagination props
   currentPage: number;
   totalPages: number;
@@ -39,6 +41,7 @@ const UserTable: React.FC<UserTableProps> = ({
   isLoading, 
   onEditUser, 
   onDeleteUser,
+  onResetPassword,
   currentPage,
   totalPages,
   onPageChange,
@@ -84,6 +87,16 @@ const UserTable: React.FC<UserTableProps> = ({
     return pages;
   };
 
+  // Format creation date to be more readable
+  const formatCreationDate = (dateString: string) => {
+    if (!dateString) return "Unknown";
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch (error) {
+      return "Invalid date";
+    }
+  };
+
   return (
     <div>
       <Table>
@@ -93,13 +106,17 @@ const UserTable: React.FC<UserTableProps> = ({
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Properties</TableHead>
+            <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {currentUsers.map(user => (
             <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.name}</TableCell>
+              <TableCell className="font-medium flex items-center gap-2">
+                <UserCircle className="h-5 w-5 text-gray-400" />
+                {user.name}
+              </TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
                 <span className={`capitalize px-2 py-1 rounded-full text-xs ${
@@ -117,6 +134,9 @@ const UserTable: React.FC<UserTableProps> = ({
                   </span>
                 )}
               </TableCell>
+              <TableCell>
+                {formatCreationDate(user.createdAt)}
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end">
                   <Button
@@ -124,6 +144,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     size="icon"
                     onClick={() => onEditUser(user)}
                     disabled={isLoading}
+                    title="Edit user"
                   >
                     <Edit className="h-4 w-4" />
                     <span className="sr-only">Edit</span>
@@ -131,8 +152,19 @@ const UserTable: React.FC<UserTableProps> = ({
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => onResetPassword(user.id, user.email)}
+                    disabled={isLoading}
+                    title="Reset password"
+                  >
+                    <Key className="h-4 w-4" />
+                    <span className="sr-only">Reset Password</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => onDeleteUser(user.id)}
                     disabled={isLoading || user.id === currentUser?.id}
+                    title={user.id === currentUser?.id ? "Cannot delete your own account" : "Delete user"}
                   >
                     <Trash2 className="h-4 w-4" />
                     <span className="sr-only">Delete</span>
@@ -143,7 +175,7 @@ const UserTable: React.FC<UserTableProps> = ({
           ))}
           {users.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                 No users found
               </TableCell>
             </TableRow>

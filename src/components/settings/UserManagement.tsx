@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
 import { toast } from "sonner";
 import { User, UserRole } from '@/types/user';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import UserManagementHeader from './user-management/UserManagementHeader';
 import UserTable from './user-management/UserTable';
@@ -12,7 +14,7 @@ import AccessDeniedMessage from './user-management/AccessDeniedMessage';
 const USERS_PER_PAGE = 5;
 
 const UserManagement = () => {
-  const { users, addUser, updateUser, removeUser, isAdmin, currentUser } = useUserContext();
+  const { users, addUser, updateUser, removeUser, isAdmin, currentUser, fetchUsers, resetPassword } = useUserContext();
   const { properties } = usePropertyContext();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -26,8 +28,17 @@ const UserManagement = () => {
   });
   
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   
   const totalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+  
+  // Force a user refresh when component mounts
+  useEffect(() => {
+    if (isAdmin()) {
+      fetchUsers();
+    }
+  }, []);
   
   const handlePageChange = (pageNumber: number) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -142,22 +153,38 @@ const UserManagement = () => {
     }
   };
   
-  const handleDeleteUser = async (userId: string) => {
-    if (userId === currentUser?.id) {
-      toast.error("You cannot delete your own account");
-      return;
+  const handleResetPassword = async (userId: string, email: string) => {
+    try {
+      setIsLoading(true);
+      await resetPassword(userId, email);
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error(`Failed to reset password: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
+  };
+  
+  const confirmDeleteUser = (userId: string) => {
+    setUserToDelete(userId);
+    setIsDeleteConfirmOpen(true);
+  };
+  
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
     
     try {
       setIsLoading(true);
-      await removeUser(userId);
+      await removeUser(userToDelete);
       
-      const remainingUsersOnPage = users.filter(user => user.id !== userId).length % USERS_PER_PAGE;
+      const remainingUsersOnPage = users.filter(user => user.id !== userToDelete).length % USERS_PER_PAGE;
       if (remainingUsersOnPage === 0 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
       
       toast.success("User removed successfully");
+      setIsDeleteConfirmOpen(false);
+      setUserToDelete(null);
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error(`Failed to remove user: ${error.message || 'Unknown error'}`);
@@ -179,7 +206,8 @@ const UserManagement = () => {
         currentUser={currentUser}
         isLoading={isLoading}
         onEditUser={(user) => handleOpenDialog(true, user)}
-        onDeleteUser={handleDeleteUser}
+        onDeleteUser={confirmDeleteUser}
+        onResetPassword={handleResetPassword}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
@@ -199,6 +227,29 @@ const UserManagement = () => {
         onPropertySelection={handlePropertySelection}
         onSave={handleSaveUser}
       />
+      
+      {/* Confirmation dialog for user deletion */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the user account and remove their access to the system.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              disabled={isLoading}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {isLoading ? 'Deleting...' : 'Delete User'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
