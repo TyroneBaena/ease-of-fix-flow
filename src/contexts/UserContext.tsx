@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { userService } from '@/services/userService';
@@ -37,7 +37,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
+  const [fetchInProgress, setFetchInProgress] = useState(false);
 
+  // Fetch users only when currentUser changes, not on every render
   useEffect(() => {
     if (currentUser && currentUser.role === 'admin') {
       fetchUsers().catch(error => {
@@ -50,12 +52,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [currentUser]);
 
-  const fetchUsers = async () => {
-    if (!currentUser || currentUser.role !== 'admin') {
+  const fetchUsers = useCallback(async () => {
+    // Prevent multiple concurrent fetches
+    if (fetchInProgress || !currentUser || currentUser.role !== 'admin') {
+      console.log("Fetch skipped: already in progress or not admin");
       return;
     }
 
     try {
+      console.log("Starting user fetch");
+      setFetchInProgress(true);
       setLoading(true);
       const allUsers = await userService.getAllUsers();
       console.log("Fetched users:", allUsers);
@@ -67,8 +73,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       toast.error("Failed to fetch users");
     } finally {
       setLoading(false);
+      setFetchInProgress(false);
     }
-  };
+  }, [currentUser, fetchInProgress]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
@@ -139,15 +146,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const isAdmin = () => {
+  const isAdmin = useCallback(() => {
     return currentUser?.role === 'admin';
-  };
+  }, [currentUser]);
 
-  const canAccessProperty = (propertyId: string) => {
+  const canAccessProperty = useCallback((propertyId: string) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
     return currentUser.assignedProperties?.includes(propertyId) || false;
-  };
+  }, [currentUser]);
 
   return (
     <UserContext.Provider value={{

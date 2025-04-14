@@ -35,7 +35,7 @@ const UserManagement = () => {
     fetchUsers
   } = useUserManagement();
   
-  // Force a user refresh when component mounts
+  // Use a dependency array with isAdmin to prevent infinite loops
   useEffect(() => {
     if (isAdmin()) {
       fetchUsers();

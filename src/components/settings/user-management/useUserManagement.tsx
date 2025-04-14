@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+
+import { useState, useCallback, useMemo } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -30,17 +31,32 @@ export const useUserManagement = () => {
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   
   const USERS_PER_PAGE = 5;
-  const totalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+  // Calculate total pages based on current users array
+  const totalPages = useMemo(() => 
+    Math.max(1, Math.ceil(users.length / USERS_PER_PAGE)),
+    [users.length, USERS_PER_PAGE]
+  );
   
+  // Properly memoize the fetchUsers function to prevent infinite loops
   const fetchUsers = useCallback(() => {
+    console.log("Fetching users from useUserManagement");
     return fetchUsersFromContext();
   }, [fetchUsersFromContext]);
   
-  const handlePageChange = (pageNumber: number) => {
+  // Reset to first page when users list changes length significantly
+  // This prevents "no users found" when deleting the last user on a page
+  const handlePageChange = useCallback((pageNumber: number) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
     }
-  };
+  }, [totalPages]);
+  
+  // Make sure currentPage stays valid when totalPages changes
+  useMemo(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
   
   const handleOpenDialog = (edit: boolean = false, user?: User) => {
     if (edit && user) {
