@@ -148,7 +148,6 @@ serve(async (req: Request) => {
     }
     
     // Send email using Resend
-    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'http://localhost:3000';
     const loginUrl = `${applicationUrl}/login`;
     
     const emailHtml = isNewUser
