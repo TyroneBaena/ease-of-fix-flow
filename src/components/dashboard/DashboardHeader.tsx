@@ -8,7 +8,7 @@ interface DashboardHeaderProps {
   title: string;
 }
 
-const DashboardHeader = ({ title }: DashboardHeaderProps) => {
+const DashboardHeader = ({ title = "Dashboard" }: DashboardHeaderProps) => {
   const navigate = useNavigate();
 
   return (

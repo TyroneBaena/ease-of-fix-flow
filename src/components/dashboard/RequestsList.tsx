@@ -7,12 +7,13 @@ import { Search, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RequestCard from '@/components/RequestCard';
 import { MaintenanceRequest } from '@/types/property';
+import { requests as sampleRequests } from '@/data/sampleData';
 
 interface RequestsListProps {
-  allRequests: MaintenanceRequest[];
+  allRequests?: MaintenanceRequest[];
 }
 
-const RequestsList = ({ allRequests }: RequestsListProps) => {
+const RequestsList = ({ allRequests = sampleRequests }: RequestsListProps) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
