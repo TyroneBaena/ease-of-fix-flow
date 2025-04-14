@@ -1,8 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@1.0.0";
-import { InviteRequest } from "./lib/types.ts";
 import { corsHeaders } from "./lib/cors.ts";
 import { createEmailHtml } from "./lib/email-templates.ts";
 import { 
@@ -11,6 +9,9 @@ import {
   createNewUser, 
   generateTemporaryPassword
 } from "./lib/user-management.ts";
+
+// Update the Resend import to use a version compatible with Deno
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -32,7 +33,7 @@ serve(async (req: Request) => {
   
   try {
     // Parse request body
-    const body = await req.json() as InviteRequest;
+    const body = await req.json();
     const { email, name, role, assignedProperties = [] } = body;
     
     if (!email || !name || !role) {
@@ -69,7 +70,7 @@ serve(async (req: Request) => {
       );
     }
     
-    // Initialize Resend with API key
+    // Initialize Resend with API key - using updated library
     const resend = new Resend(resendApiKey);
     console.log("Resend initialized with API key");
     
@@ -107,19 +108,20 @@ serve(async (req: Request) => {
     console.log("Attempting to send email...");
     
     try {
-      const { data: emailData, error: emailError } = await resend.emails.send({
+      // Updated Resend API call to match v2.0.0 syntax
+      const { data, error } = await resend.emails.send({
         from: 'Property Manager <onboarding@resend.dev>',
         to: [email],
         subject: isNewUser ? 'Welcome to Property Manager' : 'Your Property Manager Account Has Been Updated',
         html: emailHtml,
       });
       
-      if (emailError) {
-        console.error("Error sending email:", emailError);
-        throw emailError;
+      if (error) {
+        console.error("Error sending email:", error);
+        throw error;
       }
       
-      console.log(`Email sent successfully to ${email}, EmailID: ${emailData?.id}`);
+      console.log(`Email sent successfully to ${email}, EmailID: ${data?.id}`);
       
       return new Response(
         JSON.stringify({ 
@@ -127,7 +129,7 @@ serve(async (req: Request) => {
           message: isNewUser ? "Invitation sent successfully" : "User updated and notified successfully", 
           userId,
           emailSent: true,
-          emailId: emailData?.id
+          emailId: data?.id
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
