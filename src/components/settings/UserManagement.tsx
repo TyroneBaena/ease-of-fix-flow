@@ -116,7 +116,17 @@ const UserManagement = () => {
         console.log("Add user result:", result);
         
         if (result.emailSent) {
-          toast.success(`Invitation sent to ${newUser.email}`);
+          if (result.testMode) {
+            toast.success(
+              `User ${newUser.name} created successfully. Test email sent to developer account.`,
+              {
+                description: "To send to real email addresses, verify a domain in Resend.",
+                duration: 8000
+              }
+            );
+          } else {
+            toast.success(`Invitation sent to ${newUser.email}`);
+          }
         } else {
           const errorMessage = result.emailError || "Unknown error";
           console.error("Email sending failed:", errorMessage);

@@ -10,6 +10,8 @@ interface InviteUserResult {
   userId?: string;
   emailSent?: boolean;
   emailError?: string;
+  testMode?: boolean;  // New field to indicate if email was sent in test mode
+  testModeInfo?: string; // Additional info about test mode limitations
 }
 
 export const userService = {
@@ -70,7 +72,7 @@ export const userService = {
         throw inviteError;
       }
       
-      console.log(`Invitation sent to ${email} successfully`);
+      console.log(`Invitation processed for ${email} successfully`);
       return data as InviteUserResult;
     } catch (error) {
       console.error("Error in inviteUser:", error);

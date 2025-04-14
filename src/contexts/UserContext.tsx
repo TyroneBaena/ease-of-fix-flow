@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -12,6 +11,8 @@ interface AddUserResult {
   userId?: string;
   emailSent?: boolean;
   emailError?: string;
+  testMode?: boolean; // New field to track if email was sent in test mode
+  testModeInfo?: string; // Info about test mode
 }
 
 interface UserContextType {
@@ -35,11 +36,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
 
-  // Fetch users when currentUser changes (if they're an admin)
   useEffect(() => {
     if (currentUser && currentUser.role === 'admin') {
       fetchUsers().catch(error => {
-        // Only show one error toast maximum
         if (!loadingError) {
           setLoadingError(error);
         }
@@ -58,12 +57,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       const allUsers = await userService.getAllUsers();
       setUsers(allUsers);
-      // Reset loading error if successful
       setLoadingError(null);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoadingError(error as Error);
-      // Don't show toast here as it might pop up repeatedly
     } finally {
       setLoading(false);
     }
@@ -92,7 +89,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       await userService.updateUser(updatedUser);
       
-      // Update local state
       setUsers(users.map(user => 
         user.id === updatedUser.id ? updatedUser : user
       ));
@@ -113,7 +109,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       await userService.deleteUser(userId);
       
-      // Update local state
       setUsers(users.filter(user => user.id !== userId));
     } catch (error) {
       console.error('Error removing user:', error);

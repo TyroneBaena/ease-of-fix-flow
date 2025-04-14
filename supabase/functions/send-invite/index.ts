@@ -46,11 +46,13 @@ serve(async (req: Request) => {
     
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const applicationUrl = Deno.env.get('APPLICATION_URL');
+    const ownerEmail = Deno.env.get('RESEND_OWNER_EMAIL') || 'tyronebaena@gmail.com';
 
     console.log('Environment Checks:', {
       RESEND_API_KEY: resendApiKey ? 'Present' : 'Missing',
       APPLICATION_URL: applicationUrl ? 'Present' : 'Missing',
-      APPLICATION_URL_VALUE: applicationUrl
+      APPLICATION_URL_VALUE: applicationUrl,
+      RESEND_OWNER_EMAIL: ownerEmail
     });
     
     if (!resendApiKey) {
@@ -142,21 +144,29 @@ serve(async (req: Request) => {
       isNewUser
     });
     
+    // Check if we're in test mode (only can send to owner email)
+    const emailRecipient = email === ownerEmail ? email : ownerEmail;
+    const isTestMode = email !== ownerEmail;
+    
     console.log("Attempting to send email...");
-    console.log("Email will have these URLs:");
-    if (isNewUser) {
-      console.log(`Setup Password URL: ${loginUrl}/setup-password?email=${encodeURIComponent(email)}`);
-    } else {
-      console.log(`Login URL: ${loginUrl}/login`);
+    console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
+    
+    if (isTestMode) {
+      console.log(`NOTE: In test mode, email is redirected to ${ownerEmail} instead of ${email}`);
+      console.log("To send to other recipients, please verify a domain at resend.com/domains");
     }
     
     try {
       console.log("Calling Resend API to send email");
       const { data, error } = await resend.emails.send({
         from: 'Property Manager <onboarding@resend.dev>',
-        to: [email],
-        subject: isNewUser ? 'Welcome to Property Manager' : 'Your Property Manager Account Has Been Updated',
-        html: emailHtml,
+        to: [emailRecipient],
+        subject: isNewUser 
+          ? `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager` 
+          : `${isTestMode ? '[TEST] ' : ''}Your Property Manager Account Has Been Updated`,
+        html: isTestMode 
+          ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
+          : emailHtml,
       });
       
       if (error) {
@@ -164,15 +174,20 @@ serve(async (req: Request) => {
         throw error;
       }
       
-      console.log(`Email sent successfully to ${email}, EmailID: ${data?.id}`);
+      console.log(`Email sent successfully to ${emailRecipient}, EmailID: ${data?.id}`);
       
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: isNewUser ? "Invitation sent successfully" : "User updated and notified successfully", 
+          message: isNewUser ? "User created successfully" : "User updated successfully", 
           userId,
           emailSent: true,
-          emailId: data?.id
+          emailId: data?.id,
+          testMode: isTestMode,
+          // Include helpful information about test mode
+          testModeInfo: isTestMode 
+            ? "In test mode: Email was sent to the owner email instead of the target email. To send emails to other addresses, verify a domain at resend.com/domains." 
+            : null
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -184,7 +199,8 @@ serve(async (req: Request) => {
           message: isNewUser ? "User created but email failed" : "User updated but email failed", 
           userId,
           emailSent: false,
-          emailError: JSON.stringify(emailError)
+          emailError: JSON.stringify(emailError),
+          emailTip: "To send emails to addresses other than your own, verify a domain at resend.com/domains"
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
