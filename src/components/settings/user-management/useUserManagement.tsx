@@ -1,7 +1,6 @@
-
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
-import { usePropertyContext } from '@/contexts/PropertyContext';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';

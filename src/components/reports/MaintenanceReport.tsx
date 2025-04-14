@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { usePropertyContext } from '@/contexts/PropertyContext';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { filterMaintenanceRequests } from './utils/reportHelpers';
 import { mockMaintenanceRequests } from './data/mockMaintenanceData';
@@ -18,7 +17,6 @@ const MaintenanceReport = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [initialized, setInitialized] = useState(false);
   
-  // Ensure we don't get stuck in a loading state
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialized(true);
@@ -27,7 +25,6 @@ const MaintenanceReport = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  // If still loading and not initialized yet, show minimal loading state
   if (propertiesLoading && !initialized) {
     return (
       <div className="space-y-4">
@@ -44,7 +41,6 @@ const MaintenanceReport = () => {
     );
   }
   
-  // If properties have loaded but there are none, show a message
   if (initialized && (!properties || properties.length === 0)) {
     return (
       <div className="py-8 text-center">
@@ -53,17 +49,14 @@ const MaintenanceReport = () => {
     );
   }
   
-  // Filter properties based on user role
   const accessibleProperties = isAdmin
     ? properties 
     : properties.filter(prop => 
         currentUser?.assignedProperties?.includes(prop.id)
       );
 
-  // Get maintenance requests (in a real app, this would come from an API)
   const maintenanceRequests = mockMaintenanceRequests;
   
-  // Apply filters
   const filteredRequests = filterMaintenanceRequests(
     maintenanceRequests,
     propertyFilter,

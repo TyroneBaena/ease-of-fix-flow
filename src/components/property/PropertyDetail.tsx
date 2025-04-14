@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { usePropertyContext } from '@/contexts/PropertyContext';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import { Property } from '@/types/property';
 import PropertyAccessControl from './PropertyAccessControl';
