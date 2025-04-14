@@ -2,6 +2,7 @@
 // Deno imports for Edge Functions
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@1.0.0";
 
 interface InviteRequest {
   email: string;
@@ -13,7 +14,7 @@ interface InviteRequest {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -32,6 +33,9 @@ serve(async (req: Request) => {
       },
     }
   );
+  
+  // Initialize Resend with API key
+  const resend = new Resend(Deno.env.get('RESEND_API_KEY') ?? '');
 
   try {
     // Parse request body
@@ -45,7 +49,7 @@ serve(async (req: Request) => {
       );
     }
     
-    console.log(`Sending invitation to ${email} with role ${role}`);
+    console.log(`Processing invitation for ${email} with role ${role}`);
     
     // First, check if the user already exists
     const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
@@ -59,12 +63,15 @@ serve(async (req: Request) => {
       throw searchError;
     }
     
+    let userId = '';
+    let isNewUser = false;
+    let temporaryPassword = '';
+    
     // Check if the user already exists
     if (existingUsers && existingUsers.users && existingUsers.users.length > 0) {
       console.log(`User with email ${email} already exists`);
       
-      // Instead of returning an error, update the user's metadata
-      const userId = existingUsers.users[0].id;
+      userId = existingUsers.users[0].id;
       const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
         userId,
         {
@@ -81,58 +88,111 @@ serve(async (req: Request) => {
         throw updateError;
       }
       
-      return new Response(
-        JSON.stringify({ success: true, message: "User updated successfully", userId: userId }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    } else {
+      isNewUser = true;
+      // Generate a secure random password
+      const generatePassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+      };
+      
+      temporaryPassword = generatePassword();
+      
+      // Create the user with a temporary password
+      const { data: authData, error: createError } = await supabaseClient.auth.admin.createUser({
+        email,
+        password: temporaryPassword,
+        email_confirm: true, // Auto-confirm the email
+        user_metadata: {
+          name,
+          role,
+          assignedProperties: role === 'manager' ? assignedProperties : [],
+        }
+      });
+      
+      if (createError) {
+        console.error("Error creating user:", createError);
+        throw createError;
+      }
+      
+      userId = authData.user.id;
     }
     
-    // Generate a secure random password
-    const generatePassword = () => {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-      let password = '';
-      for (let i = 0; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return password;
-    };
+    // Send email using Resend
+    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'http://localhost:3000';
+    const loginUrl = `${applicationUrl}/login`;
     
-    const temporaryPassword = generatePassword();
+    const emailHtml = isNewUser
+      ? `
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2>Welcome to Property Manager!</h2>
+              <p>Hello ${name},</p>
+              <p>You have been invited to join Property Manager with the role of <strong>${role}</strong>.</p>
+              <p>To get started, please use the following credentials to log in:</p>
+              <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
+                <p style="margin: 5px 0;"><strong>Temporary Password:</strong> ${temporaryPassword}</p>
+              </div>
+              <p>For security reasons, we recommend changing your password after your first login.</p>
+              <p>
+                <a href="${loginUrl}" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                  Go to Login Page
+                </a>
+              </p>
+              <p>If you have any questions, please contact your administrator.</p>
+              <p>Thank you,<br>Property Manager Team</p>
+            </div>
+          </body>
+        </html>
+      `
+      : `
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2>Your Property Manager Account Has Been Updated</h2>
+              <p>Hello ${name},</p>
+              <p>Your account has been updated in the Property Manager system. You now have the role of <strong>${role}</strong>.</p>
+              ${role === 'manager' ? `<p>You have been assigned to manage specific properties in the system.</p>` : ''}
+              <p>
+                <a href="${loginUrl}" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                  Go to Login Page
+                </a>
+              </p>
+              <p>If you have any questions, please contact your administrator.</p>
+              <p>Thank you,<br>Property Manager Team</p>
+            </div>
+          </body>
+        </html>
+      `;
     
-    // Create the user with a temporary password
-    const { data: authData, error: createError } = await supabaseClient.auth.admin.createUser({
-      email,
-      password: temporaryPassword,
-      email_confirm: true, // Auto-confirm the email
-      user_metadata: {
-        name,
-        role,
-        assignedProperties: role === 'manager' ? assignedProperties : [],
-      }
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'Property Manager <onboarding@resend.dev>',
+      to: [email],
+      subject: isNewUser ? 'Welcome to Property Manager' : 'Your Property Manager Account Has Been Updated',
+      html: emailHtml,
     });
     
-    if (createError) {
-      console.error("Error creating user:", createError);
-      throw createError;
+    if (emailError) {
+      console.error("Error sending email:", emailError);
+      throw emailError;
     }
     
-    // Send invitation email
-    // In a production environment, you would integrate with an email service like Resend, SendGrid, etc.
-    // For now, we'll just log the invitation details
-    console.log(`
-      Invitation details:
-      - Email: ${email}
-      - Name: ${name}
-      - Role: ${role}
-      - Temporary Password: ${temporaryPassword}
-      - User ID: ${authData.user.id}
-    `);
-    
-    // In the future, implement proper email sending here
-    // const { error: emailError } = await sendEmail({ to: email, subject: "Invitation", ... });
+    console.log(`Email sent successfully to ${email}, EmailID: ${emailData?.id}`);
     
     return new Response(
-      JSON.stringify({ success: true, message: "Invitation sent successfully", userId: authData.user.id }),
+      JSON.stringify({ 
+        success: true, 
+        message: isNewUser ? "Invitation sent successfully" : "User updated and notified successfully", 
+        userId,
+        emailSent: true,
+        emailId: emailData?.id
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
