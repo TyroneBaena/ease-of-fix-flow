@@ -69,13 +69,15 @@ export const useSupabaseAuth = () => {
       setLoading(false);
     };
 
-    initializeAuth();
-
     // Set up listener for auth changes outside the async function.
+    // Fix potential deadlock by not using async function as callback
     const { data } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          await fetchUserProfile(session.user.id);
+          // Use setTimeout to defer Supabase calls after the callback has finished
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
           setSupabaseUser(null);
@@ -83,6 +85,8 @@ export const useSupabaseAuth = () => {
       }
     );
     subscription = data.subscription;
+
+    initializeAuth();
 
     // Cleanup function to unsubscribe when component unmounts.
     return () => {
