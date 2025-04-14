@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +59,8 @@ const Login = () => {
         options: {
           data: {
             name: 'Demo Admin',
-            role: 'admin'
+            role: 'admin',
+            assignedProperties: []
           }
         }
       });
@@ -69,26 +69,6 @@ const Login = () => {
         console.error("Error creating demo user:", signUpError);
         toast.error("Failed to create demo account: " + signUpError.message);
         return;
-      }
-      
-      // Create user profile manually since we might not have a trigger
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: data.user.id, // Use UUID string directly
-            Name: 'Demo Admin',
-            email: demoEmail,
-            role: 'admin',
-            created_at: new Date().toISOString(),
-            password: demoPassword // Store the password for reference
-          });
-          
-        if (profileError) {
-          console.error("Error creating demo profile:", profileError);
-          toast.error("Failed to create demo profile");
-          return;
-        }
       }
       
       // Now try to sign in with the newly created account

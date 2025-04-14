@@ -9,46 +9,22 @@ export const useSupabaseAuth = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [supabaseUser, setSupabaseUser] = useState(null);
 
-  // Fetch user profile data from "user_profiles" table
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log("Fetching profile for user ID:", userId);
-      
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
-      
-      if (data) {
-        console.log("Found user profile:", data);
-        setCurrentUser({
-          id: String(data.id),
-          name: data.Name || '',
-          email: String(data.email) || '',
-          role: (String(data.role) as UserRole) || 'manager',
-          assignedProperties: data.assigned_properties
-            ? String(data.assigned_properties).split(',')
-            : [],
-          createdAt: String(data.created_at) || new Date().toISOString()
-        });
-        setSupabaseUser(null);
-      } else {
-        console.log("No user profile found for ID:", userId);
-      }
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      toast.error("Failed to fetch user profile");
-    }
+  // Convert Supabase user to application user model
+  const convertToAppUser = (authUser) => {
+    if (!authUser) return null;
+    
+    return {
+      id: authUser.id,
+      name: authUser.user_metadata?.name || '',
+      email: authUser.email || '',
+      role: (authUser.user_metadata?.role as UserRole) || 'manager',
+      assignedProperties: authUser.user_metadata?.assignedProperties || [],
+      createdAt: authUser.created_at || new Date().toISOString()
+    };
   };
 
   useEffect(() => {
-    let subscription: { unsubscribe: () => void } | undefined;
+    let subscription;
 
     const initializeAuth = async () => {
       setLoading(true);
@@ -57,7 +33,7 @@ export const useSupabaseAuth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id);
+        setCurrentUser(convertToAppUser(session.user));
       } else {
         setCurrentUser(null);
         setSupabaseUser(null);
@@ -66,14 +42,15 @@ export const useSupabaseAuth = () => {
       setLoading(false);
     };
 
-    // Set up listener for auth changes outside the async function.
-    // Fix potential deadlock by not using async function as callback
+    // Set up listener for auth changes outside the async function
+    // Prevent deadlocks by not using async function as callback
     const { data } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           // Use setTimeout to defer Supabase calls after the callback has finished
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
+            const appUser = convertToAppUser(session.user);
+            setCurrentUser(appUser);
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);

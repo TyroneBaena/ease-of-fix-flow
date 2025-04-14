@@ -5,20 +5,18 @@ import { User, UserRole } from '@/types/user';
 export const userService = {
   // Get all users (admin only)
   async getAllUsers(): Promise<User[]> {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*');
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
     
-    if (error) throw error;
+    if (authError) throw authError;
     
-    return data?.map(profile => ({
-      id: String(profile.id),
-      name: profile.Name || '',
-      email: String(profile.email) || '',
-      role: String(profile.role) as UserRole,
-      assignedProperties: profile.assigned_properties ? String(profile.assigned_properties).split(',') : [],
-      createdAt: String(profile.created_at)
-    })) || [];
+    return authUsers.users.map(user => ({
+      id: user.id,
+      name: user.user_metadata?.name || '',
+      email: user.email || '',
+      role: user.user_metadata?.role as UserRole || 'manager',
+      assignedProperties: user.user_metadata?.assignedProperties || [],
+      createdAt: user.created_at || ''
+    }));
   },
   
   // Invite new user (admin only)
@@ -26,76 +24,57 @@ export const userService = {
     // Generate a random password for the initial account
     const temporaryPassword = Math.random().toString(36).slice(-8);
     
-    // 1. Create auth user
+    // Create auth user with metadata
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: temporaryPassword,
       options: {
         data: {
           name,
-          role
+          role,
+          assignedProperties: role === 'manager' ? assignedProperties : []
         }
       }
     });
     
     if (authError) throw authError;
     
-    // 2. Create user profile
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: authData.user.id, // Use UUID string directly
-          Name: name,
-          email: email,
-          role: role,
-          assigned_properties: assignedProperties.join(','),
-          created_at: new Date().toISOString(),
-          password: temporaryPassword // Store the temporary password for reference
-        });
-      
-      if (profileError) throw profileError;
-      
-      // 3. Send invitation email with password reset link (in a real app)
-      console.log(`Invited user: ${email} with temp password: ${temporaryPassword}`);
-    }
+    // Log for reference (in a real app, would send an email)
+    console.log(`Invited user: ${email} with temp password: ${temporaryPassword}`);
   },
   
   // Update user (admin only)
   async updateUser(user: User): Promise<void> {
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({
-        Name: user.name,
+    const { error } = await supabase.auth.admin.updateUserById(
+      user.id,
+      {
         email: user.email,
-        role: user.role,
-        assigned_properties: user.role === 'manager' ? user.assignedProperties.join(',') : null
-      })
-      .eq('id', user.id); // Use UUID string directly
+        user_metadata: {
+          name: user.name,
+          role: user.role,
+          assignedProperties: user.role === 'manager' ? user.assignedProperties : []
+        }
+      }
+    );
     
     if (error) throw error;
   },
   
   // Delete user (admin only)
   async deleteUser(userId: string): Promise<void> {
-    // Delete the user profile directly with the UUID string
-    const { error } = await supabase
-      .from('user_profiles')
-      .delete()
-      .eq('id', userId); // Use UUID string directly
+    // Use the edge function to delete the user
+    const { error } = await supabase.functions.invoke('delete-user', {
+      body: { userId }
+    });
     
     if (error) throw error;
   },
   
   // Check if user is admin
   async isUserAdmin(userId: string): Promise<boolean> {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', userId) // Use UUID string directly
-      .single();
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
     
     if (error) return false;
-    return data?.role === 'admin';
+    return data.user.user_metadata?.role === 'admin';
   }
 };

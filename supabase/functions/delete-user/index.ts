@@ -42,22 +42,15 @@ serve(async (req: Request) => {
       );
     }
     
-    console.log(`Deleting user profile for ID: ${userId}`);
+    console.log(`Deleting user with ID: ${userId}`);
     
-    // First delete the user profile using the UUID string directly
-    const { error: profileError } = await supabaseClient
-      .from('user_profiles')
-      .delete()
-      .eq('id', userId);
-      
-    if (profileError) {
-      console.error("Error deleting profile:", profileError);
-      throw profileError;
+    // Delete the auth user 
+    const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
+    
+    if (authError) {
+      console.error("Error deleting user:", authError);
+      throw authError;
     }
-    
-    // Then delete the auth user (if needed in the future)
-    // const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
-    // if (authError) throw authError;
     
     return new Response(
       JSON.stringify({ success: true }),
