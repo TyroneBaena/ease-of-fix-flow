@@ -29,9 +29,26 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser } = useUserContext();
 
+  // Set a safeguard to prevent infinite loading
   useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log('PropertyContext: Safeguard timeout triggered, setting loading to false');
+        setLoading(false);
+      }
+    }, 5000); // 5 seconds timeout
+
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  useEffect(() => {
+    // Only fetch if we have a user - add a slight delay to prevent race conditions
     if (currentUser) {
-      fetchProperties();
+      const timer = setTimeout(() => {
+        fetchProperties();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     } else {
       setProperties([]);
       setLoading(false);
@@ -41,6 +58,8 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      console.log('PropertyContext: Fetching properties');
+      
       const { data, error } = await supabase
         .from('properties')
         .select('*');
@@ -48,6 +67,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (error) {
         console.error('Error fetching properties:', error);
         toast.error('Failed to fetch properties');
+        setLoading(false);
         return;
       }
 
@@ -65,6 +85,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         createdAt: prop.created_at
       }));
 
+      console.log('PropertyContext: Properties fetched successfully', formattedProperties.length);
       setProperties(formattedProperties);
     } catch (err) {
       console.error('Unexpected error fetching properties:', err);

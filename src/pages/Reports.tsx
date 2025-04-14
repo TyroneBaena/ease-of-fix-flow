@@ -12,14 +12,22 @@ const Reports = () => {
   const { isAdmin, loading, currentUser } = useUserContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(true);
 
-  // Reset error state when component mounts or user changes
+  // Handle initial loading and reset error state when component mounts or user changes
   useEffect(() => {
     setError(null);
+    
+    // Set a timeout to prevent infinite loading state
+    const timer = setTimeout(() => {
+      setLocalLoading(false);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
   }, [currentUser]);
 
-  // Show loading state if user data is still loading
-  if (loading) {
+  // Show loading state if user data is still loading, but only for a limited time
+  if (loading && localLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -28,23 +36,6 @@ const Reports = () => {
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             <span className="ml-2 text-blue-500">Loading reports...</span>
           </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Show error state if no user is found (should not happen if ProtectedRoute is working)
-  if (!currentUser && !loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <Alert variant="destructive" className="mb-6">
-            <AlertTitle>Authentication Error</AlertTitle>
-            <AlertDescription>
-              Unable to load user data. Please try refreshing the page or signing out and back in.
-            </AlertDescription>
-          </Alert>
         </main>
       </div>
     );

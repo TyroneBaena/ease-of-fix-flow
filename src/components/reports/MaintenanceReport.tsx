@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/PropertyContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { filterMaintenanceRequests } from './utils/reportHelpers';
@@ -10,18 +10,37 @@ import MaintenanceRequestsTable from './components/MaintenanceRequestsTable';
 import { Loader2 } from 'lucide-react';
 
 const MaintenanceReport = () => {
-  const { properties } = usePropertyContext();
+  const { properties, loading: propertiesLoading } = usePropertyContext();
   const { currentUser, isAdmin } = useUserContext();
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  // If properties aren't loaded yet, show loading
-  if (!properties || properties.length === 0) {
+  // Set initialization state after component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // If still waiting for initial data, show minimal loading
+  if (!isInitialized || propertiesLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-        <span>Loading property data...</span>
+        <span>Loading report data...</span>
+      </div>
+    );
+  }
+  
+  // If properties have loaded but there are none, show a message
+  if (!properties || properties.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-gray-500">No property data available. Please add properties first.</p>
       </div>
     );
   }
