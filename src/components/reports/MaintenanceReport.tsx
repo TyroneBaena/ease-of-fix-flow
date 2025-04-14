@@ -8,6 +8,7 @@ import ReportHeader from './components/ReportHeader';
 import ReportFilters from './components/ReportFilters';
 import MaintenanceRequestsTable from './components/MaintenanceRequestsTable';
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MaintenanceReport = () => {
   const { properties, loading: propertiesLoading } = usePropertyContext();
@@ -15,29 +16,36 @@ const MaintenanceReport = () => {
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   
-  // Set initialization state after component mounts
+  // Ensure we don't get stuck in a loading state
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsInitialized(true);
-    }, 500);
+      setInitialized(true);
+    }, 1000);
     
     return () => clearTimeout(timer);
   }, []);
   
-  // If still waiting for initial data, show minimal loading
-  if (!isInitialized || propertiesLoading) {
+  // If still loading and not initialized yet, show minimal loading state
+  if (propertiesLoading && !initialized) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-        <span>Loading report data...</span>
+      <div className="space-y-4">
+        <div className="flex flex-col space-y-3">
+          <Skeleton className="h-8 w-full max-w-[300px]" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
   
   // If properties have loaded but there are none, show a message
-  if (!properties || properties.length === 0) {
+  if (initialized && (!properties || properties.length === 0)) {
     return (
       <div className="py-8 text-center">
         <p className="text-gray-500">No property data available. Please add properties first.</p>

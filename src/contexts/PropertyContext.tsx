@@ -28,18 +28,19 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser } = useUserContext();
+  const [fetchAttempted, setFetchAttempted] = useState(false);
 
   // Set a safeguard to prevent infinite loading
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (loading) {
+      if (loading && !fetchAttempted) {
         console.log('PropertyContext: Safeguard timeout triggered, setting loading to false');
         setLoading(false);
       }
-    }, 5000); // 5 seconds timeout
+    }, 3000); // 3 seconds timeout
 
     return () => clearTimeout(timer);
-  }, [loading]);
+  }, [loading, fetchAttempted]);
 
   useEffect(() => {
     // Only fetch if we have a user - add a slight delay to prevent race conditions
@@ -58,6 +59,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      setFetchAttempted(true);
       console.log('PropertyContext: Fetching properties');
       
       const { data, error } = await supabase

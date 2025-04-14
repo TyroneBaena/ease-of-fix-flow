@@ -9,25 +9,25 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Reports = () => {
-  const { isAdmin, loading, currentUser } = useUserContext();
+  const { isAdmin, loading: userLoading, currentUser } = useUserContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
-  const [localLoading, setLocalLoading] = useState(true);
-
-  // Handle initial loading and reset error state when component mounts or user changes
+  const [pageLoaded, setPageLoaded] = useState(false);
+  
+  // Handle loading and reset error state when component mounts or user changes
   useEffect(() => {
     setError(null);
     
-    // Set a timeout to prevent infinite loading state
+    // Set a timeout to ensure the page eventually shows even if other loading states are stuck
     const timer = setTimeout(() => {
-      setLocalLoading(false);
-    }, 2000);
+      setPageLoaded(true);
+    }, 1500);
     
     return () => clearTimeout(timer);
-  }, [currentUser]);
+  }, []);
 
-  // Show loading state if user data is still loading, but only for a limited time
-  if (loading && localLoading) {
+  // If the user context is still initializing, show minimal loading indicator
+  if (userLoading && !pageLoaded) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
