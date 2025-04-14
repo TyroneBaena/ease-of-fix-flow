@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,7 +21,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
-import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { usePropertyContext } from '@/contexts/PropertyContext';
 
 interface RequestListProps {
   requests: MaintenanceRequest[];
@@ -34,8 +35,10 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
+  // Items per page
   const itemsPerPage = 5;
   
+  // Apply filters
   let filteredRequests = [...requests];
   
   if (propertyFilter !== 'all') {
@@ -46,29 +49,36 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
     filteredRequests = filteredRequests.filter(req => req.status === statusFilter);
   }
 
+  // Calculate pagination values
   const totalItems = filteredRequests.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
   
+  // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
   
+  // Generate page numbers for pagination
   const getPageRange = () => {
     const pages = [];
     const maxVisiblePages = 5;
     
     if (totalPages <= maxVisiblePages) {
+      // If we have fewer pages than max visible, show all pages
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
+      // Always include first page
       pages.push(1);
       
+      // Calculate range around current page
       let startPage = Math.max(2, currentPage - 1);
       let endPage = Math.min(totalPages - 1, currentPage + 1);
       
+      // Adjust range to ensure we show maxVisiblePages - 2 (accounting for first and last pages)
       if (endPage - startPage < maxVisiblePages - 3) {
         if (currentPage < totalPages / 2) {
           endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3);
@@ -77,18 +87,22 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
         }
       }
       
+      // Add ellipsis after first page if needed
       if (startPage > 2) {
         pages.push('ellipsis-start');
       }
       
+      // Add pages in range
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
       
+      // Add ellipsis before last page if needed
       if (endPage < totalPages - 1) {
         pages.push('ellipsis-end');
       }
       
+      // Always include last page
       pages.push(totalPages);
     }
     
@@ -97,6 +111,7 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
   
   return (
     <div className="space-y-6">
+      {/* Filters */}
       {requests.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-3">
           <Select value={propertyFilter} onValueChange={setPropertyFilter}>
@@ -127,6 +142,7 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
         </div>
       )}
       
+      {/* Request list */}
       <div className="space-y-4">
         {totalItems > 0 ? (
           paginatedRequests.map(request => (
@@ -154,6 +170,7 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
         )}
       </div>
       
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-6">
           <Pagination>

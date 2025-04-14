@@ -1,8 +1,7 @@
 
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useUserContext } from '@/contexts/UserContext';
-import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -15,23 +14,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false,
   allowManager = false
 }) => {
-  const { currentUser, loading, isAdmin } = useUserContext();
-  const [timeoutElapsed, setTimeoutElapsed] = useState(false);
+  const { currentUser, loading } = useUserContext();
   
-  // Add a safeguard timeout to prevent infinite loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setTimeoutElapsed(true);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  // Show loading state if still checking authentication and timeout hasn't elapsed
-  if (loading && !timeoutElapsed) {
+  // Show loading state if still checking authentication
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500"></div>
       </div>
     );
   }
@@ -44,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check role requirements
   if (requireAdmin) {
     // Allow access if user is admin or (when specified) a manager
-    if (!isAdmin && !(allowManager && currentUser.role === 'manager')) {
+    if (currentUser.role !== 'admin' && !(allowManager && currentUser.role === 'manager')) {
       return <Navigate to="/dashboard" replace />;
     }
   }

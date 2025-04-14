@@ -1,54 +1,70 @@
 
-import { useState, useEffect } from 'react';
-import { Property } from '@/types/property';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { Property } from '../types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-import { useUserContext } from '../UserContext';
-import { PropertyContextType } from './PropertyContextTypes';
-import { fetchProperties } from './propertyOperations';
+import { useUserContext } from './UserContext';
 
-export const usePropertyProvider = (): PropertyContextType => {
+interface PropertyContextType {
+  properties: Property[];
+  loading: boolean;
+  addProperty: (property: Omit<Property, 'id' | 'createdAt'>) => Promise<Property | undefined>;
+  getProperty: (id: string) => Property | undefined;
+  updateProperty: (id: string, property: Partial<Property>) => Promise<void>;
+  deleteProperty: (id: string) => Promise<void>;
+}
+
+const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
+
+export const usePropertyContext = () => {
+  const context = useContext(PropertyContext);
+  if (!context) {
+    throw new Error('usePropertyContext must be used within a PropertyProvider');
+  }
+  return context;
+};
+
+export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser } = useUserContext();
-  const [fetchAttempted, setFetchAttempted] = useState(false);
-
-  // Set a safeguard to prevent infinite loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loading && !fetchAttempted) {
-        console.log('PropertyContext: Safeguard timeout triggered, setting loading to false');
-        setLoading(false);
-      }
-    }, 3000); // 3 seconds timeout
-
-    return () => clearTimeout(timer);
-  }, [loading, fetchAttempted]);
 
   useEffect(() => {
-    // Only fetch if we have a user - add a slight delay to prevent race conditions
     if (currentUser) {
-      const timer = setTimeout(() => {
-        fetchAndSetProperties();
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      fetchProperties();
     } else {
       setProperties([]);
       setLoading(false);
     }
   }, [currentUser]);
 
-  // Fetch properties from database
-  const fetchAndSetProperties = async () => {
+  const fetchProperties = async () => {
     try {
       setLoading(true);
-      setFetchAttempted(true);
-      console.log('PropertyContext: Fetching properties');
-      
-      const formattedProperties = await fetchProperties();
-      
-      console.log('PropertyContext: Properties fetched successfully', formattedProperties.length);
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching properties:', error);
+        toast.error('Failed to fetch properties');
+        return;
+      }
+
+      const formattedProperties: Property[] = data.map(prop => ({
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        contactNumber: prop.contact_number,
+        email: prop.email,
+        practiceLeader: prop.practice_leader,
+        practiceLeaderEmail: prop.practice_leader_email || '',
+        practiceLeaderPhone: prop.practice_leader_phone || '',
+        renewalDate: prop.renewal_date ? new Date(prop.renewal_date).toISOString() : '',
+        rentAmount: Number(prop.rent_amount) || 0,
+        createdAt: prop.created_at
+      }));
+
       setProperties(formattedProperties);
     } catch (err) {
       console.error('Unexpected error fetching properties:', err);
@@ -184,12 +200,16 @@ export const usePropertyProvider = (): PropertyContextType => {
     }
   };
 
-  return {
-    properties,
-    loading,
-    addProperty,
-    getProperty,
-    updateProperty,
-    deleteProperty
-  };
+  return (
+    <PropertyContext.Provider value={{
+      properties,
+      loading,
+      addProperty,
+      getProperty,
+      updateProperty,
+      deleteProperty
+    }}>
+      {children}
+    </PropertyContext.Provider>
+  );
 };

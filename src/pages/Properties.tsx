@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { usePropertyContext } from '@/contexts/PropertyContext';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import {

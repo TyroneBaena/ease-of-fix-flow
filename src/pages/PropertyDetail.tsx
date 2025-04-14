@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { usePropertyContext } from '@/contexts/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import Navbar from '@/components/Navbar';
 import { generateQRCodeUrl } from '@/utils/qrCodeGenerator';

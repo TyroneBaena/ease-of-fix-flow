@@ -1,44 +1,168 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useUserProvider } from './user/useUserProvider';
-import { UserContextType } from './user/UserContextTypes';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { User, UserRole } from '@/types/user';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { userService } from '@/services/userService';
+import { toast } from "sonner";
 
-// Create the context with undefined as default value
+// Define the return type for the addUser function
+interface AddUserResult {
+  success: boolean;
+  message: string;
+  userId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+  testMode?: boolean; // New field to track if email was sent in test mode
+  testModeInfo?: string; // Info about test mode
+}
+
+interface UserContextType {
+  currentUser: User | null;
+  users: User[];
+  loading: boolean;
+  fetchUsers: () => Promise<void>;
+  addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<AddUserResult>;
+  updateUser: (user: User) => Promise<void>;
+  removeUser: (userId: string) => Promise<void>;
+  resetPassword: (userId: string, email: string) => Promise<void>;
+  isAdmin: () => boolean;
+  canAccessProperty: (propertyId: string) => boolean;
+  signOut: () => Promise<void>;
+}
+
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const {
-    currentUser,
-    users,
-    loading,
-    fetchUsers,
-    addUser,
-    updateUser,
-    removeUser,
-    resetPassword,
-    signOut
-  } = useUserProvider();
+  const { currentUser, loading: authLoading, signOut } = useSupabaseAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<Error | null>(null);
 
-  // Create context value with direct property access for admin checks
-  const contextValue: UserContextType = {
-    currentUser,
-    users,
-    loading,
-    fetchUsers,
-    addUser,
-    updateUser,
-    removeUser,
-    resetPassword,
-    // Use direct property for isAdmin
-    isAdmin: currentUser?.role === 'admin' || false,
-    // Use direct function for canAccessProperty
-    canAccessProperty: (propertyId: string) => 
-      currentUser?.role === 'admin' || currentUser?.assignedProperties?.includes(propertyId) || false,
-    signOut
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      fetchUsers().catch(error => {
+        if (!loadingError) {
+          setLoadingError(error);
+        }
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  const fetchUsers = async () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const allUsers = await userService.getAllUsers();
+      console.log("Fetched users:", allUsers);
+      setUsers(allUsers);
+      setLoadingError(null);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setLoadingError(error as Error);
+      toast.error("Failed to fetch users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
+    try {
+      setLoading(true);
+      const result = await userService.inviteUser(email, name, role, assignedProperties);
+      
+      if (currentUser?.role === 'admin') {
+        await fetchUsers();
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error adding user:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUser = async (updatedUser: User) => {
+    try {
+      setLoading(true);
+      await userService.updateUser(updatedUser);
+      
+      setUsers(users.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      ));
+      
+      toast.success(`User ${updatedUser.name} updated successfully`);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error("Failed to update user");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (userId: string, email: string) => {
+    try {
+      setLoading(true);
+      await userService.resetPassword(email);
+      toast.success(`Password reset email sent to ${email}`);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error("Failed to send password reset email");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeUser = async (userId: string) => {
+    if (userId === currentUser?.id) {
+      throw new Error("You cannot delete your own account");
+    }
+
+    try {
+      setLoading(true);
+      await userService.deleteUser(userId);
+      
+      setUsers(users.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error('Error removing user:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isAdmin = () => {
+    return currentUser?.role === 'admin';
+  };
+
+  const canAccessProperty = (propertyId: string) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    return currentUser.assignedProperties?.includes(propertyId) || false;
   };
 
   return (
-    <UserContext.Provider value={contextValue}>
+    <UserContext.Provider value={{
+      currentUser,
+      users,
+      loading: loading || authLoading,
+      fetchUsers,
+      addUser,
+      updateUser,
+      removeUser,
+      resetPassword,
+      isAdmin,
+      canAccessProperty,
+      signOut
+    }}>
       {children}
     </UserContext.Provider>
   );
