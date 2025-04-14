@@ -100,7 +100,13 @@ export const useSupabaseAuth = () => {
       }
       
       console.log("Sign in successful:", data.user?.id);
+      
+      // For better debugging, log the user's role
+      console.log("User role:", data.user?.user_metadata?.role);
+      
+      // Show toast notification
       toast.success("Signed in successfully");
+      
       return data;
     } catch (error) {
       console.error("Error signing in:", error);

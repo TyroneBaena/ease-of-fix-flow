@@ -46,8 +46,24 @@ const Login = () => {
       
       // First try to sign in directly - if the user already exists
       try {
+        // Try to sign in first
         await signIn(demoEmail, demoPassword);
-        toast.success("Signed in as demo admin");
+        
+        // If signed in successfully, update the user's role to admin
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          // Update the user's metadata to set role as admin
+          await supabase.auth.updateUser({
+            data: {
+              name: 'Demo Admin',
+              role: 'admin' as UserRole,
+              assignedProperties: []
+            }
+          });
+          console.log("Updated user role to admin");
+          toast.success("Signed in as demo admin");
+        }
+        
         navigate('/dashboard');
         return;
       } catch (signInError) {
