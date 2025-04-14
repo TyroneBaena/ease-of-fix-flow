@@ -6,9 +6,43 @@ import UserManagement from '@/components/settings/UserManagement';
 import { Card } from '@/components/ui/card';
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 const Settings = () => {
-  const { currentUser, isAdmin } = useUserContext();
+  const { currentUser, isAdmin, loading } = useUserContext();
+  
+  // Show loading state if user data is still loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <span className="ml-2 text-blue-500">Loading settings...</span>
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
+  // Show error state if no user is found
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Authentication Error</AlertTitle>
+            <AlertDescription>
+              Unable to load user data. Please try refreshing the page or signing out and back in.
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50">

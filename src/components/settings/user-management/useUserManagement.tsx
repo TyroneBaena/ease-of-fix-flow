@@ -6,12 +6,14 @@ import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';
 import { User } from '@/types/user';
+import { toast } from 'sonner';
 
 export const useUserManagement = () => {
   const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext } = useUserContext();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -48,28 +50,36 @@ export const useUserManagement = () => {
     USERS_PER_PAGE
   );
   
-  // Use useEffect for initial fetch instead of a callback
-  useEffect(() => {
-    // Only fetch once and only if admin and not already fetched
-    if (isAdmin && !fetchedOnce) {
-      console.log("Initial fetch of users from useUserManagement useEffect");
-      const doFetch = async () => {
-        try {
-          setIsLoadingUsers(true);
-          await fetchUsersFromContext();
-          setFetchedOnce(true);
-        } catch (error) {
-          console.error("Error fetching users:", error);
-        } finally {
-          setIsLoadingUsers(false);
-        }
-      };
-      
-      doFetch();
-    } else {
+  // Function to safely fetch users
+  const fetchUsers = useCallback(async () => {
+    if (!isAdmin) {
+      console.log("Not fetching users because user is not admin");
+      setIsLoadingUsers(false);
+      setFetchedOnce(true);
+      return;
+    }
+
+    try {
+      console.log("Fetching users from useUserManagement");
+      setIsLoadingUsers(true);
+      setFetchError(null);
+      await fetchUsersFromContext();
+      setFetchedOnce(true);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setFetchError(error as Error);
+      toast.error("Failed to load users. Please try again.");
+    } finally {
       setIsLoadingUsers(false);
     }
-  }, [isAdmin, fetchedOnce, fetchUsersFromContext]);
+  }, [isAdmin, fetchUsersFromContext]);
+
+  // Use useEffect for initial fetch
+  useEffect(() => {
+    if (isAdmin && !fetchedOnce && !isLoadingUsers) {
+      fetchUsers();
+    }
+  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
   return {
     users,
@@ -77,6 +87,7 @@ export const useUserManagement = () => {
     currentUser,
     isAdmin,
     isLoading: isLoading || isLoadingUsers,
+    fetchError,
     isDialogOpen,
     setIsDialogOpen,
     isEditMode,
@@ -95,6 +106,6 @@ export const useUserManagement = () => {
     confirmDeleteUser,
     handleDeleteUser,
     handlePageChange,
-    fetchUsers: () => {} // Empty function to prevent any manual fetching
+    fetchUsers
   };
 };
