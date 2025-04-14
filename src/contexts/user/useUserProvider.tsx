@@ -20,43 +20,41 @@ export const useUserProvider = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
-  const [fetchInProgress, setFetchInProgress] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
   const isAdmin = currentUser?.role === 'admin' || false;
+  const fetchInProgress = useRef(false);
 
   const fetchUsers = useCallback(async () => {
-    // Prevent multiple concurrent fetches and refetches
-    if (fetchInProgress || !isAdmin) {
+    // Prevent concurrent fetches and only allow admins
+    if (fetchInProgress.current || !isAdmin) {
       console.log("Fetch skipped: already in progress or not admin");
       return;
     }
 
     try {
       console.log("Starting user fetch");
-      setFetchInProgress(true);
+      fetchInProgress.current = true;
       setLoading(true);
       const allUsers = await userService.getAllUsers();
       console.log("Fetched users:", allUsers);
       setUsers(allUsers);
       setLoadingError(null);
-      setHasFetched(true);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoadingError(error as Error);
+      toast.error("Failed to load users");
     } finally {
       setLoading(false);
-      setFetchInProgress(false);
+      fetchInProgress.current = false;
     }
-  }, [isAdmin, fetchInProgress]);
+  }, [isAdmin]);
 
-  // Add a useEffect to ensure we fetch users when the component mounts and user is admin
+  // Only fetch users when the component mounts and user is admin
   useEffect(() => {
-    if (isAdmin && !hasFetched && !fetchInProgress && !authLoading) {
-      // Only fetch when auth is not loading
+    if (isAdmin && !fetchInProgress.current) {
       console.log("Auto-fetching users since user is admin");
       fetchUsers().catch(console.error);
     }
-  }, [isAdmin, hasFetched, fetchInProgress, fetchUsers, authLoading]);
+  }, [isAdmin, fetchUsers]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
