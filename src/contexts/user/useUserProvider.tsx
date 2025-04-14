@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { userService } from '@/services/userService';
@@ -22,23 +23,11 @@ export const useUserProvider = () => {
   const [loadingError, setLoadingError] = useState<Error | null>(null);
   const [fetchInProgress, setFetchInProgress] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
-
-  // Fetch users only when currentUser changes
-  useEffect(() => {
-    if (currentUser && currentUser.role === 'admin' && !hasFetched) {
-      fetchUsers().catch(error => {
-        if (!loadingError) {
-          setLoadingError(error);
-        }
-      });
-    } else {
-      setLoading(false);
-    }
-  }, [currentUser, hasFetched]);
+  const isAdmin = currentUser?.role === 'admin' || false;
 
   const fetchUsers = useCallback(async () => {
     // Prevent multiple concurrent fetches and refetches
-    if (fetchInProgress || !currentUser || currentUser.role !== 'admin' || hasFetched) {
+    if (fetchInProgress || !isAdmin || hasFetched) {
       console.log("Fetch skipped: already in progress, not admin, or already fetched");
       return;
     }
@@ -60,14 +49,23 @@ export const useUserProvider = () => {
       setLoading(false);
       setFetchInProgress(false);
     }
-  }, [currentUser, fetchInProgress, hasFetched]);
+  }, [isAdmin, fetchInProgress, hasFetched]);
+
+  // Add a useEffect to ensure we fetch users when the component mounts and user is admin
+  useEffect(() => {
+    if (isAdmin && !hasFetched && !fetchInProgress) {
+      fetchUsers().catch(console.error);
+    }
+  }, [isAdmin, hasFetched, fetchInProgress, fetchUsers]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
       setLoading(true);
       const result = await userService.inviteUser(email, name, role, assignedProperties);
       
-      if (currentUser?.role === 'admin') {
+      // Only refetch users if we're admin and the invite was successful
+      if (isAdmin && result.success) {
+        setHasFetched(false); // Force a refetch next time
         await fetchUsers();
       }
       

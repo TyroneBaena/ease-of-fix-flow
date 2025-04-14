@@ -8,12 +8,9 @@ import { useUserActions } from './hooks/useUserActions';
 import { User } from '@/types/user';
 
 export const useUserManagement = () => {
-  const { users, currentUser, fetchUsers: fetchUsersFromContext } = useUserContext();
+  const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext } = useUserContext();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
-  
-  // Use direct property access without function calls
-  const isAdmin = currentUser?.role === 'admin' || false;
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -65,6 +62,8 @@ export const useUserManagement = () => {
       };
       
       doFetch();
+    } else {
+      setLoading(false);
     }
   }, [isAdmin, fetchedOnce, fetchUsersFromContext]);
 

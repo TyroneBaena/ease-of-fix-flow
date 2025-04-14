@@ -34,7 +34,7 @@ export const MobileMenu = () => {
     ];
     
     // Add Settings for admin and manager
-    if (isAdmin() || currentUser?.role === 'manager') {
+    if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
     
@@ -54,7 +54,7 @@ export const MobileMenu = () => {
 
   // Log user info for debugging
   console.log('MobileMenu - Current user:', currentUser);
-  console.log('MobileMenu - Is admin?', isAdmin());
+  console.log('MobileMenu - Is admin?', isAdmin);
 
   return (
     <Sheet>

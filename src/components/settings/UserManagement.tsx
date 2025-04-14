@@ -34,8 +34,7 @@ const UserManagement = () => {
     handlePageChange
   } = useUserManagement();
   
-  // Completely remove the useEffect for fetching users as it's now handled in useUserManagement
-  
+  // If not admin, show access denied message
   if (!isAdmin) {
     return <AccessDeniedMessage />;
   }

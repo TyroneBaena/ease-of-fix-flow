@@ -28,7 +28,7 @@ export const NavLinks = () => {
     ];
     
     // Add Settings for admin and manager
-    if (isAdmin() || currentUser?.role === 'manager') {
+    if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
     
@@ -39,7 +39,7 @@ export const NavLinks = () => {
 
   // Log user role and nav items for debugging
   console.log('Current user:', currentUser);
-  console.log('Is admin?', isAdmin());
+  console.log('Is admin?', isAdmin);
   console.log('Nav items:', navItems);
 
   return (

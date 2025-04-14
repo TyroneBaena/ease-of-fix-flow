@@ -25,19 +25,26 @@ export const useSupabaseAuth = () => {
         setSupabaseUser(session.user);
         
         // Then fetch and convert profile data
-        const appUser = await convertToAppUser(session.user);
-        setCurrentUser(appUser);
+        convertToAppUser(session.user)
+          .then(appUser => {
+            console.log("Setting user from existing session:", appUser);
+            setCurrentUser(appUser);
+            setLoading(false);
+          })
+          .catch(error => {
+            console.error("Error converting user:", error);
+            setLoading(false);
+          });
       } else {
         console.log("No existing session found");
         setCurrentUser(null);
         setSupabaseUser(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     // Set up listener for auth changes outside the async function
-    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       console.log(`Auth state changed: ${event}`, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
@@ -45,21 +52,27 @@ export const useSupabaseAuth = () => {
         setSupabaseUser(session.user);
         
         // Use setTimeout to defer profile fetching after the callback has finished
-        setTimeout(async () => {
-          const appUser = await convertToAppUser(session.user);
-          console.log("Setting user after sign in:", appUser);
-          setCurrentUser(appUser);
+        setTimeout(() => {
+          convertToAppUser(session.user)
+            .then(appUser => {
+              console.log("Setting user after sign in:", appUser);
+              setCurrentUser(appUser);
+            })
+            .catch(error => console.error("Error converting user:", error));
         }, 0);
       } else if (event === 'SIGNED_OUT') {
         console.log("User signed out");
         setCurrentUser(null);
         setSupabaseUser(null);
       } else if (event === 'USER_UPDATED') {
-        setTimeout(async () => {
-          const appUser = await convertToAppUser(session.user);
-          console.log("User updated:", appUser);
-          setCurrentUser(appUser);
-          setSupabaseUser(session.user);
+        setTimeout(() => {
+          convertToAppUser(session.user)
+            .then(appUser => {
+              console.log("User updated:", appUser);
+              setCurrentUser(appUser);
+              setSupabaseUser(session.user);
+            })
+            .catch(error => console.error("Error converting updated user:", error));
         }, 0);
       }
     });
