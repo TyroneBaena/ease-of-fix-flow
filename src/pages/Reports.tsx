@@ -5,29 +5,32 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import { useUserContext } from '@/contexts/UserContext';
-import { Loader2 } from 'lucide-react';
+import { usePropertyContext } from '@/contexts/property';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Reports = () => {
   const { isAdmin, loading: userLoading, currentUser } = useUserContext();
+  const { loading: propertiesLoading } = usePropertyContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
-  const [stableLoading, setStableLoading] = useState(true);
+  const [loadingStabilized, setLoadingStabilized] = useState(false);
   
-  // Handle loading and reset error state when component mounts or user changes
+  // Use a more reliable loading mechanism
   useEffect(() => {
     setError(null);
     
-    // Set a stable loading state to prevent flickering
+    // Set a delay to ensure all resources are loaded properly
     const initialLoadingTimer = setTimeout(() => {
-      setStableLoading(false);
-    }, 1000);
+      setLoadingStabilized(true);
+    }, 1500);
     
     return () => clearTimeout(initialLoadingTimer);
-  }, []);
+  }, [currentUser?.id]);
 
-  // If the user context is still initializing or in stable loading state
-  if ((userLoading || stableLoading)) {
+  const isLoading = !loadingStabilized || userLoading || propertiesLoading;
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -36,6 +39,22 @@ const Reports = () => {
             <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-2" />
             <span className="text-blue-500">Loading reports...</span>
           </div>
+        </main>
+      </div>
+    );
+  }
+
+  // If there's an error, show an error message
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         </main>
       </div>
     );

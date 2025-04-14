@@ -1,7 +1,7 @@
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
-import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { usePropertyContext } from '@/contexts/property';
 import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';
@@ -75,18 +75,24 @@ export const useUserManagement = () => {
     }
   }, [isAdmin, fetchUsersFromContext]);
 
-  // Use useEffect for initial fetch
+  // Use useEffect for initial fetch with proper dependencies
   useEffect(() => {
+    let isMounted = true;
+    
     if (isAdmin && !fetchedOnce && !isLoadingUsers) {
-      fetchUsers();
+      fetchUsers().then(() => {
+        if (isMounted) setFetchedOnce(true);
+      });
     }
+    
+    return () => { isMounted = false };
   }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
-  // Stabilize loading state to prevent flicker
+  // Stabilize loading state to prevent flicker with a longer timeout
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoadingStabilizer(false);
-    }, 1000);
+    }, 2000);
     
     return () => clearTimeout(timer);
   }, []);

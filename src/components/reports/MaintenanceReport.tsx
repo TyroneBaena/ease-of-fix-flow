@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { usePropertyContext } from '@/contexts/property';
 import { useUserContext } from '@/contexts/UserContext';
 import { filterMaintenanceRequests } from './utils/reportHelpers';
 import { mockMaintenanceRequests } from './data/mockMaintenanceData';
@@ -15,17 +16,21 @@ const MaintenanceReport = () => {
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [initialized, setInitialized] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   
+  // Ensure component is ready after properties are loaded
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitialized(true);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    if (!propertiesLoading && properties) {
+      // Small delay to ensure smooth rendering
+      const timer = setTimeout(() => {
+        setIsReady(true);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [propertiesLoading, properties]);
   
-  if (propertiesLoading && !initialized) {
+  if (!isReady || propertiesLoading) {
     return (
       <div className="space-y-4">
         <div className="flex flex-col space-y-3">
@@ -41,7 +46,7 @@ const MaintenanceReport = () => {
     );
   }
   
-  if (initialized && (!properties || properties.length === 0)) {
+  if (!properties || properties.length === 0) {
     return (
       <div className="py-8 text-center">
         <p className="text-gray-500">No property data available. Please add properties first.</p>
