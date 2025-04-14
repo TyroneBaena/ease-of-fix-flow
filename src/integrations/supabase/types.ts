@@ -140,36 +140,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_profiles: {
-        Row: {
-          assigned_properties: string | null
-          created_at: string | null
-          email: string | null
-          id: number
-          Name: string | null
-          password: string | null
-          role: string | null
-        }
-        Insert: {
-          assigned_properties?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: number
-          Name?: string | null
-          password?: string | null
-          role?: string | null
-        }
-        Update: {
-          assigned_properties?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: number
-          Name?: string | null
-          password?: string | null
-          role?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never

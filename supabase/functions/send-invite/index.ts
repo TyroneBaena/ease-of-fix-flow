@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "./lib/cors.ts";
@@ -45,7 +46,8 @@ serve(async (req: Request) => {
 
     console.log('Environment Checks:', {
       RESEND_API_KEY: resendApiKey ? 'Present' : 'Missing',
-      APPLICATION_URL: applicationUrl ? 'Present' : 'Missing'
+      APPLICATION_URL: applicationUrl ? 'Present' : 'Missing',
+      APPLICATION_URL_VALUE: applicationUrl
     });
     
     if (!resendApiKey) {
@@ -84,9 +86,14 @@ serve(async (req: Request) => {
       userId = newUser.id;
     }
     
-    console.log('Application URL:', applicationUrl);
-    const loginUrl = `${applicationUrl}/login`;
-    console.log('Full Login URL:', loginUrl);
+    // Ensure application URL doesn't have trailing slash
+    const cleanAppUrl = applicationUrl.endsWith('/') 
+      ? applicationUrl.slice(0, -1) 
+      : applicationUrl;
+    
+    console.log('Clean Application URL:', cleanAppUrl);
+    const loginUrl = cleanAppUrl;
+    console.log('Login URL to be used in email:', loginUrl);
     
     if (!loginUrl || loginUrl.trim() === '') {
       return new Response(
@@ -105,6 +112,12 @@ serve(async (req: Request) => {
     });
     
     console.log("Attempting to send email...");
+    console.log("Email will have these URLs:");
+    if (isNewUser) {
+      console.log(`Setup Password URL: ${loginUrl}/setup-password?email=${encodeURIComponent(email)}`);
+    } else {
+      console.log(`Login URL: ${loginUrl}/login`);
+    }
     
     try {
       const { data, error } = await resend.emails.send({

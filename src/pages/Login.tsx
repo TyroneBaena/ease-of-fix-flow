@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,32 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/user';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showTempPasswordNote, setShowTempPasswordNote] = useState(false);
   const { signIn } = useSupabaseAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if we have email and setupPassword in query params
+    const params = new URLSearchParams(location.search);
+    const emailParam = params.get('email');
+    const setupPassword = params.get('setupPassword');
+    
+    if (emailParam) {
+      setEmail(emailParam);
+      
+      if (setupPassword === 'true') {
+        setShowTempPasswordNote(true);
+      }
+    }
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +46,16 @@ const Login = () => {
     try {
       setIsLoading(true);
       console.log(`Attempting to sign in with email: ${email}`);
-      await signIn(email, password);
+      const result = await signIn(email, password);
+      
+      // Check if this is a first-time login (using temporary password)
+      const params = new URLSearchParams(location.search);
+      if (params.get('setupPassword') === 'true') {
+        toast.success("Signed in successfully. Now you can set up your permanent password.");
+        navigate(`/setup-password?email=${encodeURIComponent(email)}`);
+        return;
+      }
+      
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
@@ -116,6 +144,15 @@ const Login = () => {
           </p>
         </CardHeader>
         <CardContent>
+          {showTempPasswordNote && (
+            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                Please sign in with your temporary password from the invitation email, then you'll be redirected to set up your permanent password.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">Email</label>
