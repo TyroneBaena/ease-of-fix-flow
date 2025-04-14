@@ -18,8 +18,8 @@ export const canUserAccessProperty = (user: User | null, propertyId: string): bo
 };
 
 /**
- * Safe check for admin status that doesn't cause infinite loops
+ * Safe check for admin status - uses direct property access
  */
 export const checkIsAdmin = (user: User | null): boolean => {
-  return isUserAdmin(user);
+  return user?.role === 'admin' || false;
 };

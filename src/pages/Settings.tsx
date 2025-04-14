@@ -6,11 +6,11 @@ import UserManagement from '@/components/settings/UserManagement';
 import { Card } from '@/components/ui/card';
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
-import { checkIsAdmin } from '@/contexts/user/userUtils';
 
 const Settings = () => {
-  const { isAdmin, currentUser } = useUserContext();
-  const userIsAdmin = currentUser ? checkIsAdmin(currentUser) : false;
+  const { currentUser } = useUserContext();
+  // Simplify this admin check to avoid potential loops
+  const userIsAdmin = currentUser?.role === 'admin';
   
   return (
     <div className="min-h-screen bg-gray-50">

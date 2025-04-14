@@ -38,7 +38,8 @@ const UserManagement = () => {
   // Fetch users on component mount only once
   useEffect(() => {
     const loadUsers = async () => {
-      if (isAdmin()) {
+      // Simple check to prevent loops
+      if (isAdmin) {
         await fetchUsers();
       }
     };
@@ -46,7 +47,7 @@ const UserManagement = () => {
     loadUsers();
   }, [isAdmin, fetchUsers]);
   
-  if (!isAdmin()) {
+  if (!isAdmin) {
     return <AccessDeniedMessage />;
   }
   

@@ -6,15 +6,14 @@ import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';
 import { User } from '@/types/user';
-import { checkIsAdmin } from '@/contexts/user/userUtils';
 
 export const useUserManagement = () => {
   const { users, currentUser, fetchUsers: fetchUsersFromContext } = useUserContext();
   const { properties } = usePropertyContext();
   const [fetchCompleted, setFetchCompleted] = useState(false);
   
-  // Safe admin check that won't cause loops
-  const isAdmin = currentUser ? checkIsAdmin(currentUser) : false;
+  // Direct check without calling functions to prevent loops
+  const isAdmin = currentUser?.role === 'admin' || false;
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -68,7 +67,7 @@ export const useUserManagement = () => {
     users,
     properties,
     currentUser,
-    isAdmin: () => isAdmin, // Return a function for consistency
+    isAdmin,
     isLoading,
     isDialogOpen,
     setIsDialogOpen,
