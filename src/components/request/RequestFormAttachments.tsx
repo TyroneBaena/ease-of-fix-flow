@@ -1,7 +1,11 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ImagePlus, X } from 'lucide-react';
+import { FormItem } from "@/components/ui/form";
+import { X, Upload } from 'lucide-react';
 
 interface RequestFormAttachmentsProps {
   files: File[];
@@ -10,62 +14,78 @@ interface RequestFormAttachmentsProps {
   onRemoveFile: (index: number) => void;
 }
 
-export const RequestFormAttachments = ({ 
-  files, 
-  previewUrls, 
-  onFileChange, 
-  onRemoveFile 
+export const RequestFormAttachments = ({
+  files,
+  previewUrls,
+  onFileChange,
+  onRemoveFile
 }: RequestFormAttachmentsProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <div>
-      <Label className="text-base">Attachments (Optional)</Label>
-      <p className="text-sm text-gray-500 mb-3">
-        Upload photos or documents related to the issue
-      </p>
-      
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-        <input
-          type="file"
-          id="file-upload"
-          multiple
-          onChange={onFileChange}
-          className="hidden"
-          accept="image/*,.pdf,.doc,.docx"
-        />
-        <label 
-          htmlFor="file-upload"
-          className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-        >
-          <ImagePlus className="h-4 w-4 mr-2" />
-          Choose Files
-        </label>
-        <p className="mt-2 text-xs text-gray-500">
-          PNG, JPG, PDF up to 10MB each
-        </p>
-      </div>
-      
-      {previewUrls.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {previewUrls.map((url, index) => (
-            <div key={index} className="relative">
-              <div className="aspect-square rounded-lg overflow-hidden border bg-gray-50">
-                <img 
-                  src={url} 
-                  alt={`Preview ${index + 1}`}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => onRemoveFile(index)}
-                className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md"
+    <Card>
+      <CardContent className="pt-6">
+        <FormItem>
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">
+              Photo(s) of the concern/issue/damage and Filled-out Hazard Report Form (if applicable)
+            </Label>
+            <p className="text-sm text-gray-500 mb-2">
+              Up to 10 images allowed
+            </p>
+            
+            <div className="flex items-center">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleButtonClick}
+                className="flex items-center gap-2"
               >
-                <X className="h-4 w-4 text-gray-600" />
-              </button>
+                <Upload className="h-4 w-4" />
+                Select Files
+              </Button>
+              <span className="ml-4 text-sm text-gray-500">
+                {files.length} {files.length === 1 ? 'file' : 'files'} selected
+              </span>
+              <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={onFileChange}
+                className="hidden"
+                accept="image/*"
+                multiple
+              />
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+            
+            {previewUrls.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative rounded-md overflow-hidden border">
+                    <img 
+                      src={url} 
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={() => onRemoveFile(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </FormItem>
+      </CardContent>
+    </Card>
   );
 };

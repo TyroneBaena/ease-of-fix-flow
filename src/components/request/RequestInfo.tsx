@@ -10,19 +10,26 @@ import {
   Tag, 
   Paperclip,
   User,
+  CheckCircle,
+  Tool,
+  AlertCircle,
 } from 'lucide-react';
 
 interface RequestInfoProps {
   request: {
     id: string;
-    title: string;
+    isParticipantRelated: boolean;
+    participantName: string;
+    attemptedFix: string;
+    issueNature: string;
+    explanation: string;
+    location: string;
+    reportDate: string;
+    site: string;
+    submittedBy: string;
     status: string;
     createdAt: string;
-    category: string;
-    location: string;
-    dueDate?: string;
     assignedTo?: string;
-    description: string;
     attachments?: Array<{ url: string }> | null;
   };
 }
@@ -56,7 +63,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
               Submitted {request.createdAt}
             </p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{request.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{request.issueNature}</h1>
         </div>
         <div className="mt-4 sm:mt-0">
           <Badge variant="outline" className="text-blue-600">
@@ -67,12 +74,21 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="flex items-center">
-          <Tag className="h-4 w-4 text-gray-500 mr-2" />
+          <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
           <div>
-            <p className="text-xs text-gray-500">Category</p>
-            <p className="font-medium">{request.category}</p>
+            <p className="text-xs text-gray-500">Participant Related</p>
+            <p className="font-medium">{request.isParticipantRelated ? 'Yes' : 'No'}</p>
           </div>
         </div>
+        {request.participantName && request.participantName !== 'N/A' && (
+          <div className="flex items-center">
+            <User className="h-4 w-4 text-gray-500 mr-2" />
+            <div>
+              <p className="text-xs text-gray-500">Participant Name</p>
+              <p className="font-medium">{request.participantName}</p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center">
           <MapPin className="h-4 w-4 text-gray-500 mr-2" />
           <div>
@@ -83,8 +99,22 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         <div className="flex items-center">
           <Calendar className="h-4 w-4 text-gray-500 mr-2" />
           <div>
-            <p className="text-xs text-gray-500">Due Date</p>
-            <p className="font-medium">{request.dueDate || 'Not set'}</p>
+            <p className="text-xs text-gray-500">Report Date</p>
+            <p className="font-medium">{request.reportDate}</p>
+          </div>
+        </div>
+        <div className="flex items-center">
+          <Tag className="h-4 w-4 text-gray-500 mr-2" />
+          <div>
+            <p className="text-xs text-gray-500">Site</p>
+            <p className="font-medium">{request.site}</p>
+          </div>
+        </div>
+        <div className="flex items-center">
+          <User className="h-4 w-4 text-gray-500 mr-2" />
+          <div>
+            <p className="text-xs text-gray-500">Submitted By</p>
+            <p className="font-medium">{request.submittedBy}</p>
           </div>
         </div>
         <div className="flex items-center">
@@ -98,9 +128,22 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
       
       <Separator className="my-6" />
       
-      <div>
-        <h2 className="font-semibold mb-3">Description</h2>
-        <p className="text-gray-700 whitespace-pre-line">{request.description}</p>
+      <div className="mb-6">
+        <h2 className="font-semibold mb-3">Issue Nature</h2>
+        <p className="text-gray-700">{request.issueNature}</p>
+      </div>
+      
+      <div className="mb-6">
+        <h2 className="font-semibold mb-3">Explanation</h2>
+        <p className="text-gray-700 whitespace-pre-line">{request.explanation}</p>
+      </div>
+      
+      <div className="mb-6">
+        <h2 className="font-semibold mb-3 flex items-center">
+          <Tool className="h-4 w-4 mr-2" />
+          Attempted Fix
+        </h2>
+        <p className="text-gray-700 whitespace-pre-line">{request.attemptedFix}</p>
       </div>
       
       {request.attachments && request.attachments.length > 0 && (

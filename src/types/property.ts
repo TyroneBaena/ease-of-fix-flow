@@ -15,16 +15,19 @@ export interface Property {
 
 export interface MaintenanceRequest {
   id: string;
-  title: string;
-  description: string;
-  category: string;
+  isParticipantRelated: boolean;
+  participantName: string;
+  attemptedFix: string;
+  issueNature: string;
+  explanation: string;
   location: string;
-  priority: string;
+  reportDate: string;
+  site: string;
+  submittedBy: string;
   status: string;
   propertyId?: string; 
   createdAt: string;
   updatedAt?: string; 
-  dueDate?: string;
   assignedTo?: string;
   attachments?: Array<{ url: string }> | null;
   history?: Array<{ action: string; timestamp: string }> | null;

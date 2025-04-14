@@ -2,17 +2,22 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Form } from "@/components/ui/form";
-import { RequestFormTitle } from "./RequestFormTitle";
-import { RequestFormDescription } from "./RequestFormDescription";
-import { RequestFormCategoryLocation } from "./RequestFormCategoryLocation";
-import { RequestFormPriority } from "./RequestFormPriority";
+import { RequestFormProperty } from "./RequestFormProperty";
 import { RequestFormAttachments } from "./RequestFormAttachments";
 import { RequestFormActions } from "./RequestFormActions";
-import { RequestFormProperty } from "./RequestFormProperty";
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { usePropertyContext } from "@/contexts/PropertyContext";
 import { toast } from "@/lib/toast";
 import { useNavigate } from 'react-router-dom';
+import { ParticipantRelatedField } from './ParticipantRelatedField';
+import { ParticipantNameField } from './ParticipantNameField';
+import { AttemptedFixField } from './AttemptedFixField';
+import { IssueNatureField } from './IssueNatureField';
+import { ExplanationField } from './ExplanationField';
+import { LocationField } from './LocationField';
+import { ReportDateField } from './ReportDateField';
+import { SiteField } from './SiteField';
+import { SubmittedByField } from './SubmittedByField';
 
 export const RequestForm = () => {
   const navigate = useNavigate();
@@ -43,10 +48,26 @@ export const RequestForm = () => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     
-    const { title, description, category, location, propertyId } = formState;
+    const {
+      propertyId,
+      isParticipantRelated,
+      participantName,
+      attemptedFix,
+      issueNature,
+      explanation,
+      location,
+      reportDate,
+      site,
+      submittedBy
+    } = formState;
     
-    if (!title || !description || !category || !location || !propertyId) {
+    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !site || !submittedBy || !attemptedFix) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    if (isParticipantRelated && (!participantName || participantName === 'N/A')) {
+      toast.error("Please provide the participant's name");
       return;
     }
     
@@ -55,11 +76,15 @@ export const RequestForm = () => {
     // Add the request to the selected property
     try {
       addRequestToProperty({
-        title,
-        description,
-        category,
+        isParticipantRelated: isParticipantRelated || false,
+        participantName: isParticipantRelated ? participantName : 'N/A',
+        attemptedFix,
+        issueNature,
+        explanation,
         location,
-        priority: formState.priority,
+        reportDate,
+        site,
+        submittedBy,
         propertyId
       });
       
@@ -84,26 +109,20 @@ export const RequestForm = () => {
         properties={properties}
       />
       
-      <RequestFormTitle 
-        value={formState.title}
-        onChange={(value) => updateFormState('title', value)}
+      <ParticipantRelatedField
+        value={formState.isParticipantRelated || false}
+        onChange={(value) => updateFormState('isParticipantRelated', value)}
       />
       
-      <RequestFormDescription 
-        value={formState.description}
-        onChange={(value) => updateFormState('description', value)}
+      <ParticipantNameField
+        value={formState.participantName || ''}
+        onChange={(value) => updateFormState('participantName', value)}
+        isParticipantRelated={formState.isParticipantRelated || false}
       />
       
-      <RequestFormCategoryLocation 
-        category={formState.category}
-        location={formState.location}
-        onCategoryChange={(value) => updateFormState('category', value)}
-        onLocationChange={(value) => updateFormState('location', value)}
-      />
-      
-      <RequestFormPriority 
-        value={formState.priority}
-        onChange={(value) => updateFormState('priority', value)}
+      <AttemptedFixField
+        value={formState.attemptedFix || ''}
+        onChange={(value) => updateFormState('attemptedFix', value)}
       />
       
       <RequestFormAttachments
@@ -111,6 +130,37 @@ export const RequestForm = () => {
         previewUrls={previewUrls}
         onFileChange={handleFileChange}
         onRemoveFile={removeFile}
+      />
+      
+      <IssueNatureField
+        value={formState.issueNature || ''}
+        onChange={(value) => updateFormState('issueNature', value)}
+      />
+      
+      <ExplanationField
+        value={formState.explanation || ''}
+        onChange={(value) => updateFormState('explanation', value)}
+      />
+      
+      <LocationField
+        value={formState.location || ''}
+        onChange={(value) => updateFormState('location', value)}
+      />
+      
+      <ReportDateField
+        value={formState.reportDate || ''}
+        onChange={(value) => updateFormState('reportDate', value)}
+      />
+      
+      <SiteField
+        value={formState.site || ''}
+        onChange={(value) => updateFormState('site', value)}
+        properties={properties}
+      />
+      
+      <SubmittedByField
+        value={formState.submittedBy || ''}
+        onChange={(value) => updateFormState('submittedBy', value)}
       />
       
       <RequestFormActions 
