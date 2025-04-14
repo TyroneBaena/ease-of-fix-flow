@@ -16,6 +16,7 @@ const Dashboard = () => {
   const typedRequests = useMemo(() => {
     return sampleRequests.map(req => ({
       ...req,
+      // Add the new required fields with default values
       isParticipantRelated: false,
       participantName: 'N/A',
       attemptedFix: '',

@@ -26,11 +26,13 @@ const RequestDetail = () => {
     // Convert to complete MaintenanceRequest type
     return {
       ...foundRequest,
-      isParticipantRelated: false, // Default values
+      // Add the new required fields with default values
+      isParticipantRelated: false,
       participantName: 'N/A',
       attemptedFix: '',
       issueNature: foundRequest.title || '',
       explanation: foundRequest.description || '',
+      location: foundRequest.location || '',
       reportDate: foundRequest.createdAt.split('T')[0] || '',
       site: foundRequest.category || '',
       submittedBy: '',

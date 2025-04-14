@@ -93,6 +93,9 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
 
       const formattedRequests: MaintenanceRequest[] = data.map(req => {
+        // Type assertion to include any field access without TypeScript errors
+        const reqAny = req as any;
+        
         let processedAttachments;
         if (req.attachments) {
           if (isAttachmentArray(req.attachments)) {
@@ -131,15 +134,15 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         return {
           id: req.id,
-          isParticipantRelated: req.is_participant_related || false,
-          participantName: req.participant_name || 'N/A',
-          attemptedFix: req.attempted_fix || '',
-          issueNature: req.issue_nature || req.title || '',
-          explanation: req.explanation || req.description || '',
+          isParticipantRelated: reqAny.is_participant_related || false,
+          participantName: reqAny.participant_name || 'N/A',
+          attemptedFix: reqAny.attempted_fix || '',
+          issueNature: reqAny.issue_nature || req.title || '',
+          explanation: reqAny.explanation || req.description || '',
           location: req.location || '',
-          reportDate: req.report_date || req.created_at.split('T')[0] || '',
-          site: req.site || req.category || '',
-          submittedBy: req.submitted_by || '',
+          reportDate: reqAny.report_date || req.created_at.split('T')[0] || '',
+          site: reqAny.site || req.category || '',
+          submittedBy: reqAny.submitted_by || '',
           status: req.status || 'open',
           title: req.title,
           description: req.description,
@@ -330,6 +333,9 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
       }
 
+      // Type assertion to access any field without TypeScript errors
+      const dataAny = data as any;
+      
       let processedAttachments = null;
       if (data.attachments) {
         if (isAttachmentArray(data.attachments)) {
@@ -350,15 +356,15 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       const newRequest: MaintenanceRequest = {
         id: data.id,
-        isParticipantRelated: data.is_participant_related || false,
-        participantName: data.participant_name || 'N/A',
-        attemptedFix: data.attempted_fix || '',
-        issueNature: data.issue_nature || data.title || '',
-        explanation: data.explanation || data.description || '',
+        isParticipantRelated: dataAny.is_participant_related || false,
+        participantName: dataAny.participant_name || 'N/A',
+        attemptedFix: dataAny.attempted_fix || '',
+        issueNature: dataAny.issue_nature || data.title || '',
+        explanation: dataAny.explanation || data.description || '',
         location: data.location || '',
-        reportDate: data.report_date || data.created_at.split('T')[0],
-        site: data.site || data.category || '',
-        submittedBy: data.submitted_by || '',
+        reportDate: dataAny.report_date || data.created_at.split('T')[0],
+        site: dataAny.site || data.category || '',
+        submittedBy: dataAny.submitted_by || '',
         status: data.status,
         title: data.title,
         description: data.description,
