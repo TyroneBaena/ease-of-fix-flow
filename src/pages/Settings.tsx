@@ -11,34 +11,49 @@ import { Loader2 } from "lucide-react";
 
 const Settings = () => {
   const { currentUser, isAdmin, loading } = useUserContext();
-  const [pageLoaded, setPageLoaded] = useState(false);
+  const [ready, setReady] = useState(false);
   
-  // Add a timeout to ensure page eventually loads
+  // Improved loading state management
   useEffect(() => {
+    // Set up primary timer
     const timer = setTimeout(() => {
-      setPageLoaded(true);
-    }, 1500);
+      if (!loading && currentUser) {
+        console.log("Settings: User data loaded successfully");
+        setReady(true);
+      }
+    }, 300);
     
-    return () => clearTimeout(timer);
-  }, []);
+    // Set up backup timer to prevent infinite loading
+    const backupTimer = setTimeout(() => {
+      if (!ready) {
+        console.log("Settings: Backup timer triggered to prevent infinite loading");
+        setReady(true);
+      }
+    }, 2500);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(backupTimer);
+    };
+  }, [currentUser, loading, ready]);
   
-  // Show loading state if user data is still loading and timeout hasn't passed
-  if (loading && !pageLoaded) {
+  // Show loading state
+  if (!ready) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <span className="ml-2 text-blue-500">Loading settings...</span>
+          <div className="flex flex-col items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-2" />
+            <span className="text-blue-500">Loading settings...</span>
           </div>
         </main>
       </div>
     );
   }
   
-  // Show error state if no user is found but page has loaded
-  if (!currentUser && pageLoaded) {
+  // Show error state if no user is found
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

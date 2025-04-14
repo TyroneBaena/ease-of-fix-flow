@@ -7,7 +7,6 @@ import { mockMaintenanceRequests } from './data/mockMaintenanceData';
 import ReportHeader from './components/ReportHeader';
 import ReportFilters from './components/ReportFilters';
 import MaintenanceRequestsTable from './components/MaintenanceRequestsTable';
-import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const MaintenanceReport = () => {
@@ -17,20 +16,38 @@ const MaintenanceReport = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isReady, setIsReady] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   
-  // Ensure component is ready after properties are loaded
+  // More robust loading state management
   useEffect(() => {
-    if (!propertiesLoading && properties) {
-      // Small delay to ensure smooth rendering
-      const timer = setTimeout(() => {
+    // Reset ready state when properties change or loading status changes
+    setIsReady(false);
+    
+    // Create a timer to set the component as ready
+    const readyTimer = setTimeout(() => {
+      if (properties && !propertiesLoading) {
+        console.log("MaintenanceReport: Setting ready state with", properties.length, "properties");
         setIsReady(true);
-      }, 300);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [propertiesLoading, properties]);
-  
-  if (!isReady || propertiesLoading) {
+      }
+    }, 200);
+    
+    // Backup timer - if still not ready after 2s, force ready state
+    const backupTimer = setTimeout(() => {
+      if (!isReady) {
+        console.log("MaintenanceReport: Backup timer firing after", attempts, "attempts");
+        setIsReady(true);
+        setAttempts(prev => prev + 1);
+      }
+    }, 2000);
+    
+    return () => {
+      clearTimeout(readyTimer);
+      clearTimeout(backupTimer);
+    };
+  }, [properties, propertiesLoading, attempts]);
+
+  // Show skeleton while loading
+  if (!isReady) {
     return (
       <div className="space-y-4">
         <div className="flex flex-col space-y-3">
@@ -46,6 +63,7 @@ const MaintenanceReport = () => {
     );
   }
   
+  // Handle case when properties is undefined or empty
   if (!properties || properties.length === 0) {
     return (
       <div className="py-8 text-center">

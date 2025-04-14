@@ -14,7 +14,7 @@ export const useUserManagement = () => {
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
-  const [loadingStabilizer, setLoadingStabilizer] = useState(true);
+  const [ready, setReady] = useState(false);
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -75,7 +75,7 @@ export const useUserManagement = () => {
     }
   }, [isAdmin, fetchUsersFromContext]);
 
-  // Use useEffect for initial fetch with proper dependencies
+  // Fetch users when component mounts
   useEffect(() => {
     let isMounted = true;
     
@@ -88,21 +88,40 @@ export const useUserManagement = () => {
     return () => { isMounted = false };
   }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
-  // Stabilize loading state to prevent flicker with a longer timeout
+  // Better loading state management with retries
   useEffect(() => {
+    // Primary timer to check if data is loaded
     const timer = setTimeout(() => {
-      setLoadingStabilizer(false);
-    }, 2000);
+      if ((users.length > 0 || fetchedOnce) && !isLoadingUsers) {
+        console.log("UserManagement: Data is ready");
+        setReady(true);
+      } else if (isAdmin && !fetchedOnce && !isLoadingUsers) {
+        console.log("UserManagement: Attempting to fetch users again");
+        fetchUsers();
+      }
+    }, 500);
     
-    return () => clearTimeout(timer);
-  }, []);
+    // Backup timer to force ready state after a timeout
+    const backupTimer = setTimeout(() => {
+      if (!ready) {
+        console.log("UserManagement: Backup timer triggering ready state");
+        setReady(true);
+      }
+    }, 3000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(backupTimer);
+    };
+  }, [users, fetchedOnce, isLoadingUsers, isAdmin, fetchUsers, ready]);
 
   return {
     users,
     properties,
     currentUser,
     isAdmin,
-    isLoading: (isLoading || isLoadingUsers || loadingStabilizer) && isAdmin,
+    // Use the combined loading state
+    isLoading: (isLoading || isLoadingUsers || !ready) && isAdmin,
     fetchError,
     isDialogOpen,
     setIsDialogOpen,

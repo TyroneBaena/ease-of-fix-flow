@@ -14,23 +14,39 @@ const Reports = () => {
   const { loading: propertiesLoading } = usePropertyContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
-  const [loadingStabilized, setLoadingStabilized] = useState(false);
+  const [ready, setReady] = useState(false);
   
-  // Use a more reliable loading mechanism
+  // Use a better loading mechanism with proper debounce
   useEffect(() => {
+    // Clear any previous errors
     setError(null);
     
-    // Set a delay to ensure all resources are loaded properly
-    const initialLoadingTimer = setTimeout(() => {
-      setLoadingStabilized(true);
-    }, 1500);
+    // Create a timeout to handle loading state
+    const timer = setTimeout(() => {
+      if (!userLoading && !propertiesLoading && currentUser?.id) {
+        setReady(true);
+      } else if (!currentUser?.id && !userLoading) {
+        setError("Unable to load user data");
+      }
+    }, 500);
     
-    return () => clearTimeout(initialLoadingTimer);
-  }, [currentUser?.id]);
+    // Create a backup timer in case something gets stuck
+    const backupTimer = setTimeout(() => {
+      if (!ready) {
+        console.log("Reports: Backup timer triggered");
+        setReady(true);
+      }
+    }, 3000);
+    
+    // Clean up timers
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(backupTimer);
+    };
+  }, [currentUser?.id, userLoading, propertiesLoading, ready]);
 
-  const isLoading = !loadingStabilized || userLoading || propertiesLoading;
-
-  if (isLoading) {
+  // Show loading state until everything is ready
+  if (!ready) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
