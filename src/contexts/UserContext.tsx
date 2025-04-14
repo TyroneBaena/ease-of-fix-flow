@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';

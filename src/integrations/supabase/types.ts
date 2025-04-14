@@ -95,6 +95,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          assigned_properties: string[] | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_properties?: string[] | null
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_properties?: string[] | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           address: string
@@ -145,7 +175,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      meta_to_array: {
+        Args: { meta: Json }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

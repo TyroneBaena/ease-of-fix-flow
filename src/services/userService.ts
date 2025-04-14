@@ -16,32 +16,28 @@ export const userService = {
   // Get all users (admin only)
   async getAllUsers(): Promise<User[]> {
     try {
-      console.log("Fetching all users");
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      console.log("Fetching all users from profiles");
       
-      if (authError) {
-        console.error("Error fetching users:", authError);
-        
-        // Check if this is a permissions error and handle it gracefully
-        if (authError.status === 403 || authError.message?.includes("User not allowed")) {
-          console.log("Permission error when fetching users - using edge function instead");
-          
-          // Return an empty array instead of throwing an error
-          return [];
-        }
-        
-        throw authError;
+      // First, try to get data from the profiles table
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        throw profilesError;
       }
       
-      console.log(`Found ${authUsers?.users?.length || 0} users`);
+      console.log(`Found ${profiles?.length || 0} user profiles`);
       
-      return authUsers.users.map(user => ({
-        id: user.id,
-        name: user.user_metadata?.name || '',
-        email: user.email || '',
-        role: user.user_metadata?.role as UserRole || 'manager',
-        assignedProperties: user.user_metadata?.assignedProperties || [],
-        createdAt: user.created_at || ''
+      // Map the profiles to our User type
+      return (profiles || []).map(profile => ({
+        id: profile.id,
+        name: profile.name || '',
+        email: profile.email || '',
+        role: profile.role as UserRole || 'manager',
+        assignedProperties: profile.assigned_properties || [],
+        createdAt: profile.created_at || ''
       }));
     } catch (error) {
       console.error("Error in getAllUsers:", error);
@@ -85,32 +81,30 @@ export const userService = {
   // Update user (admin only)
   async updateUser(user: User): Promise<void> {
     try {
-      console.log(`Updating user: ${user.id}`);
-      const { error } = await supabase.auth.admin.updateUserById(
-        user.id,
-        {
+      console.log(`Updating user profile: ${user.id}`);
+      
+      // Update the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: user.name,
           email: user.email,
-          user_metadata: {
-            name: user.name,
-            role: user.role,
-            assignedProperties: user.role === 'manager' ? user.assignedProperties : []
-          }
-        }
-      );
+          role: user.role,
+          assigned_properties: user.role === 'manager' ? user.assignedProperties : [],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
       
       if (error) {
-        // If we get a permissions error, try using the edge function instead
-        if (error.status === 403 || error.message?.includes("User not allowed")) {
-          console.log("Permission error when updating user - using edge function instead");
-          await userService.inviteUser(user.email, user.name, user.role, user.assignedProperties);
-          return;
-        }
+        console.error("Error updating user profile:", error);
         
-        console.error("Error updating user:", error);
-        throw error;
+        // If there's an error, fall back to the edge function
+        console.log("Using edge function as fallback for user update");
+        await userService.inviteUser(user.email, user.name, user.role, user.assignedProperties);
+        return;
       }
       
-      console.log(`User ${user.id} updated successfully`);
+      console.log(`User profile ${user.id} updated successfully`);
     } catch (error) {
       console.error("Error in updateUser:", error);
       throw error;
@@ -142,27 +136,20 @@ export const userService = {
   async isUserAdmin(userId: string): Promise<boolean> {
     try {
       console.log(`Checking if user ${userId} is admin`);
-      const { data, error } = await supabase.auth.admin.getUserById(userId);
+      
+      // Get the user's role from the profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
       
       if (error) {
-        // For permission errors, fall back to checking local user data
-        if (error.status === 403 || error.message?.includes("User not allowed")) {
-          console.log("Permission error when checking admin status - checking local user data");
-          
-          // Get the current user from the auth state
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user && user.id === userId) {
-            const isAdmin = user.user_metadata?.role === 'admin';
-            console.log(`User ${userId} admin status from local data: ${isAdmin}`);
-            return isAdmin;
-          }
-        }
-        
         console.error("Error checking user admin status:", error);
         return false;
       }
       
-      const isAdmin = data.user.user_metadata?.role === 'admin';
+      const isAdmin = data.role === 'admin';
       console.log(`User ${userId} admin status: ${isAdmin}`);
       return isAdmin;
     } catch (error) {

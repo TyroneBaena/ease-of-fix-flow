@@ -22,6 +22,7 @@ export async function findExistingUser(supabaseClient: any, email: string) {
 export async function updateExistingUser(supabaseClient: any, userId: string, name: string, role: string, assignedProperties: string[] = []) {
   console.log(`Updating existing user: ${userId}`);
   
+  // Update in auth
   const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
     userId,
     {

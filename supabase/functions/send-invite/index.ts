@@ -82,6 +82,23 @@ serve(async (req: Request) => {
       console.log(`User with email ${email} already exists`);
       userId = existingUser.id;
       await updateExistingUser(supabaseClient, userId, name, role, assignedProperties);
+      
+      // Also update the profiles table
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .update({
+          name,
+          email,
+          role,
+          assigned_properties: role === 'manager' ? assignedProperties : [],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+        // Not throwing here, we can continue with just the auth update
+      }
     } else {
       isNewUser = true;
       temporaryPassword = generateTemporaryPassword();
@@ -89,6 +106,8 @@ serve(async (req: Request) => {
         const newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
         userId = newUser.id;
         console.log(`New user created with ID: ${userId}`);
+        
+        // The profile should be created automatically via the trigger we set up
       } catch (createError) {
         console.error("Error creating new user:", createError);
         return new Response(
