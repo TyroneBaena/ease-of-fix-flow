@@ -93,7 +93,8 @@ serve(async (req: Request) => {
       userId = newUser.id;
     }
     
-    // Send email using Resend
+    // Ensure the login URL is correct and points to the login page of the application
+    // Make sure it's a complete URL without any route that could cause a 404
     const loginUrl = `${applicationUrl}/login`;
     
     const emailHtml = createEmailHtml({
