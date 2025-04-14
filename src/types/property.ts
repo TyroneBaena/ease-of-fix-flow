@@ -21,9 +21,9 @@ export interface MaintenanceRequest {
   location: string;
   priority: string;
   status: string;
-  propertyId?: string; // Made optional
+  propertyId?: string; 
   createdAt: string;
-  updatedAt?: string; // Made optional
+  updatedAt?: string; 
   dueDate?: string;
   assignedTo?: string;
   attachments?: Array<{ url: string }>;

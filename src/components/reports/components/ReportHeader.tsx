@@ -20,13 +20,13 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({
     const worksheet = XLSX.utils.json_to_sheet(
       filteredRequests.map(request => ({
         'Title': request.title,
-        'Property': getPropertyName(request.propertyId),
+        'Property': request.propertyId ? getPropertyName(request.propertyId) : 'N/A',
         'Category': request.category,
         'Location': request.location,
         'Priority': request.priority,
         'Status': request.status,
         'Created At': formatDate(request.createdAt),
-        'Last Updated': formatDate(request.updatedAt)
+        'Last Updated': request.updatedAt ? formatDate(request.updatedAt) : 'N/A'
       }))
     );
     

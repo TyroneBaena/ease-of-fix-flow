@@ -9,6 +9,113 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      maintenance_requests: {
+        Row: {
+          assigned_to: string | null
+          attachments: Json | null
+          category: string
+          created_at: string
+          description: string
+          due_date: string | null
+          history: Json | null
+          id: string
+          location: string
+          priority: string
+          property_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          attachments?: Json | null
+          category: string
+          created_at?: string
+          description: string
+          due_date?: string | null
+          history?: Json | null
+          id?: string
+          location: string
+          priority: string
+          property_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          attachments?: Json | null
+          category?: string
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          history?: Json | null
+          id?: string
+          location?: string
+          priority?: string
+          property_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      properties: {
+        Row: {
+          address: string
+          contact_number: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          practice_leader: string
+          practice_leader_email: string | null
+          practice_leader_phone: string | null
+          renewal_date: string | null
+          rent_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          contact_number: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          practice_leader: string
+          practice_leader_email?: string | null
+          practice_leader_phone?: string | null
+          renewal_date?: string | null
+          rent_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          contact_number?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          practice_leader?: string
+          practice_leader_email?: string | null
+          practice_leader_phone?: string | null
+          renewal_date?: string | null
+          rent_amount?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           assigned_properties: string | null
