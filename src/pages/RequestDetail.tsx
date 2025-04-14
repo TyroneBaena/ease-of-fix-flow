@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -8,40 +8,23 @@ import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
 import { RequestActions } from '@/components/request/RequestActions';
 import { RequestHistory } from '@/components/request/RequestHistory';
-import { MaintenanceRequest } from '@/types/property';
-
-// Sample data
-import { requests } from '@/data/sampleData';
+import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 
 const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { requests } = useMaintenanceRequestContext();
+  const [request, setRequest] = useState(null);
+  const [loading, setLoading] = useState(true);
   
-  // Find the request with the matching ID and convert to MaintenanceRequest type
-  const request = React.useMemo(() => {
-    const foundRequest = requests.find(req => req.id === id);
-    
-    if (!foundRequest) return null;
-    
-    // Convert to complete MaintenanceRequest type
-    return {
-      ...foundRequest,
-      // Add the new required fields with default values
-      isParticipantRelated: false,
-      participantName: 'N/A',
-      attemptedFix: '',
-      issueNature: foundRequest.title || '',
-      explanation: foundRequest.description || '',
-      location: foundRequest.location || '',
-      reportDate: foundRequest.createdAt.split('T')[0] || '',
-      site: foundRequest.category || '',
-      submittedBy: '',
-    } as MaintenanceRequest;
-  }, [id]);
-  
-  if (!request) {
-    return <div>Request not found</div>;
-  }
+  useEffect(() => {
+    if (id) {
+      // Find the request in our context data
+      const foundRequest = requests.find(req => req.id === id);
+      setRequest(foundRequest);
+      setLoading(false);
+    }
+  }, [id, requests]);
   
   // Initial comments data
   const initialComments = [
@@ -63,6 +46,45 @@ const RequestDetail = () => {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <p>Loading request...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!request) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Button 
+            variant="ghost" 
+            className="mb-6"
+            onClick={() => navigate('/requests')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Requests
+          </Button>
+          
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <h2 className="text-2xl font-bold text-gray-700 mb-2">Request not found</h2>
+            <p className="text-gray-500 mb-6">The maintenance request you're looking for doesn't exist or has been removed.</p>
+            <Button onClick={() => navigate('/requests')}>
+              View all requests
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -71,10 +93,10 @@ const RequestDetail = () => {
         <Button 
           variant="ghost" 
           className="mb-6"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/requests')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          Back to Requests
         </Button>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
