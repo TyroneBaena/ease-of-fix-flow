@@ -5,42 +5,25 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsOverview from '@/components/dashboard/StatsOverview';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import RequestsList from '@/components/dashboard/RequestsList';
-import { requests as sampleRequests } from '@/data/sampleData';
 import { useUserContext } from '@/contexts/UserContext';
-import { MaintenanceRequest } from '@/types/property';
+import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 
 const Dashboard = () => {
   const { currentUser } = useUserContext();
-  
-  // Map sample data to MaintenanceRequest type
-  const typedRequests = useMemo(() => {
-    return sampleRequests.map(req => ({
-      ...req,
-      // Add the new required fields with default values
-      isParticipantRelated: false,
-      participantName: 'N/A',
-      attemptedFix: '',
-      issueNature: req.title || '',
-      explanation: req.description || '',
-      location: req.location || '',
-      reportDate: req.createdAt.split('T')[0] || '',
-      site: req.category || '',
-      submittedBy: '',
-    } as MaintenanceRequest));
-  }, []);
+  const { requests } = useMaintenanceRequestContext();
   
   // Calculate request statistics
   const { openRequests, inProgressRequests, completedRequests } = useMemo(() => {
-    const open = typedRequests.filter(req => req.status === 'open').length;
-    const inProgress = typedRequests.filter(req => req.status === 'in-progress').length;
-    const completed = typedRequests.filter(req => req.status === 'completed').length;
+    const open = requests.filter(req => req.status === 'open').length;
+    const inProgress = requests.filter(req => req.status === 'in-progress').length;
+    const completed = requests.filter(req => req.status === 'completed').length;
     
     return {
       openRequests: open,
       inProgressRequests: inProgress,
       completedRequests: completed
     };
-  }, [typedRequests]);
+  }, [requests]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,7 +38,7 @@ const Dashboard = () => {
               inProgressRequests={inProgressRequests}
               completedRequests={completedRequests}
             />
-            <RequestsList allRequests={typedRequests} />
+            <RequestsList allRequests={requests} />
           </div>
           <DashboardSidebar />
         </div>

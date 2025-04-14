@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PropertyProvider } from "./contexts/PropertyContext";
+import { MaintenanceRequestProvider } from "./contexts/MaintenanceRequestContext";
 import { UserProvider } from "./contexts/UserContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -28,55 +29,57 @@ const App = () => (
       <SonnerToaster />
       <UserProvider>
         <PropertyProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              
-              {/* Protected Routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/new-request" element={
-                <ProtectedRoute>
-                  <NewRequest />
-                </ProtectedRoute>
-              } />
-              <Route path="/requests" element={
-                <ProtectedRoute>
-                  <AllRequests />
-                </ProtectedRoute>
-              } />
-              <Route path="/requests/:id" element={
-                <ProtectedRoute>
-                  <RequestDetail />
-                </ProtectedRoute>
-              } />
-              <Route path="/properties" element={
-                <ProtectedRoute>
-                  <Properties />
-                </ProtectedRoute>
-              } />
-              <Route path="/properties/:id" element={
-                <ProtectedRoute>
-                  <PropertyDetail />
-                </ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <MaintenanceRequestProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                
+                {/* Protected Routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/new-request" element={
+                  <ProtectedRoute>
+                    <NewRequest />
+                  </ProtectedRoute>
+                } />
+                <Route path="/requests" element={
+                  <ProtectedRoute>
+                    <AllRequests />
+                  </ProtectedRoute>
+                } />
+                <Route path="/requests/:id" element={
+                  <ProtectedRoute>
+                    <RequestDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/properties" element={
+                  <ProtectedRoute>
+                    <Properties />
+                  </ProtectedRoute>
+                } />
+                <Route path="/properties/:id" element={
+                  <ProtectedRoute>
+                    <PropertyDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedRoute>
+                    <Reports />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <Settings />
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </MaintenanceRequestProvider>
         </PropertyProvider>
       </UserProvider>
     </TooltipProvider>

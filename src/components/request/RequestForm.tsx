@@ -7,6 +7,7 @@ import { RequestFormAttachments } from "./RequestFormAttachments";
 import { RequestFormActions } from "./RequestFormActions";
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { usePropertyContext } from "@/contexts/PropertyContext";
+import { useMaintenanceRequestContext } from "@/contexts/MaintenanceRequestContext";
 import { toast } from "@/lib/toast";
 import { useNavigate } from 'react-router-dom';
 import { ParticipantRelatedField } from './ParticipantRelatedField';
@@ -24,6 +25,7 @@ export const RequestForm = () => {
   const [searchParams] = useSearchParams();
   const propertyIdParam = searchParams.get('propertyId');
   const { properties } = usePropertyContext();
+  const { addRequestToProperty } = useMaintenanceRequestContext();
   
   const { 
     formState, 
@@ -36,8 +38,6 @@ export const RequestForm = () => {
     setIsSubmitting
   } = useRequestForm();
   
-  const { addRequestToProperty } = usePropertyContext();
-
   useEffect(() => {
     // If propertyId is provided in URL, set it in the form
     if (propertyIdParam) {

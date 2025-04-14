@@ -2,6 +2,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/PropertyContext';
+import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
 import { Property } from '@/types/property';
 import PropertyAccessControl from './PropertyAccessControl';
 
@@ -10,6 +11,9 @@ interface PropertyDetailProps {
 }
 
 const PropertyDetail: React.FC<PropertyDetailProps> = ({ property }) => {
+  const { getRequestsForProperty } = useMaintenanceRequestContext();
+  const propertyRequests = getRequestsForProperty(property.id);
+
   return (
     <PropertyAccessControl propertyId={property.id}>
       <div className="bg-white rounded-lg shadow p-6">
@@ -31,6 +35,10 @@ const PropertyDetail: React.FC<PropertyDetailProps> = ({ property }) => {
               <p><span className="font-medium">Phone:</span> {property.practiceLeaderPhone}</p>
             </div>
           </div>
+        </div>
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2">Maintenance Requests</h3>
+          <p>Total requests: {propertyRequests.length}</p>
         </div>
       </div>
     </PropertyAccessControl>
