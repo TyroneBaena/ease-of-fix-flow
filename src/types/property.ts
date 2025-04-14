@@ -21,7 +21,11 @@ export interface MaintenanceRequest {
   location: string;
   priority: string;
   status: string;
-  propertyId: string;
+  propertyId?: string; // Made optional
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string; // Made optional
+  dueDate?: string;
+  assignedTo?: string;
+  attachments?: Array<{ url: string }>;
+  history?: Array<{ action: string; timestamp: string }>;
 }
