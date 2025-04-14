@@ -35,11 +35,15 @@ const UserManagement = () => {
     fetchUsers
   } = useUserManagement();
   
-  // Use a dependency array with isAdmin to prevent infinite loops
+  // Fetch users on component mount only once
   useEffect(() => {
-    if (isAdmin()) {
-      fetchUsers();
-    }
+    const loadUsers = async () => {
+      if (isAdmin()) {
+        await fetchUsers();
+      }
+    };
+    
+    loadUsers();
   }, [isAdmin, fetchUsers]);
   
   if (!isAdmin()) {

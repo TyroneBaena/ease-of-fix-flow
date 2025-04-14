@@ -9,10 +9,17 @@ export const isUserAdmin = (user: User | null): boolean => {
 };
 
 /**
- * Check if a user can access a specific property
+ * Check if a user can access a property
  */
 export const canUserAccessProperty = (user: User | null, propertyId: string): boolean => {
   if (!user) return false;
   if (user.role === 'admin') return true;
   return user.assignedProperties?.includes(propertyId) || false;
+};
+
+/**
+ * Safe check for admin status that doesn't cause infinite loops
+ */
+export const checkIsAdmin = (user: User | null): boolean => {
+  return isUserAdmin(user);
 };

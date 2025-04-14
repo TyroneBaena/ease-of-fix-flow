@@ -1,15 +1,20 @@
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
 import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';
 import { User } from '@/types/user';
+import { checkIsAdmin } from '@/contexts/user/userUtils';
 
 export const useUserManagement = () => {
-  const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext } = useUserContext();
+  const { users, currentUser, fetchUsers: fetchUsersFromContext } = useUserContext();
   const { properties } = usePropertyContext();
+  const [fetchCompleted, setFetchCompleted] = useState(false);
+  
+  // Safe admin check that won't cause loops
+  const isAdmin = currentUser ? checkIsAdmin(currentUser) : false;
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -46,17 +51,24 @@ export const useUserManagement = () => {
     USERS_PER_PAGE
   );
   
-  // Memoize the fetchUsers function
-  const fetchUsers = useCallback(() => {
-    console.log("Fetching users from useUserManagement");
-    return fetchUsersFromContext();
-  }, [fetchUsersFromContext]);
+  // Memoize the fetchUsers function to prevent infinite loops
+  const fetchUsers = useCallback(async () => {
+    if (!fetchCompleted && isAdmin) {
+      console.log("Fetching users from useUserManagement");
+      try {
+        await fetchUsersFromContext();
+        setFetchCompleted(true);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    }
+  }, [fetchUsersFromContext, fetchCompleted, isAdmin]);
 
   return {
     users,
     properties,
     currentUser,
-    isAdmin,
+    isAdmin: () => isAdmin, // Return a function for consistency
     isLoading,
     isDialogOpen,
     setIsDialogOpen,
