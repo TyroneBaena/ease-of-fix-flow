@@ -1,5 +1,5 @@
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
 import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
@@ -10,9 +10,9 @@ import { User } from '@/types/user';
 export const useUserManagement = () => {
   const { users, currentUser, fetchUsers: fetchUsersFromContext } = useUserContext();
   const { properties } = usePropertyContext();
-  const [fetchCompleted, setFetchCompleted] = useState(false);
+  const [fetchedOnce, setFetchedOnce] = useState(false);
   
-  // Direct check without calling functions to prevent loops
+  // Use direct property access without function calls
   const isAdmin = currentUser?.role === 'admin' || false;
   
   // Set up pagination
@@ -50,18 +50,23 @@ export const useUserManagement = () => {
     USERS_PER_PAGE
   );
   
-  // Memoize the fetchUsers function to prevent infinite loops
-  const fetchUsers = useCallback(async () => {
-    if (!fetchCompleted && isAdmin) {
-      console.log("Fetching users from useUserManagement");
-      try {
-        await fetchUsersFromContext();
-        setFetchCompleted(true);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
+  // Use useEffect for initial fetch instead of a callback
+  useEffect(() => {
+    // Only fetch once and only if admin and not already fetched
+    if (isAdmin && !fetchedOnce) {
+      console.log("Initial fetch of users from useUserManagement useEffect");
+      const doFetch = async () => {
+        try {
+          await fetchUsersFromContext();
+          setFetchedOnce(true);
+        } catch (error) {
+          console.error("Error fetching users:", error);
+        }
+      };
+      
+      doFetch();
     }
-  }, [fetchUsersFromContext, fetchCompleted, isAdmin]);
+  }, [isAdmin, fetchedOnce, fetchUsersFromContext]);
 
   return {
     users,
@@ -87,6 +92,6 @@ export const useUserManagement = () => {
     confirmDeleteUser,
     handleDeleteUser,
     handlePageChange,
-    fetchUsers
+    fetchUsers: () => {} // Empty function to prevent any manual fetching
   };
 };

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useUserManagement } from './user-management/useUserManagement';
 import UserManagementHeader from './user-management/UserManagementHeader';
 import UserTable from './user-management/UserTable';
@@ -31,21 +31,10 @@ const UserManagement = () => {
     handleResetPassword,
     confirmDeleteUser,
     handleDeleteUser,
-    handlePageChange,
-    fetchUsers
+    handlePageChange
   } = useUserManagement();
   
-  // Fetch users on component mount only once
-  useEffect(() => {
-    const loadUsers = async () => {
-      // Simple check to prevent loops
-      if (isAdmin) {
-        await fetchUsers();
-      }
-    };
-    
-    loadUsers();
-  }, [isAdmin, fetchUsers]);
+  // Completely remove the useEffect for fetching users as it's now handled in useUserManagement
   
   if (!isAdmin) {
     return <AccessDeniedMessage />;

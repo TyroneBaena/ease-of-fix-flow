@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -22,10 +21,11 @@ export const useUserProvider = () => {
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
   const [fetchInProgress, setFetchInProgress] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   // Fetch users only when currentUser changes
   useEffect(() => {
-    if (currentUser && currentUser.role === 'admin') {
+    if (currentUser && currentUser.role === 'admin' && !hasFetched) {
       fetchUsers().catch(error => {
         if (!loadingError) {
           setLoadingError(error);
@@ -34,12 +34,12 @@ export const useUserProvider = () => {
     } else {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, hasFetched]);
 
   const fetchUsers = useCallback(async () => {
-    // Prevent multiple concurrent fetches
-    if (fetchInProgress || !currentUser || currentUser.role !== 'admin') {
-      console.log("Fetch skipped: already in progress or not admin");
+    // Prevent multiple concurrent fetches and refetches
+    if (fetchInProgress || !currentUser || currentUser.role !== 'admin' || hasFetched) {
+      console.log("Fetch skipped: already in progress, not admin, or already fetched");
       return;
     }
 
@@ -51,6 +51,7 @@ export const useUserProvider = () => {
       console.log("Fetched users:", allUsers);
       setUsers(allUsers);
       setLoadingError(null);
+      setHasFetched(true);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoadingError(error as Error);
@@ -59,7 +60,7 @@ export const useUserProvider = () => {
       setLoading(false);
       setFetchInProgress(false);
     }
-  }, [currentUser, fetchInProgress]);
+  }, [currentUser, fetchInProgress, hasFetched]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {

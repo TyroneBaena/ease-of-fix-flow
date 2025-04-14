@@ -2,8 +2,8 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUserProvider } from './user/useUserProvider';
 import { UserContextType } from './user/UserContextTypes';
-import { isUserAdmin, canUserAccessProperty } from './user/userUtils';
 
+// Create the context with undefined as default value
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
@@ -19,7 +19,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     signOut
   } = useUserProvider();
 
-  // Create context value with utility functions
+  // Create context value with direct property access for admin checks
   const contextValue: UserContextType = {
     currentUser,
     users,
@@ -29,8 +29,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     updateUser,
     removeUser,
     resetPassword,
-    isAdmin: () => isUserAdmin(currentUser),
-    canAccessProperty: (propertyId: string) => canUserAccessProperty(currentUser, propertyId),
+    // Use direct role check for isAdmin
+    isAdmin: () => currentUser?.role === 'admin' || false,
+    // Use direct role check for canAccessProperty
+    canAccessProperty: (propertyId: string) => 
+      currentUser?.role === 'admin' || currentUser?.assignedProperties?.includes(propertyId) || false,
     signOut
   };
 
