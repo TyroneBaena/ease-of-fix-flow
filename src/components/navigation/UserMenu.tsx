@@ -25,6 +25,10 @@ export const UserMenu = () => {
     navigate('/login');
   };
 
+  // Log user info for debugging
+  console.log('UserMenu - Current user:', currentUser);
+  console.log('UserMenu - Is admin?', isAdmin());
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -47,7 +51,7 @@ export const UserMenu = () => {
         </div>
         <DropdownMenuSeparator />
         
-        {/* Add Settings link in dropdown menu for easier access */}
+        {/* Always show Settings link for admins */}
         {isAdmin() && (
           <DropdownMenuItem 
             className="cursor-pointer"

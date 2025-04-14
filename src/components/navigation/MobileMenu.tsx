@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Plus } from 'lucide-react';
+import { LogOut, Plus, Settings, Menu as MenuIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { 
   Sheet,
@@ -11,7 +11,6 @@ import {
   SheetTrigger,
   SheetClose
 } from "@/components/ui/sheet";
-import { Menu } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUserContext } from '@/contexts/UserContext';
 
@@ -28,15 +27,15 @@ export const MobileMenu = () => {
   // Define navigation items based on user role
   const getNavItems = () => {
     const items = [
-      { name: 'Dashboard', icon: <Menu className="h-5 w-5" />, path: '/dashboard' },
-      { name: 'Properties', icon: <Menu className="h-5 w-5" />, path: '/properties' },
-      { name: 'Requests', icon: <Menu className="h-5 w-5" />, path: '/requests' },
-      { name: 'Reports', icon: <Menu className="h-5 w-5" />, path: '/reports' },
+      { name: 'Dashboard', icon: <MenuIcon className="h-5 w-5" />, path: '/dashboard' },
+      { name: 'Properties', icon: <MenuIcon className="h-5 w-5" />, path: '/properties' },
+      { name: 'Requests', icon: <MenuIcon className="h-5 w-5" />, path: '/requests' },
+      { name: 'Reports', icon: <MenuIcon className="h-5 w-5" />, path: '/reports' },
     ];
     
     // Add Settings only for admin
     if (isAdmin()) {
-      items.push({ name: 'Settings', icon: <Menu className="h-5 w-5" />, path: '/settings' });
+      items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
     
     return items;
@@ -53,11 +52,15 @@ export const MobileMenu = () => {
     navigate('/login');
   };
 
+  // Log user info for debugging
+  console.log('MobileMenu - Current user:', currentUser);
+  console.log('MobileMenu - Is admin?', isAdmin());
+
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon">
-          <Menu className="h-5 w-5" />
+          <MenuIcon className="h-5 w-5" />
         </Button>
       </SheetTrigger>
       <SheetContent side="left">

@@ -12,7 +12,7 @@ type NavItem = {
 
 export const NavLinks = () => {
   const location = useLocation();
-  const { isAdmin } = useUserContext();
+  const { isAdmin, currentUser } = useUserContext();
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -36,6 +36,11 @@ export const NavLinks = () => {
   };
   
   const navItems = getNavItems();
+
+  // Log user role and nav items for debugging
+  console.log('Current user:', currentUser);
+  console.log('Is admin?', isAdmin());
+  console.log('Nav items:', navItems);
 
   return (
     <nav className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8">
