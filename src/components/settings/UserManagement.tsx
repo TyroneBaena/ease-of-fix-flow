@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/PropertyContext';
@@ -10,6 +9,8 @@ import UserManagementHeader from './user-management/UserManagementHeader';
 import UserTable from './user-management/UserTable';
 import UserFormDialog from './user-management/UserFormDialog';
 import AccessDeniedMessage from './user-management/AccessDeniedMessage';
+
+const USERS_PER_PAGE = 5;
 
 const UserManagement = () => {
   const { users, addUser, updateUser, removeUser, isAdmin, currentUser } = useUserContext();
@@ -24,6 +25,20 @@ const UserManagement = () => {
     role: 'manager' as UserRole,
     assignedProperties: [] as string[]
   });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Calculate total pages
+  const totalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+  
+  // Handle page change
+  const handlePageChange = (pageNumber: number) => {
+    // Ensure page number is within valid range
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
   
   const handleOpenDialog = (edit: boolean = false, user?: User) => {
     if (edit && user) {
@@ -114,6 +129,13 @@ const UserManagement = () => {
     try {
       setIsLoading(true);
       await removeUser(userId);
+      
+      // Check if we need to go back a page (if this was the last user on the page)
+      const remainingUsersOnPage = users.filter(user => user.id !== userId).length % USERS_PER_PAGE;
+      if (remainingUsersOnPage === 0 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+      
       toast.success("User removed successfully");
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -137,6 +159,10 @@ const UserManagement = () => {
         isLoading={isLoading}
         onEditUser={(user) => handleOpenDialog(true, user)}
         onDeleteUser={handleDeleteUser}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        usersPerPage={USERS_PER_PAGE}
       />
       
       <UserFormDialog
