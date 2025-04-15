@@ -23,8 +23,6 @@ export const useUserProvider = () => {
   const [loadingError, setLoadingError] = useState<Error | null>(null);
   const isAdmin = currentUser?.role === 'admin' || false;
   const fetchInProgress = useRef(false);
-  const maxRetries = 2;
-  const [retryCount, setRetryCount] = useState(0);
 
   const fetchUsers = useCallback(async () => {
     // Prevent concurrent fetches and only allow admins
@@ -37,44 +35,19 @@ export const useUserProvider = () => {
       console.log("Starting user fetch");
       fetchInProgress.current = true;
       setLoading(true);
-      
-      // Clear previous errors
-      setLoadingError(null);
-      
       const allUsers = await userService.getAllUsers();
       console.log("Fetched users:", allUsers);
       setUsers(allUsers);
-      setRetryCount(0); // Reset retry count on success
+      setLoadingError(null);
     } catch (error) {
       console.error('Error fetching users:', error);
       setLoadingError(error as Error);
-      
-      // Show toast only on initial error, not retries
-      if (retryCount === 0) {
-        toast.error("Failed to load users");
-      }
-      
-      // Auto-retry logic with exponential backoff
-      if (retryCount < maxRetries) {
-        const retryDelay = Math.pow(2, retryCount) * 1000;
-        console.log(`Will retry in ${retryDelay}ms (attempt ${retryCount + 1})`);
-        
-        setTimeout(() => {
-          fetchInProgress.current = false;
-          setRetryCount(prev => prev + 1);
-          fetchUsers().catch(console.error);
-        }, retryDelay);
-      }
+      toast.error("Failed to load users");
     } finally {
-      // Only mark as not loading if we're not going to retry
-      if (retryCount >= maxRetries) {
-        setLoading(false);
-      }
-      
-      // Always release the fetch lock
+      setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [isAdmin, retryCount]);
+  }, [isAdmin]);
 
   // Only fetch users when the component mounts and user is admin
   useEffect(() => {

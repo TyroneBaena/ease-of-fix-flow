@@ -4,27 +4,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/settings/UserManagement';
 import { Card } from '@/components/ui/card';
-import { Button } from "@/components/ui/button";
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 const Settings = () => {
-  const { currentUser, isAdmin, loading, loadingError } = useUserContext();
+  const { currentUser, isAdmin, loading } = useUserContext();
   const [stableLoadingState, setStableLoadingState] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Improved stable loading state management with timeout safety
+  // Improved stable loading state management
   useEffect(() => {
     // Reset error state when dependencies change
     setError(null);
-    
-    if (loadingError) {
-      setError(loadingError.message || "Error loading user data");
-      setStableLoadingState(false);
-      return;
-    }
     
     // Start with loading state
     setStableLoadingState(true);
@@ -56,12 +49,7 @@ const Settings = () => {
       clearTimeout(initialDelay);
       clearTimeout(backupTimeout);
     };
-  }, [currentUser, loading, loadingError, error, stableLoadingState]);
-  
-  // Handle page refresh
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  }, [currentUser, loading]);
   
   // Show consistent loading state
   if (stableLoadingState) {
@@ -78,7 +66,7 @@ const Settings = () => {
     );
   }
   
-  // Show error state if no user is found or there's an error
+  // Show error state if no user is found
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -89,15 +77,8 @@ const Settings = () => {
             <AlertTitle>Authentication Error</AlertTitle>
             <AlertDescription>
               {error}
-              {error.includes('recursion') && (
-                <p className="mt-2 text-sm">The database policy issue has been fixed. Please refresh the page.</p>
-              )}
             </AlertDescription>
           </Alert>
-          <Button onClick={handleRefresh} className="mt-4">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh Page
-          </Button>
         </main>
       </div>
     );

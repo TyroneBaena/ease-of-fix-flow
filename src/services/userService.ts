@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 import { toast } from 'sonner';
@@ -22,8 +23,7 @@ export const userService = {
       // First, try to get data from the profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
       
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
@@ -32,13 +32,8 @@ export const userService = {
       
       console.log(`Found ${profiles?.length || 0} user profiles`);
       
-      // If no data and no error, return empty array
-      if (!profiles || profiles.length === 0) {
-        return [];
-      }
-      
       // Map the profiles to our User type
-      return profiles.map(profile => ({
+      return (profiles || []).map(profile => ({
         id: profile.id,
         name: profile.name || '',
         email: profile.email || '',
@@ -48,22 +43,7 @@ export const userService = {
       }));
     } catch (error) {
       console.error("Error in getAllUsers:", error);
-      
-      // Improved error handling to provide more context
-      if (error && typeof error === 'object' && 'code' in error) {
-        const code = (error as any).code;
-        if (code === '42P01') {
-          throw new Error('Table "profiles" does not exist. Database setup might be incomplete.');
-        } else if (code === '42501') {
-          throw new Error('Permission denied: You do not have access to the profiles table.');
-        } else if (code === '42P17') {
-          throw new Error('Infinite recursion detected in database policy. This has been fixed, please refresh the page.');
-        }
-        throw error;
-      }
-      
-      // For other errors, create a more readable error
-      throw new Error('Unable to fetch users. Please try again later.');
+      throw error;
     }
   },
   
