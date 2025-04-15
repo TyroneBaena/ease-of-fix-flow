@@ -49,8 +49,16 @@ export const userService = {
     } catch (error) {
       console.error("Error in getAllUsers:", error);
       
-      // If it's a known error type from Supabase, rethrow it
+      // Improved error handling to provide more context
       if (error && typeof error === 'object' && 'code' in error) {
+        const code = (error as any).code;
+        if (code === '42P01') {
+          throw new Error('Table "profiles" does not exist. Database setup might be incomplete.');
+        } else if (code === '42501') {
+          throw new Error('Permission denied: You do not have access to the profiles table.');
+        } else if (code === '42P17') {
+          throw new Error('Infinite recursion detected in database policy. This has been fixed, please refresh the page.');
+        }
         throw error;
       }
       

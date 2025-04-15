@@ -57,14 +57,20 @@ const UserManagement = () => {
   
   // Show error state with retry button and more detailed error
   if (fetchError) {
+    const errorMessage = fetchError.message || 'Unknown error';
+    
     return (
       <div className="p-4">
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4 mr-2" />
           <AlertTitle className="mb-2">Failed to load users</AlertTitle>
           <AlertDescription className="flex flex-col gap-2">
-            <p>There was an error loading the user data: {fetchError.message || 'Unknown error'}</p>
-            <p className="text-sm opacity-80">This might be due to database permissions or connection issues.</p>
+            <p>{errorMessage}</p>
+            <p className="text-sm opacity-80">
+              {errorMessage.includes('recursion') 
+                ? 'Database policy issue has been fixed. Please refresh the page or try again.'
+                : 'This might be due to database permissions or connection issues.'}
+            </p>
           </AlertDescription>
         </Alert>
         <div className="flex gap-2">
@@ -86,14 +92,13 @@ const UserManagement = () => {
               </>
             )}
           </Button>
-          {users.length > 0 && (
-            <Button 
-              variant="default" 
-              className="mt-2"
-            >
-              Continue with cached data
-            </Button>
-          )}
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="default" 
+            className="mt-2"
+          >
+            Refresh Page
+          </Button>
         </div>
       </div>
     );

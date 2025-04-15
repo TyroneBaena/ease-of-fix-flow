@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -36,10 +37,13 @@ export const useUserProvider = () => {
       console.log("Starting user fetch");
       fetchInProgress.current = true;
       setLoading(true);
+      
+      // Clear previous errors
+      setLoadingError(null);
+      
       const allUsers = await userService.getAllUsers();
       console.log("Fetched users:", allUsers);
       setUsers(allUsers);
-      setLoadingError(null);
       setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error('Error fetching users:', error);

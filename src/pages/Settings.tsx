@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 const Settings = () => {
   const { currentUser, isAdmin, loading, loadingError } = useUserContext();
@@ -58,6 +58,11 @@ const Settings = () => {
     };
   }, [currentUser, loading, loadingError, error, stableLoadingState]);
   
+  // Handle page refresh
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+  
   // Show consistent loading state
   if (stableLoadingState) {
     return (
@@ -84,10 +89,14 @@ const Settings = () => {
             <AlertTitle>Authentication Error</AlertTitle>
             <AlertDescription>
               {error}
+              {error.includes('recursion') && (
+                <p className="mt-2 text-sm">The database policy issue has been fixed. Please refresh the page.</p>
+              )}
             </AlertDescription>
           </Alert>
-          <Button onClick={() => window.location.reload()} className="mt-4">
-            Retry
+          <Button onClick={handleRefresh} className="mt-4">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh Page
           </Button>
         </main>
       </div>
