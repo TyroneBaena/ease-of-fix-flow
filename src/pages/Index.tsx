@@ -39,8 +39,7 @@ const Index = () => {
                 </Button>
                 <Button 
                   onClick={() => navigate('/dashboard')}
-                  variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-blue-600 transition-colors duration-300 ease-in-out font-semibold"
+                  className="bg-white text-blue-600 hover:bg-gray-100"
                 >
                   View Dashboard
                 </Button>
