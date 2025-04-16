@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
@@ -81,7 +82,12 @@ export const useUserActions = (
     try {
       setIsLoading(true);
       const result = await resetPassword(userId, email);
-      toast.success(`Password reset email sent to ${email}`);
+      
+      if (result.success) {
+        toast.success(`Password reset email sent to ${email}`);
+      } else {
+        toast.error(`Failed to send password reset: ${result.message}`);
+      }
     } catch (error) {
       console.error("Error resetting password:", error);
       toast.error(`Failed to reset password: ${error.message || 'Unknown error'}`);
