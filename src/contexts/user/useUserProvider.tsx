@@ -100,7 +100,13 @@ export const useUserProvider = () => {
   const resetPassword = async (userId: string, email: string) => {
     try {
       setLoading(true);
-      await userService.resetPassword(email);
+      const result = await userService.resetPassword(email);
+      
+      if (result.success) {
+        return result;
+      } else {
+        throw new Error(result.message);
+      }
     } catch (error) {
       console.error('Error resetting password:', error);
       throw error;

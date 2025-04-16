@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 import { toast } from 'sonner';
@@ -107,24 +106,34 @@ export const userService = {
   },
   
   // Reset user password
-  async resetPassword(email: string): Promise<void> {
+  async resetPassword(email: string): Promise<{success: boolean; message: string}> {
     try {
       console.log(`Requesting password reset for: ${email}`);
       
       // Use Supabase's built-in password reset functionality
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/login`,
       });
       
       if (error) {
         console.error("Error requesting password reset:", error);
-        throw error;
+        return {
+          success: false,
+          message: error.message || "Password reset failed"
+        };
       }
       
       console.log(`Password reset email sent to ${email}`);
+      return {
+        success: true,
+        message: `Password reset email sent to ${email}`
+      };
     } catch (error) {
       console.error("Error in resetPassword:", error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || "Unknown error occurred"
+      };
     }
   },
   

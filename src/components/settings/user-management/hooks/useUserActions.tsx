@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
@@ -81,7 +80,7 @@ export const useUserActions = (
   const handleResetPassword = async (userId: string, email: string) => {
     try {
       setIsLoading(true);
-      await resetPassword(userId, email);
+      const result = await resetPassword(userId, email);
       toast.success(`Password reset email sent to ${email}`);
     } catch (error) {
       console.error("Error resetting password:", error);
