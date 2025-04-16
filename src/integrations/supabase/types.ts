@@ -175,6 +175,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       meta_to_array: {
         Args: { meta: Json }
         Returns: string[]
