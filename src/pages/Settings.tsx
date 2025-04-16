@@ -18,23 +18,17 @@ const Settings = () => {
   useEffect(() => {
     // Reset error state when dependencies change
     setError(null);
-    
-    // Start with loading state
-    setStableLoadingState(true);
-    
-    // Short delay to avoid flickering for fast loads
+
     const initialDelay = setTimeout(() => {
       if (!loading) {
         if (!currentUser) {
           setError("Unable to verify user credentials");
         }
-        
-        // Set stable loading state to false after short delay
-        setTimeout(() => setStableLoadingState(false), 200);
+  
+        setStableLoadingState(false);
       }
     }, 300);
-    
-    // Hard timeout to prevent infinite loading
+  
     const backupTimeout = setTimeout(() => {
       if (stableLoadingState) {
         console.log("Settings: Forcing exit from loading state after timeout");
@@ -44,12 +38,13 @@ const Settings = () => {
         }
       }
     }, 4000);
-    
+  
     return () => {
       clearTimeout(initialDelay);
       clearTimeout(backupTimeout);
     };
   }, [currentUser, loading]);
+  
   
   // Show consistent loading state
   if (stableLoadingState) {
