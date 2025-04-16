@@ -101,10 +101,8 @@ export const useUserProvider = () => {
     try {
       setLoading(true);
       await userService.resetPassword(email);
-      toast.success(`Password reset email sent to ${email}`);
     } catch (error) {
       console.error('Error resetting password:', error);
-      toast.error("Failed to send password reset email");
       throw error;
     } finally {
       setLoading(false);

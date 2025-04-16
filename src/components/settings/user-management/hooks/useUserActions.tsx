@@ -82,6 +82,7 @@ export const useUserActions = (
     try {
       setIsLoading(true);
       await resetPassword(userId, email);
+      toast.success(`Password reset email sent to ${email}`);
     } catch (error) {
       console.error("Error resetting password:", error);
       toast.error(`Failed to reset password: ${error.message || 'Unknown error'}`);
