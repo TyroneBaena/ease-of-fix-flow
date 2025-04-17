@@ -122,31 +122,45 @@ export const QuoteRequestDialog = ({
             {/* Contact Information */}
             <div className="space-y-4">
               <h3 className="font-semibold">Contact Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 mt-1 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Site Address</p>
-                    <p className="text-sm text-gray-600">{requestDetails?.address || 'N/A'}</p>
+                  <MapPin className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div className="flex-grow">
+                    <p className="text-sm font-medium">Site</p>
+                    <p className="text-sm text-gray-600 break-words">{requestDetails?.site || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Phone className="h-4 w-4 mt-1 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Site Contact Number</p>
+                  <MapPin className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div className="flex-grow">
+                    <p className="text-sm font-medium">Address</p>
+                    <p className="text-sm text-gray-600 break-words">{requestDetails?.address || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div className="flex-grow">
+                    <p className="text-sm font-medium">Submitted By</p>
+                    <p className="text-sm text-gray-600">{requestDetails?.submittedBy || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Phone className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div className="flex-grow">
+                    <p className="text-sm font-medium">Contact Number</p>
                     <p className="text-sm text-gray-600">{requestDetails?.contactNumber || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <User className="h-4 w-4 mt-1 text-gray-500" />
-                  <div>
+                  <User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div className="flex-grow">
                     <p className="text-sm font-medium">Practice Leader</p>
                     <p className="text-sm text-gray-600">{requestDetails?.practiceLeader || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Phone className="h-4 w-4 mt-1 text-gray-500" />
-                  <div>
+                  <Phone className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div className="flex-grow">
                     <p className="text-sm font-medium">Practice Leader Phone</p>
                     <p className="text-sm text-gray-600">{requestDetails?.practiceLeaderPhone || 'N/A'}</p>
                   </div>
