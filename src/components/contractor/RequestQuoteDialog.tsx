@@ -117,8 +117,8 @@ export const RequestQuoteDialog = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 pr-4 overflow-y-auto max-h-[calc(85vh-200px)]">
+          <div className="space-y-4 pr-2">
             {/* Request Summary */}
             <div>
               <h3 className="text-sm font-medium mb-2">Maintenance Request</h3>
