@@ -11,4 +11,3 @@ export interface ContractorContextType {
   approveQuote: (quoteId: string) => Promise<void>;
   updateJobProgress: (requestId: string, progress: number, notes?: string) => Promise<void>;
 }
-

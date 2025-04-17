@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Quote } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
@@ -10,7 +10,8 @@ import { RequestActions } from '@/components/request/RequestActions';
 import { RequestHistory } from '@/components/request/RequestHistory';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
-import { ContractorProvider } from '@/contexts/ContractorContext';
+import { ContractorProvider } from '@/contexts/contractor';
+import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 
 const RequestDetail = () => {
   const { id } = useParams();
@@ -18,6 +19,7 @@ const RequestDetail = () => {
   const { requests } = useMaintenanceRequestContext();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   
   useEffect(() => {
     if (id) {
@@ -111,7 +113,25 @@ const RequestDetail = () => {
                 requestId={request.id} 
                 isAssigned={!!request.contractor_id} 
               />
+              
+              {!request.contractor_id && (
+                <Button 
+                  onClick={() => setQuoteDialogOpen(true)} 
+                  variant="outline"
+                  className="w-full mt-4 flex items-center justify-center"
+                >
+                  <Quote className="mr-2 h-4 w-4" />
+                  Request Quote
+                </Button>
+              )}
+              
+              <RequestQuoteDialog 
+                open={quoteDialogOpen} 
+                onOpenChange={setQuoteDialogOpen} 
+                request={request}
+              />
             </ContractorProvider>
+            
             <RequestActions status={request.status} />
             <RequestHistory history={request.history} />
           </div>
