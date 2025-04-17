@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import {
@@ -20,6 +19,19 @@ const mockRequests = [
     status: 'in-progress',
     quote: '$350',
     date: '2025-04-15',
+    description: 'Large crack in the front window of the main office. Possible safety hazard.',
+    location: 'Main Office - Front Entrance',
+    priority: 'High',
+    site: 'Downtown Medical Center',
+    submittedBy: 'John Smith',
+    contactNumber: '(555) 123-4567',
+    address: '123 Medical Drive, Suite 100, City, State 12345',
+    practiceLeader: 'Dr. Sarah Johnson',
+    practiceLeaderPhone: '(555) 987-6543',
+    attachments: [
+      { url: 'https://images.unsplash.com/photo-1527853787696-f7be74f2e39a?auto=format&fit=crop&q=80&w=2070' },
+      { url: 'https://images.unsplash.com/photo-1555116505-38ab61800975?auto=format&fit=crop&q=80&w=2070' },
+    ],
   },
   {
     id: 'REQ-002',
@@ -27,15 +39,23 @@ const mockRequests = [
     status: 'pending',
     quote: 'Quote Requested',
     date: '2025-04-17',
+    description: 'Annual HVAC system maintenance and filter replacement needed. Unit is making unusual noise.',
+    location: 'Building Roof - HVAC Unit #2',
+    priority: 'Medium',
+    site: 'North Medical Plaza',
+    submittedBy: 'Jane Doe',
+    contactNumber: '(555) 234-5678',
+    address: '456 Health Way, City, State 12345',
+    practiceLeader: 'Dr. Michael Brown',
+    practiceLeaderPhone: '(555) 876-5432',
+    attachments: [
+      { url: 'https://images.unsplash.com/photo-1581093458791-9d09c85a864f?auto=format&fit=crop&q=80&w=2070' },
+    ],
   },
 ];
 
 export const ContractorRequests = () => {
-  const [selectedRequest, setSelectedRequest] = React.useState<{
-    id: string;
-    title: string;
-    date: string;
-  } | null>(null);
+  const [selectedRequest, setSelectedRequest] = React.useState<typeof mockRequests[0] | null>(null);
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -51,7 +71,11 @@ export const ContractorRequests = () => {
   };
 
   const handleSubmitQuote = (amount: number, description: string) => {
-    console.log('Quote submitted:', { requestId: selectedRequest?.id, amount, description });
+    console.log('Quote submitted:', { 
+      requestId: selectedRequest?.id, 
+      amount, 
+      description 
+    });
     toast.success('Quote submitted successfully');
   };
 
