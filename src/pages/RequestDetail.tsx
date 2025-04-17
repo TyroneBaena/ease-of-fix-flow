@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -117,6 +118,40 @@ const RequestDetail = () => {
     );
   }
 
+  const handleSubmitQuote = async (amount: number, description: string) => {
+    try {
+      await submitQuote(request.id, amount, description);
+      // Refresh quotes after submission
+      const fetchQuotes = async () => {
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('*')
+          .eq('request_id', id)
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          const mappedQuotes: Quote[] = data.map(quote => ({
+            id: quote.id,
+            requestId: quote.request_id,
+            contractorId: quote.contractor_id,
+            amount: quote.amount,
+            description: quote.description || undefined,
+            status: quote.status as 'pending' | 'approved' | 'rejected',
+            submittedAt: quote.submitted_at,
+            approvedAt: quote.approved_at || undefined,
+            createdAt: quote.created_at,
+            updatedAt: quote.updated_at
+          }));
+          
+          setQuotes(mappedQuotes);
+        }
+      };
+      fetchQuotes();
+    } catch (error) {
+      console.error('Error submitting quote:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -150,7 +185,8 @@ const RequestDetail = () => {
               <RequestQuoteDialog 
                 open={quoteDialogOpen} 
                 onOpenChange={setQuoteDialogOpen} 
-                request={request}
+                requestDetails={request}
+                onSubmitQuote={handleSubmitQuote}
               />
             </ContractorProvider>
             

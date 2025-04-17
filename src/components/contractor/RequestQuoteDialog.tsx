@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,8 +13,6 @@ import { IssueDetails } from './quote-dialog/IssueDetails';
 import { ContactInformation } from './quote-dialog/ContactInformation';
 import { AttachmentGallery } from './quote-dialog/AttachmentGallery';
 import { QuoteForm } from './quote-dialog/QuoteForm';
-import { useContractorContext } from '@/contexts/contractor';
-import { toast } from '@/lib/toast';
 
 interface QuoteRequestDialogProps {
   open: boolean;
@@ -34,40 +32,26 @@ interface QuoteRequestDialogProps {
     practiceLeaderPhone?: string;
     attachments?: Array<{ url: string }>;
   } | null;
+  onSubmitQuote: (amount: number, description: string) => void;
 }
 
-export const QuoteRequestDialog = ({
+export const RequestQuoteDialog = ({
   open,
   onOpenChange,
   requestDetails,
+  onSubmitQuote,
 }: QuoteRequestDialogProps) => {
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { submitQuote } = useContractorContext();
+  const [amount, setAmount] = React.useState('');
+  const [description, setDescription] = React.useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestDetails?.id) return;
-
     const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount)) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await submitQuote(requestDetails.id, numericAmount, description);
-      toast.success('Quote submitted successfully');
+    if (!isNaN(numericAmount)) {
+      onSubmitQuote(numericAmount, description);
       setAmount('');
       setDescription('');
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error submitting quote:', error);
-      toast.error('Failed to submit quote');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -112,10 +96,9 @@ export const QuoteRequestDialog = ({
           amount={amount}
           description={description}
           onAmountChange={setAmount}
-          onDescriptionChange={setDescription}
+          onDescriptionChange={(value) => setDescription(value)}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
-          isSubmitting={isSubmitting}
         />
       </DialogContent>
     </Dialog>
