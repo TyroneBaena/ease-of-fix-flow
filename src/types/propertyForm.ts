@@ -4,7 +4,18 @@ import { Property } from './property';
 export interface PropertyFormData extends Omit<Property, 'id' | 'createdAt'> {}
 
 export interface UsePropertyFormProps {
-  existingProperty?: Property;
+  existingProperty?: Omit<Property, 'createdAt'> & {
+    id: string;
+    name: string;
+    address: string;
+    contactNumber: string;
+    email: string;
+    practiceLeader: string;
+    practiceLeaderEmail: string;
+    practiceLeaderPhone: string;
+    renewalDate: string;
+    rentAmount: number;
+  };
   onClose: () => void;
 }
 

@@ -6,10 +6,11 @@ import { BasicInfoFields } from './form/BasicInfoFields';
 import { PracticeLeaderFields } from './form/PracticeLeaderFields';
 import { RentalFields } from './form/RentalFields';
 import { usePropertyForm } from '@/hooks/usePropertyForm';
+import { Property } from '@/types/property';
 
 interface PropertyFormProps {
   onClose: () => void;
-  existingProperty?: {
+  existingProperty?: Omit<Property, 'createdAt'> & {
     id: string;
     name: string;
     address: string;
