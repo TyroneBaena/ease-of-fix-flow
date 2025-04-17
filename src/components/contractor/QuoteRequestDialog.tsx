@@ -21,7 +21,9 @@ import {
   User, 
   Clock,
   AlertCircle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Mail,
+  Building
 } from 'lucide-react';
 
 interface QuoteRequestDialogProps {
@@ -122,9 +124,9 @@ export const QuoteRequestDialog = ({
             {/* Contact Information */}
             <div className="space-y-4">
               <h3 className="font-semibold">Contact Information</h3>
-              <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <Building className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
                   <div className="flex-grow">
                     <p className="text-sm font-medium">Site</p>
                     <p className="text-sm text-gray-600 break-words">{requestDetails?.site || 'N/A'}</p>
