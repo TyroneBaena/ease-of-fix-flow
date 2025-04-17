@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Contractor } from '@/types/contractor';
-import { useContractorContext } from '@/contexts/ContractorContext';
+import { useContractorContext } from '@/contexts/contractor';
 import {
   Select,
   SelectContent,
