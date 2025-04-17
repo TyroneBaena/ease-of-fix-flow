@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, User } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 interface RequestActionsProps {
   status: string;
@@ -18,13 +18,6 @@ export const RequestActions = ({ status }: RequestActionsProps) => {
           <CheckCircle className="h-4 w-4 mr-2" />
           {status === 'completed' ? 'Reopen Request' : 'Mark as Complete'}
         </Button>
-        
-        {status !== 'completed' && (
-          <Button variant="outline" className="w-full justify-start">
-            <User className="h-4 w-4 mr-2" />
-            Assign Technician
-          </Button>
-        )}
         
         <Button variant="outline" className="w-full justify-start text-red-600 hover:bg-red-50">
           <XCircle className="h-4 w-4 mr-2" />

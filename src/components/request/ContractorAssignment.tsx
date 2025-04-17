@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Contractor } from '@/types/contractor';
 import { useContractorContext } from '@/contexts/contractor';
 import {
   Select,
@@ -24,20 +23,15 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 }) => {
   const { contractors, assignContractor, requestQuote } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
-  const [isQuoteRequest, setIsQuoteRequest] = useState(false);
 
   const handleAssignment = async () => {
     if (!selectedContractor) return;
+    await assignContractor(requestId, selectedContractor);
+  };
 
-    try {
-      if (isQuoteRequest) {
-        await requestQuote(requestId, selectedContractor);
-      } else {
-        await assignContractor(requestId, selectedContractor);
-      }
-    } catch (error) {
-      console.error('Error in contractor assignment:', error);
-    }
+  const handleQuoteRequest = async () => {
+    if (!selectedContractor) return;
+    await requestQuote(requestId, selectedContractor);
   };
 
   if (isAssigned) {
@@ -49,7 +43,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center text-lg font-semibold">
           <HardHat className="mr-2 h-5 w-5" />
-          Assign Contractor
+          Contractor
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -69,18 +63,21 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           </SelectContent>
         </Select>
 
-        <div className="space-x-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
-            onClick={() => setIsQuoteRequest(!isQuoteRequest)}
+            onClick={handleQuoteRequest}
+            disabled={!selectedContractor}
+            className="w-full"
           >
-            {isQuoteRequest ? 'Direct Assignment' : 'Request Quote'}
+            Request Quote
           </Button>
           <Button
-            disabled={!selectedContractor}
             onClick={handleAssignment}
+            disabled={!selectedContractor}
+            className="w-full"
           >
-            {isQuoteRequest ? 'Request Quote' : 'Assign Contractor'}
+            Assign Contractor
           </Button>
         </div>
       </CardContent>
