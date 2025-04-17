@@ -21,6 +21,7 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
       await approveQuote(quoteId);
       toast.success('Quote approved successfully');
     } catch (error) {
+      console.error('Error approving quote:', error);
       toast.error('Failed to approve quote');
     }
   };
@@ -52,8 +53,10 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
                 <p className="text-sm text-muted-foreground">{quote.description}</p>
               )}
               <div className="flex items-center space-x-2">
-                <Badge variant={quote.status === 'approved' ? 'default' : 'secondary'} 
-                       className={quote.status === 'approved' ? 'bg-green-500 hover:bg-green-600' : ''}>
+                <Badge 
+                  variant={quote.status === 'approved' ? 'default' : 'secondary'}
+                  className={quote.status === 'approved' ? 'bg-green-500 hover:bg-green-600' : ''}
+                >
                   {quote.status}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
@@ -62,13 +65,15 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
               </div>
             </div>
             {quote.status === 'pending' && (
-              <Button 
-                variant="outline" 
-                className="ml-4"
-                onClick={() => handleApproveQuote(quote.id)}
-              >
-                Approve Quote
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="bg-green-50 hover:bg-green-100"
+                  onClick={() => handleApproveQuote(quote.id)}
+                >
+                  Approve Quote
+                </Button>
+              </div>
             )}
           </div>
         ))}

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -39,7 +38,6 @@ const RequestDetail = () => {
           .order('created_at', { ascending: false });
           
         if (!error && data) {
-          // Map database fields to our interface fields
           const mappedQuotes: Quote[] = data.map(quote => ({
             id: quote.id,
             requestId: quote.request_id,
