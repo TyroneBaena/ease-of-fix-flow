@@ -52,7 +52,8 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
                 <p className="text-sm text-muted-foreground">{quote.description}</p>
               )}
               <div className="flex items-center space-x-2">
-                <Badge variant={quote.status === 'approved' ? 'success' : 'secondary'}>
+                <Badge variant={quote.status === 'approved' ? 'default' : 'secondary'} 
+                       className={quote.status === 'approved' ? 'bg-green-500 hover:bg-green-600' : ''}>
                   {quote.status}
                 </Badge>
                 <span className="text-xs text-muted-foreground">

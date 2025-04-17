@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -38,7 +39,21 @@ const RequestDetail = () => {
           .order('created_at', { ascending: false });
           
         if (!error && data) {
-          setQuotes(data);
+          // Map database fields to our interface fields
+          const mappedQuotes: Quote[] = data.map(quote => ({
+            id: quote.id,
+            requestId: quote.request_id,
+            contractorId: quote.contractor_id,
+            amount: quote.amount,
+            description: quote.description || undefined,
+            status: quote.status as 'pending' | 'approved' | 'rejected',
+            submittedAt: quote.submitted_at,
+            approvedAt: quote.approved_at || undefined,
+            createdAt: quote.created_at,
+            updatedAt: quote.updated_at
+          }));
+          
+          setQuotes(mappedQuotes);
         }
       };
       
