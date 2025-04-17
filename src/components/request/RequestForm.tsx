@@ -6,7 +6,7 @@ import { RequestFormAttachments } from "./RequestFormAttachments";
 import { RequestFormActions } from "./RequestFormActions";
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
-import { useMaintenanceRequestContext } from "@/contexts/MaintenanceRequestContext";
+import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 import { toast } from "@/lib/toast";
 import { useNavigate } from 'react-router-dom';
 import { ParticipantRelatedField } from './ParticipantRelatedField';

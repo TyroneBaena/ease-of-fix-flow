@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -6,7 +5,7 @@ import StatsOverview from '@/components/dashboard/StatsOverview';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import RequestsList from '@/components/dashboard/RequestsList';
 import { useUserContext } from '@/contexts/UserContext';
-import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 
 const Dashboard = () => {
   const { currentUser } = useUserContext();

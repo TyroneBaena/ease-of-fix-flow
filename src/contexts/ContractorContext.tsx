@@ -42,7 +42,21 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (error) throw error;
 
-      setContractors(data);
+      // Map the snake_case database fields to camelCase for our TypeScript interfaces
+      const mappedContractors: Contractor[] = data.map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        companyName: item.company_name,
+        contactName: item.contact_name,
+        email: item.email,
+        phone: item.phone,
+        address: item.address || undefined,
+        specialties: item.specialties || undefined,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
+
+      setContractors(mappedContractors);
     } catch (err) {
       console.error('Error fetching contractors:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
@@ -92,10 +106,24 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const submitQuote = async (requestId: string, amount: number, description?: string) => {
     try {
+      // Find the contractor ID for the current user
+      const { data: contractorData, error: contractorError } = await supabase
+        .from('contractors')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (contractorError) throw contractorError;
+      
+      if (!contractorData?.id) {
+        throw new Error('Contractor ID not found');
+      }
+
       const { error } = await supabase
         .from('quotes')
         .insert({
           request_id: requestId,
+          contractor_id: contractorData.id, // Add the contractor_id
           amount,
           description,
           status: 'pending'

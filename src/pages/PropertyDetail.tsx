@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
-import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import Navbar from '@/components/Navbar';
 import { generateQRCodeUrl } from '@/utils/qrCodeGenerator';
 import { toast } from '@/lib/toast';

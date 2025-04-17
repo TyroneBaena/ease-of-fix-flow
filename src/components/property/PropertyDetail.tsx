@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property';
-import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { Property } from '@/types/property';
 import PropertyAccessControl from './PropertyAccessControl';
 
@@ -15,7 +14,6 @@ const PropertyDetail: React.FC<PropertyDetailProps> = ({ property }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const propertyRequests = getRequestsForProperty(property.id);
   
-  // Add a useEffect to stabilize rendering
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoaded(true);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
-import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { MaintenanceRequest } from '@/types/property';
 import RequestsHeader from '@/components/requests/RequestsHeader';
 import RequestFilters from '@/components/requests/RequestFilters';

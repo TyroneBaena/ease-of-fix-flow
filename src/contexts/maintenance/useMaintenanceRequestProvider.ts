@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/property';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
+import { toast } from '@/lib/toast';
 
 export const useMaintenanceRequestProvider = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
