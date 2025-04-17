@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, Loader2 } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 
 interface QuoteFormProps {
@@ -14,6 +14,7 @@ interface QuoteFormProps {
   onDescriptionChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 export const QuoteForm: React.FC<QuoteFormProps> = ({
@@ -23,6 +24,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   onDescriptionChange,
   onSubmit,
   onCancel,
+  isSubmitting = false,
 }) => {
   return (
     <form onSubmit={onSubmit}>
@@ -41,6 +43,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
               required
               min="0"
               step="0.01"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -52,14 +55,24 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
             required
+            disabled={isSubmitting}
           />
         </div>
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit">Submit Quote</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            'Submit Quote'
+          )}
+        </Button>
       </DialogFooter>
     </form>
   );

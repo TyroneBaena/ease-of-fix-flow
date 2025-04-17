@@ -1,23 +1,26 @@
 
 import React from 'react';
 import { MapPin, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { QuoteDialogSkeleton } from './QuoteDialogSkeleton';
 
 interface IssueDetailsProps {
   location?: string;
   priority?: string;
   description?: string;
+  isLoading?: boolean;
 }
 
 const getPriorityColor = (priority?: string) => {
   switch (priority?.toLowerCase()) {
     case 'high':
-      return 'text-red-500';
+      return 'bg-red-100 text-red-800 hover:bg-red-100';
     case 'medium':
-      return 'text-yellow-500';
+      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
     case 'low':
-      return 'text-green-500';
+      return 'bg-green-100 text-green-800 hover:bg-green-100';
     default:
-      return 'text-gray-500';
+      return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
   }
 };
 
@@ -25,7 +28,10 @@ export const IssueDetails: React.FC<IssueDetailsProps> = ({
   location,
   priority,
   description,
+  isLoading
 }) => {
+  if (isLoading) return <QuoteDialogSkeleton />;
+
   return (
     <div className="space-y-6">
       <h3 className="font-semibold">Issue Details</h3>
@@ -41,7 +47,9 @@ export const IssueDetails: React.FC<IssueDetailsProps> = ({
           <Clock className={`h-4 w-4 mt-1 ${getPriorityColor(priority)}`} />
           <div>
             <p className="text-sm font-medium">Priority Level</p>
-            <p className="text-sm text-gray-600">{priority || 'N/A'}</p>
+            <Badge variant="outline" className={`mt-1 ${getPriorityColor(priority)}`}>
+              {priority || 'N/A'}
+            </Badge>
           </div>
         </div>
       </div>
