@@ -3,18 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
 import { toast } from '@/lib/toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { User } from '@/types/user';
+import { BasicInfoFields } from './form/BasicInfoFields';
+import { PracticeLeaderFields } from './form/PracticeLeaderFields';
+import { RentalFields } from './form/RentalFields';
 
 interface PropertyFormProps {
   onClose: () => void;
@@ -51,7 +45,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
   });
 
   useEffect(() => {
-    // Filter users to get only managers
     const managerUsers = users.filter(user => user.role === 'manager');
     setManagers(managerUsers);
   }, [users]);
@@ -71,7 +64,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
         ...prev,
         practiceLeader: selectedManager.name,
         practiceLeaderEmail: selectedManager.email,
-        practiceLeaderPhone: '', // We don't store phone in user data, so keep it empty or let user fill it
+        practiceLeaderPhone: '',
       }));
     }
   };
@@ -79,7 +72,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     const requiredFields = ['name', 'address', 'contactNumber', 'email', 'practiceLeader'];
     const missingFields = requiredFields.filter(field => !form[field as keyof typeof form]);
     
@@ -106,124 +98,28 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
   return (
     <form onSubmit={handleSubmit}>
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Property Name*</Label>
-            <Input 
-              id="name" 
-              name="name"
-              value={form.name} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="address">Address*</Label>
-            <Input 
-              id="address" 
-              name="address"
-              value={form.address} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        </div>
+        <BasicInfoFields
+          name={form.name}
+          address={form.address}
+          contactNumber={form.contactNumber}
+          email={form.email}
+          onChange={handleChange}
+        />
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="contactNumber">Contact Number*</Label>
-            <Input 
-              id="contactNumber" 
-              name="contactNumber"
-              value={form.contactNumber} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address*</Label>
-            <Input 
-              id="email" 
-              name="email"
-              type="email"
-              value={form.email} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        </div>
+        <PracticeLeaderFields
+          managers={managers}
+          practiceLeader={form.practiceLeader}
+          practiceLeaderEmail={form.practiceLeaderEmail}
+          practiceLeaderPhone={form.practiceLeaderPhone}
+          onPracticeLeaderChange={handlePracticeLeaderChange}
+          onChange={handleChange}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="practiceLeader">Practice Leader*</Label>
-          <Select
-            value={managers.find(m => m.name === form.practiceLeader)?.id}
-            onValueChange={handlePracticeLeaderChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a practice leader" />
-            </SelectTrigger>
-            <SelectContent>
-              {managers.map((manager) => (
-                <SelectItem key={manager.id} value={manager.id}>
-                  {manager.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="practiceLeaderEmail">Leader Email</Label>
-            <Input 
-              id="practiceLeaderEmail" 
-              name="practiceLeaderEmail"
-              type="email"
-              value={form.practiceLeaderEmail} 
-              onChange={handleChange}
-              readOnly 
-              className="bg-gray-100"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="practiceLeaderPhone">Leader Phone</Label>
-            <Input 
-              id="practiceLeaderPhone" 
-              name="practiceLeaderPhone"
-              value={form.practiceLeaderPhone} 
-              onChange={handleChange} 
-            />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="renewalDate">Rental Agreement Renewal Date</Label>
-            <Input 
-              id="renewalDate" 
-              name="renewalDate"
-              type="date"
-              value={form.renewalDate} 
-              onChange={handleChange} 
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="rentAmount">Rent Amount</Label>
-            <Input 
-              id="rentAmount" 
-              name="rentAmount"
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.rentAmount} 
-              onChange={handleChange} 
-            />
-          </div>
-        </div>
+        <RentalFields
+          renewalDate={form.renewalDate}
+          rentAmount={form.rentAmount}
+          onChange={handleChange}
+        />
       </div>
       
       <DialogFooter>
