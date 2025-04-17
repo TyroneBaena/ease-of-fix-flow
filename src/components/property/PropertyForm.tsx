@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { useUserContext } from '@/contexts/UserContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
 import { toast } from '@/lib/toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { User } from '@/types/user';
 
 interface PropertyFormProps {
   onClose: () => void;
@@ -25,6 +35,8 @@ interface PropertyFormProps {
 export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingProperty }) => {
   const isEditing = !!existingProperty;
   const { addProperty, updateProperty } = usePropertyContext();
+  const { users } = useUserContext();
+  const [managers, setManagers] = useState<User[]>([]);
   
   const [form, setForm] = useState({
     name: existingProperty?.name || '',
@@ -38,12 +50,30 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
     rentAmount: existingProperty?.rentAmount || 0,
   });
 
+  useEffect(() => {
+    // Filter users to get only managers
+    const managerUsers = users.filter(user => user.role === 'manager');
+    setManagers(managerUsers);
+  }, [users]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({
       ...prev,
       [name]: name === 'rentAmount' ? parseFloat(value) || 0 : value
     }));
+  };
+
+  const handlePracticeLeaderChange = (userId: string) => {
+    const selectedManager = managers.find(manager => manager.id === userId);
+    if (selectedManager) {
+      setForm(prev => ({
+        ...prev,
+        practiceLeader: selectedManager.name,
+        practiceLeaderEmail: selectedManager.email,
+        practiceLeaderPhone: '', // We don't store phone in user data, so keep it empty or let user fill it
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -127,13 +157,21 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
         
         <div className="space-y-2">
           <Label htmlFor="practiceLeader">Practice Leader*</Label>
-          <Input 
-            id="practiceLeader" 
-            name="practiceLeader"
-            value={form.practiceLeader} 
-            onChange={handleChange} 
-            required 
-          />
+          <Select
+            value={managers.find(m => m.name === form.practiceLeader)?.id}
+            onValueChange={handlePracticeLeaderChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a practice leader" />
+            </SelectTrigger>
+            <SelectContent>
+              {managers.map((manager) => (
+                <SelectItem key={manager.id} value={manager.id}>
+                  {manager.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
@@ -144,7 +182,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
               name="practiceLeaderEmail"
               type="email"
               value={form.practiceLeaderEmail} 
-              onChange={handleChange} 
+              onChange={handleChange}
+              readOnly 
+              className="bg-gray-100"
             />
           </div>
           
