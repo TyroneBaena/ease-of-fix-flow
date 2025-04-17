@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import {
@@ -9,9 +10,38 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useContractorContext } from '@/contexts/contractor';
+
+const mockRequests = [
+  {
+    id: 'REQ-001',
+    title: 'Fix Broken Window',
+    status: 'in-progress',
+    quote: '$350',
+    date: '2025-04-15',
+  },
+  {
+    id: 'REQ-002',
+    title: 'HVAC Maintenance',
+    status: 'pending',
+    quote: 'Quote Requested',
+    date: '2025-04-17',
+  },
+];
 
 export const ContractorRequests = () => {
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'in-progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <Card>
       <div className="p-6">
@@ -28,11 +58,19 @@ export const ContractorRequests = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                  No requests found
-                </TableCell>
-              </TableRow>
+              {mockRequests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell>{request.id}</TableCell>
+                  <TableCell>{request.title}</TableCell>
+                  <TableCell>
+                    <Badge className={getStatusBadgeColor(request.status)}>
+                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{request.quote}</TableCell>
+                  <TableCell>{request.date}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>

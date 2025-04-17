@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { ClipboardList, Clock, CheckCircle, DollarSign } from 'lucide-react';
-import { useContractorContext } from '@/contexts/contractor';
 
 export const ContractorStats = () => {
   return (
@@ -13,7 +13,7 @@ export const ContractorStats = () => {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Requests</p>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold">2</p>
           </div>
         </div>
       </Card>
@@ -24,7 +24,7 @@ export const ContractorStats = () => {
           </div>
           <div>
             <p className="text-sm text-gray-500">Pending Quotes</p>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold">1</p>
           </div>
         </div>
       </Card>
@@ -34,8 +34,8 @@ export const ContractorStats = () => {
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Completed Jobs</p>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-sm text-gray-500">Active Jobs</p>
+            <p className="text-2xl font-bold">1</p>
           </div>
         </div>
       </Card>
@@ -45,8 +45,8 @@ export const ContractorStats = () => {
             <DollarSign className="h-6 w-6 text-purple-600" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Total Earned</p>
-            <p className="text-2xl font-bold">$0</p>
+            <p className="text-sm text-gray-500">Total Quoted</p>
+            <p className="text-2xl font-bold">$350</p>
           </div>
         </div>
       </Card>
