@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Quote } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
@@ -111,19 +111,9 @@ const RequestDetail = () => {
             <ContractorProvider>
               <ContractorAssignment 
                 requestId={request.id} 
-                isAssigned={!!request.contractor_id} 
+                isAssigned={!!request.contractor_id}
+                onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
               />
-              
-              {!request.contractor_id && (
-                <Button 
-                  onClick={() => setQuoteDialogOpen(true)} 
-                  variant="outline"
-                  className="w-full mt-4 flex items-center justify-center"
-                >
-                  <Quote className="mr-2 h-4 w-4" />
-                  Request Quote
-                </Button>
-              )}
               
               <RequestQuoteDialog 
                 open={quoteDialogOpen} 

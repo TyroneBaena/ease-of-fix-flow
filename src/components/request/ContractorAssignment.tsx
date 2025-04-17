@@ -10,28 +10,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { HardHat } from 'lucide-react';
+import { HardHat, Quote } from 'lucide-react';
 
 interface ContractorAssignmentProps {
   requestId: string;
   isAssigned: boolean;
+  onOpenQuoteDialog: () => void;
 }
 
 export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   requestId,
-  isAssigned
+  isAssigned,
+  onOpenQuoteDialog
 }) => {
-  const { contractors, assignContractor, requestQuote } = useContractorContext();
+  const { contractors, assignContractor } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
 
   const handleAssignment = async () => {
     if (!selectedContractor) return;
     await assignContractor(requestId, selectedContractor);
-  };
-
-  const handleQuoteRequest = async () => {
-    if (!selectedContractor) return;
-    await requestQuote(requestId, selectedContractor);
   };
 
   if (isAssigned) {
@@ -63,21 +60,22 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           </SelectContent>
         </Select>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            onClick={handleQuoteRequest}
-            disabled={!selectedContractor}
-            className="w-full"
-          >
-            Request Quote
-          </Button>
+        <div className="grid grid-cols-1 gap-3">
           <Button
             onClick={handleAssignment}
             disabled={!selectedContractor}
             className="w-full"
           >
             Assign Contractor
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={onOpenQuoteDialog}
+            className="w-full flex items-center justify-center"
+          >
+            <Quote className="mr-2 h-4 w-4" />
+            Request Quote
           </Button>
         </div>
       </CardContent>
