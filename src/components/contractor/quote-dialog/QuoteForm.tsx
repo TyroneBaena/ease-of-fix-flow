@@ -27,8 +27,8 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
   isSubmitting = false,
 }) => {
   return (
-    <form onSubmit={onSubmit}>
-      <div className="grid gap-4 py-4">
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="amount">Quote Amount</Label>
           <div className="relative">
@@ -56,14 +56,25 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
             onChange={(e) => onDescriptionChange(e.target.value)}
             required
             disabled={isSubmitting}
+            className="min-h-[100px]"
           />
         </div>
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel} 
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

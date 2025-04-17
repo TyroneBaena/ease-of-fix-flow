@@ -16,9 +16,12 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({ attachment
           <ImageIcon className="h-4 w-4" />
           Photos
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((index) => (
-            <Skeleton key={index} className="w-full aspect-video rounded-md" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 auto-rows-[160px]">
+          {[1, 2, 3, 4].map((index) => (
+            <Skeleton 
+              key={index} 
+              className="w-full h-full rounded-md animate-pulse"
+            />
           ))}
         </div>
       </div>
@@ -31,17 +34,19 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({ attachment
     <div className="space-y-4">
       <h3 className="font-semibold flex items-center gap-2">
         <ImageIcon className="h-4 w-4" />
-        Photos
+        Photos ({attachments.length})
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 auto-rows-[160px]">
         {attachments.map((attachment, index) => (
-          <img
-            key={index}
-            src={attachment.url}
-            alt={`Attachment ${index + 1}`}
-            className="rounded-md border border-gray-200 object-cover w-full aspect-video hover:opacity-90 transition-opacity cursor-pointer"
-            loading="lazy"
-          />
+          <div key={index} className="relative group overflow-hidden rounded-md">
+            <img
+              src={attachment.url}
+              alt={`Attachment ${index + 1}`}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          </div>
         ))}
       </div>
     </div>

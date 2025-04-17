@@ -1,7 +1,9 @@
 
 import React from 'react';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, AlertTriangle, CheckCircle2, Clock3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { QuoteDialogSkeleton } from './QuoteDialogSkeleton';
 
 interface IssueDetailsProps {
@@ -10,6 +12,19 @@ interface IssueDetailsProps {
   description?: string;
   isLoading?: boolean;
 }
+
+const getPriorityIcon = (priority?: string) => {
+  switch (priority?.toLowerCase()) {
+    case 'high':
+      return <AlertTriangle className="h-4 w-4" />;
+    case 'medium':
+      return <Clock3 className="h-4 w-4" />;
+    case 'low':
+      return <CheckCircle2 className="h-4 w-4" />;
+    default:
+      return <Clock className="h-4 w-4" />;
+  }
+};
 
 const getPriorityColor = (priority?: string) => {
   switch (priority?.toLowerCase()) {
@@ -44,13 +59,27 @@ export const IssueDetails: React.FC<IssueDetailsProps> = ({
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <Clock className={`h-4 w-4 mt-1 ${getPriorityColor(priority)}`} />
-          <div>
-            <p className="text-sm font-medium">Priority Level</p>
-            <Badge variant="outline" className={`mt-1 ${getPriorityColor(priority)}`}>
-              {priority || 'N/A'}
-            </Badge>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-start gap-2">
+                  {getPriorityIcon(priority)}
+                  <div>
+                    <p className="text-sm font-medium">Priority Level</p>
+                    <Badge variant="outline" className={`mt-1 ${getPriorityColor(priority)}`}>
+                      {priority || 'N/A'}
+                    </Badge>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{priority === 'high' ? 'Urgent attention needed' : 
+                    priority === 'medium' ? 'Address within 48 hours' : 
+                    priority === 'low' ? 'Schedule as convenient' : 
+                    'Priority not specified'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       <div className="space-y-2">
