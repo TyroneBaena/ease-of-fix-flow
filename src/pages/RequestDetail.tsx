@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -9,6 +8,8 @@ import { CommentSection } from '@/components/request/CommentSection';
 import { RequestActions } from '@/components/request/RequestActions';
 import { RequestHistory } from '@/components/request/RequestHistory';
 import { useMaintenanceRequestContext } from '@/contexts/MaintenanceRequestContext';
+import { ContractorAssignment } from '@/components/request/ContractorAssignment';
+import { ContractorProvider } from '@/contexts/ContractorContext';
 
 const RequestDetail = () => {
   const { id } = useParams();
@@ -19,14 +20,12 @@ const RequestDetail = () => {
   
   useEffect(() => {
     if (id) {
-      // Find the request in our context data
       const foundRequest = requests.find(req => req.id === id);
       setRequest(foundRequest);
       setLoading(false);
     }
   }, [id, requests]);
   
-  // Initial comments data
   const initialComments = [
     {
       id: '1',
@@ -100,14 +99,18 @@ const RequestDetail = () => {
         </Button>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="md:col-span-2 space-y-8">
             <RequestInfo request={request} />
             <CommentSection initialComments={initialComments} />
           </div>
           
-          {/* Sidebar */}
           <div className="space-y-6">
+            <ContractorProvider>
+              <ContractorAssignment 
+                requestId={request.id} 
+                isAssigned={!!request.contractor_id} 
+              />
+            </ContractorProvider>
             <RequestActions status={request.status} />
             <RequestHistory history={request.history} />
           </div>

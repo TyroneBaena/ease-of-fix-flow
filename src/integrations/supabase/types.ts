@@ -9,12 +9,55 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      contractors: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          phone: string
+          specialties: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          contact_name: string
+          created_at?: string
+          email: string
+          id?: string
+          phone: string
+          specialties?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          phone?: string
+          specialties?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       maintenance_requests: {
         Row: {
+          assigned_at: string | null
           assigned_to: string | null
           attachments: Json | null
           attempted_fix: string | null
           category: string
+          completion_percentage: number | null
+          completion_photos: Json | null
+          contractor_id: string | null
           created_at: string
           description: string
           due_date: string | null
@@ -26,7 +69,10 @@ export type Database = {
           location: string
           participant_name: string | null
           priority: string
+          progress_notes: string[] | null
           property_id: string | null
+          quote_requested: boolean | null
+          quoted_amount: number | null
           report_date: string | null
           site: string | null
           status: string
@@ -36,10 +82,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_at?: string | null
           assigned_to?: string | null
           attachments?: Json | null
           attempted_fix?: string | null
           category: string
+          completion_percentage?: number | null
+          completion_photos?: Json | null
+          contractor_id?: string | null
           created_at?: string
           description: string
           due_date?: string | null
@@ -51,7 +101,10 @@ export type Database = {
           location: string
           participant_name?: string | null
           priority: string
+          progress_notes?: string[] | null
           property_id?: string | null
+          quote_requested?: boolean | null
+          quoted_amount?: number | null
           report_date?: string | null
           site?: string | null
           status?: string
@@ -61,10 +114,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_at?: string | null
           assigned_to?: string | null
           attachments?: Json | null
           attempted_fix?: string | null
           category?: string
+          completion_percentage?: number | null
+          completion_photos?: Json | null
+          contractor_id?: string | null
           created_at?: string
           description?: string
           due_date?: string | null
@@ -76,7 +133,10 @@ export type Database = {
           location?: string
           participant_name?: string | null
           priority?: string
+          progress_notes?: string[] | null
           property_id?: string | null
+          quote_requested?: boolean | null
+          quoted_amount?: number | null
           report_date?: string | null
           site?: string | null
           status?: string
@@ -86,6 +146,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maintenance_requests_property_id_fkey"
             columns: ["property_id"]
@@ -169,6 +236,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      quotes: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          contractor_id: string
+          created_at: string
+          description: string | null
+          id: string
+          request_id: string
+          status: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          contractor_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          request_id: string
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          contractor_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          request_id?: string
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
