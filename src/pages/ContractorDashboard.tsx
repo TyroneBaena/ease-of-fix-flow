@@ -1,8 +1,7 @@
-
 import React, { useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
-import { useContractorContext } from '@/contexts/ContractorContext';
+import { useContractorContext } from '@/contexts/contractor';
 import { ContractorStats } from '@/components/contractor/ContractorStats';
 import { ContractorRequests } from '@/components/contractor/ContractorRequests';
 

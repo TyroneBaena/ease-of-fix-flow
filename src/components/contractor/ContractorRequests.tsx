@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import {
@@ -10,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useContractorContext } from '@/contexts/ContractorContext';
+import { useContractorContext } from '@/contexts/contractor';
 
 export const ContractorRequests = () => {
   return (

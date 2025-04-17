@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { ClipboardList, Clock, CheckCircle, DollarSign } from 'lucide-react';
+import { useContractorContext } from '@/contexts/contractor';
 
 export const ContractorStats = () => {
   return (
