@@ -1,17 +1,9 @@
-
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BasicInfoFieldProps } from '@/types/propertyForm';
 
-interface BasicInfoFieldsProps {
-  name: string;
-  address: string;
-  contactNumber: string;
-  email: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-export const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
+export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
   name,
   address,
   contactNumber,

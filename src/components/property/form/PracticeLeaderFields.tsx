@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,16 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User } from '@/types/user';
-
-interface PracticeLeaderFieldsProps {
-  managers: User[];
-  practiceLeader: string;
-  practiceLeaderEmail: string;
-  practiceLeaderPhone: string;
-  onPracticeLeaderChange: (userId: string) => void;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
+import { PracticeLeaderFieldsProps } from '@/types/propertyForm';
 
 export const PracticeLeaderFields: React.FC<PracticeLeaderFieldsProps> = ({
   managers,

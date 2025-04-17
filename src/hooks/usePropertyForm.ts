@@ -1,37 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserContext } from '@/contexts/UserContext';
-import { User } from '@/types/user';
 import { toast } from '@/lib/toast';
-
-interface PropertyFormData {
-  name: string;
-  address: string;
-  contactNumber: string;
-  email: string;
-  practiceLeader: string;
-  practiceLeaderEmail: string;
-  practiceLeaderPhone: string;
-  renewalDate: string;
-  rentAmount: number;
-}
-
-interface UsePropertyFormProps {
-  existingProperty?: {
-    id: string;
-    name: string;
-    address: string;
-    contactNumber: string;
-    email: string;
-    practiceLeader: string;
-    practiceLeaderEmail: string;
-    practiceLeaderPhone: string;
-    renewalDate: string;
-    rentAmount: number;
-  };
-  onClose: () => void;
-}
+import { PropertyFormData, UsePropertyFormProps } from '@/types/propertyForm';
 
 export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormProps) => {
   const { addProperty, updateProperty } = usePropertyContext();

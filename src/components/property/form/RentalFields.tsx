@@ -1,13 +1,7 @@
-
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-interface RentalFieldsProps {
-  renewalDate: string;
-  rentAmount: number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
+import { RentalFieldsProps } from '@/types/propertyForm';
 
 export const RentalFields: React.FC<RentalFieldsProps> = ({
   renewalDate,
