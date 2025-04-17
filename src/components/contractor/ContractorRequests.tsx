@@ -10,6 +10,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { QuoteRequestDialog } from './QuoteRequestDialog';
+import { toast } from 'sonner';
 
 const mockRequests = [
   {
@@ -29,6 +31,12 @@ const mockRequests = [
 ];
 
 export const ContractorRequests = () => {
+  const [selectedRequest, setSelectedRequest] = React.useState<{
+    id: string;
+    title: string;
+    date: string;
+  } | null>(null);
+
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -40,6 +48,11 @@ export const ContractorRequests = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleSubmitQuote = (amount: number, description: string) => {
+    console.log('Quote submitted:', { requestId: selectedRequest?.id, amount, description });
+    toast.success('Quote submitted successfully');
   };
 
   return (
@@ -59,7 +72,15 @@ export const ContractorRequests = () => {
             </TableHeader>
             <TableBody>
               {mockRequests.map((request) => (
-                <TableRow key={request.id}>
+                <TableRow
+                  key={request.id}
+                  className={request.status === 'pending' ? 'cursor-pointer hover:bg-gray-50' : ''}
+                  onClick={() => {
+                    if (request.status === 'pending') {
+                      setSelectedRequest(request);
+                    }
+                  }}
+                >
                   <TableCell>{request.id}</TableCell>
                   <TableCell>{request.title}</TableCell>
                   <TableCell>
@@ -75,6 +96,12 @@ export const ContractorRequests = () => {
           </Table>
         </div>
       </div>
+      <QuoteRequestDialog
+        open={!!selectedRequest}
+        onOpenChange={(open) => !open && setSelectedRequest(null)}
+        requestDetails={selectedRequest}
+        onSubmitQuote={handleSubmitQuote}
+      />
     </Card>
   );
 };
