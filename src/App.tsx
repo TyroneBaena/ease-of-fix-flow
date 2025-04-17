@@ -18,6 +18,7 @@ import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ContractorDashboard from "./pages/ContractorDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -36,7 +37,6 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/setup-password" element={<SetupPassword />} />
                 
-                {/* Protected Routes */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
@@ -75,6 +75,11 @@ const App = () => (
                 <Route path="/settings" element={
                   <ProtectedRoute requireAdmin={true} allowManager={true}>
                     <Settings />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contractor-dashboard" element={
+                  <ProtectedRoute>
+                    <ContractorDashboard />
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={<NotFound />} />
