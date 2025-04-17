@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -12,6 +11,9 @@ import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
 import { ContractorProvider } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
+import { QuotesList } from '@/components/request/QuotesList';
+import { Quote } from '@/types/contractor';
+import { supabase } from '@/lib/supabase';
 
 const RequestDetail = () => {
   const { id } = useParams();
@@ -19,6 +21,7 @@ const RequestDetail = () => {
   const { requests } = useMaintenanceRequestContext();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   
   useEffect(() => {
@@ -26,6 +29,20 @@ const RequestDetail = () => {
       const foundRequest = requests.find(req => req.id === id);
       setRequest(foundRequest);
       setLoading(false);
+      
+      const fetchQuotes = async () => {
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('*')
+          .eq('request_id', id)
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          setQuotes(data);
+        }
+      };
+      
+      fetchQuotes();
     }
   }, [id, requests]);
   
@@ -114,6 +131,8 @@ const RequestDetail = () => {
                 isAssigned={!!request.contractor_id}
                 onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
               />
+              
+              <QuotesList requestId={request.id} quotes={quotes} />
               
               <RequestQuoteDialog 
                 open={quoteDialogOpen} 
