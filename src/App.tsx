@@ -1,11 +1,10 @@
-
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PropertyProvider } from "./contexts/property/PropertyContext";
-import { MaintenanceRequestProvider } from "./contexts/MaintenanceRequestContext";
+import { MaintenanceRequestProvider } from "./contexts/maintenance/MaintenanceRequestContext";
 import { UserProvider } from "./contexts/UserContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
