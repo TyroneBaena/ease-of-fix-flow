@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -113,6 +114,24 @@ const RequestDetail = () => {
     );
   }
 
+  // Prepare the request object with all necessary properties for QuoteSection
+  const requestForQuoteSection = {
+    id: request.id,
+    contractor_id: request.contractor_id,
+    title: request.title || request.issueNature || 'Maintenance Request',
+    date: request.reportDate || request.createdAt,
+    description: request.description || request.explanation,
+    location: request.location,
+    priority: request.priority,
+    site: request.site,
+    submittedBy: request.submittedBy,
+    contactNumber: request.contactNumber,
+    address: request.address,
+    practiceLeader: request.practiceLeader,
+    practiceLeaderPhone: request.practiceLeaderPhone,
+    attachments: request.attachments
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -135,7 +154,7 @@ const RequestDetail = () => {
           
           <div className="space-y-6">
             <QuoteSection 
-              request={request}
+              request={requestForQuoteSection}
               quotes={quotes}
               setQuotes={setQuotes}
             />

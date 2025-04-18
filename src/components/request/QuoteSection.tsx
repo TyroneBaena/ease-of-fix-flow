@@ -11,6 +11,18 @@ interface QuoteSectionProps {
   request: {
     id: string;
     contractor_id?: string;
+    title: string;
+    date: string;
+    description?: string;
+    location?: string;
+    priority?: string;
+    site?: string;
+    submittedBy?: string;
+    contactNumber?: string;
+    address?: string;
+    practiceLeader?: string;
+    practiceLeaderPhone?: string;
+    attachments?: Array<{ url: string }>;
   };
   quotes: Quote[];
   setQuotes: React.Dispatch<React.SetStateAction<Quote[]>>;
