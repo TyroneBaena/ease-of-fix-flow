@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { RequestsTable } from './requests/RequestsTable';
 import { useContractorContext } from '@/contexts/contractor';
-import { supabase } from '@/lib/supabase';
+import { useContractorRequests } from '@/hooks/useContractorRequests';
 
 const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
   return requests.reduce((acc, request) => {
@@ -22,55 +22,14 @@ const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
 
 export const ContractorRequests = () => {
   const [selectedRequest, setSelectedRequest] = React.useState<MaintenanceRequest | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
   const { submitQuote } = useContractorContext();
-  
-  const [requests, setRequests] = React.useState<MaintenanceRequest[]>([]);
-
-  React.useEffect(() => {
-    const fetchQuoteRequests = async () => {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .select('*')
-        .eq('quote_requested', true);
-      
-      if (error) {
-        console.error('Error fetching requests:', error);
-        return;
-      }
-
-      if (data) {
-        const mappedRequests: MaintenanceRequest[] = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          status: item.status as 'pending' | 'in-progress' | 'completed',
-          description: item.description,
-          location: item.location,
-          priority: item.priority as 'low' | 'medium' | 'high',
-          site: item.site || undefined,
-          submittedBy: item.submitted_by || undefined,
-          contactNumber: undefined,
-          address: undefined,
-          practiceLeader: undefined,
-          practiceLeaderPhone: undefined,
-          attachments: item.attachments ? JSON.parse(JSON.stringify(item.attachments)) : undefined,
-          quote: item.quoted_amount?.toString() || '',
-          date: item.created_at
-        }));
-        
-        setRequests(mappedRequests);
-      }
-    };
-
-    fetchQuoteRequests();
-  }, []);
+  const { requests, isLoading } = useContractorRequests();
   
   const groupedRequests = groupRequestsByStatus(requests);
 
   const handleSubmitQuote = async (amount: number, description: string) => {
     if (!selectedRequest) return;
     
-    setIsLoading(true);
     try {
       await submitQuote(selectedRequest.id, amount, description);
       toast.success('Quote submitted successfully');
@@ -78,8 +37,6 @@ export const ContractorRequests = () => {
     } catch (error) {
       console.error('Error submitting quote:', error);
       toast.error('Failed to submit quote');
-    } finally {
-      setIsLoading(false);
     }
   };
 
