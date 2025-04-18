@@ -33,18 +33,7 @@ export const useContractorManagement = () => {
     handlePageChange
   } = useContractorPagination(contractors.length);
 
-  // Initialize the contractor actions
-  const {
-    loading: actionLoading,
-    isDeleteConfirmOpen,
-    setIsDeleteConfirmOpen,
-    handleSaveContractor,
-    handleResetPassword,
-    confirmDeleteContractor,
-    handleDeleteContractor,
-    selectedContractorForDeletion
-  } = useContractorActions(loadContractors);
-
+  // Define loadContractors function first before using it
   const loadContractors = async () => {
     try {
       setLoading(true);
@@ -73,6 +62,18 @@ export const useContractorManagement = () => {
       setLoading(false);
     }
   };
+
+  // Initialize the contractor actions after loadContractors is defined
+  const {
+    loading: actionLoading,
+    isDeleteConfirmOpen,
+    setIsDeleteConfirmOpen,
+    handleSaveContractor,
+    handleResetPassword,
+    confirmDeleteContractor,
+    handleDeleteContractor,
+    selectedContractorForDeletion
+  } = useContractorActions(loadContractors);
 
   useEffect(() => {
     loadContractors();
