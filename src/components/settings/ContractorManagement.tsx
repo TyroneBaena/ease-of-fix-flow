@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useContractorManagement } from './contractor-management/useContractorManagement';
+import { useContractorManagement } from './contractor-management/hooks/useContractorManagement';
 import ContractorManagementHeader from './contractor-management/ContractorManagementHeader';
 import ContractorTable from './contractor-management/ContractorTable';
 import ContractorFormDialog from './contractor-management/ContractorFormDialog';

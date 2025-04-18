@@ -1,12 +1,12 @@
 
-import { useState, useEffect } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
-import { supabase } from '@/lib/supabase';
+import { useState, useCallback, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
-import { toast } from '@/lib/toast';
+import { useUserContext } from '@/contexts/UserContext';
 import { useContractorDialog } from './useContractorDialog';
 import { useContractorActions } from './useContractorActions';
 import { useContractorPagination } from './useContractorPagination';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export const useContractorManagement = () => {
   const { currentUser, isAdmin } = useUserContext();
