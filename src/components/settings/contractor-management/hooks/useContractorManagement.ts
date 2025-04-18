@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
 import { useUserContext } from '@/contexts/UserContext';
@@ -44,6 +45,18 @@ export const useContractorManagement = () => {
     }
   };
 
+  // Initialize the contractor actions
+  const {
+    loading: actionLoading,
+    isDeleteConfirmOpen,
+    setIsDeleteConfirmOpen,
+    handleSaveContractor,
+    handleResetPassword,
+    confirmDeleteContractor,
+    handleDeleteContractor,
+    selectedContractorForDeletion
+  } = useContractorActions(loadContractors);
+
   useEffect(() => {
     loadContractors();
   }, []);
@@ -59,7 +72,7 @@ export const useContractorManagement = () => {
     contractors,
     currentUser,
     isAdmin,
-    isLoading: loading,
+    isLoading: loading || actionLoading,
     fetchError,
     isDialogOpen,
     setIsDialogOpen,
