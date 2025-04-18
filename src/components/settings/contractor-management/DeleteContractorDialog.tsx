@@ -11,22 +11,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from 'lucide-react';
+import { Contractor } from '@/types/contractor';
 
 interface DeleteContractorDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   isLoading: boolean;
-  onConfirmDelete: () => Promise<void>;
+  onConfirmDelete: (selectedContractor: Contractor | null) => Promise<void>;
+  selectedContractor: Contractor | null;
 }
 
 const DeleteContractorDialog = ({
   isOpen,
   onOpenChange,
   isLoading,
-  onConfirmDelete
+  onConfirmDelete,
+  selectedContractor
 }: DeleteContractorDialogProps) => {
   const handleDelete = async () => {
-    await onConfirmDelete();
+    await onConfirmDelete(selectedContractor);
   };
 
   return (

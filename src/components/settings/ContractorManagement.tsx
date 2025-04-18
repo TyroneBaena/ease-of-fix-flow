@@ -118,6 +118,7 @@ const ContractorManagement = () => {
         onOpenChange={setIsDeleteConfirmOpen}
         isLoading={isLoading}
         onConfirmDelete={handleDeleteContractor}
+        selectedContractor={selectedContractor}
       />
     </div>
   );

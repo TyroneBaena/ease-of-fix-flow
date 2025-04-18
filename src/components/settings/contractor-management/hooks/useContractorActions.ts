@@ -12,6 +12,7 @@ export const useContractorActions = (
 ) => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedContractorForDeletion, setSelectedContractorForDeletion] = useState<Contractor | null>(null);
 
   const handleSaveContractor = async (
     isEditMode: boolean,
@@ -51,6 +52,7 @@ export const useContractorActions = (
   };
 
   const confirmDeleteContractor = (contractor: Contractor) => {
+    setSelectedContractorForDeletion(contractor);
     setIsDeleteConfirmOpen(true);
   };
 
@@ -77,6 +79,7 @@ export const useContractorActions = (
     handleSaveContractor,
     handleResetPassword,
     confirmDeleteContractor,
-    handleDeleteContractor
+    handleDeleteContractor,
+    selectedContractorForDeletion
   };
 };
