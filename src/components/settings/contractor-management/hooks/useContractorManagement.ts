@@ -7,6 +7,7 @@ import { useContractorActions } from './useContractorActions';
 import { useContractorPagination } from './useContractorPagination';
 import { fetchContractors } from '../operations/contractorFetch';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/lib/supabase';
 
 export const useContractorManagement = () => {
   const { currentUser, isAdmin } = useUserContext();
@@ -32,19 +33,6 @@ export const useContractorManagement = () => {
     handlePageChange
   } = useContractorPagination(contractors.length);
 
-  const loadContractors = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchContractors();
-      setContractors(data);
-      setFetchError(null);
-    } catch (err) {
-      setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Initialize the contractor actions
   const {
     loading: actionLoading,
@@ -56,6 +44,35 @@ export const useContractorManagement = () => {
     handleDeleteContractor,
     selectedContractorForDeletion
   } = useContractorActions(loadContractors);
+
+  const loadContractors = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching contractors in useContractorManagement...");
+      
+      // Debug: Log the raw data from Supabase directly
+      const { data: rawData, error } = await supabase
+        .from('contractors')
+        .select('*');
+      
+      if (error) {
+        console.error("Supabase query error:", error);
+        throw error;
+      }
+      
+      console.log("Raw data from contractors table:", rawData);
+      
+      // Still use the fetchContractors function for consistent mapping
+      const data = await fetchContractors();
+      setContractors(data);
+      setFetchError(null);
+    } catch (err) {
+      console.error("Error loading contractors:", err);
+      setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadContractors();

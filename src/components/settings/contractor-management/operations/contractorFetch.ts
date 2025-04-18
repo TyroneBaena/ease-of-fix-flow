@@ -5,14 +5,17 @@ import { Contractor } from '@/types/contractor';
 
 export const fetchContractors = async (): Promise<Contractor[]> => {
   try {
-    console.log("Fetching contractors...");
+    console.log("Fetching contractors from componentFetch...");
     const { data, error } = await supabase
       .from('contractors')
       .select('*');
       
     if (error) {
+      console.error("Supabase error:", error);
       throw error;
     }
+    
+    console.log("Raw data returned from Supabase:", data);
     
     if (data) {
       const mappedContractors: Contractor[] = data.map(item => ({
@@ -23,12 +26,12 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
         email: item.email,
         phone: item.phone,
         address: item.address || undefined,
-        specialties: item.specialties || undefined,
+        specialties: item.specialties || [],
         createdAt: item.created_at,
         updatedAt: item.updated_at
       }));
       
-      console.log("Fetched contractors:", mappedContractors);
+      console.log("Mapped contractors:", mappedContractors);
       return mappedContractors;
     }
     return [];
