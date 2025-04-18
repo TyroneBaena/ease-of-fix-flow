@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/settings/UserManagement';
+import ContractorManagement from '@/components/settings/ContractorManagement';
 import { Card } from '@/components/ui/card';
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
@@ -88,6 +89,7 @@ const Settings = () => {
         <Tabs defaultValue={isAdmin ? "users" : "account"}>
           <TabsList className="mb-4">
             {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -96,6 +98,14 @@ const Settings = () => {
             <TabsContent value="users">
               <Card className="p-6">
                 <UserManagement />
+              </Card>
+            </TabsContent>
+          )}
+          
+          {isAdmin && (
+            <TabsContent value="contractors">
+              <Card className="p-6">
+                <ContractorManagement />
               </Card>
             </TabsContent>
           )}

@@ -1,8 +1,6 @@
 
 project_id = "ltjlswzrdgtoddyqmydo"
 
-[functions.delete-user]
-verify_jwt = true
-
-[functions.send-invite]
+[functions]
+[functions.invite-contractor]
 verify_jwt = true
