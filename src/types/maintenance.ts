@@ -15,13 +15,13 @@ export interface MaintenanceRequest {
   address?: string;
   practiceLeader?: string;
   practiceLeaderPhone?: string;
-  attachments?: Array<{ url: string }>;
+  attachments?: Array<{ url: string }> | null;
   category?: string;
   createdAt?: string;
   updatedAt?: string;
   dueDate?: string;
   assignedTo?: string;
-  history?: Array<{ action: string; timestamp: string }>;
+  history?: Array<{ action: string; timestamp: string }> | null;
   isParticipantRelated?: boolean;
   participantName?: string;
   attemptedFix?: string;

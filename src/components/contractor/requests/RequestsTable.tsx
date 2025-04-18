@@ -38,20 +38,20 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
               }
             }}
           >
-            <TableCell className="font-mono text-sm">{request.id}</TableCell>
+            <TableCell className="font-mono text-sm">{request.id.substring(0, 8)}</TableCell>
             <TableCell className="font-medium">{request.title}</TableCell>
             <TableCell>
               <Badge className={getStatusBadgeColor(request.status)}>
                 {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
               </Badge>
             </TableCell>
-            <TableCell>{request.quote}</TableCell>
+            <TableCell>{request.quote || 'Not quoted'}</TableCell>
             <TableCell className="text-muted-foreground text-sm">
-              {formatDistanceToNow(new Date(request.date), { addSuffix: true })}
+              {request.date ? formatDistanceToNow(new Date(request.date), { addSuffix: true }) : 'Unknown'}
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
   );
-};
+}

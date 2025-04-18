@@ -1,5 +1,5 @@
 
-import { MaintenanceRequest } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 export interface MaintenanceRequestContextType {
   requests: MaintenanceRequest[];
