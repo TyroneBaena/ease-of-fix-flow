@@ -1,9 +1,9 @@
 
 export interface MaintenanceRequest {
   id: string;
-  title: string;
+  title?: string;  // Made optional to match property.ts
   description?: string;
-  status: 'pending' | 'in-progress' | 'completed';
+  status: 'pending' | 'in-progress' | 'completed' | 'open'; // Added 'open' for Dashboard.tsx
   location?: string;
   priority?: 'low' | 'medium' | 'high';
   site?: string;

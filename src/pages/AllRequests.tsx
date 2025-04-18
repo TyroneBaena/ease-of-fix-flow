@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
-import { MaintenanceRequest } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
 import RequestsHeader from '@/components/requests/RequestsHeader';
 import RequestFilters from '@/components/requests/RequestFilters';
 import RequestList from '@/components/requests/RequestList';
@@ -65,8 +65,8 @@ const AllRequests = () => {
         return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
       }
       
-      const valueA = (a[sortField] as string) || '';
-      const valueB = (b[sortField] as string) || '';
+      const valueA = (a[sortField as keyof MaintenanceRequest] as string) || '';
+      const valueB = (b[sortField as keyof MaintenanceRequest] as string) || '';
       return sortDirection === 'asc' 
         ? valueA.localeCompare(valueB) 
         : valueB.localeCompare(valueA);

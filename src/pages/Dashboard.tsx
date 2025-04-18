@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -13,7 +14,7 @@ const Dashboard = () => {
   
   // Calculate request statistics
   const { openRequests, inProgressRequests, completedRequests } = useMemo(() => {
-    const open = requests.filter(req => req.status === 'open').length;
+    const open = requests.filter(req => req.status === 'open' || req.status === 'pending').length;
     const inProgress = requests.filter(req => req.status === 'in-progress').length;
     const completed = requests.filter(req => req.status === 'completed').length;
     

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
@@ -18,6 +19,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +27,7 @@ const PropertyDetail = () => {
   const { getProperty, deleteProperty } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
   const [property, setProperty] = useState(id ? getProperty(id) : undefined);
-  const [requests, setRequests] = useState(id ? getRequestsForProperty(id) : []);
+  const [requests, setRequests] = useState<MaintenanceRequest[]>(id ? getRequestsForProperty(id) : []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 

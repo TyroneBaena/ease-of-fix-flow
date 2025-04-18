@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Form } from "@/components/ui/form";
@@ -75,6 +76,7 @@ export const RequestForm = () => {
     // Add the request to the selected property
     try {
       addRequestToProperty({
+        title: issueNature, // Add title field using issueNature value
         isParticipantRelated: isParticipantRelated || false,
         participantName: isParticipantRelated ? participantName : 'N/A',
         attemptedFix,
