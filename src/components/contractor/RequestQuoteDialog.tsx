@@ -1,105 +1,158 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { IssueDetails } from './quote-dialog/IssueDetails';
-import { ContactInformation } from './quote-dialog/ContactInformation';
-import { AttachmentGallery } from './quote-dialog/AttachmentGallery';
-import { QuoteForm } from './quote-dialog/QuoteForm';
+import { Separator } from '@/components/ui/separator';
+import { Send } from 'lucide-react';
+import { toast } from 'sonner';
+import { useContractorContext } from '@/contexts/contractor';
+import { MaintenanceRequest } from '@/types/maintenance';
+import { QuoteSummary } from './quote-dialog/QuoteSummary';
+import { ContractorSelection } from './quote-dialog/ContractorSelection';
+import { IncludeInfoSection } from './quote-dialog/IncludeInfoSection';
+import { AdditionalNotes } from './quote-dialog/AdditionalNotes';
 
-interface QuoteRequestDialogProps {
+interface RequestQuoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  requestDetails: {
-    id: string;
-    title: string;
-    date: string;
-    description?: string;
-    location?: string;
-    priority?: string;
-    site?: string;
-    submittedBy?: string;
-    contactNumber?: string;
-    address?: string;
-    practiceLeader?: string;
-    practiceLeaderPhone?: string;
-    attachments?: Array<{ url: string }>;
-  } | null;
-  onSubmitQuote: (amount: number, description: string) => void;
+  request: MaintenanceRequest | null;
 }
 
 export const RequestQuoteDialog = ({
   open,
   onOpenChange,
-  requestDetails,
-  onSubmitQuote,
-}: QuoteRequestDialogProps) => {
-  const [amount, setAmount] = React.useState('');
-  const [description, setDescription] = React.useState('');
+  request,
+}: RequestQuoteDialogProps) => {
+  const { contractors, loading, requestQuote } = useContractorContext();
+  const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
+  const [includeInfo, setIncludeInfo] = useState({
+    description: true,
+    location: true,
+    images: true,
+    contactDetails: true,
+    urgency: true
+  });
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const numericAmount = parseFloat(amount);
-    if (!isNaN(numericAmount)) {
-      onSubmitQuote(numericAmount, description);
-      setAmount('');
-      setDescription('');
+  const handleContractorSelection = (contractorId: string) => {
+    setSelectedContractors(prev => 
+      prev.includes(contractorId)
+        ? prev.filter(id => id !== contractorId)
+        : [...prev, contractorId]
+    );
+  };
+
+  const handleInfoToggle = (infoType: keyof typeof includeInfo) => {
+    setIncludeInfo(prev => ({
+      ...prev,
+      [infoType]: !prev[infoType]
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!request) return;
+    if (selectedContractors.length === 0) {
+      toast.error('Please select at least one contractor');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await Promise.all(
+        selectedContractors.map(contractorId => 
+          requestQuote(request.id, contractorId)
+        )
+      );
+      
+      toast.success(`Quote request sent to ${selectedContractors.length} contractor(s)`);
+      setSelectedContractors([]);
       onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to send quote requests:', error);
+      toast.error('Failed to send quote requests');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  useEffect(() => {
+    if (open) {
+      setSelectedContractors([]);
+      setIncludeInfo({
+        description: true,
+        location: true,
+        images: true,
+        contactDetails: true,
+        urgency: true
+      });
+      setNotes('');
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Submit Quote</DialogTitle>
+          <DialogTitle>Request Quotes for Maintenance Job</DialogTitle>
           <DialogDescription>
-            Request {requestDetails?.id}: {requestDetails?.title}
+            Send request to selected contractors to provide quotes for this maintenance job.
           </DialogDescription>
         </DialogHeader>
-
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6">
-            <IssueDetails
-              location={requestDetails?.location}
-              priority={requestDetails?.priority}
-              description={requestDetails?.description}
-            />
-
+        
+        <ScrollArea className="flex-1 pr-4 overflow-y-auto max-h-[calc(85vh-200px)]">
+          <div className="space-y-4 pr-2">
+            <QuoteSummary request={request} />
+            
             <Separator />
-
-            <ContactInformation
-              site={requestDetails?.site}
-              address={requestDetails?.address}
-              submittedBy={requestDetails?.submittedBy}
-              contactNumber={requestDetails?.contactNumber}
-              practiceLeader={requestDetails?.practiceLeader}
-              practiceLeaderPhone={requestDetails?.practiceLeaderPhone}
+            
+            <ContractorSelection
+              contractors={contractors}
+              selectedContractors={selectedContractors}
+              onContractorSelection={handleContractorSelection}
+              loading={loading}
             />
-
+            
             <Separator />
-
-            <AttachmentGallery attachments={requestDetails?.attachments} />
+            
+            <IncludeInfoSection
+              includeInfo={includeInfo}
+              onInfoToggle={handleInfoToggle}
+            />
+            
+            <Separator />
+            
+            <AdditionalNotes
+              value={notes}
+              onChange={setNotes}
+            />
           </div>
         </ScrollArea>
-
-        <Separator className="my-4" />
-
-        <QuoteForm
-          amount={amount}
-          description={description}
-          onAmountChange={setAmount}
-          onDescriptionChange={(value) => setDescription(value)}
-          onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-        />
+        
+        <DialogFooter className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="mr-2"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting || selectedContractors.length === 0}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            {isSubmitting ? 'Sending...' : 'Send Request'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

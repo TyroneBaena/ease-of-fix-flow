@@ -9,7 +9,10 @@ import { CommentSection } from '@/components/request/CommentSection';
 import { RequestActions } from '@/components/request/RequestActions';
 import { RequestHistory } from '@/components/request/RequestHistory';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
-import { QuoteSection } from '@/components/request/QuoteSection';
+import { ContractorAssignment } from '@/components/request/ContractorAssignment';
+import { ContractorProvider } from '@/contexts/contractor';
+import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
+import { QuotesList } from '@/components/request/QuotesList';
 import { Quote } from '@/types/contractor';
 import { supabase } from '@/lib/supabase';
 
@@ -20,6 +23,7 @@ const RequestDetail = () => {
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   
   useEffect(() => {
     if (id) {
@@ -35,6 +39,7 @@ const RequestDetail = () => {
           .order('created_at', { ascending: false });
           
         if (!error && data) {
+          // Map database fields to our interface fields
           const mappedQuotes: Quote[] = data.map(quote => ({
             id: quote.id,
             requestId: quote.request_id,
@@ -55,7 +60,7 @@ const RequestDetail = () => {
       fetchQuotes();
     }
   }, [id, requests]);
-
+  
   const initialComments = [
     {
       id: '1',
@@ -114,24 +119,6 @@ const RequestDetail = () => {
     );
   }
 
-  // Prepare the request object with all necessary properties for QuoteSection
-  const requestForQuoteSection = {
-    id: request.id,
-    contractor_id: request.contractor_id,
-    title: request.title || request.issueNature || 'Maintenance Request',
-    date: request.reportDate || request.createdAt,
-    description: request.description || request.explanation,
-    location: request.location,
-    priority: request.priority,
-    site: request.site,
-    submittedBy: request.submittedBy,
-    contactNumber: request.contactNumber,
-    address: request.address,
-    practiceLeader: request.practiceLeader,
-    practiceLeaderPhone: request.practiceLeaderPhone,
-    attachments: request.attachments
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -153,11 +140,21 @@ const RequestDetail = () => {
           </div>
           
           <div className="space-y-6">
-            <QuoteSection 
-              request={requestForQuoteSection}
-              quotes={quotes}
-              setQuotes={setQuotes}
-            />
+            <ContractorProvider>
+              <ContractorAssignment 
+                requestId={request.id} 
+                isAssigned={!!request.contractor_id}
+                onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
+              />
+              
+              <QuotesList requestId={request.id} quotes={quotes} />
+              
+              <RequestQuoteDialog 
+                open={quoteDialogOpen} 
+                onOpenChange={setQuoteDialogOpen} 
+                request={request}
+              />
+            </ContractorProvider>
             
             <RequestActions status={request.status} />
             <RequestHistory history={request.history} />

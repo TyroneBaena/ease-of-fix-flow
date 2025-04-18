@@ -3,12 +3,11 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { QuoteRequestDialog } from './QuoteRequestDialog';
-import { toast } from '@/lib/toast';
+import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { RequestsTable } from './requests/RequestsTable';
-import { useContractorContext } from '@/contexts/contractor';
-import { supabase } from '@/lib/supabase';
+import { mockRequests } from './data/mockRequests';
 
 const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
   return requests.reduce((acc, request) => {
@@ -24,50 +23,22 @@ const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
 export const ContractorRequests = () => {
   const [selectedRequest, setSelectedRequest] = React.useState<MaintenanceRequest | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const { submitQuote } = useContractorContext();
   
   const groupedRequests = groupRequestsByStatus(mockRequests);
 
-  const handleSubmitQuote = async (amount: number, description: string) => {
-    if (!selectedRequest) return;
-    
+  const handleSubmitQuote = (amount: number, description: string) => {
     setIsLoading(true);
-    try {
-      await submitQuote(selectedRequest.id, amount, description);
-      
-      // Notify success
+    setTimeout(() => {
+      console.log('Quote submitted:', { 
+        requestId: selectedRequest?.id, 
+        amount, 
+        description 
+      });
       toast.success('Quote submitted successfully');
-      
-      // Update the request status
-      await supabase
-        .from('maintenance_requests')
-        .update({ quote_requested: true })
-        .eq('id', selectedRequest.id);
-        
-      setSelectedRequest(null);
-    } catch (error) {
-      console.error('Error submitting quote:', error);
-      toast.error('Failed to submit quote');
-    } finally {
       setIsLoading(false);
-    }
+      setSelectedRequest(null);
+    }, 1000);
   };
-
-  const mapRequestToDialogProps = (request: MaintenanceRequest) => ({
-    id: request.id,
-    title: request.title || request.issueNature,
-    date: request.reportDate || request.createdAt,
-    description: request.description || request.explanation,
-    location: request.location,
-    priority: request.priority,
-    site: request.site,
-    submittedBy: request.submittedBy,
-    contactNumber: request.contactNumber,
-    address: request.address,
-    practiceLeader: request.practiceLeader,
-    practiceLeaderPhone: request.practiceLeaderPhone,
-    attachments: request.attachments
-  });
 
   return (
     <Card>
@@ -103,7 +74,7 @@ export const ContractorRequests = () => {
       <QuoteRequestDialog
         open={!!selectedRequest}
         onOpenChange={(open) => !open && setSelectedRequest(null)}
-        requestDetails={selectedRequest ? mapRequestToDialogProps(selectedRequest) : null}
+        requestDetails={selectedRequest}
         onSubmitQuote={handleSubmitQuote}
       />
     </Card>

@@ -145,3 +145,4 @@ export const updateJobProgressStatus = async (
 
   if (error) throw error;
 };
+
