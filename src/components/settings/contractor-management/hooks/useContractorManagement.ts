@@ -38,23 +38,34 @@ export const useContractorManagement = () => {
     try {
       setLoading(true);
       console.log("Fetching contractors in useContractorManagement...");
+      console.log("User is admin:", isAdmin);
       
-      // Debug: Log the raw data from Supabase directly
-      const { data: rawData, error } = await supabase
+      // Check if there are any RLS policies that might be blocking the request
+      console.log("Attempting to fetch contractors directly from Supabase...");
+      
+      // Detailed debug logging for Supabase query
+      const { data: rawData, error, count } = await supabase
         .from('contractors')
-        .select('*');
+        .select('*', { count: 'exact' });
       
       if (error) {
         console.error("Supabase query error:", error);
         throw error;
       }
       
+      console.log("Raw contractors count from direct query:", count);
       console.log("Raw data from contractors table:", rawData);
       
-      // Still use the fetchContractors function for consistent mapping
+      // Use the fetchContractors function for consistent mapping
       const data = await fetchContractors();
+      console.log("Contractors after mapping:", data);
+      
       setContractors(data);
       setFetchError(null);
+      
+      if (data.length === 0) {
+        console.log("No contractors were returned after fetching");
+      }
     } catch (err) {
       console.error("Error loading contractors:", err);
       setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
