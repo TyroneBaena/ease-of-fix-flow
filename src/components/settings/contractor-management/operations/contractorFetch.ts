@@ -7,9 +7,23 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
   try {
     console.log("Fetching contractors from contractorFetch...");
     
-    // Log auth status to verify if the user is authenticated properly
+    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("Current authenticated user:", user?.id);
+    if (!user) {
+      console.error("No authenticated user found");
+      return [];
+    }
+    
+    console.log("Current authenticated user:", user.id);
+    
+    // Get user's role from profiles
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    console.log("User role from profile:", userProfile?.role);
     
     // First, attempt to get all contractors with detailed logging
     const { data, error, status } = await supabase
