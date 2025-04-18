@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from 'react-router-dom';
@@ -10,7 +9,7 @@ import { RequestActions } from '@/components/request/RequestActions';
 import { RequestHistory } from '@/components/request/RequestHistory';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
-import { ContractorProvider } from '@/contexts/contractor';
+import { ContractorProvider, useContractorContext } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { QuotesList } from '@/components/request/QuotesList';
 import { Quote } from '@/types/contractor';
@@ -118,38 +117,61 @@ const RequestDetail = () => {
     );
   }
 
-  const handleSubmitQuote = async (amount: number, description: string) => {
-    try {
-      await submitQuote(request.id, amount, description);
-      // Refresh quotes after submission
-      const fetchQuotes = async () => {
-        const { data, error } = await supabase
-          .from('quotes')
-          .select('*')
-          .eq('request_id', id)
-          .order('created_at', { ascending: false });
-          
-        if (!error && data) {
-          const mappedQuotes: Quote[] = data.map(quote => ({
-            id: quote.id,
-            requestId: quote.request_id,
-            contractorId: quote.contractor_id,
-            amount: quote.amount,
-            description: quote.description || undefined,
-            status: quote.status as 'pending' | 'approved' | 'rejected',
-            submittedAt: quote.submitted_at,
-            approvedAt: quote.approved_at || undefined,
-            createdAt: quote.created_at,
-            updatedAt: quote.updated_at
-          }));
-          
-          setQuotes(mappedQuotes);
-        }
-      };
-      fetchQuotes();
-    } catch (error) {
-      console.error('Error submitting quote:', error);
-    }
+  const QuoteDialogWithContext = () => {
+    const { submitQuote } = useContractorContext();
+    
+    const handleSubmitQuote = async (amount: number, description: string) => {
+      try {
+        await submitQuote(request.id, amount, description);
+        // Refresh quotes after submission
+        const fetchQuotes = async () => {
+          const { data, error } = await supabase
+            .from('quotes')
+            .select('*')
+            .eq('request_id', id)
+            .order('created_at', { ascending: false });
+            
+          if (!error && data) {
+            const mappedQuotes: Quote[] = data.map(quote => ({
+              id: quote.id,
+              requestId: quote.request_id,
+              contractorId: quote.contractor_id,
+              amount: quote.amount,
+              description: quote.description || undefined,
+              status: quote.status as 'pending' | 'approved' | 'rejected',
+              submittedAt: quote.submitted_at,
+              approvedAt: quote.approved_at || undefined,
+              createdAt: quote.created_at,
+              updatedAt: quote.updated_at
+            }));
+            
+            setQuotes(mappedQuotes);
+          }
+        };
+        fetchQuotes();
+      } catch (error) {
+        console.error('Error submitting quote:', error);
+      }
+    };
+    
+    return (
+      <>
+        <ContractorAssignment 
+          requestId={request.id} 
+          isAssigned={!!request.contractor_id}
+          onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
+        />
+        
+        <QuotesList requestId={request.id} quotes={quotes} />
+        
+        <RequestQuoteDialog 
+          open={quoteDialogOpen} 
+          onOpenChange={setQuoteDialogOpen} 
+          requestDetails={request}
+          onSubmitQuote={handleSubmitQuote}
+        />
+      </>
+    );
   };
 
   return (
@@ -174,20 +196,7 @@ const RequestDetail = () => {
           
           <div className="space-y-6">
             <ContractorProvider>
-              <ContractorAssignment 
-                requestId={request.id} 
-                isAssigned={!!request.contractor_id}
-                onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
-              />
-              
-              <QuotesList requestId={request.id} quotes={quotes} />
-              
-              <RequestQuoteDialog 
-                open={quoteDialogOpen} 
-                onOpenChange={setQuoteDialogOpen} 
-                requestDetails={request}
-                onSubmitQuote={handleSubmitQuote}
-              />
+              <QuoteDialogWithContext />
             </ContractorProvider>
             
             <RequestActions status={request.status} />
