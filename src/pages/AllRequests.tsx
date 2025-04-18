@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
@@ -9,32 +10,39 @@ import RequestList from '@/components/requests/RequestList';
 
 const AllRequests = () => {
   const { properties } = usePropertyContext();
-  const { getRequestsForProperty } = useMaintenanceRequestContext();
+  const { requests, loading } = useMaintenanceRequestContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [allRequests, setAllRequests] = useState<MaintenanceRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
 
+  // Log what we're working with
   useEffect(() => {
-    const requests: MaintenanceRequest[] = [];
-    properties.forEach(property => {
-      const propertyRequests = getRequestsForProperty(property.id);
-      requests.push(...propertyRequests);
-    });
-    setAllRequests(requests);
-  }, [properties, getRequestsForProperty]);
+    console.log('AllRequests - Properties:', properties);
+    console.log('AllRequests - Requests:', requests);
+    console.log('AllRequests - Loading state:', loading);
+  }, [properties, requests, loading]);
 
+  // Filter and sort requests
   useEffect(() => {
-    let result = [...allRequests];
+    if (!requests || requests.length === 0) {
+      console.log('No maintenance requests available');
+      setFilteredRequests([]);
+      return;
+    }
+
+    let result = [...requests];
+    console.log('Filtering requests, count before:', result.length);
     
     if (searchTerm) {
-      result = result.filter(request => 
-        request.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        request.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      result = result.filter(request => {
+        const title = request.title || request.issueNature || '';
+        const description = request.description || request.explanation || '';
+        return title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+               description.toLowerCase().includes(searchTerm.toLowerCase());
+      });
     }
     
     if (statusFilter !== 'all') {
@@ -42,29 +50,44 @@ const AllRequests = () => {
     }
     
     if (categoryFilter !== 'all') {
-      result = result.filter(request => request.category.toLowerCase() === categoryFilter);
+      const category = categoryFilter.toLowerCase();
+      result = result.filter(request => 
+        (request.category?.toLowerCase() === category) || 
+        (request.site?.toLowerCase() === category)
+      );
     }
     
+    console.log('Sorting requests by:', sortField, sortDirection);
     result.sort((a, b) => {
       if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        const aValue = new Date(a[sortField]).getTime();
-        const bValue = new Date(b[sortField]).getTime();
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        const dateA = new Date(a[sortField] || '').getTime();
+        const dateB = new Date(b[sortField] || '').getTime();
+        return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
       }
       
-      const aValue = a[sortField] || '';
-      const bValue = b[sortField] || '';
+      const valueA = (a[sortField] as string) || '';
+      const valueB = (b[sortField] as string) || '';
       return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue) 
-        : bValue.localeCompare(aValue);
+        ? valueA.localeCompare(valueB) 
+        : valueB.localeCompare(valueA);
     });
     
+    console.log('Filtered requests count:', result.length);
     setFilteredRequests(result);
-  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, allRequests]);
+  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, requests]);
 
-  const categories = Array.from(new Set(allRequests.map(req => req.category.toLowerCase())));
+  // Get unique categories from requests
+  const categories = Array.from(
+    new Set(
+      requests
+        .map(req => (req.category || req.site || '').toLowerCase())
+        .filter(Boolean)
+    )
+  );
 
+  // Message to display when no requests are found
   const getEmptyMessage = () => {
+    if (loading) return "Loading requests...";
     if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all') {
       return "Try adjusting your filters";
     }

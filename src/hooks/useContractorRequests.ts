@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { MaintenanceRequest } from '@/types/maintenance';
+import { MaintenanceRequest } from '@/types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ export const useContractorRequests = () => {
       setError(null);
 
       try {
+        console.log('Fetching maintenance requests with quote_requested flag...');
         const { data, error } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -27,28 +28,39 @@ export const useContractorRequests = () => {
           return;
         }
 
+        console.log('Raw maintenance requests data:', data);
+
         if (data) {
-          const mappedRequests: MaintenanceRequest[] = data.map(item => ({
+          const mappedRequests = data.map(item => ({
             id: item.id,
-            title: item.title,
+            title: item.title || item.issue_nature,
+            description: item.description || item.explanation,
             status: item.status as 'pending' | 'in-progress' | 'completed',
-            description: item.description,
-            location: item.location,
             priority: item.priority as 'low' | 'medium' | 'high',
-            site: item.site || undefined,
-            submittedBy: item.submitted_by || undefined,
-            contactNumber: undefined,
-            address: undefined,
-            practiceLeader: undefined,
-            practiceLeaderPhone: undefined,
-            attachments: item.attachments ? JSON.parse(JSON.stringify(item.attachments)) : undefined,
-            quote: item.quoted_amount?.toString() || '',
-            date: item.created_at
+            location: item.location,
+            site: item.site || item.category,
+            submittedBy: item.submitted_by,
+            propertyId: item.property_id,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+            category: item.category,
+            assignedTo: item.assigned_to,
+            dueDate: item.due_date,
+            attachments: item.attachments,
+            history: item.history,
+            isParticipantRelated: item.is_participant_related,
+            participantName: item.participant_name,
+            attemptedFix: item.attempted_fix,
+            issueNature: item.issue_nature,
+            explanation: item.explanation,
+            reportDate: item.report_date
           }));
           
+          console.log('Mapped maintenance requests:', mappedRequests);
           setRequests(mappedRequests);
 
           if (mappedRequests.length === 0) {
+            console.log('No maintenance requests found with quote_requested flag');
             toast.info('No quote-requested maintenance requests found');
           }
         }
