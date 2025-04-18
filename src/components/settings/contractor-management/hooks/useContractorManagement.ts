@@ -1,11 +1,10 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
 import { useUserContext } from '@/contexts/UserContext';
 import { useContractorDialog } from './useContractorDialog';
 import { useContractorActions } from './useContractorActions';
 import { useContractorPagination } from './useContractorPagination';
-import { supabase } from '@/lib/supabase';
+import { fetchContractors } from '../operations/contractorFetch';
 import { toast } from '@/lib/toast';
 
 export const useContractorManagement = () => {
@@ -32,50 +31,21 @@ export const useContractorManagement = () => {
     handlePageChange
   } = useContractorPagination(contractors.length);
 
-  const fetchContractors = async () => {
+  const loadContractors = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('contractors')
-        .select('*');
-
-      if (error) throw error;
-
-      const mappedContractors = data.map(item => ({
-        id: item.id,
-        userId: item.user_id,
-        companyName: item.company_name,
-        contactName: item.contact_name,
-        email: item.email,
-        phone: item.phone,
-        address: item.address || '',
-        specialties: item.specialties || [],
-        createdAt: item.created_at,
-        updatedAt: item.updated_at
-      }));
-
-      setContractors(mappedContractors);
+      const data = await fetchContractors();
+      setContractors(data);
       setFetchError(null);
     } catch (err) {
-      console.error('Error fetching contractors:', err);
       setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
-      toast.error('Failed to load contractors');
     } finally {
       setLoading(false);
     }
   };
 
-  const {
-    isDeleteConfirmOpen,
-    setIsDeleteConfirmOpen,
-    handleSaveContractor,
-    handleResetPassword,
-    confirmDeleteContractor,
-    handleDeleteContractor
-  } = useContractorActions(fetchContractors);
-
   useEffect(() => {
-    fetchContractors();
+    loadContractors();
   }, []);
 
   const handleSave = async () => {
@@ -109,6 +79,6 @@ export const useContractorManagement = () => {
     confirmDeleteContractor,
     handleDeleteContractor,
     handlePageChange,
-    fetchContractors
+    fetchContractors: loadContractors
   };
 };
