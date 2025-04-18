@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
 import {
@@ -23,8 +23,12 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   isAssigned,
   onOpenQuoteDialog
 }) => {
-  const { contractors, assignContractor } = useContractorContext();
+  const { contractors, loading, assignContractor } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
+
+  useEffect(() => {
+    console.log("ContractorAssignment - Available contractors:", contractors);
+  }, [contractors]);
 
   const handleAssignment = async () => {
     if (!selectedContractor) return;
@@ -52,18 +56,24 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             <SelectValue placeholder="Select a contractor" />
           </SelectTrigger>
           <SelectContent>
-            {contractors.map((contractor) => (
-              <SelectItem key={contractor.id} value={contractor.id}>
-                {contractor.companyName}
-              </SelectItem>
-            ))}
+            {loading ? (
+              <SelectItem value="loading" disabled>Loading contractors...</SelectItem>
+            ) : contractors.length === 0 ? (
+              <SelectItem value="none" disabled>No contractors available</SelectItem>
+            ) : (
+              contractors.map((contractor) => (
+                <SelectItem key={contractor.id} value={contractor.id}>
+                  {contractor.companyName}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
 
         <div className="grid grid-cols-1 gap-3">
           <Button
             onClick={handleAssignment}
-            disabled={!selectedContractor}
+            disabled={!selectedContractor || loading}
             className="w-full"
           >
             Assign Contractor

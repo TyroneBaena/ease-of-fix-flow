@@ -43,6 +43,10 @@ export const RequestQuoteDialog = ({
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    console.log("Available contractors:", contractors);
+  }, [contractors]);
+
   const handleContractorSelection = (contractorId: string) => {
     setSelectedContractors(prev => 
       prev.includes(contractorId)
@@ -67,7 +71,6 @@ export const RequestQuoteDialog = ({
 
     setIsSubmitting(true);
     try {
-      // Fixed: Using contractorId directly as a string since requestQuote expects a string
       await Promise.all(
         selectedContractors.map(contractorId => 
           requestQuote(request.id, contractorId)

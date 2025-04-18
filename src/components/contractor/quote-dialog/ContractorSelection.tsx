@@ -17,36 +17,51 @@ export const ContractorSelection = ({
   onContractorSelection,
   loading
 }: ContractorSelectionProps) => {
+  if (loading) {
+    return (
+      <div>
+        <h3 className="text-sm font-medium mb-3">Select Contractors</h3>
+        <div className="text-sm text-muted-foreground">Loading contractors...</div>
+      </div>
+    );
+  }
+
+  if (!contractors || contractors.length === 0) {
+    return (
+      <div>
+        <h3 className="text-sm font-medium mb-3">Select Contractors</h3>
+        <div className="text-sm text-muted-foreground">No contractors available</div>
+        <div className="mt-2 text-xs text-amber-500">
+          Try adding contractors in the contractors management section
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h3 className="text-sm font-medium mb-3">Select Contractors</h3>
       
-      {loading ? (
-        <div className="text-sm text-muted-foreground">Loading contractors...</div>
-      ) : contractors.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No contractors available</div>
-      ) : (
-        <div className="space-y-2">
-          {contractors.map((contractor) => (
-            <div key={contractor.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`contractor-${contractor.id}`}
-                checked={selectedContractors.includes(contractor.id)}
-                onCheckedChange={() => onContractorSelection(contractor.id)}
-              />
-              <Label 
-                htmlFor={`contractor-${contractor.id}`}
-                className="flex flex-col cursor-pointer"
-              >
-                <span>{contractor.companyName}</span>
-                <span className="text-xs text-muted-foreground">
-                  {contractor.contactName} ({contractor.email})
-                </span>
-              </Label>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="space-y-2">
+        {contractors.map((contractor) => (
+          <div key={contractor.id} className="flex items-center space-x-2">
+            <Checkbox
+              id={`contractor-${contractor.id}`}
+              checked={selectedContractors.includes(contractor.id)}
+              onCheckedChange={() => onContractorSelection(contractor.id)}
+            />
+            <Label 
+              htmlFor={`contractor-${contractor.id}`}
+              className="flex flex-col cursor-pointer"
+            >
+              <span>{contractor.companyName}</span>
+              <span className="text-xs text-muted-foreground">
+                {contractor.contactName} ({contractor.email})
+              </span>
+            </Label>
+          </div>
+        ))}
+      </div>
       
       {selectedContractors.length > 0 && (
         <div className="mt-2 text-sm text-muted-foreground">

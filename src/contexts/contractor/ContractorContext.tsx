@@ -12,6 +12,8 @@ import {
   approveQuoteForJob
 } from './operations/quoteOperations';
 import { updateJobProgressStatus } from './operations/progressOperations';
+import { supabase } from '@/lib/supabase';
+import { Contractor } from '@/types/contractor';
 
 const ContractorContext = createContext<ContractorContextType | undefined>(undefined);
 
@@ -24,7 +26,7 @@ export const useContractorContext = () => {
 };
 
 export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [contractors, setContractors] = useState([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -34,8 +36,35 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const loadContractors = async () => {
     try {
-      const data = await fetchContractors();
-      setContractors(data);
+      console.log("Fetching contractors...");
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('contractors')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        // Map the snake_case database fields to camelCase for our TypeScript interfaces
+        const mappedContractors: Contractor[] = data.map(item => ({
+          id: item.id,
+          userId: item.user_id,
+          companyName: item.company_name,
+          contactName: item.contact_name,
+          email: item.email,
+          phone: item.phone,
+          address: item.address || undefined,
+          specialties: item.specialties || undefined,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        }));
+        
+        console.log("Fetched contractors:", mappedContractors);
+        setContractors(mappedContractors);
+      }
     } catch (err) {
       console.error('Error fetching contractors:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
