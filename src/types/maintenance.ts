@@ -1,10 +1,10 @@
 
 export interface MaintenanceRequest {
   id: string;
-  title?: string;  // Made optional to match property.ts
+  title: string;  // Changed from optional to required
   description?: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'open'; // Added 'open' for Dashboard.tsx
-  location?: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'open';
+  location: string; // Changed from optional to required
   priority?: 'low' | 'medium' | 'high';
   site?: string;
   submittedBy?: string;
@@ -17,15 +17,15 @@ export interface MaintenanceRequest {
   practiceLeaderPhone?: string;
   attachments?: Array<{ url: string }> | null;
   category?: string;
-  createdAt?: string;
+  createdAt: string;
   updatedAt?: string;
   dueDate?: string;
   assignedTo?: string;
   history?: Array<{ action: string; timestamp: string }> | null;
-  isParticipantRelated?: boolean;
-  participantName?: string;
-  attemptedFix?: string;
-  issueNature?: string;
-  explanation?: string;
-  reportDate?: string;
+  isParticipantRelated: boolean;
+  participantName: string;
+  attemptedFix: string;
+  issueNature: string;
+  explanation: string;
+  reportDate: string;
 }

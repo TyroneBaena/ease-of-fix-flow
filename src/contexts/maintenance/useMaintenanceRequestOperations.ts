@@ -1,7 +1,8 @@
 
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-import { MaintenanceRequest, isAttachmentArray, isHistoryArray } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
+import { isAttachmentArray, isHistoryArray } from '@/types/property';
 
 export const useMaintenanceRequestOperations = (currentUser: any) => {
   const fetchRequests = async () => {
@@ -31,13 +32,16 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
         return;
       }
 
+      // Ensure location is always a string even if it wasn't provided
+      const location = requestData.location || '';
+
       const { data, error } = await supabase
         .from('maintenance_requests')
         .insert({
           title: requestData.title || requestData.issueNature,
           description: requestData.description || requestData.explanation,
           category: requestData.category || requestData.site,
-          location: requestData.location,
+          location: location, // Use the ensured location value
           priority: requestData.priority || 'medium',
           property_id: requestData.propertyId,
           user_id: currentUser.id,
@@ -89,7 +93,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       issueNature: data.issue_nature || data.title || '',
       explanation: data.explanation || data.description || '',
       location: data.location || '',
-      reportDate: data.report_date || data.created_at.split('T')[0],
+      reportDate: data.report_date || data.created_at?.split('T')[0],
       site: data.site || data.category || '',
       submittedBy: data.submitted_by || '',
       status: data.status,

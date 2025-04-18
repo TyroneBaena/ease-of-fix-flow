@@ -76,7 +76,7 @@ export const RequestForm = () => {
     // Add the request to the selected property
     try {
       addRequestToProperty({
-        title: issueNature, // Add title field using issueNature value
+        title: issueNature, // Use issueNature as title which is required
         isParticipantRelated: isParticipantRelated || false,
         participantName: isParticipantRelated ? participantName : 'N/A',
         attemptedFix,
