@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
 export const ContractorRequests = () => {
   const [selectedRequest, setSelectedRequest] = React.useState<MaintenanceRequest | null>(null);
   const { submitQuote } = useContractorContext();
-  const { requests, isLoading } = useContractorRequests();
+  const { requests, isLoading, error } = useContractorRequests();
   
   const groupedRequests = groupRequestsByStatus(requests);
 
@@ -39,6 +40,17 @@ export const ContractorRequests = () => {
       toast.error('Failed to submit quote');
     }
   };
+
+  // If there's an error fetching requests, show an error message
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="text-red-600">
+          Failed to load maintenance requests: {error}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>
