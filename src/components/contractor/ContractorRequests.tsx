@@ -42,7 +42,27 @@ export const ContractorRequests = () => {
       }
 
       if (data) {
-        setRequests(data);
+        // Map Supabase data to match MaintenanceRequest type
+        const mappedRequests: MaintenanceRequest[] = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          status: item.status as 'pending' | 'in-progress' | 'completed',
+          description: item.description,
+          location: item.location,
+          priority: item.priority as 'low' | 'medium' | 'high',
+          site: item.site || undefined,
+          submittedBy: item.submitted_by || undefined,
+          contactNumber: item.contact_number || undefined,
+          address: item.property_address || undefined,
+          practiceLeader: item.practice_leader || undefined,
+          practiceLeaderPhone: item.practice_leader_phone || undefined,
+          attachments: item.attachments ? JSON.parse(JSON.stringify(item.attachments)) : undefined,
+          // Add these required fields from MaintenanceRequest type
+          quote: item.quoted_amount?.toString() || '',
+          date: item.created_at
+        }));
+        
+        setRequests(mappedRequests);
       }
     };
 
