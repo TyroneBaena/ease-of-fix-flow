@@ -13,25 +13,12 @@ import { IssueDetails } from './quote-dialog/IssueDetails';
 import { ContactInformation } from './quote-dialog/ContactInformation';
 import { AttachmentGallery } from './quote-dialog/AttachmentGallery';
 import { QuoteForm } from './quote-dialog/QuoteForm';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 interface QuoteRequestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  requestDetails: {
-    id: string;
-    title: string;
-    date: string;
-    description?: string;
-    location?: string;
-    priority?: string;
-    site?: string;
-    submittedBy?: string;
-    contactNumber?: string;
-    address?: string;
-    practiceLeader?: string;
-    practiceLeaderPhone?: string;
-    attachments?: Array<{ url: string }>;
-  } | null;
+  requestDetails: MaintenanceRequest | null;
   onSubmitQuote: (amount: number, description: string) => void;
 }
 

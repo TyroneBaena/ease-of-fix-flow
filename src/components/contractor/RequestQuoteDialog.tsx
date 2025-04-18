@@ -67,6 +67,7 @@ export const RequestQuoteDialog = ({
 
     setIsSubmitting(true);
     try {
+      // Fixed: Use Number(contractorId) to convert string to number if needed
       await Promise.all(
         selectedContractors.map(contractorId => 
           requestQuote(request.id, contractorId)

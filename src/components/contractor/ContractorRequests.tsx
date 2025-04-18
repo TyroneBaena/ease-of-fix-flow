@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { RequestsTable } from './requests/RequestsTable';
 import { useContractorContext } from '@/contexts/contractor';
+import { supabase } from '@/lib/supabase';
 
 const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
   return requests.reduce((acc, request) => {
@@ -23,7 +24,7 @@ const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
 export const ContractorRequests = () => {
   const [selectedRequest, setSelectedRequest] = React.useState<MaintenanceRequest | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const { requestQuote } = useContractorContext();
+  const { submitQuote } = useContractorContext();
   
   // Fetch maintenance requests that have quote_requested = true
   const [requests, setRequests] = React.useState<MaintenanceRequest[]>([]);
@@ -55,7 +56,7 @@ export const ContractorRequests = () => {
     
     setIsLoading(true);
     try {
-      await requestQuote(selectedRequest.id, amount, description);
+      await submitQuote(selectedRequest.id, amount, description);
       toast.success('Quote submitted successfully');
       setSelectedRequest(null);
     } catch (error) {
@@ -100,7 +101,7 @@ export const ContractorRequests = () => {
       <QuoteRequestDialog
         open={!!selectedRequest}
         onOpenChange={(open) => !open && setSelectedRequest(null)}
-        request={selectedRequest}
+        requestDetails={selectedRequest}
         onSubmitQuote={handleSubmitQuote}
       />
     </Card>

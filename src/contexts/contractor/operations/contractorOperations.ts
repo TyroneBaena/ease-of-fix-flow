@@ -35,3 +35,14 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
 
   if (error) throw error;
 };
+
+export const requestQuoteForJob = async (requestId: string, contractorId: string) => {
+  const { error } = await supabase
+    .from('maintenance_requests')
+    .update({
+      quote_requested: true
+    })
+    .eq('id', requestId);
+
+  if (error) throw error;
+};
