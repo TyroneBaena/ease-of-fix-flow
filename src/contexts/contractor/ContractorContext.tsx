@@ -56,9 +56,9 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const requestQuote = async (requestId: string, amount: number, description?: string) => {
+  const requestQuote = async (requestId: string, contractorId: string) => {
     try {
-      await requestQuoteForJob(requestId, amount, description);
+      await requestQuoteForJob(requestId, contractorId);
       toast.success('Quote request sent to contractor');
     } catch (err) {
       console.error('Error requesting quote:', err);

@@ -52,10 +52,12 @@ export const ContractorRequests = () => {
           priority: item.priority as 'low' | 'medium' | 'high',
           site: item.site || undefined,
           submittedBy: item.submitted_by || undefined,
-          contactNumber: item.contact_number || undefined,
-          address: item.property_address || undefined,
-          practiceLeader: item.practice_leader || undefined,
-          practiceLeaderPhone: item.practice_leader_phone || undefined,
+          // These fields were causing TypeScript errors as they don't exist in the database result
+          // Using undefined instead of looking for non-existent properties
+          contactNumber: undefined,
+          address: undefined,
+          practiceLeader: undefined,
+          practiceLeaderPhone: undefined,
           attachments: item.attachments ? JSON.parse(JSON.stringify(item.attachments)) : undefined,
           // Add these required fields from MaintenanceRequest type
           quote: item.quoted_amount?.toString() || '',
