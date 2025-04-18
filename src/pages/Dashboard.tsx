@@ -38,7 +38,7 @@ const Dashboard = () => {
               inProgressRequests={inProgressRequests}
               completedRequests={completedRequests}
             />
-            <RequestsList allRequests={requests} />
+            <RequestsList allRequests={requests as any} />
           </div>
           <DashboardSidebar />
         </div>

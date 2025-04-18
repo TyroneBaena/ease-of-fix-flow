@@ -85,7 +85,7 @@ const PropertyDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <PropertyInfo property={property} />
-            {id && <PropertyRequests requests={requests} propertyId={id} />}
+            {id && <PropertyRequests requests={requests as any} propertyId={id} />}
           </div>
           
           <div>

@@ -123,7 +123,7 @@ const AllRequests = () => {
         </div>
         
         <RequestList
-          requests={filteredRequests}
+          requests={filteredRequests as any}
           emptyMessage={getEmptyMessage()}
         />
       </main>

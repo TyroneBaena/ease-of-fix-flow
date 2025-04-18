@@ -2,6 +2,7 @@
 import React, { createContext, useContext } from 'react';
 import { MaintenanceRequestContextType } from './MaintenanceRequestTypes';
 import { useMaintenanceRequestProvider } from './useMaintenanceRequestProvider';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 const MaintenanceRequestContext = createContext<MaintenanceRequestContextType | undefined>(undefined);
 
@@ -16,8 +17,16 @@ export const useMaintenanceRequestContext = () => {
 export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = useMaintenanceRequestProvider();
 
+  // Ensure the provider has the correct type
+  const typedValue: MaintenanceRequestContextType = {
+    requests: value.requests as MaintenanceRequest[],
+    loading: value.loading,
+    getRequestsForProperty: value.getRequestsForProperty as (propertyId: string) => MaintenanceRequest[],
+    addRequestToProperty: value.addRequestToProperty
+  };
+
   return (
-    <MaintenanceRequestContext.Provider value={value}>
+    <MaintenanceRequestContext.Provider value={typedValue}>
       {children}
     </MaintenanceRequestContext.Provider>
   );

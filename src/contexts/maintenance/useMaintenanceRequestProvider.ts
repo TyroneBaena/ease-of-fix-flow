@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { MaintenanceRequest } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
 import { toast } from '@/lib/toast';
@@ -22,7 +22,7 @@ export const useMaintenanceRequestProvider = () => {
 
   const loadRequests = async () => {
     const fetchedRequests = await fetchRequests();
-    setRequests(fetchedRequests);
+    setRequests(fetchedRequests as MaintenanceRequest[]);
     setLoading(false);
   };
 
@@ -33,9 +33,9 @@ export const useMaintenanceRequestProvider = () => {
   const addRequestToProperty = async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     const newRequest = await addRequest(requestData);
     if (newRequest) {
-      setRequests(prev => [...prev, newRequest]);
+      setRequests(prev => [...prev, newRequest as MaintenanceRequest]);
       toast.success('Maintenance request added successfully');
-      return newRequest;
+      return newRequest as MaintenanceRequest;
     }
   };
 
