@@ -7,6 +7,7 @@ import { FileCheck, DollarSign } from 'lucide-react';
 import { Quote } from '@/types/contractor';
 import { useContractorContext } from '@/contexts/contractor';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/lib/supabase';
 
 interface QuotesListProps {
   requestId: string;
@@ -19,6 +20,16 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
   const handleApproveQuote = async (quoteId: string) => {
     try {
       await approveQuote(quoteId);
+      
+      // Refresh quotes after approval
+      const { data, error } = await supabase
+        .from('quotes')
+        .select('*')
+        .eq('request_id', requestId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
       toast.success('Quote approved successfully');
     } catch (error) {
       console.error('Error approving quote:', error);
