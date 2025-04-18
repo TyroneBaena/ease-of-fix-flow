@@ -2,29 +2,13 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
-export const requestQuoteForJob = async (requestId: string, amount: number, description?: string) => {
-  // Find the contractor ID for the current user
-  const { data: contractorData, error: contractorError } = await supabase
-    .from('contractors')
-    .select('id')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-    .single();
-
-  if (contractorError) throw contractorError;
-  
-  if (!contractorData?.id) {
-    throw new Error('Contractor ID not found');
-  }
-
+export const requestQuoteForJob = async (requestId: string, contractorId: string) => {
   const { error } = await supabase
-    .from('quotes')
-    .insert({
-      request_id: requestId,
-      contractor_id: contractorData.id,
-      amount,
-      description,
-      status: 'pending'
-    });
+    .from('maintenance_requests')
+    .update({
+      quote_requested: true
+    })
+    .eq('id', requestId);
 
   if (error) throw error;
 };
