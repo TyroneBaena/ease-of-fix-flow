@@ -2,19 +2,11 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
-export const requestQuoteForJob = async (requestId: string, contractorId: string) => {
-  const { error } = await supabase
-    .from('maintenance_requests')
-    .update({
-      quote_requested: true
-    })
-    .eq('id', requestId);
-
-  if (error) throw error;
-};
-
-export const submitQuoteForJob = async (requestId: string, amount: number, description?: string) => {
-  // Find the contractor ID for the current user
+export const submitQuoteForJob = async (
+  requestId: string, 
+  amount: number, 
+  description?: string
+) => {
   const { data: contractorData, error: contractorError } = await supabase
     .from('contractors')
     .select('id')
@@ -72,3 +64,4 @@ export const approveQuoteForJob = async (quoteId: string) => {
   if (quoteUpdate.error) throw quoteUpdate.error;
   if (requestUpdate.error) throw requestUpdate.error;
 };
+
