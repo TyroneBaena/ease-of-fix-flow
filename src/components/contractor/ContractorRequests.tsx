@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +25,6 @@ export const ContractorRequests = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   const { submitQuote } = useContractorContext();
   
-  // Fetch maintenance requests that have quote_requested = true
   const [requests, setRequests] = React.useState<MaintenanceRequest[]>([]);
 
   React.useEffect(() => {
@@ -42,7 +40,6 @@ export const ContractorRequests = () => {
       }
 
       if (data) {
-        // Map Supabase data to match MaintenanceRequest type
         const mappedRequests: MaintenanceRequest[] = data.map(item => ({
           id: item.id,
           title: item.title,
@@ -52,14 +49,11 @@ export const ContractorRequests = () => {
           priority: item.priority as 'low' | 'medium' | 'high',
           site: item.site || undefined,
           submittedBy: item.submitted_by || undefined,
-          // These fields were causing TypeScript errors as they don't exist in the database result
-          // Using undefined instead of looking for non-existent properties
           contactNumber: undefined,
           address: undefined,
           practiceLeader: undefined,
           practiceLeaderPhone: undefined,
           attachments: item.attachments ? JSON.parse(JSON.stringify(item.attachments)) : undefined,
-          // Add these required fields from MaintenanceRequest type
           quote: item.quoted_amount?.toString() || '',
           date: item.created_at
         }));
