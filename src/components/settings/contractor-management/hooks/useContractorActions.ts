@@ -1,8 +1,11 @@
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/lib/toast';
 import { Contractor } from '@/types/contractor';
+import { createContractor } from '../operations/contractorCreate';
+import { updateContractor } from '../operations/contractorUpdate';
+import { deleteContractor } from '../operations/contractorDelete';
+import { resetContractorPassword } from '../operations/passwordReset';
+import { toast } from '@/lib/toast';
 
 export const useContractorActions = (
   fetchContractors: () => Promise<void>
@@ -19,44 +22,9 @@ export const useContractorActions = (
       setLoading(true);
       
       if (isEditMode && selectedContractor) {
-        const { error } = await supabase
-          .from('contractors')
-          .update({
-            company_name: newContractor.companyName,
-            contact_name: newContractor.contactName,
-            email: newContractor.email,
-            phone: newContractor.phone,
-            address: newContractor.address || null,
-            specialties: newContractor.specialties || [],
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', selectedContractor.id);
-          
-        if (error) throw error;
-        toast.success('Contractor updated successfully');
+        await updateContractor(selectedContractor, newContractor);
       } else {
-        const { data, error } = await supabase.functions.invoke('invite-contractor', {
-          body: {
-            email: newContractor.email,
-            companyName: newContractor.companyName,
-            contactName: newContractor.contactName,
-            phone: newContractor.phone,
-            address: newContractor.address || null,
-            specialties: newContractor.specialties || []
-          }
-        });
-        
-        if (error) throw error;
-        
-        if (data.success) {
-          toast.success(`Invitation sent to ${newContractor.email}`);
-          
-          if (data.testMode) {
-            toast.info('Note: Email was sent in test mode');
-          }
-        } else {
-          throw new Error(data.message || 'Failed to invite contractor');
-        }
+        await createContractor(newContractor);
       }
       
       await fetchContractors();
@@ -73,26 +41,7 @@ export const useContractorActions = (
   const handleResetPassword = async (contractorId: string, email: string) => {
     try {
       setLoading(true);
-      
-      const { data: contractorData, error: contractorError } = await supabase
-        .from('contractors')
-        .select('user_id')
-        .eq('id', contractorId)
-        .single();
-        
-      if (contractorError) throw contractorError;
-      
-      if (!contractorData?.user_id) {
-        throw new Error('Could not find user account for this contractor');
-      }
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
-      });
-      
-      if (error) throw error;
-      
-      toast.success(`Password reset email sent to ${email}`);
+      await resetContractorPassword(contractorId, email);
     } catch (err) {
       console.error('Error resetting password:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to reset password');
@@ -110,17 +59,8 @@ export const useContractorActions = (
     
     try {
       setLoading(true);
-      
-      const { error } = await supabase
-        .from('contractors')
-        .delete()
-        .eq('id', selectedContractor.id);
-        
-      if (error) throw error;
-      
-      toast.success(`Contractor ${selectedContractor.companyName} deleted successfully`);
+      await deleteContractor(selectedContractor);
       setIsDeleteConfirmOpen(false);
-      
       await fetchContractors();
     } catch (err) {
       console.error('Error deleting contractor:', err);
