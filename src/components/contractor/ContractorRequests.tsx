@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { RequestsTable } from './requests/RequestsTable';
-import { mockRequests } from './data/mockRequests';
+import { useContractorContext } from '@/contexts/contractor';
 
 const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
   return requests.reduce((acc, request) => {
@@ -23,21 +23,47 @@ const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
 export const ContractorRequests = () => {
   const [selectedRequest, setSelectedRequest] = React.useState<MaintenanceRequest | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const { requestQuote } = useContractorContext();
   
-  const groupedRequests = groupRequestsByStatus(mockRequests);
+  // Fetch maintenance requests that have quote_requested = true
+  const [requests, setRequests] = React.useState<MaintenanceRequest[]>([]);
 
-  const handleSubmitQuote = (amount: number, description: string) => {
+  React.useEffect(() => {
+    const fetchQuoteRequests = async () => {
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .select('*')
+        .eq('quote_requested', true);
+      
+      if (error) {
+        console.error('Error fetching requests:', error);
+        return;
+      }
+
+      if (data) {
+        setRequests(data);
+      }
+    };
+
+    fetchQuoteRequests();
+  }, []);
+  
+  const groupedRequests = groupRequestsByStatus(requests);
+
+  const handleSubmitQuote = async (amount: number, description: string) => {
+    if (!selectedRequest) return;
+    
     setIsLoading(true);
-    setTimeout(() => {
-      console.log('Quote submitted:', { 
-        requestId: selectedRequest?.id, 
-        amount, 
-        description 
-      });
+    try {
+      await requestQuote(selectedRequest.id, amount, description);
       toast.success('Quote submitted successfully');
-      setIsLoading(false);
       setSelectedRequest(null);
-    }, 1000);
+    } catch (error) {
+      console.error('Error submitting quote:', error);
+      toast.error('Failed to submit quote');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,7 +100,7 @@ export const ContractorRequests = () => {
       <QuoteRequestDialog
         open={!!selectedRequest}
         onOpenChange={(open) => !open && setSelectedRequest(null)}
-        requestDetails={selectedRequest}
+        request={selectedRequest}
         onSubmitQuote={handleSubmitQuote}
       />
     </Card>
