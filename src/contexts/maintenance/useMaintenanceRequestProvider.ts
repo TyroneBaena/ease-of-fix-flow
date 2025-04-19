@@ -30,13 +30,27 @@ export const useMaintenanceRequestProvider = () => {
       console.log('Fetched maintenance requests:', fetchedRequests);
       
       if (fetchedRequests && fetchedRequests.length > 0) {
-        setRequests(fetchedRequests as MaintenanceRequest[]);
+        // Ensure all required properties are present
+        const validatedRequests = fetchedRequests.map(request => ({
+          ...request,
+          site: request.site || request.category || 'Unknown',
+          title: request.title || request.issueNature || 'Untitled Request',
+          location: request.location || 'Unknown'
+        }));
+        setRequests(validatedRequests as MaintenanceRequest[]);
       } else {
         console.log('No maintenance requests found');
         // If no data from Supabase, use a fallback for testing
         import('@/data/sampleData').then(({ requests: sampleRequests }) => {
           console.log('Using sample maintenance requests:', sampleRequests);
-          setRequests(sampleRequests as unknown as MaintenanceRequest[]);
+          // Ensure sample data has required properties
+          const validatedSampleRequests = (sampleRequests as any[]).map(request => ({
+            ...request,
+            site: request.site || request.category || 'Unknown',
+            title: request.title || request.issueNature || 'Untitled Request',
+            location: request.location || 'Unknown'
+          }));
+          setRequests(validatedSampleRequests as MaintenanceRequest[]);
         }).catch(err => {
           console.error('Failed to load sample data:', err);
         });
@@ -54,7 +68,15 @@ export const useMaintenanceRequestProvider = () => {
 
   const addRequestToProperty = async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     console.log('Adding request to property with data:', requestData);
-    const newRequest = await addRequest(requestData);
+    // Ensure site is present
+    const requestWithDefaults = {
+      ...requestData,
+      site: requestData.site || requestData.category || 'Unknown',
+      title: requestData.title || requestData.issueNature || 'Untitled Request',
+      location: requestData.location || 'Unknown'
+    };
+    
+    const newRequest = await addRequest(requestWithDefaults);
     
     if (newRequest) {
       console.log('New request created successfully:', newRequest);

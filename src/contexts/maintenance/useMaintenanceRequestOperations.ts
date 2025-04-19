@@ -39,15 +39,16 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       // Ensure required fields are present
       const title = requestData.title || requestData.issueNature || 'Untitled Request';
       const location = requestData.location || '';
+      const site = requestData.site || requestData.category || '';
 
-      console.log('Adding maintenance request with data:', { ...requestData, title, location });
+      console.log('Adding maintenance request with data:', { ...requestData, title, location, site });
 
       const { data, error } = await supabase
         .from('maintenance_requests')
         .insert({
           title: title,
           description: requestData.description || requestData.explanation || '',
-          category: requestData.category || requestData.site || '',
+          category: requestData.category || site,
           location: location,
           priority: requestData.priority || 'medium',
           property_id: requestData.propertyId,
@@ -58,7 +59,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
           issue_nature: requestData.issueNature || '',
           explanation: requestData.explanation || '',
           report_date: requestData.reportDate || new Date().toISOString().split('T')[0],
-          site: requestData.site || '',
+          site: site,
           submitted_by: requestData.submittedBy || '',
           status: 'pending'
         })
@@ -102,6 +103,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
     // Ensure required fields have values
     const title = data.title || data.issue_nature || 'Untitled Request';
     const location = data.location || '';
+    const site = data.site || data.category || '';
 
     return {
       id: data.id,
@@ -112,12 +114,12 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       explanation: data.explanation || data.description || '',
       location: location,
       reportDate: data.report_date || data.created_at?.split('T')[0] || '',
-      site: data.site || data.category || '',
+      site: site,
       submittedBy: data.submitted_by || '',
       status: status,
       title: title,
       description: data.description || data.explanation || '',
-      category: data.category || data.site || '',
+      category: data.category || site,
       priority: data.priority || 'medium',
       propertyId: data.property_id,
       createdAt: data.created_at || new Date().toISOString(),

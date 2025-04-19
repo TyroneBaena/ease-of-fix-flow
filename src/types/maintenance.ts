@@ -6,7 +6,7 @@ export interface MaintenanceRequest {
   status: 'pending' | 'in-progress' | 'completed' | 'open';
   location: string; // Changed from optional to required
   priority?: 'low' | 'medium' | 'high';
-  site?: string;
+  site: string;  // Changed from optional to required
   submittedBy?: string;
   quote?: string;
   date?: string;
