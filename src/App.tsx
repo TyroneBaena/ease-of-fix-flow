@@ -10,6 +10,7 @@ import { UserProvider } from "./contexts/UserContext";
 import { ContractorProvider } from "./contexts/contractor/ContractorContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import SetupPassword from "./pages/SetupPassword";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -38,6 +39,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/setup-password" element={<SetupPassword />} />
                   
                   <Route path="/dashboard" element={
