@@ -12,18 +12,40 @@ export const useMaintenanceRequestProvider = () => {
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
 
   useEffect(() => {
+    console.log('useMaintenanceRequestProvider - Current user:', currentUser);
     if (currentUser) {
       loadRequests();
     } else {
+      console.log('No current user, skipping request loading');
       setRequests([]);
       setLoading(false);
     }
   }, [currentUser]);
 
   const loadRequests = async () => {
-    const fetchedRequests = await fetchRequests();
-    setRequests(fetchedRequests as MaintenanceRequest[]);
-    setLoading(false);
+    console.log('Loading maintenance requests...');
+    setLoading(true);
+    try {
+      const fetchedRequests = await fetchRequests();
+      console.log('Fetched maintenance requests:', fetchedRequests);
+      
+      if (fetchedRequests && fetchedRequests.length > 0) {
+        setRequests(fetchedRequests as MaintenanceRequest[]);
+      } else {
+        console.log('No maintenance requests found');
+        // If no data from Supabase, use a fallback for testing
+        import('@/data/sampleData').then(({ requests: sampleRequests }) => {
+          console.log('Using sample maintenance requests:', sampleRequests);
+          setRequests(sampleRequests as unknown as MaintenanceRequest[]);
+        }).catch(err => {
+          console.error('Failed to load sample data:', err);
+        });
+      }
+    } catch (error) {
+      console.error('Error loading maintenance requests:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRequestsForProperty = (propertyId: string) => {
@@ -31,11 +53,16 @@ export const useMaintenanceRequestProvider = () => {
   };
 
   const addRequestToProperty = async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+    console.log('Adding request to property with data:', requestData);
     const newRequest = await addRequest(requestData);
+    
     if (newRequest) {
+      console.log('New request created successfully:', newRequest);
       setRequests(prev => [...prev, newRequest as MaintenanceRequest]);
       toast.success('Maintenance request added successfully');
       return newRequest as MaintenanceRequest;
+    } else {
+      console.error('Failed to create new request');
     }
   };
 

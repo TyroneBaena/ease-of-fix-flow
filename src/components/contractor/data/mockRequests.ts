@@ -1,3 +1,4 @@
+
 import { MaintenanceRequest } from '@/types/maintenance';
 
 export const mockRequests: MaintenanceRequest[] = [
@@ -5,7 +6,7 @@ export const mockRequests: MaintenanceRequest[] = [
     id: 'REQ-2023-001',
     title: 'Broken Air Conditioning Unit',
     status: 'pending',
-    quote: '-',
+    quote: '$0',
     date: new Date('2023-04-10').toISOString(),
     description: 'The air conditioning unit in the main conference room is not functioning properly.',
     location: 'Conference Room A, 2nd Floor',
@@ -19,7 +20,14 @@ export const mockRequests: MaintenanceRequest[] = [
     attachments: [
       { url: '/placeholder.svg' },
       { url: '/placeholder.svg' }
-    ]
+    ],
+    createdAt: new Date('2023-04-10').toISOString(),
+    isParticipantRelated: false,
+    participantName: 'N/A',
+    attemptedFix: 'Tried resetting the circuit breaker',
+    issueNature: 'Broken Air Conditioning Unit',
+    explanation: 'The air conditioning unit in the main conference room is not functioning properly.',
+    reportDate: '2023-04-10'
   },
   {
     id: 'REQ-2023-002',
@@ -29,7 +37,15 @@ export const mockRequests: MaintenanceRequest[] = [
     date: new Date('2023-04-05').toISOString(),
     description: 'The sink faucet in the staff break room is constantly leaking.',
     location: 'Break Room, 1st Floor',
-    priority: 'medium'
+    priority: 'medium',
+    createdAt: new Date('2023-04-05').toISOString(),
+    isParticipantRelated: false,
+    participantName: 'N/A',
+    attemptedFix: 'Tried tightening the fixture',
+    issueNature: 'Leaking Faucet',
+    explanation: 'The sink faucet in the staff break room is constantly leaking.',
+    reportDate: '2023-04-05',
+    site: 'Break Room'
   },
   {
     id: 'REQ-2023-003',
@@ -39,17 +55,33 @@ export const mockRequests: MaintenanceRequest[] = [
     date: new Date('2023-03-28').toISOString(),
     description: 'Three light fixtures in the reception area need to be replaced.',
     location: 'Reception, Main Entrance',
-    priority: 'low'
+    priority: 'low',
+    createdAt: new Date('2023-03-28').toISOString(),
+    isParticipantRelated: false,
+    participantName: 'N/A',
+    attemptedFix: 'Changed light bulbs but fixtures still not working',
+    issueNature: 'Light Fixtures Replacement',
+    explanation: 'Three light fixtures in the reception area need to be replaced.',
+    reportDate: '2023-03-28',
+    site: 'Reception Area'
   },
   {
     id: 'REQ-2023-004',
     title: 'Parking Lot Pothole Repair',
     status: 'pending',
-    quote: '-',
+    quote: '$0',
     date: new Date('2023-04-12').toISOString(),
     description: 'Large pothole in the staff parking area needs to be filled.',
     location: 'Staff Parking Lot, Section B',
-    priority: 'medium'
+    priority: 'medium',
+    createdAt: new Date('2023-04-12').toISOString(),
+    isParticipantRelated: false,
+    participantName: 'N/A',
+    attemptedFix: 'None',
+    issueNature: 'Parking Lot Pothole Repair',
+    explanation: 'Large pothole in the staff parking area needs to be filled.',
+    reportDate: '2023-04-12',
+    site: 'Parking Lot'
   },
   {
     id: 'REQ-2023-005',
@@ -59,7 +91,15 @@ export const mockRequests: MaintenanceRequest[] = [
     date: new Date('2023-04-08').toISOString(),
     description: 'Two chairs in the waiting room have damaged armrests.',
     location: 'Patient Waiting Area',
-    priority: 'low'
+    priority: 'low',
+    createdAt: new Date('2023-04-08').toISOString(),
+    isParticipantRelated: false,
+    participantName: 'N/A',
+    attemptedFix: 'Tried temporarily fixing with tape',
+    issueNature: 'Waiting Room Chair Repair',
+    explanation: 'Two chairs in the waiting room have damaged armrests.',
+    reportDate: '2023-04-08',
+    site: 'Waiting Area'
   },
   {
     id: 'REQ-2023-006',
@@ -69,6 +109,14 @@ export const mockRequests: MaintenanceRequest[] = [
     date: new Date('2023-03-15').toISOString(),
     description: 'Water stains on ceiling indicating possible roof leak.',
     location: 'X-ray Room, 2nd Floor',
-    priority: 'high'
+    priority: 'high',
+    createdAt: new Date('2023-03-15').toISOString(),
+    isParticipantRelated: false,
+    participantName: 'N/A',
+    attemptedFix: 'Placed a bucket under the leak',
+    issueNature: 'Roof Leak Inspection',
+    explanation: 'Water stains on ceiling indicating possible roof leak.',
+    reportDate: '2023-03-15',
+    site: 'X-ray Room'
   }
 ];

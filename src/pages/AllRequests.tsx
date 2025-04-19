@@ -88,10 +88,11 @@ const AllRequests = () => {
   // Message to display when no requests are found
   const getEmptyMessage = () => {
     if (loading) return "Loading requests...";
+    if (requests.length === 0) return "No maintenance requests found. Submit a new request to get started.";
     if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all') {
-      return "Try adjusting your filters";
+      return "No requests match your filters. Try adjusting your search criteria.";
     }
-    return "Submit a new maintenance request to get started";
+    return "No maintenance requests found";
   };
 
   return (
@@ -119,11 +120,15 @@ const AllRequests = () => {
         />
         
         <div className="mb-4 text-sm text-gray-600">
-          Showing {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
+          {loading ? (
+            "Loading requests..."
+          ) : (
+            `Showing ${filteredRequests.length} ${filteredRequests.length === 1 ? 'request' : 'requests'}`
+          )}
         </div>
         
         <RequestList
-          requests={filteredRequests as any}
+          requests={filteredRequests}
           emptyMessage={getEmptyMessage()}
         />
       </main>
