@@ -5,15 +5,14 @@ import { corsHeaders } from "./lib/cors.ts";
 import { createEmailHtml } from "./lib/email-templates.ts";
 import { 
   findExistingUser, 
-  updateExistingUser, 
   createNewUser, 
-  generateTemporaryPassword
+  generateTemporaryPassword 
 } from "./lib/user-management.ts";
-
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { sendInvitationEmail } from "./lib/email-sender.ts";
+import { validateRequest, validateEnvironment, cleanApplicationUrl } from "./lib/validation.ts";
+import type { InviteRequest } from "./lib/types.ts";
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,96 +29,39 @@ serve(async (req: Request) => {
   );
   
   try {
-    const body = await req.json();
+    const body: InviteRequest = await req.json();
     console.log("Request body received:", JSON.stringify(body, null, 2));
-    const { email, name, role, assignedProperties = [] } = body;
     
-    if (!email || !name || !role) {
-      console.error("Missing required fields:", { email, name, role });
-      return new Response(
-        JSON.stringify({ error: "Email, name, and role are required" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Validate request and environment
+    validateRequest(body);
+    const { resendApiKey, applicationUrl, ownerEmail } = validateEnvironment();
     
-    console.log(`Processing invitation for ${email} with role ${role}`);
-    
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const applicationUrl = Deno.env.get('APPLICATION_URL');
-    const ownerEmail = Deno.env.get('RESEND_OWNER_EMAIL') || 'tyronebaena@gmail.com';
-
-    console.log('Environment Checks:', {
-      RESEND_API_KEY: resendApiKey ? 'Present' : 'Missing',
-      APPLICATION_URL: applicationUrl ? 'Present' : 'Missing',
-      APPLICATION_URL_VALUE: applicationUrl,
-      RESEND_OWNER_EMAIL: ownerEmail
-    });
-    
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY is not set in the environment variables");
-      return new Response(
-        JSON.stringify({ error: "Resend API Key is not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (!applicationUrl) {
-      console.error("APPLICATION_URL is not set in the environment variables");
-      return new Response(
-        JSON.stringify({ error: "Application URL is not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const resend = new Resend(resendApiKey);
-    console.log("Resend initialized with API key");
-    
-    // Check if user already exists but DON'T update them - we want to prevent duplicate accounts
-    const existingUser = await findExistingUser(supabaseClient, email);
-    
+    // Check for existing user
+    const existingUser = await findExistingUser(supabaseClient, body.email);
     if (existingUser) {
-      console.log(`User with email ${email} already exists`);
+      console.log(`User with email ${body.email} already exists`);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: `A user with email ${email} already exists. Please use a different email address.`
+          message: `A user with email ${body.email} already exists. Please use a different email address.`
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Always create a new user since we've confirmed one doesn't exist
+    // Create new user
     const temporaryPassword = generateTemporaryPassword();
-    let userId = '';
-    let newUser = null;
+    const newUser = await createNewUser(
+      supabaseClient, 
+      body.email, 
+      body.name, 
+      body.role, 
+      temporaryPassword, 
+      body.assignedProperties
+    );
     
-    try {
-      newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
-      userId = newUser.id;
-      console.log(`New user created with ID: ${userId}`);
-    } catch (createError) {
-      console.error("Error creating new user:", createError);
-      return new Response(
-        JSON.stringify({ error: `Error creating user: ${createError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Ensure application URL doesn't have trailing slash and doesn't include /login path
-    let cleanAppUrl = applicationUrl;
-    if (cleanAppUrl.endsWith('/')) {
-      cleanAppUrl = cleanAppUrl.slice(0, -1);
-    }
-    
-    // Remove /login if it's at the end of the URL
-    if (cleanAppUrl.endsWith('/login')) {
-      cleanAppUrl = cleanAppUrl.slice(0, -6);
-    }
-    
-    console.log('Clean Application URL:', cleanAppUrl);
+    // Prepare email
+    const cleanAppUrl = cleanApplicationUrl(applicationUrl);
     const loginUrl = `${cleanAppUrl}/login`;
     console.log('Login URL to be used in email:', loginUrl);
     
@@ -131,53 +73,35 @@ serve(async (req: Request) => {
     }
     
     const emailHtml = createEmailHtml({
-      to: email,
-      name,
-      role,
+      to: body.email,
+      name: body.name,
+      role: body.role,
       temporaryPassword,
       loginUrl,
       isNewUser: true
     });
     
-    // Check if we're in test mode (only can send to owner email)
-    const emailRecipient = email === ownerEmail ? email : ownerEmail;
-    const isTestMode = email !== ownerEmail;
-    
-    console.log("Attempting to send email...");
-    console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
-    
-    if (isTestMode) {
-      console.log(`NOTE: In test mode, email is redirected to ${ownerEmail} instead of ${email}`);
-      console.log("To send to other recipients, please verify a domain at resend.com/domains");
-    }
+    // Determine email recipient based on test mode
+    const emailRecipient = body.email === ownerEmail ? body.email : ownerEmail;
+    const isTestMode = body.email !== ownerEmail;
     
     try {
-      console.log("Calling Resend API to send email");
-      const { data, error } = await resend.emails.send({
-        from: 'Property Manager <onboarding@resend.dev>',
-        to: [emailRecipient],
-        subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager`,
-        html: isTestMode 
-          ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
-          : emailHtml,
-      });
-      
-      if (error) {
-        console.error("Error sending email via Resend:", error);
-        throw error;
-      }
-      
-      console.log(`Email sent successfully to ${emailRecipient}, EmailID: ${data?.id}`);
+      const emailData = await sendInvitationEmail(
+        resendApiKey,
+        emailRecipient,
+        body.email,
+        emailHtml,
+        isTestMode
+      );
       
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: "User created successfully",
-          userId,
+          userId: newUser.id,
           emailSent: true,
-          emailId: data?.id,
+          emailId: emailData?.id,
           testMode: isTestMode,
-          // Include helpful information about test mode
           testModeInfo: isTestMode 
             ? "In test mode: Email was sent to the owner email instead of the target email. To send emails to other addresses, verify a domain at resend.com/domains." 
             : null
@@ -190,7 +114,7 @@ serve(async (req: Request) => {
         JSON.stringify({ 
           success: true, 
           message: "User created but email failed", 
-          userId,
+          userId: newUser.id,
           emailSent: false,
           emailError: JSON.stringify(emailError),
           emailTip: "To send emails to addresses other than your own, verify a domain at resend.com/domains"

@@ -2,7 +2,7 @@
 export interface InviteRequest {
   email: string;
   name: string;
-  role: 'admin' | 'manager';
+  role: string;
   assignedProperties?: string[];
 }
 
@@ -13,4 +13,10 @@ export interface EmailData {
   temporaryPassword?: string;
   loginUrl: string;
   isNewUser: boolean;
+}
+
+export interface Environment {
+  resendApiKey: string;
+  applicationUrl: string;
+  ownerEmail: string;
 }
