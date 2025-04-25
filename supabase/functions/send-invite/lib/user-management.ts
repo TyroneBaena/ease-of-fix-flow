@@ -77,51 +77,66 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     
     console.log("Auth user created successfully:", authData.user.id);
 
-    // The profiles table trigger should handle creating the profile automatically
-    // But let's verify it exists after a short delay to allow the trigger to run
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    // Create the profile manually regardless of trigger to ensure it exists
     try {
+      console.log("Creating profile for new user");
       const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .insert([{
+          id: authData.user.id,
+          email: email,
+          name: name,
+          role: role,
+          assigned_properties: role === 'manager' ? assignedProperties : []
+        }])
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error("Error creating user profile:", profileError);
+        console.log("Profile creation failed but auth user exists - continuing");
+      } else {
+        console.log("Profile created successfully:", profile?.id);
+      }
+    } catch (profileError) {
+      console.error("Exception creating user profile:", profileError);
+      console.log("Profile creation failed but auth user exists - continuing");
+    }
+    
+    // Double-check the profile exists after a short delay
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { data: checkProfile, error: checkError } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', authData.user.id)
         .single();
-
-      if (profileError || !profile) {
-        console.log("Profile not created by trigger, creating manually");
-        // If trigger didn't work, create profile manually
-        const { error: insertError } = await supabaseClient
+        
+      if (checkError || !checkProfile) {
+        console.log("Profile verification failed after creation, attempting second insert");
+        
+        // If profile still doesn't exist, try creating it again with upsert
+        const { error: secondInsertError } = await supabaseClient
           .from('profiles')
-          .insert([{
+          .upsert([{
             id: authData.user.id,
             email: email,
             name: name,
             role: role,
             assigned_properties: role === 'manager' ? assignedProperties : []
           }]);
-
-        if (insertError) {
-          console.error("Error creating profile:", insertError);
-          // Don't throw here, the auth user is already created
-          // Just log the error and continue
-          console.log("Profile creation failed but auth user exists");
-        }
-        
-        // Double-check the profile creation
-        const { data: checkProfile } = await supabaseClient
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
           
-        console.log("Profile check result:", checkProfile ? "Profile exists" : "Profile still missing");
+        if (secondInsertError) {
+          console.error("Second profile creation attempt failed:", secondInsertError);
+        } else {
+          console.log("Second profile creation attempt succeeded");
+        }
       } else {
-        console.log("Profile created by trigger successfully:", profile);
+        console.log("Profile verification successful");
       }
-    } catch (profileCheckError) {
-      console.error("Error verifying/creating profile:", profileCheckError);
-      // Don't throw since the auth user was created successfully
+    } catch (verificationError) {
+      console.error("Error verifying profile:", verificationError);
     }
     
     return authData.user;

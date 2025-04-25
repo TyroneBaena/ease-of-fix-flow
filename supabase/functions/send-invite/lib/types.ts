@@ -21,7 +21,7 @@ export interface Environment {
   ownerEmail: string;
 }
 
-export interface ResendResponseData {
+export interface RespondResponseData {
   id?: string;
   [key: string]: any;
 }

@@ -32,7 +32,11 @@ serve(async (req: Request) => {
     });
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Supabase credentials are not properly configured");
+      console.error("Supabase credentials are not properly configured");
+      return new Response(
+        JSON.stringify({ error: "Supabase credentials are not properly configured" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
@@ -50,7 +54,7 @@ serve(async (req: Request) => {
     } catch (parseError) {
       console.error("Failed to parse request body:", parseError);
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
+        JSON.stringify({ error: "Invalid request body", details: parseError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -67,11 +71,33 @@ serve(async (req: Request) => {
       );
     }
     
-    const { resendApiKey, applicationUrl, ownerEmail } = validateEnvironment();
+    let envConfig;
+    try {
+      envConfig = validateEnvironment();
+      console.log("Environment validation passed");
+    } catch (envError) {
+      console.error("Environment validation failed:", envError.message);
+      return new Response(
+        JSON.stringify({ error: envError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { resendApiKey, applicationUrl, ownerEmail } = envConfig;
     
     // Check for existing user
     console.log(`Checking if user with email ${body.email} already exists`);
-    const existingUser = await findExistingUser(supabaseClient, body.email);
+    let existingUser;
+    try {
+      existingUser = await findExistingUser(supabaseClient, body.email);
+    } catch (userCheckError) {
+      console.error("Error checking for existing user:", userCheckError);
+      return new Response(
+        JSON.stringify({ error: `Error checking for existing user: ${userCheckError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     if (existingUser) {
       console.log(`User with email ${body.email} already exists`);
       return new Response(
@@ -87,16 +113,25 @@ serve(async (req: Request) => {
     try {
       console.log("Generating temporary password and creating new user");
       const temporaryPassword = generateTemporaryPassword();
-      const newUser = await createNewUser(
-        supabaseClient, 
-        body.email, 
-        body.name, 
-        body.role, 
-        temporaryPassword, 
-        body.assignedProperties
-      );
       
-      console.log(`New user created with ID: ${newUser.id}`);
+      let newUser;
+      try {
+        newUser = await createNewUser(
+          supabaseClient, 
+          body.email, 
+          body.name, 
+          body.role, 
+          temporaryPassword, 
+          body.assignedProperties
+        );
+        console.log(`New user created with ID: ${newUser.id}`);
+      } catch (createError) {
+        console.error("Failed to create new user:", createError);
+        return new Response(
+          JSON.stringify({ error: `Failed to create user: ${createError.message}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       // Prepare email
       const cleanAppUrl = cleanApplicationUrl(applicationUrl);
@@ -104,9 +139,10 @@ serve(async (req: Request) => {
       console.log('Login URL to be used in email:', loginUrl);
       
       if (!loginUrl || loginUrl.trim() === '') {
+        console.error("Invalid login URL");
         return new Response(
           JSON.stringify({ error: "Login URL is not configured correctly" }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
@@ -160,24 +196,24 @@ serve(async (req: Request) => {
             message: "User created but email failed", 
             userId: newUser.id,
             emailSent: false,
-            emailError: JSON.stringify(emailError),
+            emailError: emailError.message || "Unknown error",
             emailTip: "To send emails to addresses other than your own, verify a domain at resend.com/domains"
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     } catch (userCreationError) {
-      console.error("Error creating new user:", userCreationError);
+      console.error("Error in user creation workflow:", userCreationError);
       return new Response(
-        JSON.stringify({ error: `Failed to create user: ${userCreationError.message}` }),
+        JSON.stringify({ error: `Failed to process invitation: ${userCreationError.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
-    console.error("Invitation error (FULL ERROR):", error);
+    console.error("Critical invitation error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error occurred" }),
-      { status: error.status || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

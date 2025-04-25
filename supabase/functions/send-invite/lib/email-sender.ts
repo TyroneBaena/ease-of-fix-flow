@@ -1,7 +1,7 @@
 
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { corsHeaders } from "./cors.ts";
-import { EmailData } from "./types.ts";
+import { EmailData, RespondResponseData } from "./types.ts";
 
 export async function sendInvitationEmail(
   resendApiKey: string,
