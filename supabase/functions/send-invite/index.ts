@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "./lib/cors.ts";
@@ -12,6 +13,7 @@ import {
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -29,6 +31,7 @@ serve(async (req: Request) => {
   
   try {
     const body = await req.json();
+    console.log("Request body received:", JSON.stringify(body, null, 2));
     const { email, name, role, assignedProperties = [] } = body;
     
     if (!email || !name || !role) {
@@ -91,9 +94,10 @@ serve(async (req: Request) => {
     // Always create a new user since we've confirmed one doesn't exist
     const temporaryPassword = generateTemporaryPassword();
     let userId = '';
+    let newUser = null;
     
     try {
-      const newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
+      newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
       userId = newUser.id;
       console.log(`New user created with ID: ${userId}`);
     } catch (createError) {
@@ -152,9 +156,7 @@ serve(async (req: Request) => {
       const { data, error } = await resend.emails.send({
         from: 'Property Manager <onboarding@resend.dev>',
         to: [emailRecipient],
-        subject: isNewUser 
-          ? `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager` 
-          : `${isTestMode ? '[TEST] ' : ''}Your Property Manager Account Has Been Updated`,
+        subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager`,
         html: isTestMode 
           ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
           : emailHtml,
@@ -170,7 +172,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: isNewUser ? "User created successfully" : "User updated successfully", 
+          message: "User created successfully",
           userId,
           emailSent: true,
           emailId: data?.id,
@@ -187,7 +189,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: isNewUser ? "User created but email failed" : "User updated but email failed", 
+          message: "User created but email failed", 
           userId,
           emailSent: false,
           emailError: JSON.stringify(emailError),

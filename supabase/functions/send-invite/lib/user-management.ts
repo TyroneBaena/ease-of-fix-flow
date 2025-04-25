@@ -61,7 +61,9 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   }
 
   // The profiles table trigger should handle creating the profile automatically
-  // But let's verify it exists
+  // But let's verify it exists after a short delay to allow the trigger to run
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
     .select('*')
@@ -87,6 +89,17 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
       // Just log the error and continue
       console.log("Profile creation failed but auth user exists");
     }
+    
+    // Double-check the profile creation
+    const { data: checkProfile } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+      
+    console.log("Profile check result:", checkProfile ? "Profile exists" : "Profile still missing");
+  } else {
+    console.log("Profile created by trigger successfully:", profile);
   }
   
   return authData.user;
