@@ -87,9 +87,9 @@ serve(async (req: Request) => {
     
     // Check for existing user
     console.log(`Checking if user with email ${body.email} already exists`);
-    let existingUser;
+    let existingUserResult;
     try {
-      existingUser = await findExistingUser(supabaseClient, body.email);
+      existingUserResult = await findExistingUser(supabaseClient, body.email);
     } catch (userCheckError) {
       console.error("Error checking for existing user:", userCheckError);
       return new Response(
@@ -98,9 +98,41 @@ serve(async (req: Request) => {
       );
     }
     
-    if (existingUser) {
-      console.log(`User with email ${body.email} already exists`);
-      // Important: Return a 200 status with success=false to properly handle this case on the frontend
+    if (existingUserResult?.user) {
+      console.log(`User with email ${body.email} exists`);
+      
+      // If user exists but doesn't have a profile, create one
+      if (!existingUserResult.hasProfile) {
+        try {
+          await createProfileForExistingUser(
+            supabaseClient,
+            existingUserResult.user,
+            body.name,
+            body.role,
+            body.assignedProperties
+          );
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: `Profile created for existing user ${body.email}. You can now log in.`,
+              userId: existingUserResult.user.id
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (profileError) {
+          console.error("Error creating profile for existing user:", profileError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: `Failed to create profile for user: ${profileError.message}`
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
+      // If user exists and has a profile, return appropriate message
       return new Response(
         JSON.stringify({ 
           success: false, 

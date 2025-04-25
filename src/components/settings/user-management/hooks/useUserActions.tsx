@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
@@ -53,29 +52,12 @@ export const useUserActions = (
         console.log("Add user result:", result);
         
         if (result.success) {
-          if (result.emailSent) {
-            if (result.testMode) {
-              toast.success(
-                `User ${newUser.name} created successfully. Test email sent to developer account.`,
-                {
-                  description: "To send to real email addresses, verify a domain in Resend.",
-                  duration: 8000
-                }
-              );
-            } else {
-              toast.success(`Invitation sent to ${newUser.email}`);
-            }
-            setIsDialogOpen(false);
-          } else {
-            const errorMessage = result.emailError || "Unknown error";
-            console.error("Email sending failed:", errorMessage);
-            toast.error(`User created but invitation email failed to send. ${errorMessage}`);
-            setIsDialogOpen(false);
-          }
+          toast.success(result.message || "User processed successfully");
+          setIsDialogOpen(false);
         } else {
           // This means the user already exists or another validation error occurred
-          toast.error(result.message || "Failed to invite user");
-          // Do not close dialog so user can correct the email
+          toast.error(result.message || "Failed to process user");
+          // Do not close dialog on error so user can correct if needed
         }
       }
     } catch (error) {

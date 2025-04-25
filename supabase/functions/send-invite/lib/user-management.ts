@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { InviteRequest } from "./types.ts";
 
@@ -24,7 +23,25 @@ export async function findExistingUser(supabaseClient: any, email: string) {
     
     const userExists = existingUsers?.users?.length > 0 ? existingUsers.users[0] : null;
     console.log(`User search result: ${userExists ? 'User exists' : 'User does not exist'}`);
-    return userExists;
+
+    // If user exists, check if they have a profile
+    if (userExists) {
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', userExists.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.log("No profile found for existing user, will create one");
+        return { user: userExists, hasProfile: false };
+      }
+
+      console.log("User exists and has a profile");
+      return { user: userExists, hasProfile: true };
+    }
+
+    return null;
   } catch (error) {
     console.error("Error in findExistingUser:", error);
     throw new Error(`Failed to check for existing user: ${error.message}`);
@@ -158,6 +175,35 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   } catch (error) {
     console.error("Error in createNewUser:", error);
     throw new Error(`Failed to create new user: ${error.message}`);
+  }
+}
+
+export async function createProfileForExistingUser(supabaseClient: any, user: any, name: string, role: string, assignedProperties: string[] = []) {
+  try {
+    console.log(`Creating profile for existing user ${user.id}`);
+    
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .insert([{
+        id: user.id,
+        email: user.email,
+        name: name,
+        role: role,
+        assigned_properties: role === 'manager' ? assignedProperties : []
+      }])
+      .select()
+      .single();
+
+    if (profileError) {
+      console.error("Error creating profile for existing user:", profileError);
+      throw profileError;
+    }
+
+    console.log("Profile created successfully for existing user");
+    return profile;
+  } catch (error) {
+    console.error("Error in createProfileForExistingUser:", error);
+    throw new Error(`Failed to create profile: ${error.message}`);
   }
 }
 
