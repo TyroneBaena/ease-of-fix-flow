@@ -20,3 +20,8 @@ export interface Environment {
   applicationUrl: string;
   ownerEmail: string;
 }
+
+export interface ResendResponseData {
+  id?: string;
+  [key: string]: any;
+}

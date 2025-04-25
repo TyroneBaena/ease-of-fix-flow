@@ -10,24 +10,34 @@ export async function sendInvitationEmail(
   emailHtml: string,
   isTestMode: boolean
 ) {
-  const resend = new Resend(resendApiKey);
-  console.log("Attempting to send email...");
-  console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
-  
-  const { data, error } = await resend.emails.send({
-    from: 'Property Manager <onboarding@resend.dev>',
-    to: [emailRecipient],
-    subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager`,
-    html: isTestMode 
-      ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
-      : emailHtml,
-  });
-
-  if (error) {
-    console.error("Error sending email via Resend:", error);
-    throw error;
+  if (!resendApiKey) {
+    console.error("Missing Resend API key");
+    throw new Error("Email service configuration is missing");
   }
   
-  console.log(`Email sent successfully to ${emailRecipient}, EmailID: ${data?.id}`);
-  return data;
+  try {
+    const resend = new Resend(resendApiKey);
+    console.log("Attempting to send email...");
+    console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
+    
+    const { data, error } = await resend.emails.send({
+      from: 'Property Manager <onboarding@resend.dev>',
+      to: [emailRecipient],
+      subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager`,
+      html: isTestMode 
+        ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
+        : emailHtml,
+    });
+
+    if (error) {
+      console.error("Error sending email via Resend:", error);
+      throw error;
+    }
+    
+    console.log(`Email sent successfully to ${emailRecipient}, EmailID: ${data?.id}`);
+    return data;
+  } catch (error) {
+    console.error("Failed to send email:", error);
+    throw new Error(`Email sending failed: ${error.message || 'Unknown error'}`);
+  }
 }
