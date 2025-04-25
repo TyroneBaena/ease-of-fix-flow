@@ -15,6 +15,16 @@ export async function sendInvitationEmail(
     throw new Error("Email service configuration is missing");
   }
   
+  if (!emailRecipient) {
+    console.error("Missing email recipient");
+    throw new Error("Email recipient is required");
+  }
+  
+  if (!emailHtml) {
+    console.error("Missing email HTML content");
+    throw new Error("Email content is required");
+  }
+  
   try {
     const resend = new Resend(resendApiKey);
     console.log("Attempting to send email...");

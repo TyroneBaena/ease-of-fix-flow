@@ -3,6 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { InviteRequest } from "./types.ts";
 
 export async function findExistingUser(supabaseClient: any, email: string) {
+  if (!email) {
+    console.error("Missing email in findExistingUser");
+    throw new Error("Email is required to check for existing users");
+  }
+  
   console.log(`Searching for existing user with email: ${email}`);
   
   try {
@@ -27,6 +32,11 @@ export async function findExistingUser(supabaseClient: any, email: string) {
 }
 
 export async function updateExistingUser(supabaseClient: any, userId: string, name: string, role: string, assignedProperties: string[] = []) {
+  if (!userId || !name || !role) {
+    console.error("Missing required parameters in updateExistingUser");
+    throw new Error("User ID, name, and role are required to update a user");
+  }
+  
   console.log(`Updating existing user: ${userId}`);
   
   try {
@@ -55,6 +65,11 @@ export async function updateExistingUser(supabaseClient: any, userId: string, na
 }
 
 export async function createNewUser(supabaseClient: any, email: string, name: string, role: string, temporaryPassword: string, assignedProperties: string[] = []) {
+  if (!email || !name || !role || !temporaryPassword) {
+    console.error("Missing required parameters in createNewUser");
+    throw new Error("Email, name, role, and temporaryPassword are required to create a user");
+  }
+  
   console.log(`Creating new user with email: ${email}`);
   
   try {

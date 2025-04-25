@@ -3,11 +3,23 @@ import { InviteRequest, Environment } from "./types.ts";
 import { corsHeaders } from "./cors.ts";
 
 export function validateRequest(body: InviteRequest) {
+  // Check for required fields
+  if (!body) {
+    throw new Error("Request body is empty");
+  }
+
   const { email, name, role } = body;
   
-  if (!email || !name || !role) {
-    console.error("Missing required fields:", { email, name, role });
-    throw new Error("Email, name, and role are required");
+  if (!email) {
+    throw new Error("Email is required");
+  }
+  
+  if (!name) {
+    throw new Error("Name is required");
+  }
+  
+  if (!role) {
+    throw new Error("Role is required");
   }
   
   // Validate email format
@@ -22,8 +34,10 @@ export function validateRequest(body: InviteRequest) {
   }
   
   // For managers, validate assigned properties if provided
-  if (role === 'manager' && body.assignedProperties && !Array.isArray(body.assignedProperties)) {
-    throw new Error("Assigned properties must be an array");
+  if (role === 'manager' && body.assignedProperties) {
+    if (!Array.isArray(body.assignedProperties)) {
+      throw new Error("Assigned properties must be an array");
+    }
   }
 }
 
@@ -51,6 +65,10 @@ export function validateEnvironment(): Environment {
 }
 
 export function cleanApplicationUrl(url: string): string {
+  if (!url) {
+    return '';
+  }
+  
   let cleanUrl = url;
   if (cleanUrl.endsWith('/')) {
     cleanUrl = cleanUrl.slice(0, -1);

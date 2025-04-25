@@ -1,4 +1,5 @@
 
+
 export interface InviteRequest {
   email: string;
   name: string;
@@ -25,3 +26,4 @@ export interface RespondResponseData {
   id?: string;
   [key: string]: any;
 }
+
