@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 import { toast } from 'sonner';
@@ -66,6 +67,12 @@ export const userService = {
       if (inviteError) {
         console.error("Error inviting user:", inviteError);
         throw inviteError;
+      }
+      
+      // Check if the invitation was successful based on the response
+      if (!data.success) {
+        console.log(`Invitation for ${email} failed with message: ${data.message}`);
+        return data as InviteUserResult;
       }
       
       console.log(`Invitation processed for ${email} successfully`);

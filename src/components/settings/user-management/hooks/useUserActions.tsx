@@ -40,6 +40,7 @@ export const useUserActions = (
         console.log("Updating user:", updatedUser);
         await updateUser(updatedUser);
         toast.success(`User ${updatedUser.name} updated successfully`);
+        setIsDialogOpen(false);
       } else {
         console.log("Adding new user:", {
           email: newUser.email,
@@ -51,25 +52,32 @@ export const useUserActions = (
         const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
         console.log("Add user result:", result);
         
-        if (result.emailSent) {
-          if (result.testMode) {
-            toast.success(
-              `User ${newUser.name} created successfully. Test email sent to developer account.`,
-              {
-                description: "To send to real email addresses, verify a domain in Resend.",
-                duration: 8000
-              }
-            );
+        if (result.success) {
+          if (result.emailSent) {
+            if (result.testMode) {
+              toast.success(
+                `User ${newUser.name} created successfully. Test email sent to developer account.`,
+                {
+                  description: "To send to real email addresses, verify a domain in Resend.",
+                  duration: 8000
+                }
+              );
+            } else {
+              toast.success(`Invitation sent to ${newUser.email}`);
+            }
+            setIsDialogOpen(false);
           } else {
-            toast.success(`Invitation sent to ${newUser.email}`);
+            const errorMessage = result.emailError || "Unknown error";
+            console.error("Email sending failed:", errorMessage);
+            toast.error(`User created but invitation email failed to send. ${errorMessage}`);
+            setIsDialogOpen(false);
           }
         } else {
-          const errorMessage = result.emailError || "Unknown error";
-          console.error("Email sending failed:", errorMessage);
-          toast.error(`User created but invitation email failed to send. ${errorMessage}`);
+          // This means the user already exists or another validation error occurred
+          toast.error(result.message || "Failed to invite user");
+          // Do not close dialog so user can correct the email
         }
       }
-      setIsDialogOpen(false);
     } catch (error) {
       console.error("Error saving user:", error);
       toast.error(`Failed to ${isEditMode ? 'update' : 'invite'} user: ${error.message || 'Unknown error'}`);

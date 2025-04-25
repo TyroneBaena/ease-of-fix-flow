@@ -100,12 +100,13 @@ serve(async (req: Request) => {
     
     if (existingUser) {
       console.log(`User with email ${body.email} already exists`);
+      // Important: Return a 200 status with success=false to properly handle this case on the frontend
       return new Response(
         JSON.stringify({ 
           success: false, 
           message: `A user with email ${body.email} already exists. Please use a different email address.`
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
