@@ -61,6 +61,7 @@ export const useUserProvider = () => {
     try {
       setLoading(true);
       const result = await userService.inviteUser(email, name, role, assignedProperties);
+      console.log("Invite user result:", result);
       
       // Only refetch users if we're admin and the invite was successful
       if (isAdmin && result.success) {

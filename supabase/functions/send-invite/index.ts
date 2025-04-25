@@ -7,7 +7,8 @@ import {
   findExistingUser, 
   createNewUser, 
   generateTemporaryPassword,
-  createProfileForExistingUser
+  createProfileForExistingUser,
+  updateExistingUser
 } from "./lib/user-management.ts";
 import { sendInvitationEmail } from "./lib/email-sender.ts";
 import { validateRequest, validateEnvironment, cleanApplicationUrl } from "./lib/validation.ts";
@@ -105,6 +106,16 @@ serve(async (req: Request) => {
       // If user exists but doesn't have a profile, create one
       if (!existingUserResult.hasProfile) {
         try {
+          // Update user metadata in auth.users
+          await updateExistingUser(
+            supabaseClient, 
+            existingUserResult.user.id, 
+            body.name, 
+            body.role, 
+            body.assignedProperties
+          );
+          
+          // Create profile
           await createProfileForExistingUser(
             supabaseClient,
             existingUserResult.user,
@@ -116,7 +127,7 @@ serve(async (req: Request) => {
           return new Response(
             JSON.stringify({ 
               success: true, 
-              message: `Profile created for existing user ${body.email}. You can now log in.`,
+              message: `User account for ${body.email} has been set up successfully. You can now log in.`,
               userId: existingUserResult.user.id
             }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -169,6 +180,16 @@ serve(async (req: Request) => {
             // If the user exists but doesn't have a profile, create one
             if (!retryExistingUser.hasProfile) {
               try {
+                // Update user metadata in auth.users
+                await updateExistingUser(
+                  supabaseClient, 
+                  retryExistingUser.user.id, 
+                  body.name, 
+                  body.role, 
+                  body.assignedProperties
+                );
+                
+                // Create profile
                 await createProfileForExistingUser(
                   supabaseClient,
                   retryExistingUser.user,
@@ -180,7 +201,7 @@ serve(async (req: Request) => {
                 return new Response(
                   JSON.stringify({ 
                     success: true, 
-                    message: `Profile created for existing user ${body.email}. You can now log in.`,
+                    message: `User account for ${body.email} has been set up successfully. You can now log in.`,
                     userId: retryExistingUser.user.id
                   }),
                   { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
