@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
@@ -48,19 +49,24 @@ export const useUserActions = (
           assignedPropertiesCount: newUser.assignedProperties.length
         });
         
-        const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
-        console.log("Add user result:", result);
-        
-        if (result.success) {
-          toast.success(result.message || "User processed successfully");
-          setIsDialogOpen(false);
-        } else {
-          // This means the user already exists or another validation error occurred
-          toast.error(result.message || "Failed to process user");
-          // Do not close dialog on error so user can correct if needed
+        try {
+          const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
+          console.log("Add user result:", result);
+          
+          if (result.success) {
+            toast.success(result.message || "User processed successfully");
+            setIsDialogOpen(false);
+          } else {
+            // This means the user already exists or another validation error occurred
+            toast.error(result.message || "Failed to process user");
+            // Do not close dialog on error so user can correct if needed
+          }
+        } catch (error: any) {
+          console.error("Error adding user:", error);
+          toast.error(`Failed to invite user: ${error.message || 'Unknown error'}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving user:", error);
       toast.error(`Failed to ${isEditMode ? 'update' : 'invite'} user: ${error.message || 'Unknown error'}`);
     } finally {
@@ -78,7 +84,7 @@ export const useUserActions = (
       } else {
         toast.error(`Failed to send password reset: ${result.message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error resetting password:", error);
       toast.error(`Failed to reset password: ${error.message || 'Unknown error'}`);
     } finally {
@@ -105,7 +111,7 @@ export const useUserActions = (
       toast.success("User removed successfully");
       setIsDeleteConfirmOpen(false);
       setUserToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
       toast.error(`Failed to remove user: ${error.message || 'Unknown error'}`);
     } finally {

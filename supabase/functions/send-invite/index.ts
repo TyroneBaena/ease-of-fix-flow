@@ -6,7 +6,8 @@ import { createEmailHtml } from "./lib/email-templates.ts";
 import { 
   findExistingUser, 
   createNewUser, 
-  generateTemporaryPassword 
+  generateTemporaryPassword,
+  createProfileForExistingUser
 } from "./lib/user-management.ts";
 import { sendInvitationEmail } from "./lib/email-sender.ts";
 import { validateRequest, validateEnvironment, cleanApplicationUrl } from "./lib/validation.ts";
@@ -159,6 +160,53 @@ serve(async (req: Request) => {
         );
         console.log(`New user created with ID: ${newUser.id}`);
       } catch (createError) {
+        // Check if the error is because the user already exists (this can happen in race conditions)
+        if (createError.message && createError.message.includes("already exists")) {
+          console.log("User creation failed because user already exists, trying to find the user again");
+          
+          const retryExistingUser = await findExistingUser(supabaseClient, body.email);
+          if (retryExistingUser?.user) {
+            // If the user exists but doesn't have a profile, create one
+            if (!retryExistingUser.hasProfile) {
+              try {
+                await createProfileForExistingUser(
+                  supabaseClient,
+                  retryExistingUser.user,
+                  body.name,
+                  body.role,
+                  body.assignedProperties
+                );
+                
+                return new Response(
+                  JSON.stringify({ 
+                    success: true, 
+                    message: `Profile created for existing user ${body.email}. You can now log in.`,
+                    userId: retryExistingUser.user.id
+                  }),
+                  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+              } catch (profileError) {
+                console.error("Error creating profile for existing user:", profileError);
+                return new Response(
+                  JSON.stringify({ 
+                    success: false, 
+                    message: `Failed to create profile for user: ${profileError.message}`
+                  }),
+                  { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+              }
+            }
+            
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                message: `A user with email ${body.email} already exists. Please use a different email address.`
+              }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+        
         console.error("Failed to create new user:", createError);
         return new Response(
           JSON.stringify({ error: `Failed to create user: ${createError.message}` }),
