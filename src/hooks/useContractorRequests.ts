@@ -72,7 +72,7 @@ export const useContractorRequests = () => {
               priority: item.priority as 'low' | 'medium' | 'high',
               location: item.location,
               site: item.site || item.category,
-              submittedBy: item.submitted_by,
+              submittedBy: item.submitted_by || 'Anonymous',
               propertyId: item.property_id,
               createdAt: item.created_at,
               updatedAt: item.updated_at,

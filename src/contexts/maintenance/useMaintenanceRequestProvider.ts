@@ -35,7 +35,8 @@ export const useMaintenanceRequestProvider = () => {
           ...request,
           site: request.site || request.category || 'Unknown',
           title: request.title || request.issueNature || 'Untitled Request',
-          location: request.location || 'Unknown'
+          location: request.location || 'Unknown',
+          submittedBy: request.submittedBy || 'Anonymous'
         }));
         setRequests(validatedRequests as MaintenanceRequest[]);
       } else {
@@ -48,7 +49,8 @@ export const useMaintenanceRequestProvider = () => {
             ...request,
             site: request.site || request.category || 'Unknown',
             title: request.title || request.issueNature || 'Untitled Request',
-            location: request.location || 'Unknown'
+            location: request.location || 'Unknown',
+            submittedBy: request.submittedBy || 'Anonymous'
           }));
           setRequests(validatedSampleRequests as MaintenanceRequest[]);
         }).catch(err => {
@@ -73,7 +75,8 @@ export const useMaintenanceRequestProvider = () => {
       ...requestData,
       site: requestData.site || requestData.category || 'Unknown',
       title: requestData.title || requestData.issueNature || 'Untitled Request',
-      location: requestData.location || 'Unknown'
+      location: requestData.location || 'Unknown',
+      submittedBy: requestData.submittedBy || 'Anonymous'
     };
     
     const newRequest = await addRequest(requestWithDefaults);

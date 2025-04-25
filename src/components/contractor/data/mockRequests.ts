@@ -1,4 +1,3 @@
-
 import { MaintenanceRequest } from '@/types/maintenance';
 
 export const mockRequests: MaintenanceRequest[] = [
@@ -45,7 +44,8 @@ export const mockRequests: MaintenanceRequest[] = [
     issueNature: 'Leaking Faucet',
     explanation: 'The sink faucet in the staff break room is constantly leaking.',
     reportDate: '2023-04-05',
-    site: 'Break Room'
+    site: 'Break Room',
+    submittedBy: 'Mark Johnson'
   },
   {
     id: 'REQ-2023-003',
@@ -63,7 +63,8 @@ export const mockRequests: MaintenanceRequest[] = [
     issueNature: 'Light Fixtures Replacement',
     explanation: 'Three light fixtures in the reception area need to be replaced.',
     reportDate: '2023-03-28',
-    site: 'Reception Area'
+    site: 'Reception Area',
+    submittedBy: 'Lisa Brown'
   },
   {
     id: 'REQ-2023-004',
@@ -81,7 +82,8 @@ export const mockRequests: MaintenanceRequest[] = [
     issueNature: 'Parking Lot Pothole Repair',
     explanation: 'Large pothole in the staff parking area needs to be filled.',
     reportDate: '2023-04-12',
-    site: 'Parking Lot'
+    site: 'Parking Lot',
+    submittedBy: 'Robert Taylor'
   },
   {
     id: 'REQ-2023-005',
@@ -99,7 +101,8 @@ export const mockRequests: MaintenanceRequest[] = [
     issueNature: 'Waiting Room Chair Repair',
     explanation: 'Two chairs in the waiting room have damaged armrests.',
     reportDate: '2023-04-08',
-    site: 'Waiting Area'
+    site: 'Waiting Area',
+    submittedBy: 'Sarah Johnson'
   },
   {
     id: 'REQ-2023-006',
@@ -117,6 +120,7 @@ export const mockRequests: MaintenanceRequest[] = [
     issueNature: 'Roof Leak Inspection',
     explanation: 'Water stains on ceiling indicating possible roof leak.',
     reportDate: '2023-03-15',
-    site: 'X-ray Room'
+    site: 'X-ray Room',
+    submittedBy: 'Michael Wilson'
   }
 ];

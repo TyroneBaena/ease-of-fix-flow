@@ -40,8 +40,9 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       const title = requestData.title || requestData.issueNature || 'Untitled Request';
       const location = requestData.location || '';
       const site = requestData.site || requestData.category || '';
+      const submittedBy = requestData.submittedBy || currentUser.email || 'Anonymous';
 
-      console.log('Adding maintenance request with data:', { ...requestData, title, location, site });
+      console.log('Adding maintenance request with data:', { ...requestData, title, location, site, submittedBy });
 
       const { data, error } = await supabase
         .from('maintenance_requests')
@@ -60,7 +61,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
           explanation: requestData.explanation || '',
           report_date: requestData.reportDate || new Date().toISOString().split('T')[0],
           site: site,
-          submitted_by: requestData.submittedBy || '',
+          submitted_by: submittedBy,
           status: 'pending'
         })
         .select()
@@ -104,6 +105,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
     const title = data.title || data.issue_nature || 'Untitled Request';
     const location = data.location || '';
     const site = data.site || data.category || '';
+    const submittedBy = data.submitted_by || 'Anonymous';
 
     return {
       id: data.id,
@@ -115,7 +117,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       location: location,
       reportDate: data.report_date || data.created_at?.split('T')[0] || '',
       site: site,
-      submittedBy: data.submitted_by || '',
+      submittedBy: submittedBy,
       status: status,
       title: title,
       description: data.description || data.explanation || '',

@@ -7,7 +7,7 @@ export interface MaintenanceRequest {
   location: string; // Changed from optional to required
   priority?: 'low' | 'medium' | 'high';
   site: string;  // Changed from optional to required
-  submittedBy?: string;
+  submittedBy: string;  // Changed from optional to required
   quote?: string;
   date?: string;
   propertyId?: string;
