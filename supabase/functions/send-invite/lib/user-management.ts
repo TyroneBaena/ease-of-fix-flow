@@ -22,7 +22,7 @@ export async function findExistingUser(supabaseClient: any, email: string) {
 export async function updateExistingUser(supabaseClient: any, userId: string, name: string, role: string, assignedProperties: string[] = []) {
   console.log(`Updating existing user: ${userId}`);
   
-  // Update in auth
+  // Update in auth.users metadata
   const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
     userId,
     {
@@ -43,10 +43,11 @@ export async function updateExistingUser(supabaseClient: any, userId: string, na
 export async function createNewUser(supabaseClient: any, email: string, name: string, role: string, temporaryPassword: string, assignedProperties: string[] = []) {
   console.log(`Creating new user with email: ${email}`);
   
+  // Create user in auth.users first
   const { data: authData, error: createError } = await supabaseClient.auth.admin.createUser({
     email,
     password: temporaryPassword,
-    email_confirm: true, // Auto-confirm the email
+    email_confirm: true,
     user_metadata: {
       name,
       role,
@@ -57,6 +58,35 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   if (createError) {
     console.error("Error creating user:", createError);
     throw createError;
+  }
+
+  // The profiles table trigger should handle creating the profile automatically
+  // But let's verify it exists
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('*')
+    .eq('id', authData.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    console.log("Profile not created by trigger, creating manually");
+    // If trigger didn't work, create profile manually
+    const { error: insertError } = await supabaseClient
+      .from('profiles')
+      .insert([{
+        id: authData.user.id,
+        email: email,
+        name: name,
+        role: role,
+        assigned_properties: role === 'manager' ? assignedProperties : []
+      }]);
+
+    if (insertError) {
+      console.error("Error creating profile:", insertError);
+      // Don't throw here, the auth user is already created
+      // Just log the error and continue
+      console.log("Profile creation failed but auth user exists");
+    }
   }
   
   return authData.user;

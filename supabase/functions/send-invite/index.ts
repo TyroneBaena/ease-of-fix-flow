@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "./lib/cors.ts";
@@ -13,8 +12,6 @@ import {
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 serve(async (req: Request) => {
-  console.log("Invite function called");
-  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -74,49 +71,37 @@ serve(async (req: Request) => {
     const resend = new Resend(resendApiKey);
     console.log("Resend initialized with API key");
     
+    // Check if user already exists but DON'T update them - we want to prevent duplicate accounts
     const existingUser = await findExistingUser(supabaseClient, email);
-    
-    let userId = '';
-    let isNewUser = false;
-    let temporaryPassword = '';
     
     if (existingUser) {
       console.log(`User with email ${email} already exists`);
-      userId = existingUser.id;
-      await updateExistingUser(supabaseClient, userId, name, role, assignedProperties);
-      
-      // Also update the profiles table
-      const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .update({
-          name,
-          email,
-          role,
-          assigned_properties: role === 'manager' ? assignedProperties : [],
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (profileError) {
-        console.error("Error updating profile:", profileError);
-        // Not throwing here, we can continue with just the auth update
-      }
-    } else {
-      isNewUser = true;
-      temporaryPassword = generateTemporaryPassword();
-      try {
-        const newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
-        userId = newUser.id;
-        console.log(`New user created with ID: ${userId}`);
-        
-        // The profile should be created automatically via the trigger we set up
-      } catch (createError) {
-        console.error("Error creating new user:", createError);
-        return new Response(
-          JSON.stringify({ error: `Error creating user: ${createError.message}` }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `A user with email ${email} already exists. Please use a different email address.`
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Always create a new user since we've confirmed one doesn't exist
+    const temporaryPassword = generateTemporaryPassword();
+    let userId = '';
+    
+    try {
+      const newUser = await createNewUser(supabaseClient, email, name, role, temporaryPassword, assignedProperties);
+      userId = newUser.id;
+      console.log(`New user created with ID: ${userId}`);
+    } catch (createError) {
+      console.error("Error creating new user:", createError);
+      return new Response(
+        JSON.stringify({ error: `Error creating user: ${createError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     // Ensure application URL doesn't have trailing slash and doesn't include /login path
@@ -147,7 +132,7 @@ serve(async (req: Request) => {
       role,
       temporaryPassword,
       loginUrl,
-      isNewUser
+      isNewUser: true
     });
     
     // Check if we're in test mode (only can send to owner email)
