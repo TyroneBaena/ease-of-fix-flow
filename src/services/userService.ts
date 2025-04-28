@@ -12,6 +12,7 @@ interface InviteUserResult {
   emailError?: string;
   testMode?: boolean;  // New field to indicate if email was sent in test mode
   testModeInfo?: string; // Additional info about test mode limitations
+  isNewUser?: boolean; // Field to indicate if this is a new user or an update to existing user
 }
 
 export const userService = {

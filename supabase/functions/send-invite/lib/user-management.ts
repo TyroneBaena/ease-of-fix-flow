@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { InviteRequest } from "./types.ts";
 
@@ -43,8 +44,13 @@ export async function findExistingUser(supabaseClient: any, email: string) {
       // Determine if the user has a profile based on the count from the query
       const hasProfile = count !== null && count > 0;
       console.log(`User ${userExists.id} has profile:`, hasProfile);
+      
+      // Check if this is one of our existing users or a placeholder user
+      // Look for a specific metadata marker we'll add for placeholder users
+      const isPlaceholder = userExists.user_metadata?.isPlaceholderUser === true;
+      console.log(`User ${userExists.id} is placeholder:`, isPlaceholder);
 
-      return { user: userExists, hasProfile, exists: true };
+      return { user: userExists, hasProfile, exists: true, isPlaceholder };
     }
     
     console.log("No user found with this email");
@@ -72,6 +78,7 @@ export async function updateExistingUser(supabaseClient: any, userId: string, na
           name,
           role,
           assignedProperties: role === 'manager' ? assignedProperties : [],
+          isPlaceholderUser: false // Mark this as a real user now
         }
       }
     );
@@ -109,6 +116,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
         name,
         role,
         assignedProperties: role === 'manager' ? assignedProperties : [],
+        isPlaceholderUser: false // Mark as a real user from the beginning
       }
     });
     

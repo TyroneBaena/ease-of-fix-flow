@@ -14,6 +14,7 @@ export interface AddUserResult {
   emailError?: string;
   testMode?: boolean;
   testModeInfo?: string;
+  isNewUser?: boolean;
 }
 
 export const useUserProvider = () => {

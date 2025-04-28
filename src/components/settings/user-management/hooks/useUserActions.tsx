@@ -61,7 +61,12 @@ export const useUserActions = (
           console.log("Add user result:", result);
           
           if (result.success) {
-            toast.success(result.message || "User processed successfully");
+            if (result.isNewUser) {
+              toast.success("User created successfully");
+            } else {
+              toast.success(result.message || "User processed successfully");
+            }
+            
             setIsDialogOpen(false);
             
             // For test mode emails, show additional information

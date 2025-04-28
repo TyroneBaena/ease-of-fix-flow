@@ -149,6 +149,21 @@ serve(async (req: Request) => {
       }
     }
     
+    // If user exists but is not a placeholder, return an error
+    if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
+      console.log(`User with email ${body.email} exists with ID ${existingUserResult.user.id} and is not a placeholder`);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `A user with email ${body.email} already exists. Please use a different email address.`,
+          userId: existingUserResult.user.id
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If user exists but is a placeholder OR they need a profile, update them
     if (existingUserResult?.exists) {
       console.log(`User with email ${body.email} exists with ID ${existingUserResult.user.id}`);
       
@@ -179,7 +194,8 @@ serve(async (req: Request) => {
             success: true, 
             message: `User account for ${body.email} has been updated successfully.`,
             userId: existingUserResult.user.id,
-            profileId: profile?.id
+            profileId: profile?.id,
+            isNewUser: false
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -230,47 +246,15 @@ serve(async (req: Request) => {
           console.log("Retry existing user check result:", retryExistingUser?.exists ? "User found on retry" : "User still not found on retry");
           
           if (retryExistingUser?.exists) {
-            // If the user exists, create or update profile
-            try {
-              console.log(`Creating/updating profile for existing user on retry ${retryExistingUser.user.id}`);
-              
-              // Update user metadata in auth.users
-              await updateExistingUser(
-                supabaseClient, 
-                retryExistingUser.user.id, 
-                body.name, 
-                body.role, 
-                body.assignedProperties
-              );
-              
-              // Create or update profile
-              const profile = await createProfileForExistingUser(
-                supabaseClient,
-                retryExistingUser.user,
-                body.name,
-                body.role,
-                body.assignedProperties
-              );
-              
-              return new Response(
-                JSON.stringify({ 
-                  success: true, 
-                  message: `User account for ${body.email} has been updated successfully.`,
-                  userId: retryExistingUser.user.id,
-                  profileId: profile?.id
-                }),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              );
-            } catch (profileError) {
-              console.error("Error managing profile for existing user:", profileError);
-              return new Response(
-                JSON.stringify({ 
-                  success: false, 
-                  message: `Failed to complete user setup.`
-                }),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              );
-            }
+            // If the user exists, return an error indicating duplicate email
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                message: `A user with email ${body.email} already exists. Please use a different email address.`,
+                userId: retryExistingUser.user.id
+              }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
           }
         }
         
@@ -335,6 +319,7 @@ serve(async (req: Request) => {
             userId: newUser.id,
             emailSent: true,
             emailId: emailData?.id,
+            isNewUser: true,
             testMode: isTestMode,
             testModeInfo: isTestMode 
               ? "In test mode: Email was sent to the owner email instead of the target email. To send emails to other addresses, verify a domain at resend.com/domains." 
@@ -350,6 +335,7 @@ serve(async (req: Request) => {
             message: "User created but email failed", 
             userId: newUser.id,
             emailSent: false,
+            isNewUser: true,
             emailError: emailError.message || "Unknown error",
             emailTip: "To send emails to addresses other than your own, verify a domain at resend.com/domains"
           }),
