@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -67,27 +66,9 @@ export const useUserProvider = () => {
       // Normalize email
       const normalizedEmail = email.toLowerCase().trim();
       
-      // Check for existing users with this email in our current list
-      const emailExists = users.some(user => user.email.toLowerCase() === normalizedEmail);
-      if (emailExists) {
-        console.log(`Found existing user with email ${normalizedEmail} in current users list`);
-        return {
-          success: false,
-          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          email: normalizedEmail
-        };
-      }
-      
-      // First check if user exists before attempting to invite
-      const userExists = await userService.checkUserExists(normalizedEmail);
-      if (userExists) {
-        console.log(`User with email ${normalizedEmail} already exists according to checkUserExists`);
-        return {
-          success: false,
-          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          email: normalizedEmail
-        };
-      }
+      // We'll let the backend handle the existence check to avoid race conditions
+      // and have a single source of truth
+      console.log("Sending invitation directly to backend service");
       
       const result = await userService.inviteUser(normalizedEmail, name, role, assignedProperties);
       console.log("Invite user result:", result);

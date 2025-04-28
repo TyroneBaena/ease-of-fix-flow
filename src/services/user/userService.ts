@@ -1,4 +1,3 @@
-
 import { User, UserRole } from '@/types/user';
 import { InviteUserResult, UserService } from './types';
 import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQueries';
@@ -32,16 +31,6 @@ export const userService: UserService = {
       
       const normalizedEmail = email.toLowerCase().trim();
       
-      const userExists = await checkExistingUser(normalizedEmail);
-      if (userExists) {
-        console.log(`User with email ${normalizedEmail} already exists in our system`);
-        return {
-          success: false,
-          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          email: normalizedEmail
-        };
-      }
-      
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
           email: normalizedEmail,
@@ -54,12 +43,26 @@ export const userService: UserService = {
       
       if (error) {
         console.error("Error inviting user:", error);
+        if (error.message?.includes('already exists')) {
+          return {
+            success: false, 
+            message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+            email: normalizedEmail
+          };
+        }
         throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
       }
       
       return data as InviteUserResult;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in inviteUser:", error);
+      if (typeof error === 'object' && error.message?.includes('already exists')) {
+        return {
+          success: false,
+          message: `A user with email ${email.toLowerCase().trim()} already exists. Please use a different email address.`,
+          email: email.toLowerCase().trim()
+        };
+      }
       throw error;
     }
   },

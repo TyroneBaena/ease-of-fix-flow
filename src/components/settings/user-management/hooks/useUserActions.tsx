@@ -80,6 +80,7 @@ export const useUserActions = (
             await fetchUsers();
           } else {
             // This message is for failures like "user already exists"
+            console.error("User creation failed:", result.message);
             toast.error(result.message || "Failed to process user");
             // Do not close dialog on error so user can correct if needed
           }

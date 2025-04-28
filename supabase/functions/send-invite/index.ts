@@ -43,14 +43,15 @@ serve(async (req: Request) => {
     
     // Handle existing non-placeholder user
     if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
+      console.log(`User with email ${normalizedEmail} already exists, sending error response`);
       return new Response(
         JSON.stringify({
           success: false,
           message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          userId: existingUserResult.user.id,
+          userId: existingUserResult.user?.id,
           email: normalizedEmail
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
@@ -104,8 +105,19 @@ serve(async (req: Request) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Critical invitation error:", error);
+    // Check if it's a user already exists error
+    if (error.message?.includes('already exists')) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: error.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
