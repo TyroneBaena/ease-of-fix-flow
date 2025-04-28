@@ -53,7 +53,7 @@ export const userService = {
       console.log(`Inviting new user: ${email}, role: ${role}`);
       
       // Call the send-invite edge function
-      const { data, error: inviteError } = await supabase.functions.invoke('send-invite', {
+      const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
           email,
           name,
@@ -64,9 +64,9 @@ export const userService = {
       
       console.log("Invite function response:", data);
       
-      if (inviteError) {
-        console.error("Error inviting user:", inviteError);
-        throw inviteError;
+      if (error) {
+        console.error("Error inviting user:", error);
+        throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
       }
       
       if (!data || typeof data !== 'object') {

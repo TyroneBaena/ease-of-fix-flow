@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { InviteRequest } from "./types.ts";
 
@@ -12,7 +13,7 @@ export async function findExistingUser(supabaseClient: any, email: string) {
   try {
     const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
       filter: {
-        email: email
+        email: email.toLowerCase().trim()  // Normalize email to lowercase
       }
     });
     
@@ -97,12 +98,15 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     throw new Error("Email, name, role, and temporaryPassword are required to create a user");
   }
   
-  console.log(`Creating new user with email: ${email}`);
+  // Normalize email to lowercase
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  console.log(`Creating new user with email: ${normalizedEmail}`);
   
   try {
     // Create user in auth.users first
     const { data: authData, error: createError } = await supabaseClient.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password: temporaryPassword,
       email_confirm: true,
       user_metadata: {
@@ -126,7 +130,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
         .from('profiles')
         .insert([{
           id: authData.user.id,
-          email: email,
+          email: normalizedEmail,
           name: name,
           role: role,
           assigned_properties: role === 'manager' ? assignedProperties : []
@@ -163,7 +167,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
           .from('profiles')
           .upsert([{
             id: authData.user.id,
-            email: email,
+            email: normalizedEmail,
             name: name,
             role: role,
             assigned_properties: role === 'manager' ? assignedProperties : []
@@ -196,7 +200,7 @@ export async function createProfileForExistingUser(supabaseClient: any, user: an
       .from('profiles')
       .insert([{
         id: user.id,
-        email: user.email,
+        email: user.email.toLowerCase().trim(),
         name: name,
         role: role,
         assigned_properties: role === 'manager' ? assignedProperties : []

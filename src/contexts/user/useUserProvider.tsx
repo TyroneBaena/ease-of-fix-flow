@@ -60,6 +60,8 @@ export const useUserProvider = () => {
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
       setLoading(true);
+      console.log("Starting user invite process for email:", email);
+      
       const result = await userService.inviteUser(email, name, role, assignedProperties);
       console.log("Invite user result:", result);
       
@@ -71,9 +73,12 @@ export const useUserProvider = () => {
       }
       
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding user:', error);
-      throw error;
+      return {
+        success: false,
+        message: `Failed to process invitation: ${error.message || "Unknown error"}`,
+      };
     } finally {
       setLoading(false);
     }

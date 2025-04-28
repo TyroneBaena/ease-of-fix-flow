@@ -36,8 +36,11 @@ serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Supabase credentials are not properly configured");
       return new Response(
-        JSON.stringify({ error: "Supabase credentials are not properly configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          message: "Internal configuration error: Supabase credentials are not properly configured" 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -56,8 +59,11 @@ serve(async (req: Request) => {
     } catch (parseError) {
       console.error("Failed to parse request body:", parseError);
       return new Response(
-        JSON.stringify({ error: "Invalid request body", details: parseError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          message: "Invalid request format" 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -68,8 +74,11 @@ serve(async (req: Request) => {
     } catch (validationError) {
       console.error("Request validation failed:", validationError.message);
       return new Response(
-        JSON.stringify({ error: validationError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          message: validationError.message 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -80,8 +89,11 @@ serve(async (req: Request) => {
     } catch (envError) {
       console.error("Environment validation failed:", envError.message);
       return new Response(
-        JSON.stringify({ error: envError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          message: "Server configuration error"
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -96,8 +108,11 @@ serve(async (req: Request) => {
     } catch (userCheckError) {
       console.error("Error checking for existing user:", userCheckError);
       return new Response(
-        JSON.stringify({ error: `Error checking for existing user: ${userCheckError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          message: "Error processing invitation request" 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -130,7 +145,7 @@ serve(async (req: Request) => {
           return new Response(
             JSON.stringify({ 
               success: true, 
-              message: `User account for ${body.email} has been set up successfully. You can now log in.`,
+              message: `User account for ${body.email} has been set up successfully.`,
               userId: existingUserResult.user.id
             }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -140,9 +155,9 @@ serve(async (req: Request) => {
           return new Response(
             JSON.stringify({ 
               success: false, 
-              message: `Failed to create profile for user: ${profileError.message}`
+              message: `Failed to complete user setup.`
             }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
       }
@@ -209,7 +224,7 @@ serve(async (req: Request) => {
                 return new Response(
                   JSON.stringify({ 
                     success: true, 
-                    message: `User account for ${body.email} has been set up successfully. You can now log in.`,
+                    message: `User account for ${body.email} has been set up successfully.`,
                     userId: retryExistingUser.user.id
                   }),
                   { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -219,9 +234,9 @@ serve(async (req: Request) => {
                 return new Response(
                   JSON.stringify({ 
                     success: false, 
-                    message: `Failed to create profile for user: ${profileError.message}`
+                    message: `Failed to complete user setup.`
                   }),
-                  { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
               }
             }
@@ -239,8 +254,11 @@ serve(async (req: Request) => {
         
         console.error("Failed to create new user:", createError);
         return new Response(
-          JSON.stringify({ error: `Failed to create user: ${createError.message}` }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            success: false, 
+            message: `Failed to create user: ${createError.message}` 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
@@ -252,8 +270,11 @@ serve(async (req: Request) => {
       if (!loginUrl || loginUrl.trim() === '') {
         console.error("Invalid login URL");
         return new Response(
-          JSON.stringify({ error: "Login URL is not configured correctly" }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            success: false, 
+            message: "Server configuration issue with login URL" 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
@@ -316,15 +337,21 @@ serve(async (req: Request) => {
     } catch (userCreationError) {
       console.error("Error in user creation workflow:", userCreationError);
       return new Response(
-        JSON.stringify({ error: `Failed to process invitation: ${userCreationError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          message: `Failed to process invitation.` 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
     console.error("Critical invitation error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error occurred" }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: false, 
+        message: "An unexpected error occurred"
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
