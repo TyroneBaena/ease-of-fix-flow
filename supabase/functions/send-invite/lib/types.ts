@@ -1,5 +1,3 @@
-
-
 export interface InviteRequest {
   email: string;
   name: string;
@@ -27,3 +25,23 @@ export interface RespondResponseData {
   [key: string]: any;
 }
 
+export interface UserCheckResult {
+  exists: boolean;
+  user?: any;
+  hasProfile?: boolean;
+  isPlaceholder?: boolean;
+  email?: string;
+  profile?: any;
+}
+
+export interface InviteResponse {
+  success: boolean;
+  message: string;
+  userId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+  testMode?: boolean;
+  testModeInfo?: string;
+  isNewUser?: boolean;
+  email?: string;
+}
