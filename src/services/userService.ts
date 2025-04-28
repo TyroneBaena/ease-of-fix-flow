@@ -50,6 +50,38 @@ export const userService = {
     }
   },
   
+  // Check if user with email exists before inviting
+  async checkUserExists(email: string): Promise<boolean> {
+    try {
+      console.log(`Checking if user exists with email: ${email}`);
+      
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Check in profiles table which is more reliable for our app
+      const { data: profiles, error: profilesError, count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .ilike('email', normalizedEmail);
+      
+      if (profilesError) {
+        console.error("Error checking for existing user in profiles:", profilesError);
+        // Continue to try auth method if profiles check fails
+      } else if (count && count > 0) {
+        console.log(`Found ${count} existing profiles with email ${normalizedEmail}`);
+        return true;
+      }
+      
+      // No matching profile found
+      console.log(`No existing profile found with email ${normalizedEmail}`);
+      return false;
+    } catch (error) {
+      console.error("Error in checkUserExists:", error);
+      // If there's an error checking, we'll treat it as if the user doesn't exist
+      return false;
+    }
+  },
+  
   // Invite new user (admin only)
   async inviteUser(email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<InviteUserResult> {
     try {
@@ -58,13 +90,25 @@ export const userService = {
       // Normalize email
       const normalizedEmail = email.toLowerCase().trim();
       
+      // Add a check before calling the edge function to prevent unnecessary function calls
+      const userExists = await this.checkUserExists(normalizedEmail);
+      if (userExists) {
+        console.log(`User with email ${normalizedEmail} already exists in our system`);
+        return {
+          success: false,
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          email: normalizedEmail
+        };
+      }
+      
       // Call the send-invite edge function
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
           email: normalizedEmail,
           name,
           role,
-          assignedProperties: role === 'manager' ? assignedProperties : []
+          assignedProperties: role === 'manager' ? assignedProperties : [],
+          bypassExistingCheck: false // New flag to indicate whether to bypass the existing user check
         }
       });
       

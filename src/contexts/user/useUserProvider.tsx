@@ -68,9 +68,20 @@ export const useUserProvider = () => {
       const normalizedEmail = email.toLowerCase().trim();
       
       // Check for existing users with this email in our current list
-      const existingUser = users.find(user => user.email.toLowerCase() === normalizedEmail);
-      if (existingUser) {
+      const emailExists = users.some(user => user.email.toLowerCase() === normalizedEmail);
+      if (emailExists) {
         console.log(`Found existing user with email ${normalizedEmail} in current users list`);
+        return {
+          success: false,
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          email: normalizedEmail
+        };
+      }
+      
+      // First check if user exists before attempting to invite
+      const userExists = await userService.checkUserExists(normalizedEmail);
+      if (userExists) {
+        console.log(`User with email ${normalizedEmail} already exists according to checkUserExists`);
         return {
           success: false,
           message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,

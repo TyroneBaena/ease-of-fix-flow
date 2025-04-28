@@ -14,7 +14,32 @@ export async function findExistingUser(supabaseClient: any, email: string) {
   console.log(`Searching for existing user with email: ${normalizedEmail}`);
   
   try {
-    // First check using the admin API for most reliable results
+    // First check in profiles table which is more reliable for our app
+    const { data: existingProfiles, error: profilesError, count } = await supabaseClient
+      .from('profiles')
+      .select('*', { count: 'exact' })
+      .ilike('email', normalizedEmail);
+      
+    if (!profilesError && count && count > 0) {
+      console.log(`Found ${count} existing profiles with email ${normalizedEmail} in profiles table`);
+      
+      // Get the auth user data for this profile
+      const profileUserId = existingProfiles[0].id;
+      const { data: authUser, error: authError } = await supabaseClient.auth.admin.getUserById(profileUserId);
+      
+      if (!authError && authUser) {
+        return { 
+          user: authUser.user, 
+          hasProfile: true, 
+          exists: true, 
+          isPlaceholder: false,
+          email: normalizedEmail,
+          profile: existingProfiles[0]
+        };
+      }
+    }
+    
+    // Then check using the admin API as fallback
     const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
       filter: {
         email: normalizedEmail
@@ -55,7 +80,8 @@ export async function findExistingUser(supabaseClient: any, email: string) {
         hasProfile, 
         exists: true, 
         isPlaceholder,
-        email: normalizedEmail 
+        email: normalizedEmail,
+        profile: hasProfile && profile ? profile[0] : null
       };
     }
     
@@ -114,9 +140,9 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   
   try {
     // Double check that user doesn't exist before creating
-    const { exists } = await findExistingUser(supabaseClient, normalizedEmail);
+    const existingCheck = await findExistingUser(supabaseClient, normalizedEmail);
     
-    if (exists) {
+    if (existingCheck.exists) {
       throw new Error(`A user with email ${normalizedEmail} already exists`);
     }
     

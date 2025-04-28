@@ -15,6 +15,7 @@ export const useUserManagement = () => {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [ready, setReady] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
   
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -73,6 +74,7 @@ export const useUserManagement = () => {
       setFetchError(null);
       await fetchUsersFromContext();
       setFetchedOnce(true);
+      setLastRefreshTime(Date.now());
     } catch (error) {
       console.error("Error fetching users:", error);
       setFetchError(error as Error);
@@ -82,18 +84,26 @@ export const useUserManagement = () => {
     }
   }, [isAdmin, fetchUsersFromContext]);
 
-  // Fetch users when component mounts
+  // Fetch users when component mounts or when needed
   useEffect(() => {
     let isMounted = true;
     
-    if (isAdmin && !fetchedOnce && !isLoadingUsers) {
+    const shouldFetch = isAdmin && (
+      !fetchedOnce || 
+      (Date.now() - lastRefreshTime > 60000) // Refresh if data is older than 1 minute
+    ); 
+    
+    if (shouldFetch && !isLoadingUsers) {
       fetchUsers().then(() => {
-        if (isMounted) setFetchedOnce(true);
+        if (isMounted) {
+          setFetchedOnce(true);
+          setLastRefreshTime(Date.now());
+        }
       });
     }
     
     return () => { isMounted = false };
-  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
+  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers, lastRefreshTime]);
 
   // Better loading state management with retries
   useEffect(() => {
@@ -136,12 +146,25 @@ export const useUserManagement = () => {
     }
   }, [isDialogOpen, isAdmin, fetchedOnce, fetchUsers]);
 
+  // Force a refresh occasionally in case we miss updates
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const periodicRefresh = setInterval(() => {
+      if (!isLoadingUsers && !isDialogOpen) {
+        console.log("UserManagement: Periodic refresh");
+        fetchUsers();
+      }
+    }, 60000); // Refresh every minute
+    
+    return () => clearInterval(periodicRefresh);
+  }, [isAdmin, isLoadingUsers, isDialogOpen, fetchUsers]);
+
   return {
     users,
     properties,
     currentUser,
     isAdmin,
-    // Use the combined loading state
     isLoading: (isLoading || isLoadingUsers || !ready) && isAdmin,
     fetchError,
     isDialogOpen,

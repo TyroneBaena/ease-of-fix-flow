@@ -115,6 +115,27 @@ serve(async (req: Request) => {
     
     // Check for existing user with retry mechanism
     console.log(`Checking if user with email ${normalizedEmail} already exists`);
+    
+    // NEW: Check in profiles table first, which is more reliable for our app
+    const { data: existingProfiles, error: profilesError, count } = await supabaseClient
+      .from('profiles')
+      .select('*', { count: 'exact' })
+      .ilike('email', normalizedEmail);
+      
+    if (!profilesError && count && count > 0) {
+      console.log(`Found ${count} existing profiles with email ${normalizedEmail}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          userId: existingProfiles?.[0]?.id,
+          email: normalizedEmail
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Additional check directly in auth.users table using Supabase admin API
     let existingUserResult = null;
     let retryCount = 0;
     const maxRetries = 2;
