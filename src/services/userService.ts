@@ -69,13 +69,18 @@ export const userService = {
         throw inviteError;
       }
       
+      if (!data || typeof data !== 'object') {
+        console.error("Invalid response from send-invite function:", data);
+        throw new Error("Invalid response from invitation service");
+      }
+      
       // Check if the invitation was successful based on the response
       if (!data.success) {
         console.log(`Invitation for ${email} failed with message: ${data.message}`);
-        return data as InviteUserResult;
+      } else {
+        console.log(`Invitation processed for ${email} successfully`);
       }
       
-      console.log(`Invitation processed for ${email} successfully`);
       return data as InviteUserResult;
     } catch (error) {
       console.error("Error in inviteUser:", error);

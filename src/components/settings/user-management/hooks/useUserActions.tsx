@@ -56,6 +56,13 @@ export const useUserActions = (
           if (result.success) {
             toast.success(result.message || "User processed successfully");
             setIsDialogOpen(false);
+            
+            // For test mode emails, show additional information
+            if (result.testMode && result.testModeInfo) {
+              setTimeout(() => {
+                toast.info(result.testModeInfo);
+              }, 1000);
+            }
           } else {
             // This means the user already exists or another validation error occurred
             toast.error(result.message || "Failed to process user");

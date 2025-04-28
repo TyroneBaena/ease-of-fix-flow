@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { InviteRequest } from "./types.ts";
 
@@ -22,24 +21,34 @@ export async function findExistingUser(supabaseClient: any, email: string) {
       throw searchError;
     }
     
-    const userExists = existingUsers?.users?.length > 0 ? existingUsers.users[0] : null;
-    console.log(`User search result: ${userExists ? 'User exists' : 'User does not exist'}`);
+    // Log detailed information about the search result for debugging
+    console.log(`User search result:`, existingUsers?.users?.length > 0 
+      ? `User exists with ID ${existingUsers.users[0].id}` 
+      : 'User does not exist');
 
     // If user exists, check if they have a profile
-    if (userExists) {
-      const { data: profile, error: profileError } = await supabaseClient
+    if (existingUsers?.users?.length > 0) {
+      const userExists = existingUsers.users[0];
+      
+      // Check for profile explicitly
+      const { data: profile, error: profileError, count } = await supabaseClient
         .from('profiles')
-        .select('*')
-        .eq('id', userExists.id)
-        .single();
+        .select('*', { count: 'exact' })
+        .eq('id', userExists.id);
 
-      if (profileError || !profile) {
-        console.log("No profile found for existing user, will create one");
-        return { user: userExists, hasProfile: false };
+      // Log detailed profile check information
+      if (profileError) {
+        console.log(`Profile check error for user ${userExists.id}:`, profileError);
+      } else {
+        console.log(`Profile check for user ${userExists.id}:`, 
+          count && count > 0 ? `Found ${count} profiles` : 'No profile found');
       }
 
-      console.log("User exists and has a profile");
-      return { user: userExists, hasProfile: true };
+      // Determine if the user has a profile based on the count from the query
+      const hasProfile = count !== null && count > 0;
+      console.log(`User ${userExists.id} has profile:`, hasProfile);
+
+      return { user: userExists, hasProfile };
     }
 
     return null;

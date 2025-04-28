@@ -92,6 +92,7 @@ serve(async (req: Request) => {
     let existingUserResult;
     try {
       existingUserResult = await findExistingUser(supabaseClient, body.email);
+      console.log("Existing user check result:", JSON.stringify(existingUserResult, null, 2));
     } catch (userCheckError) {
       console.error("Error checking for existing user:", userCheckError);
       return new Response(
@@ -106,6 +107,8 @@ serve(async (req: Request) => {
       // If user exists but doesn't have a profile, create one
       if (!existingUserResult.hasProfile) {
         try {
+          console.log(`Creating profile for existing user ${existingUserResult.user.id}`);
+          
           // Update user metadata in auth.users
           await updateExistingUser(
             supabaseClient, 
@@ -145,6 +148,7 @@ serve(async (req: Request) => {
       }
 
       // If user exists and has a profile, return appropriate message
+      console.log(`User ${body.email} already exists and has a profile`);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -176,10 +180,14 @@ serve(async (req: Request) => {
           console.log("User creation failed because user already exists, trying to find the user again");
           
           const retryExistingUser = await findExistingUser(supabaseClient, body.email);
+          console.log("Retry existing user check result:", JSON.stringify(retryExistingUser, null, 2));
+          
           if (retryExistingUser?.user) {
             // If the user exists but doesn't have a profile, create one
             if (!retryExistingUser.hasProfile) {
               try {
+                console.log(`Creating profile for existing user on retry ${retryExistingUser.user.id}`);
+                
                 // Update user metadata in auth.users
                 await updateExistingUser(
                   supabaseClient, 
@@ -218,6 +226,7 @@ serve(async (req: Request) => {
               }
             }
             
+            console.log(`User ${body.email} already exists and has a profile (detected on retry)`);
             return new Response(
               JSON.stringify({ 
                 success: false, 
