@@ -111,16 +111,17 @@ serve(async (req: Request) => {
     }
     
     const { resendApiKey, applicationUrl, ownerEmail } = envConfig;
+    const normalizedEmail = body.email.toLowerCase().trim();
     
     // Check for existing user with retry mechanism
-    console.log(`Checking if user with email ${body.email} already exists`);
+    console.log(`Checking if user with email ${normalizedEmail} already exists`);
     let existingUserResult = null;
     let retryCount = 0;
     const maxRetries = 2;
 
     while (retryCount <= maxRetries) {
       try {
-        existingUserResult = await findExistingUser(supabaseClient, body.email);
+        existingUserResult = await findExistingUser(supabaseClient, normalizedEmail);
         console.log(`Attempt ${retryCount + 1}: Existing user check result:`, existingUserResult?.exists ? "User found" : "User not found");
         
         // If we found a result or definitely confirmed no user exists, break the loop
@@ -151,13 +152,14 @@ serve(async (req: Request) => {
     
     // If user exists but is not a placeholder, return an error
     if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
-      console.log(`User with email ${body.email} exists with ID ${existingUserResult.user.id} and is not a placeholder`);
+      console.log(`User with email ${normalizedEmail} exists with ID ${existingUserResult.user.id} and is not a placeholder`);
       
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: `A user with email ${body.email} already exists. Please use a different email address.`,
-          userId: existingUserResult.user.id
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          userId: existingUserResult.user.id,
+          email: normalizedEmail
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -165,7 +167,7 @@ serve(async (req: Request) => {
 
     // If user exists but is a placeholder OR they need a profile, update them
     if (existingUserResult?.exists) {
-      console.log(`User with email ${body.email} exists with ID ${existingUserResult.user.id}`);
+      console.log(`User with email ${normalizedEmail} exists with ID ${existingUserResult.user.id}`);
       
       // If user exists but doesn't have a profile, create or update one
       try {
@@ -192,10 +194,11 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({ 
             success: true, 
-            message: `User account for ${body.email} has been updated successfully.`,
+            message: `User account for ${normalizedEmail} has been updated successfully.`,
             userId: existingUserResult.user.id,
             profileId: profile?.id,
-            isNewUser: false
+            isNewUser: false,
+            email: normalizedEmail
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -204,7 +207,7 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            message: `Failed to complete user setup.`
+            message: `Failed to complete user setup.` 
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -220,7 +223,7 @@ serve(async (req: Request) => {
       try {
         newUser = await createNewUser(
           supabaseClient, 
-          body.email, 
+          normalizedEmail, 
           body.name, 
           body.role, 
           temporaryPassword, 
@@ -242,7 +245,7 @@ serve(async (req: Request) => {
           // Wait a moment for potential eventual consistency
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-          const retryExistingUser = await findExistingUser(supabaseClient, body.email);
+          const retryExistingUser = await findExistingUser(supabaseClient, normalizedEmail);
           console.log("Retry existing user check result:", retryExistingUser?.exists ? "User found on retry" : "User still not found on retry");
           
           if (retryExistingUser?.exists) {
@@ -250,8 +253,9 @@ serve(async (req: Request) => {
             return new Response(
               JSON.stringify({ 
                 success: false, 
-                message: `A user with email ${body.email} already exists. Please use a different email address.`,
-                userId: retryExistingUser.user.id
+                message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+                userId: retryExistingUser.user.id,
+                email: normalizedEmail
               }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
@@ -285,7 +289,7 @@ serve(async (req: Request) => {
       }
       
       const emailHtml = createEmailHtml({
-        to: body.email,
+        to: normalizedEmail,
         name: body.name,
         role: body.role,
         temporaryPassword,
@@ -294,8 +298,8 @@ serve(async (req: Request) => {
       });
       
       // Determine email recipient based on test mode
-      const emailRecipient = body.email === ownerEmail ? body.email : ownerEmail;
-      const isTestMode = body.email !== ownerEmail;
+      const emailRecipient = normalizedEmail === ownerEmail ? normalizedEmail : ownerEmail;
+      const isTestMode = normalizedEmail !== ownerEmail;
       
       console.log(`Sending email in ${isTestMode ? 'test mode' : 'production mode'}`);
       console.log(`Email will be sent to ${emailRecipient}`);
@@ -305,7 +309,7 @@ serve(async (req: Request) => {
         const emailData = await sendInvitationEmail(
           resendApiKey,
           emailRecipient,
-          body.email,
+          normalizedEmail,
           emailHtml,
           isTestMode
         );
@@ -320,6 +324,7 @@ serve(async (req: Request) => {
             emailSent: true,
             emailId: emailData?.id,
             isNewUser: true,
+            email: normalizedEmail,
             testMode: isTestMode,
             testModeInfo: isTestMode 
               ? "In test mode: Email was sent to the owner email instead of the target email. To send emails to other addresses, verify a domain at resend.com/domains." 
@@ -336,6 +341,7 @@ serve(async (req: Request) => {
             userId: newUser.id,
             emailSent: false,
             isNewUser: true,
+            email: normalizedEmail,
             emailError: emailError.message || "Unknown error",
             emailTip: "To send emails to addresses other than your own, verify a domain at resend.com/domains"
           }),

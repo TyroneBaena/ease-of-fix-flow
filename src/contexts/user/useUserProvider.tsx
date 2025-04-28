@@ -15,6 +15,7 @@ export interface AddUserResult {
   testMode?: boolean;
   testModeInfo?: string;
   isNewUser?: boolean;
+  email?: string;
 }
 
 export const useUserProvider = () => {
@@ -65,6 +66,17 @@ export const useUserProvider = () => {
       
       // Normalize email
       const normalizedEmail = email.toLowerCase().trim();
+      
+      // Check for existing users with this email in our current list
+      const existingUser = users.find(user => user.email.toLowerCase() === normalizedEmail);
+      if (existingUser) {
+        console.log(`Found existing user with email ${normalizedEmail} in current users list`);
+        return {
+          success: false,
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          email: normalizedEmail
+        };
+      }
       
       const result = await userService.inviteUser(normalizedEmail, name, role, assignedProperties);
       console.log("Invite user result:", result);

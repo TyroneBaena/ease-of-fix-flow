@@ -30,7 +30,7 @@ export async function findExistingUser(supabaseClient: any, email: string) {
     console.log(`User search result from admin API:`, existingUsers?.users?.length > 0 
       ? `User exists with ID ${existingUsers.users[0].id}` 
       : 'User does not exist');
-
+    
     // If user exists, check if they have a profile
     if (existingUsers?.users?.length > 0) {
       const userExists = existingUsers.users[0];
@@ -50,7 +50,13 @@ export async function findExistingUser(supabaseClient: any, email: string) {
       const isPlaceholder = userExists.user_metadata?.isPlaceholderUser === true;
       console.log(`User ${userExists.id} is placeholder:`, isPlaceholder);
 
-      return { user: userExists, hasProfile, exists: true, isPlaceholder };
+      return { 
+        user: userExists, 
+        hasProfile, 
+        exists: true, 
+        isPlaceholder,
+        email: normalizedEmail 
+      };
     }
     
     console.log("No user found with this email");
@@ -107,6 +113,13 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   console.log(`Creating new user with email: ${normalizedEmail}`);
   
   try {
+    // Double check that user doesn't exist before creating
+    const { exists } = await findExistingUser(supabaseClient, normalizedEmail);
+    
+    if (exists) {
+      throw new Error(`A user with email ${normalizedEmail} already exists`);
+    }
+    
     // Create user in auth.users first
     const { data: authData, error: createError } = await supabaseClient.auth.admin.createUser({
       email: normalizedEmail,

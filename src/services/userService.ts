@@ -10,9 +10,10 @@ interface InviteUserResult {
   userId?: string;
   emailSent?: boolean;
   emailError?: string;
-  testMode?: boolean;  // New field to indicate if email was sent in test mode
+  testMode?: boolean;  // Field to indicate if email was sent in test mode
   testModeInfo?: string; // Additional info about test mode limitations
   isNewUser?: boolean; // Field to indicate if this is a new user or an update to existing user
+  email?: string;
 }
 
 export const userService = {
@@ -81,9 +82,9 @@ export const userService = {
       
       // Check if the invitation was successful based on the response
       if (!data.success) {
-        console.log(`Invitation for ${email} failed with message: ${data.message}`);
+        console.log(`Invitation for ${normalizedEmail} failed with message: ${data.message}`);
       } else {
-        console.log(`Invitation processed for ${email} successfully`);
+        console.log(`Invitation processed for ${normalizedEmail} successfully`);
       }
       
       return data as InviteUserResult;

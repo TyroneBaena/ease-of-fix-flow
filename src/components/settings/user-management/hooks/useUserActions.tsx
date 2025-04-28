@@ -129,6 +129,9 @@ export const useUserActions = (
       toast.success("User removed successfully");
       setIsDeleteConfirmOpen(false);
       setUserToDelete(null);
+      
+      // Update current page if needed after deletion
+      await fetchUsers();
     } catch (error: any) {
       console.error("Error deleting user:", error);
       toast.error(`Failed to remove user: ${error.message || 'Unknown error'}`);
