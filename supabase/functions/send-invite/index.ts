@@ -121,7 +121,7 @@ serve(async (req: Request) => {
     while (retryCount <= maxRetries) {
       try {
         existingUserResult = await findExistingUser(supabaseClient, body.email);
-        console.log(`Attempt ${retryCount + 1}: Existing user check result:`, existingUserResult ? "User found" : "User not found");
+        console.log(`Attempt ${retryCount + 1}: Existing user check result:`, existingUserResult?.exists ? "User found" : "User not found");
         
         // If we found a result or definitely confirmed no user exists, break the loop
         if (existingUserResult !== null || retryCount === maxRetries) {
@@ -149,64 +149,53 @@ serve(async (req: Request) => {
       }
     }
     
-    if (existingUserResult?.user) {
+    if (existingUserResult?.exists) {
       console.log(`User with email ${body.email} exists with ID ${existingUserResult.user.id}`);
       
-      // If user exists but doesn't have a profile, create one
-      if (!existingUserResult.hasProfile) {
-        try {
-          console.log(`Creating profile for existing user ${existingUserResult.user.id}`);
-          
-          // Update user metadata in auth.users
-          await updateExistingUser(
-            supabaseClient, 
-            existingUserResult.user.id, 
-            body.name, 
-            body.role, 
-            body.assignedProperties
-          );
-          
-          // Create profile
-          await createProfileForExistingUser(
-            supabaseClient,
-            existingUserResult.user,
-            body.name,
-            body.role,
-            body.assignedProperties
-          );
-          
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: `User account for ${body.email} has been set up successfully.`,
-              userId: existingUserResult.user.id
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (profileError) {
-          console.error("Error creating profile for existing user:", profileError);
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              message: `Failed to complete user setup.`
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+      // If user exists but doesn't have a profile, create or update one
+      try {
+        console.log(`Creating/updating profile for existing user ${existingUserResult.user.id}`);
+        
+        // Update user metadata in auth.users
+        await updateExistingUser(
+          supabaseClient, 
+          existingUserResult.user.id, 
+          body.name, 
+          body.role, 
+          body.assignedProperties
+        );
+        
+        // Create or update profile
+        const profile = await createProfileForExistingUser(
+          supabaseClient,
+          existingUserResult.user,
+          body.name,
+          body.role,
+          body.assignedProperties
+        );
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `User account for ${body.email} has been updated successfully.`,
+            userId: existingUserResult.user.id,
+            profileId: profile?.id
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (profileError) {
+        console.error("Error managing profile for existing user:", profileError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: `Failed to complete user setup.`
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-
-      // If user exists and has a profile, return appropriate message
-      console.log(`User ${body.email} already exists and has a profile`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: `A user with email ${body.email} already exists. Please use a different email address.`
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    // Create new user
+    // Create new user since no existing user was found
     try {
       console.log("Generating temporary password and creating new user");
       const temporaryPassword = generateTemporaryPassword();
@@ -238,60 +227,50 @@ serve(async (req: Request) => {
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           const retryExistingUser = await findExistingUser(supabaseClient, body.email);
-          console.log("Retry existing user check result:", retryExistingUser ? "User found on retry" : "User still not found on retry");
+          console.log("Retry existing user check result:", retryExistingUser?.exists ? "User found on retry" : "User still not found on retry");
           
-          if (retryExistingUser?.user) {
-            // If the user exists but doesn't have a profile, create one
-            if (!retryExistingUser.hasProfile) {
-              try {
-                console.log(`Creating profile for existing user on retry ${retryExistingUser.user.id}`);
-                
-                // Update user metadata in auth.users
-                await updateExistingUser(
-                  supabaseClient, 
-                  retryExistingUser.user.id, 
-                  body.name, 
-                  body.role, 
-                  body.assignedProperties
-                );
-                
-                // Create profile
-                await createProfileForExistingUser(
-                  supabaseClient,
-                  retryExistingUser.user,
-                  body.name,
-                  body.role,
-                  body.assignedProperties
-                );
-                
-                return new Response(
-                  JSON.stringify({ 
-                    success: true, 
-                    message: `User account for ${body.email} has been set up successfully.`,
-                    userId: retryExistingUser.user.id
-                  }),
-                  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                );
-              } catch (profileError) {
-                console.error("Error creating profile for existing user:", profileError);
-                return new Response(
-                  JSON.stringify({ 
-                    success: false, 
-                    message: `Failed to complete user setup.`
-                  }),
-                  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                );
-              }
+          if (retryExistingUser?.exists) {
+            // If the user exists, create or update profile
+            try {
+              console.log(`Creating/updating profile for existing user on retry ${retryExistingUser.user.id}`);
+              
+              // Update user metadata in auth.users
+              await updateExistingUser(
+                supabaseClient, 
+                retryExistingUser.user.id, 
+                body.name, 
+                body.role, 
+                body.assignedProperties
+              );
+              
+              // Create or update profile
+              const profile = await createProfileForExistingUser(
+                supabaseClient,
+                retryExistingUser.user,
+                body.name,
+                body.role,
+                body.assignedProperties
+              );
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: true, 
+                  message: `User account for ${body.email} has been updated successfully.`,
+                  userId: retryExistingUser.user.id,
+                  profileId: profile?.id
+                }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            } catch (profileError) {
+              console.error("Error managing profile for existing user:", profileError);
+              return new Response(
+                JSON.stringify({ 
+                  success: false, 
+                  message: `Failed to complete user setup.`
+                }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
             }
-            
-            console.log(`User ${body.email} already exists and has a profile (detected on retry)`);
-            return new Response(
-              JSON.stringify({ 
-                success: false, 
-                message: `A user with email ${body.email} already exists. Please use a different email address.`
-              }),
-              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
           }
         }
         

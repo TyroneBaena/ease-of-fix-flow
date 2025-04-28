@@ -14,7 +14,7 @@ export const useUserActions = (
   setCurrentPage: (page: number) => void,
   usersPerPage: number
 ) => {
-  const { addUser, updateUser, removeUser, resetPassword } = useUserContext();
+  const { addUser, updateUser, removeUser, resetPassword, fetchUsers } = useUserContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
@@ -70,8 +70,11 @@ export const useUserActions = (
                 toast.info(result.testModeInfo);
               }, 1000);
             }
+            
+            // Force refresh the user list after successful adding
+            await fetchUsers();
           } else {
-            // This means the user already exists or another validation error occurred
+            // This message is for failures like "user already exists"
             toast.error(result.message || "Failed to process user");
             // Do not close dialog on error so user can correct if needed
           }

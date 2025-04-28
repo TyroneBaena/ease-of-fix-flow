@@ -70,7 +70,8 @@ export const useUserProvider = () => {
       
       // Only refetch users if we're admin and the invite was successful
       if (isAdmin && result.success) {
-        // Force a refetch next time by resetting the fetch state
+        console.log("User invite was successful, refreshing user list");
+        // Force a refetch
         fetchInProgress.current = false;
         await fetchUsers();
       }
