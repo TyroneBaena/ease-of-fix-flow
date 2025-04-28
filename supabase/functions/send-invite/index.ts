@@ -67,6 +67,19 @@ serve(async (req: Request) => {
       );
     }
     
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      console.error("Invalid email format:", body.email);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Please enter a valid email address" 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Validate request and environment
     try {
       validateRequest(body);

@@ -25,6 +25,13 @@ export const useUserActions = (
       return;
     }
     
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newUser.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
     try {
       setIsLoading(true);
       console.log("Starting user save operation:", isEditMode ? "update" : "invite");
@@ -110,10 +117,6 @@ export const useUserActions = (
     try {
       setIsLoading(true);
       await removeUser(userToDelete);
-      
-      // If we deleted the last user on the current page, go back one page
-      // This calculation needs the users array which we don't have here
-      // The logic will be handled in the main hook
       
       toast.success("User removed successfully");
       setIsDeleteConfirmOpen(false);

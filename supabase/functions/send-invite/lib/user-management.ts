@@ -8,12 +8,16 @@ export async function findExistingUser(supabaseClient: any, email: string) {
     throw new Error("Email is required to check for existing users");
   }
   
-  console.log(`Searching for existing user with email: ${email}`);
+  // Normalize email to lowercase for consistent checks
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  console.log(`Searching for existing user with email: ${normalizedEmail}`);
   
   try {
+    // Use admin API to check for existing users with this email
     const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
       filter: {
-        email: email.toLowerCase().trim()  // Normalize email to lowercase
+        email: normalizedEmail
       }
     });
     

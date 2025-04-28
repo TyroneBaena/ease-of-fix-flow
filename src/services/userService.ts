@@ -15,7 +15,7 @@ interface InviteUserResult {
 }
 
 export const userService = {
-  // Get all users (admin only)
+  // Get all users (admin only) - filter out contractor roles
   async getAllUsers(): Promise<User[]> {
     try {
       console.log("Fetching all users from profiles");
@@ -23,7 +23,8 @@ export const userService = {
       // First, try to get data from the profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .in('role', ['admin', 'manager']);  // Only get admin and manager roles, exclude contractors
       
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
