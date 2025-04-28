@@ -134,7 +134,8 @@ export const useUserProvider = () => {
   const resetPassword = async (userId: string, email: string) => {
     try {
       setLoading(true);
-      const result = await userService.resetPassword(email);
+      // Fix: Pass both userId and email to the resetPassword method
+      const result = await userService.resetPassword(userId, email);
       
       if (result.success) {
         return result;
