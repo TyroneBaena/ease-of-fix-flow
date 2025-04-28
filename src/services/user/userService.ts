@@ -1,3 +1,4 @@
+
 import { User, UserRole } from '@/types/user';
 import { InviteUserResult, UserService } from './types';
 import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQueries';
@@ -31,6 +32,20 @@ export const userService: UserService = {
       
       const normalizedEmail = email.toLowerCase().trim();
       
+      // First check if the user exists before sending the invite
+      const userExists = await userService.checkUserExists(normalizedEmail);
+      
+      if (userExists) {
+        console.log(`User with email ${normalizedEmail} already exists, returning error`);
+        return {
+          success: false, 
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          email: normalizedEmail
+        };
+      }
+      
+      console.log(`User doesn't exist, proceeding with invitation`);
+      
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
           email: normalizedEmail,
@@ -43,6 +58,7 @@ export const userService: UserService = {
       
       if (error) {
         console.error("Error inviting user:", error);
+        // Check if it's a "user already exists" error from the edge function
         if (error.message?.includes('already exists')) {
           return {
             success: false, 

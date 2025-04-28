@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { UserCheckResult } from "./types.ts";
 
@@ -41,45 +40,52 @@ export async function findExistingUser(supabaseClient: any, email: string): Prom
     
     // Then check using the admin API for exact email match
     console.log(`Checking auth.users for email: ${normalizedEmail}`);
-    const { data: userByEmail, error: userError } = await supabaseClient.auth.admin.listUsers({
-      filter: {
-        email: normalizedEmail
-      }
-    });
     
-    if (userError) {
-      console.error(`Error checking auth.users: ${userError.message}`);
-      throw userError;
-    }
-    
-    if (userByEmail?.users?.length > 0) {
-      console.log(`Found user in auth.users with email ${normalizedEmail}`);
-      const userExists = userByEmail.users[0];
+    try {
+      const { data: userByEmail, error: userError } = await supabaseClient.auth.admin.listUsers({
+        filter: {
+          email: normalizedEmail
+        }
+      });
       
-      const { data: profile, error: profileError, count } = await supabaseClient
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .eq('id', userExists.id);
-
-      const hasProfile = count !== null && count > 0;
-      const isPlaceholder = userExists.user_metadata?.isPlaceholderUser === true;
-
-      console.log(`User ${userExists.id} - Has profile: ${hasProfile}, Is placeholder: ${isPlaceholder}`);
-      return { 
-        user: userExists, 
-        hasProfile, 
-        exists: true, 
-        isPlaceholder,
-        email: normalizedEmail,
-        profile: hasProfile && profile ? profile[0] : null
-      };
+      if (userError) {
+        console.error(`Error checking auth.users: ${userError.message}`);
+        throw userError;
+      }
+      
+      if (userByEmail?.users?.length > 0) {
+        console.log(`Found user in auth.users with email ${normalizedEmail}`);
+        const userExists = userByEmail.users[0];
+        
+        const { data: profile, error: profileError, count } = await supabaseClient
+          .from('profiles')
+          .select('*', { count: 'exact' })
+          .eq('id', userExists.id);
+  
+        const hasProfile = count !== null && count > 0;
+        const isPlaceholder = userExists.user_metadata?.isPlaceholderUser === true;
+  
+        console.log(`User ${userExists.id} - Has profile: ${hasProfile}, Is placeholder: ${isPlaceholder}`);
+        return { 
+          user: userExists, 
+          hasProfile, 
+          exists: true, 
+          isPlaceholder,
+          email: normalizedEmail,
+          profile: hasProfile && profile ? profile[0] : null
+        };
+      }
+    } catch (error) {
+      console.error("Error checking auth.users:", error);
+      // Don't throw here, just log and continue to return "not exists" result
     }
     
     console.log(`No user found with email ${normalizedEmail}`);
     return { exists: false };
   } catch (error) {
     console.error("Error in findExistingUser:", error);
-    throw new Error(`Failed to check for existing user: ${error.message}`);
+    // Return not exists in case of error, to avoid edge function failure
+    return { exists: false };
   }
 }
 

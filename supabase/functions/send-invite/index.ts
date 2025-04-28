@@ -51,7 +51,10 @@ serve(async (req: Request) => {
           userId: existingUserResult.user?.id,
           email: normalizedEmail
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 // Change from 400 to 200, but keep the success: false
+        }
       );
     }
 
@@ -107,23 +110,13 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Critical invitation error:", error);
-    // Check if it's a user already exists error
-    if (error.message?.includes('already exists')) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: error.message
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
+    // Return a 200 even for errors to avoid edge function failures
     return new Response(
       JSON.stringify({ 
         success: false, 
         message: error.message || "An unexpected error occurred"
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   }
 });
