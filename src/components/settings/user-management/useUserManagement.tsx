@@ -122,6 +122,20 @@ export const useUserManagement = () => {
     };
   }, [users, fetchedOnce, isLoadingUsers, isAdmin, fetchUsers, ready]);
 
+  // Refresh user list whenever the dialog is closed
+  useEffect(() => {
+    if (!isDialogOpen && isAdmin && fetchedOnce) {
+      // Small delay to allow time for the backend to process
+      const refreshTimer = setTimeout(() => {
+        fetchUsers();
+      }, 500);
+      
+      return () => {
+        clearTimeout(refreshTimer);
+      };
+    }
+  }, [isDialogOpen, isAdmin, fetchedOnce, fetchUsers]);
+
   return {
     users,
     properties,
