@@ -112,25 +112,45 @@ serve(async (req: Request) => {
     
     const { resendApiKey, applicationUrl, ownerEmail } = envConfig;
     
-    // Check for existing user
+    // Check for existing user with retry mechanism
     console.log(`Checking if user with email ${body.email} already exists`);
-    let existingUserResult;
-    try {
-      existingUserResult = await findExistingUser(supabaseClient, body.email);
-      console.log("Existing user check result:", JSON.stringify(existingUserResult, null, 2));
-    } catch (userCheckError) {
-      console.error("Error checking for existing user:", userCheckError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Error processing invitation request" 
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let existingUserResult = null;
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    while (retryCount <= maxRetries) {
+      try {
+        existingUserResult = await findExistingUser(supabaseClient, body.email);
+        console.log(`Attempt ${retryCount + 1}: Existing user check result:`, existingUserResult ? "User found" : "User not found");
+        
+        // If we found a result or definitely confirmed no user exists, break the loop
+        if (existingUserResult !== null || retryCount === maxRetries) {
+          break;
+        }
+        
+        // Wait briefly before retrying
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retryCount++;
+      } catch (userCheckError) {
+        console.error(`Attempt ${retryCount + 1}: Error checking for existing user:`, userCheckError);
+        
+        if (retryCount === maxRetries) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: "Error processing invitation request" 
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retryCount++;
+      }
     }
     
     if (existingUserResult?.user) {
-      console.log(`User with email ${body.email} exists`);
+      console.log(`User with email ${body.email} exists with ID ${existingUserResult.user.id}`);
       
       // If user exists but doesn't have a profile, create one
       if (!existingUserResult.hasProfile) {
@@ -203,12 +223,22 @@ serve(async (req: Request) => {
         );
         console.log(`New user created with ID: ${newUser.id}`);
       } catch (createError) {
+        // More detailed error message
+        console.error("User creation error details:", createError);
+        
         // Check if the error is because the user already exists (this can happen in race conditions)
-        if (createError.message && createError.message.includes("already exists")) {
-          console.log("User creation failed because user already exists, trying to find the user again");
+        if (createError.message && (
+          createError.message.includes("already exists") || 
+          createError.message.toLowerCase().includes("duplicate") ||
+          createError.message.toLowerCase().includes("unique constraint")
+        )) {
+          console.log("User creation failed because user might already exist, trying to find the user again");
+          
+          // Wait a moment for potential eventual consistency
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           const retryExistingUser = await findExistingUser(supabaseClient, body.email);
-          console.log("Retry existing user check result:", JSON.stringify(retryExistingUser, null, 2));
+          console.log("Retry existing user check result:", retryExistingUser ? "User found on retry" : "User still not found on retry");
           
           if (retryExistingUser?.user) {
             // If the user exists but doesn't have a profile, create one

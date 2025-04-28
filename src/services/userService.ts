@@ -53,10 +53,13 @@ export const userService = {
     try {
       console.log(`Inviting new user: ${email}, role: ${role}`);
       
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+      
       // Call the send-invite edge function
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
-          email,
+          email: normalizedEmail,
           name,
           role,
           assignedProperties: role === 'manager' ? assignedProperties : []

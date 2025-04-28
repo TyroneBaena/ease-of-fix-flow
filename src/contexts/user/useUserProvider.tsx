@@ -62,7 +62,10 @@ export const useUserProvider = () => {
       setLoading(true);
       console.log("Starting user invite process for email:", email);
       
-      const result = await userService.inviteUser(email, name, role, assignedProperties);
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      const result = await userService.inviteUser(normalizedEmail, name, role, assignedProperties);
       console.log("Invite user result:", result);
       
       // Only refetch users if we're admin and the invite was successful

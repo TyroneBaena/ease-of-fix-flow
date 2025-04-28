@@ -14,48 +14,70 @@ export async function findExistingUser(supabaseClient: any, email: string) {
   console.log(`Searching for existing user with email: ${normalizedEmail}`);
   
   try {
-    // Use admin API to check for existing users with this email
-    const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
-      filter: {
-        email: normalizedEmail
-      }
-    });
+    // Use auth.users directly with exact email match
+    const { data: users, error } = await supabaseClient
+      .from('auth.users')
+      .select('id, email')
+      .eq('email', normalizedEmail)
+      .limit(1);
     
-    if (searchError) {
-      console.error("Error searching for existing user:", searchError);
-      throw searchError;
+    if (error) {
+      console.error("Error checking auth.users:", error);
+      
+      // Fall back to the admin API method as a backup
+      const { data: existingUsers, error: searchError } = await supabaseClient.auth.admin.listUsers({
+        filter: {
+          email: normalizedEmail
+        }
+      });
+      
+      if (searchError) {
+        console.error("Error searching for existing user:", searchError);
+        throw searchError;
+      }
+      
+      // Log detailed information about the search result for debugging
+      console.log(`User search result from admin API:`, existingUsers?.users?.length > 0 
+        ? `User exists with ID ${existingUsers.users[0].id}` 
+        : 'User does not exist');
+
+      // If user exists, check if they have a profile
+      if (existingUsers?.users?.length > 0) {
+        const userExists = existingUsers.users[0];
+        
+        // Check for profile explicitly
+        const { data: profile, error: profileError, count } = await supabaseClient
+          .from('profiles')
+          .select('*', { count: 'exact' })
+          .eq('id', userExists.id);
+
+        // Determine if the user has a profile based on the count from the query
+        const hasProfile = count !== null && count > 0;
+        console.log(`User ${userExists.id} has profile:`, hasProfile);
+
+        return { user: userExists, hasProfile };
+      }
+      
+      return null;
     }
     
-    // Log detailed information about the search result for debugging
-    console.log(`User search result:`, existingUsers?.users?.length > 0 
-      ? `User exists with ID ${existingUsers.users[0].id}` 
-      : 'User does not exist');
-
-    // If user exists, check if they have a profile
-    if (existingUsers?.users?.length > 0) {
-      const userExists = existingUsers.users[0];
+    // Process direct query results
+    if (users && users.length > 0) {
+      console.log(`User found directly in auth.users with ID: ${users[0].id}`);
       
-      // Check for profile explicitly
+      // Check if user has a profile
       const { data: profile, error: profileError, count } = await supabaseClient
         .from('profiles')
         .select('*', { count: 'exact' })
-        .eq('id', userExists.id);
-
-      // Log detailed profile check information
-      if (profileError) {
-        console.log(`Profile check error for user ${userExists.id}:`, profileError);
-      } else {
-        console.log(`Profile check for user ${userExists.id}:`, 
-          count && count > 0 ? `Found ${count} profiles` : 'No profile found');
-      }
-
-      // Determine if the user has a profile based on the count from the query
+        .eq('id', users[0].id);
+        
       const hasProfile = count !== null && count > 0;
-      console.log(`User ${userExists.id} has profile:`, hasProfile);
-
-      return { user: userExists, hasProfile };
+      console.log(`User ${users[0].id} has profile:`, hasProfile);
+      
+      return { user: users[0], hasProfile };
     }
-
+    
+    console.log("No user found with this email");
     return null;
   } catch (error) {
     console.error("Error in findExistingUser:", error);
@@ -151,42 +173,6 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     } catch (profileError) {
       console.error("Exception creating user profile:", profileError);
       console.log("Profile creation failed but auth user exists - continuing");
-    }
-    
-    // Double-check the profile exists after a short delay
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const { data: checkProfile, error: checkError } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-        
-      if (checkError || !checkProfile) {
-        console.log("Profile verification failed after creation, attempting second insert");
-        
-        // If profile still doesn't exist, try creating it again with upsert
-        const { error: secondInsertError } = await supabaseClient
-          .from('profiles')
-          .upsert([{
-            id: authData.user.id,
-            email: normalizedEmail,
-            name: name,
-            role: role,
-            assigned_properties: role === 'manager' ? assignedProperties : []
-          }]);
-          
-        if (secondInsertError) {
-          console.error("Second profile creation attempt failed:", secondInsertError);
-        } else {
-          console.log("Second profile creation attempt succeeded");
-        }
-      } else {
-        console.log("Profile verification successful");
-      }
-    } catch (verificationError) {
-      console.error("Error verifying profile:", verificationError);
     }
     
     return authData.user;
