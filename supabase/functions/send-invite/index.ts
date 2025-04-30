@@ -58,6 +58,29 @@ serve(async (req: Request) => {
       );
     }
 
+    // Check for existing profile with this email
+    const { data: existingProfiles, error: profilesError, count } = await supabaseClient
+      .from('profiles')
+      .select('*', { count: 'exact' })
+      .ilike('email', normalizedEmail);
+      
+    if (profilesError) {
+      console.error("Error checking profiles table:", profilesError);
+    } else if (count && count > 0) {
+      console.log(`Found existing profile with email ${normalizedEmail}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+          email: normalizedEmail
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200
+        }
+      );
+    }
+
     // Create new user
     const temporaryPassword = generateTemporaryPassword();
     const newUser = await createNewUser(

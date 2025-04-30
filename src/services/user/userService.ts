@@ -1,4 +1,3 @@
-
 import { User, UserRole } from '@/types/user';
 import { InviteUserResult, UserService } from './types';
 import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQueries';
@@ -58,7 +57,7 @@ export const userService: UserService = {
       
       if (error) {
         console.error("Error inviting user:", error);
-        // Check if it's a "user already exists" error from the edge function
+        // Only consider it a "user already exists" error if explicitly indicated
         if (error.message?.includes('already exists')) {
           return {
             success: false, 
@@ -69,6 +68,12 @@ export const userService: UserService = {
         throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
       }
       
+      // If data comes back with success: false, it's an error from the edge function
+      if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+        return data as InviteUserResult;
+      }
+      
+      // Otherwise consider it a success
       return data as InviteUserResult;
     } catch (error: any) {
       console.error("Error in inviteUser:", error);

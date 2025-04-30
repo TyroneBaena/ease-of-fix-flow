@@ -57,6 +57,7 @@ export const useUserActions = (
         });
         
         try {
+          // Clear any previous form state that might be cached 
           const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
           console.log("Add user result:", result);
           
