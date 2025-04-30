@@ -5,6 +5,13 @@ import { toast } from '@/lib/toast';
 
 export const fetchContractors = async (): Promise<Contractor[]> => {
   try {
+    // Check if user is authenticated before attempting to fetch
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData?.user) {
+      console.log("User not authenticated, skipping contractor fetch");
+      return [];
+    }
+    
     console.log("Fetching contractors...");
     const { data, error } = await supabase
       .from('contractors')
@@ -34,8 +41,12 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
     return [];
   } catch (err) {
     console.error('Error fetching contractors:', err);
-    toast.error('Failed to load contractors');
+    // Only show toast error if we're on a page where contractors are expected
+    if (window.location.pathname.includes('dashboard') || 
+        window.location.pathname.includes('settings') || 
+        window.location.pathname.includes('contractor')) {
+      toast.error('Failed to load contractors');
+    }
     throw err;
   }
 };
-

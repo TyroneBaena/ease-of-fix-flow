@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { ContractorContextType } from './ContractorContextTypes';
 import { useContractorOperations } from './useContractorOperations';
+import { supabase } from '@/lib/supabase';
 
 const ContractorContext = createContext<ContractorContextType | undefined>(undefined);
 
@@ -27,7 +28,17 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   } = useContractorOperations();
 
   useEffect(() => {
-    loadContractors();
+    // Check if user is authenticated before loading contractors
+    const checkAuthAndLoadContractors = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        loadContractors();
+      } else {
+        console.log("No active session, skipping contractor loading");
+      }
+    };
+    
+    checkAuthAndLoadContractors();
   }, []);
 
   return (
@@ -45,4 +56,3 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     </ContractorContext.Provider>
   );
 };
-

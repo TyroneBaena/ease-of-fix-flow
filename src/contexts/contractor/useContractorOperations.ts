@@ -6,6 +6,7 @@ import { fetchContractors } from './operations/contractorFetch';
 import { assignContractorToRequest, requestQuoteForJob } from './operations/contractorOperations';
 import { submitQuoteForJob, approveQuoteForJob } from './operations/quoteOperations';
 import { updateJobProgressStatus } from './operations/progressOperations';
+import { supabase } from '@/lib/supabase';
 
 export const useContractorOperations = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
@@ -14,6 +15,14 @@ export const useContractorOperations = () => {
 
   const loadContractors = async () => {
     try {
+      // Check if user is authenticated before loading contractors
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user) {
+        console.log("No authenticated user, skipping contractor loading");
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       const data = await fetchContractors();
       setContractors(data);
@@ -92,4 +101,3 @@ export const useContractorOperations = () => {
     updateJobProgress,
   };
 };
-
