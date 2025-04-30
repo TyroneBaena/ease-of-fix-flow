@@ -16,16 +16,16 @@ export const useContractorOperations = () => {
   const loadContractors = async () => {
     try {
       // Check if user is authenticated before loading contractors
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) {
         console.log("No authenticated user, skipping contractor loading");
         setLoading(false);
         return;
       }
       
       setLoading(true);
-      const data = await fetchContractors();
-      setContractors(data);
+      const contractorsData = await fetchContractors();
+      setContractors(contractorsData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
