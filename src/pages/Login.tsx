@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,7 +63,7 @@ const Login = () => {
         return;
       }
       
-      toast.success("Signed in successfully");
+      // Make sure we don't show this success message as signInWithEmailPassword already does
       navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Login error:', error);
@@ -98,10 +97,11 @@ const Login = () => {
             }
           });
           console.log("Updated user role to admin");
-          toast.success("Signed in as demo admin");
+          navigate('/dashboard', { replace: true });
+          return;
         }
         
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
         return;
       } catch (signInError) {
         console.log("Demo user doesn't exist yet, creating...");

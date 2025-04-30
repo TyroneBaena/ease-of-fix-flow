@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
@@ -104,6 +103,9 @@ export const useSupabaseAuth = () => {
     setLoading(true);
     try {
       await signOutUser();
+      // Explicitly clear the user state after logout
+      setCurrentUser(null);
+      setSupabaseUser(null);
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/user';
 import { toast } from 'sonner';
@@ -26,6 +27,9 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     // For better debugging, log the user's role
     console.log("User role:", data.user?.user_metadata?.role);
     
+    // Show toast notification
+    toast.success("Signed in successfully");
+    
     return data;
   } catch (error) {
     console.error("Error signing in:", error);
@@ -41,7 +45,14 @@ export const signOutUser = async () => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    
+    // Clear any cached user data in localStorage
+    localStorage.removeItem('supabase.auth.token');
+    
     toast.success("Signed out successfully");
+    
+    // Force a small delay to ensure state is cleared properly
+    await new Promise(resolve => setTimeout(resolve, 100));
   } catch (error) {
     console.error("Error signing out:", error);
     toast.error("Failed to sign out");
