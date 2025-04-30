@@ -36,6 +36,8 @@ export const useUserManagement = () => {
   const {
     isLoading,
     isDeleteConfirmOpen,
+    formError,
+    setFormError,
     setIsDeleteConfirmOpen,
     handleSaveUser,
     handleResetPassword,
@@ -52,12 +54,31 @@ export const useUserManagement = () => {
     USERS_PER_PAGE
   );
   
+  // Store formError in window for dialog component access
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__formErrorForUser__ = formError;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__formErrorForUser__;
+      }
+    };
+  }, [formError]);
+  
   // Update fetchError if there's an error in the user context
   useEffect(() => {
     if (userContextError) {
       setFetchError(userContextError);
     }
   }, [userContextError]);
+  
+  // Clear form error when dialog is closed
+  useEffect(() => {
+    if (!isDialogOpen && setFormError) {
+      setFormError(null);
+    }
+  }, [isDialogOpen, setFormError]);
   
   // Function to safely fetch users
   const fetchUsers = useCallback(async () => {
@@ -176,6 +197,7 @@ export const useUserManagement = () => {
     totalPages,
     USERS_PER_PAGE,
     isDeleteConfirmOpen,
+    formError,
     setIsDeleteConfirmOpen,
     handleOpenDialog,
     handleUserChange,

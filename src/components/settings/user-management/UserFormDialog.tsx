@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Check, UserCircle } from 'lucide-react';
+import { Mail, Check, UserCircle, AlertCircle } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -58,6 +58,9 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
   onPropertySelection,
   onSave
 }) => {
+  // Import formError from useUserActions in the parent component
+  const formError = (window as any).__formErrorForUser__;
+  
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -73,6 +76,15 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
             <Mail className="h-4 w-4" />
             <AlertDescription>
               An invitation email will be sent to the user with instructions to set up their account.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {formError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {formError}
             </AlertDescription>
           </Alert>
         )}

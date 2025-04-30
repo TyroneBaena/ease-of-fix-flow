@@ -37,48 +37,53 @@ serve(async (req: Request) => {
     const { resendApiKey, applicationUrl, ownerEmail } = envConfig;
     const normalizedEmail = body.email.toLowerCase().trim();
     
-    // Check for existing user
-    console.log(`Checking if user with email ${normalizedEmail} already exists`);
-    const existingUserResult = await findExistingUser(supabaseClient, normalizedEmail);
-    
-    // Handle existing non-placeholder user
-    if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
-      console.log(`User with email ${normalizedEmail} already exists, sending error response`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          userId: existingUserResult.user?.id,
-          email: normalizedEmail
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200 // Change from 400 to 200, but keep the success: false
-        }
-      );
-    }
-
-    // Check for existing profile with this email
-    const { data: existingProfiles, error: profilesError, count } = await supabaseClient
-      .from('profiles')
-      .select('*', { count: 'exact' })
-      .ilike('email', normalizedEmail);
+    // Don't allow current user to invite themselves
+    if (body.bypassExistingCheck !== true) {
+      // Check for existing user
+      console.log(`Checking if user with email ${normalizedEmail} already exists`);
+      const existingUserResult = await findExistingUser(supabaseClient, normalizedEmail);
       
-    if (profilesError) {
-      console.error("Error checking profiles table:", profilesError);
-    } else if (count && count > 0) {
-      console.log(`Found existing profile with email ${normalizedEmail}`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          email: normalizedEmail
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200
-        }
-      );
+      // Handle existing non-placeholder user
+      if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
+        console.log(`User with email ${normalizedEmail} already exists, sending error response`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+            userId: existingUserResult.user?.id,
+            email: normalizedEmail
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 200 // Keep as 200 with success: false for consistent client processing
+          }
+        );
+      }
+
+      // Check for existing profile with this email
+      const { data: existingProfiles, error: profilesError, count } = await supabaseClient
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .ilike('email', normalizedEmail);
+        
+      if (profilesError) {
+        console.error("Error checking profiles table:", profilesError);
+      } else if (count && count > 0) {
+        console.log(`Found existing profile with email ${normalizedEmail}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
+            email: normalizedEmail
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 200
+          }
+        );
+      }
+    } else {
+      console.log("Bypassing existing user check as requested");
     }
 
     // Create new user

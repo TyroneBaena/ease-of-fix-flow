@@ -70,10 +70,12 @@ export const userService: UserService = {
       
       // If data comes back with success: false, it's an error from the edge function
       if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+        console.log("Edge function returned an error:", data);
         return data as InviteUserResult;
       }
       
       // Otherwise consider it a success
+      console.log("User invitation successful:", data);
       return data as InviteUserResult;
     } catch (error: any) {
       console.error("Error in inviteUser:", error);

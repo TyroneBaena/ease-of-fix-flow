@@ -18,12 +18,16 @@ export const useUserActions = (
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleSaveUser = async () => {
     if (!newUser.name || !newUser.email) {
       toast.error("Name and email are required");
       return;
     }
+    
+    // Reset any previous error
+    setFormError(null);
     
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -82,16 +86,19 @@ export const useUserActions = (
           } else {
             // This message is for failures like "user already exists"
             console.error("User creation failed:", result.message);
+            setFormError(result.message || "Failed to process user");
             toast.error(result.message || "Failed to process user");
             // Do not close dialog on error so user can correct if needed
           }
         } catch (error: any) {
           console.error("Error adding user:", error);
+          setFormError(`Failed to invite user: ${error.message || 'Unknown error'}`);
           toast.error(`Failed to invite user: ${error.message || 'Unknown error'}`);
         }
       }
     } catch (error: any) {
       console.error("Error saving user:", error);
+      setFormError(`Failed to ${isEditMode ? 'update' : 'invite'} user: ${error.message || 'Unknown error'}`);
       toast.error(`Failed to ${isEditMode ? 'update' : 'invite'} user: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
@@ -145,6 +152,8 @@ export const useUserActions = (
   return {
     isLoading,
     isDeleteConfirmOpen,
+    formError,
+    setFormError,
     setIsDeleteConfirmOpen,
     handleSaveUser,
     handleResetPassword,
