@@ -16,9 +16,17 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTempPasswordNote, setShowTempPasswordNote] = useState(false);
-  const { signIn } = useSupabaseAuth();
+  const { signIn, currentUser } = useSupabaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Effect to check if user is already logged in and redirect
+  useEffect(() => {
+    if (currentUser) {
+      console.log("User is already logged in, redirecting to dashboard");
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   useEffect(() => {
     // Check if we have email and setupPassword in query params
@@ -56,7 +64,8 @@ const Login = () => {
         return;
       }
       
-      navigate('/dashboard');
+      toast.success("Signed in successfully");
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Login error:', error);
     } finally {
