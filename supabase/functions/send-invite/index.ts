@@ -43,6 +43,8 @@ serve(async (req: Request) => {
       console.log(`Checking if user with email ${normalizedEmail} already exists`);
       const existingUserResult = await findExistingUser(supabaseClient, normalizedEmail);
       
+      console.log(`Existing user check result:`, JSON.stringify(existingUserResult, null, 2));
+      
       // Handle existing non-placeholder user
       if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
         console.log(`User with email ${normalizedEmail} already exists, sending error response`);

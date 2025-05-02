@@ -1,3 +1,4 @@
+
 import { User, UserRole } from '@/types/user';
 import { InviteUserResult, UserService } from './types';
 import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQueries';
@@ -25,26 +26,15 @@ export const userService: UserService = {
     }
   },
   
-  inviteUser: async (email: string, name: string, role: UserRole, assignedProperties: string[] = []) => {
+  inviteUser: async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<InviteUserResult> => {
     try {
       console.log(`Inviting new user: ${email}, role: ${role}`);
       
       const normalizedEmail = email.toLowerCase().trim();
       
-      // First check if the user exists before sending the invite
-      const userExists = await userService.checkUserExists(normalizedEmail);
+      console.log(`Proceeding with invitation for: ${normalizedEmail}`);
       
-      if (userExists) {
-        console.log(`User with email ${normalizedEmail} already exists, returning error`);
-        return {
-          success: false, 
-          message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-          email: normalizedEmail
-        };
-      }
-      
-      console.log(`User doesn't exist, proceeding with invitation`);
-      
+      // Call the edge function directly without pre-checking
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
           email: normalizedEmail,
@@ -57,36 +47,21 @@ export const userService: UserService = {
       
       if (error) {
         console.error("Error inviting user:", error);
-        // Only consider it a "user already exists" error if explicitly indicated
-        if (error.message?.includes('already exists')) {
-          return {
-            success: false, 
-            message: `A user with email ${normalizedEmail} already exists. Please use a different email address.`,
-            email: normalizedEmail
-          };
-        }
         throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
       }
       
-      // If data comes back with success: false, it's an error from the edge function
-      if (data && typeof data === 'object' && 'success' in data && data.success === false) {
-        console.log("Edge function returned an error:", data);
-        return data as InviteUserResult;
-      }
+      // Properly handle the response from the edge function
+      console.log("Edge function response:", data);
       
-      // Otherwise consider it a success
-      console.log("User invitation successful:", data);
+      // Return the edge function response directly
       return data as InviteUserResult;
     } catch (error: any) {
       console.error("Error in inviteUser:", error);
-      if (typeof error === 'object' && error.message?.includes('already exists')) {
-        return {
-          success: false,
-          message: `A user with email ${email.toLowerCase().trim()} already exists. Please use a different email address.`,
-          email: email.toLowerCase().trim()
-        };
-      }
-      throw error;
+      return {
+        success: false,
+        message: error.message || "An unexpected error occurred while inviting the user",
+        email: email.toLowerCase().trim()
+      };
     }
   },
   

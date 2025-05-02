@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { UserCheckResult } from "./types.ts";
 
@@ -54,8 +55,20 @@ export async function findExistingUser(supabaseClient: any, email: string): Prom
       }
       
       if (userByEmail?.users?.length > 0) {
-        console.log(`Found user in auth.users with email ${normalizedEmail}`);
-        const userExists = userByEmail.users[0];
+        console.log(`Found ${userByEmail.users.length} users with email ${normalizedEmail}`);
+        
+        // Check if any of the users have the exact matching email (case insensitive)
+        const matchingUser = userByEmail.users.find(u => 
+          u.email && u.email.toLowerCase() === normalizedEmail.toLowerCase()
+        );
+        
+        if (!matchingUser) {
+          console.log(`No exact match found for email ${normalizedEmail}`);
+          return { exists: false };
+        }
+        
+        console.log(`Found exact match for email ${normalizedEmail} with user ID ${matchingUser.id}`);
+        const userExists = matchingUser;
         
         const { data: profile, error: profileError, count } = await supabaseClient
           .from('profiles')
