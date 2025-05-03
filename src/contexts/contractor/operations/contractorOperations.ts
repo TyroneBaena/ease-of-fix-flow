@@ -191,8 +191,14 @@ export const updateJobProgressStatus = async (
       .eq('id', requestId)
       .single();
 
+    // Fix the iteration issue by ensuring we have a valid array
+    let existingNotes: string[] = [];
+    if (currentRequest?.progress_notes && Array.isArray(currentRequest.progress_notes)) {
+      existingNotes = currentRequest.progress_notes;
+    }
+
     updates.progress_notes = [
-      ...(currentRequest?.progress_notes || []),
+      ...existingNotes,
       {
         note: notes,
         timestamp: new Date().toISOString()
@@ -207,8 +213,14 @@ export const updateJobProgressStatus = async (
       .eq('id', requestId)
       .single();
     
+    // Ensure we have a valid array for completion_photos as well
+    let existingPhotos: Array<{ url: string }> = [];
+    if (currentPhotos?.completion_photos && Array.isArray(currentPhotos.completion_photos)) {
+      existingPhotos = currentPhotos.completion_photos;
+    }
+    
     updates.completion_photos = [
-      ...(currentPhotos?.completion_photos || []),
+      ...existingPhotos,
       ...completionPhotos
     ];
   }

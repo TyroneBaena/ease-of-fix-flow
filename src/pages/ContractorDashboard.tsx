@@ -59,14 +59,88 @@ const ContractorDashboard = () => {
           
         if (jobsError) throw jobsError;
         
-        // Map the requests from the quotes
-        const pendingRequests = quotes.map((quote: any) => ({
-          ...quote.maintenance_requests,
-          quote: quote
+        // Map the requests from the quotes to MaintenanceRequest type
+        const pendingRequests = quotes.map((quote: any) => {
+          const request = quote.maintenance_requests;
+          return {
+            id: request.id,
+            title: request.title,
+            description: request.description,
+            status: request.status,
+            location: request.location,
+            priority: request.priority || 'medium',
+            site: request.site || request.category,
+            submittedBy: request.submitted_by || 'Unknown',
+            quote: quote,
+            date: request.created_at,
+            propertyId: request.property_id,
+            contactNumber: request.contact_number,
+            address: request.address,
+            practiceLeader: request.practice_leader,
+            practiceLeaderPhone: request.practice_leader_phone,
+            attachments: request.attachments,
+            category: request.category,
+            createdAt: request.created_at,
+            updatedAt: request.updated_at,
+            dueDate: request.due_date,
+            assignedTo: request.assigned_to,
+            history: request.history,
+            isParticipantRelated: request.is_participant_related || false,
+            participantName: request.participant_name || 'N/A',
+            attemptedFix: request.attempted_fix || '',
+            issueNature: request.issue_nature || '',
+            explanation: request.explanation || '',
+            reportDate: request.report_date || '',
+            contractorId: request.contractor_id,
+            assignedAt: request.assigned_at,
+            completionPercentage: request.completion_percentage || 0,
+            completionPhotos: request.completion_photos,
+            progressNotes: request.progress_notes || [],
+            quoteRequested: request.quote_requested || false,
+            quotedAmount: request.quoted_amount
+          };
+        });
+        
+        // Map the jobs to MaintenanceRequest type
+        const mappedJobs = jobs.map((job: any) => ({
+          id: job.id,
+          title: job.title,
+          description: job.description,
+          status: job.status,
+          location: job.location,
+          priority: job.priority || 'medium',
+          site: job.site || job.category,
+          submittedBy: job.submitted_by || 'Unknown',
+          date: job.created_at,
+          propertyId: job.property_id,
+          contactNumber: job.contact_number,
+          address: job.address,
+          practiceLeader: job.practice_leader,
+          practiceLeaderPhone: job.practice_leader_phone,
+          attachments: job.attachments,
+          category: job.category,
+          createdAt: job.created_at,
+          updatedAt: job.updated_at,
+          dueDate: job.due_date,
+          assignedTo: job.assigned_to,
+          history: job.history,
+          isParticipantRelated: job.is_participant_related || false,
+          participantName: job.participant_name || 'N/A',
+          attemptedFix: job.attempted_fix || '',
+          issueNature: job.issue_nature || '',
+          explanation: job.explanation || '',
+          reportDate: job.report_date || '',
+          contractorId: job.contractor_id,
+          assignedAt: job.assigned_at,
+          completionPercentage: job.completion_percentage || 0,
+          completionPhotos: job.completion_photos,
+          progressNotes: job.progress_notes || [],
+          quoteRequested: job.quote_requested || false,
+          quotedAmount: job.quoted_amount
         }));
         
         setPendingQuoteRequests(pendingRequests);
-        setActiveJobs(jobs);
+        setActiveJobs(mappedJobs);
       }
     } catch (error) {
       console.error('Error fetching contractor data:', error);

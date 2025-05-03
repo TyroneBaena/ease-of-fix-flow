@@ -25,11 +25,17 @@ export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps)
       <div className="space-y-2">
         {request.progressNotes.map((note: any, index: number) => (
           <div key={index} className="border-l-2 border-gray-200 pl-3">
-            <p className="text-sm">{note.note || note}</p>
-            {note.timestamp && (
-              <p className="text-xs text-muted-foreground">
-                {new Date(note.timestamp).toLocaleDateString()}
-              </p>
+            {typeof note === 'string' ? (
+              <p className="text-sm">{note}</p>
+            ) : (
+              <>
+                <p className="text-sm">{note.note}</p>
+                {note.timestamp && (
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(note.timestamp).toLocaleDateString()}
+                  </p>
+                )}
+              </>
             )}
           </div>
         ))}
