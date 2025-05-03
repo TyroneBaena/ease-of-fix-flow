@@ -32,10 +32,12 @@ export const UserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="h-8 w-8 cursor-pointer">
-          <AvatarImage src="/placeholder.svg" />
-          <AvatarFallback>{userInitials}</AvatarFallback>
-        </Avatar>
+        <div className="flex items-center cursor-pointer">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={currentUser?.profilePicture} alt="User profile picture" />
+            <AvatarFallback>{userInitials}</AvatarFallback>
+          </Avatar>
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="flex items-center justify-start p-2">
