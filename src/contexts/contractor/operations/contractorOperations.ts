@@ -213,10 +213,26 @@ export const updateJobProgressStatus = async (
       .eq('id', requestId)
       .single();
     
-    // Ensure we have a valid array for completion_photos as well
+    // Ensure we have a valid array for completion_photos and format correctly
     let existingPhotos: Array<{ url: string }> = [];
-    if (currentPhotos?.completion_photos && Array.isArray(currentPhotos.completion_photos)) {
-      existingPhotos = currentPhotos.completion_photos;
+    if (currentPhotos?.completion_photos) {
+      // Make sure each item is properly formatted with a url property
+      if (Array.isArray(currentPhotos.completion_photos)) {
+        existingPhotos = currentPhotos.completion_photos.map(photo => {
+          // If it's already an object with a url property, use it directly
+          if (typeof photo === 'object' && photo !== null && 'url' in photo) {
+            return photo as { url: string };
+          }
+          // If it's a string, assume it's the URL
+          else if (typeof photo === 'string') {
+            return { url: photo };
+          }
+          // For any other case, try to convert to string and use as URL
+          else {
+            return { url: String(photo) };
+          }
+        });
+      }
     }
     
     updates.completion_photos = [
