@@ -1,7 +1,29 @@
 
-import { supabase } from '@/lib/supabase';
-import { Contractor } from '@/types/contractor';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
+import { Contractor } from '@/types/contractor';
+
+export const fetchContractors = async (): Promise<Contractor[]> => {
+  const { data, error } = await supabase
+    .from('contractors')
+    .select('*');
+
+  if (error) throw error;
+
+  // Map the snake_case database fields to camelCase for our TypeScript interfaces
+  return data.map(item => ({
+    id: item.id,
+    userId: item.user_id,
+    companyName: item.company_name,
+    contactName: item.contact_name,
+    email: item.email,
+    phone: item.phone,
+    address: item.address || undefined,
+    specialties: item.specialties || undefined,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at
+  }));
+};
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
   const { error } = await supabase
@@ -16,14 +38,201 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
   if (error) throw error;
 };
 
-export const requestQuoteForJob = async (requestId: string, contractorId: string) => {
-  const { error } = await supabase
+export const requestQuoteForJob = async (requestId: string, contractorId: string, includeInfo = {}, notes = '') => {
+  // First mark the request as having quotes requested
+  const { error: requestError } = await supabase
     .from('maintenance_requests')
     .update({
-      quote_requested: true
+      quote_requested: true,
+      updated_at: new Date().toISOString()
     })
+    .eq('id', requestId);
+
+  if (requestError) throw requestError;
+
+  // Then create a new record in the quotes table with status 'requested'
+  const { error } = await supabase
+    .from('quotes')
+    .insert({
+      request_id: requestId,
+      contractor_id: contractorId,
+      status: 'requested', // Initial status is 'requested', will be updated to 'pending' when submitted
+      amount: 0, // Initial placeholder value
+      submitted_at: new Date().toISOString(),
+      description: notes || null
+    });
+
+  if (error) throw error;
+  
+  // In a real-world scenario, we might want to notify the contractor via email here
+  console.log(`Quote requested for job ${requestId} from contractor ${contractorId}`);
+};
+
+export const submitQuoteForJob = async (
+  requestId: string, 
+  amount: number, 
+  description?: string
+) => {
+  const { data: contractorData, error: contractorError } = await supabase
+    .from('contractors')
+    .select('id')
+    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+    .single();
+
+  if (contractorError) throw contractorError;
+  
+  if (!contractorData?.id) {
+    throw new Error('Contractor ID not found');
+  }
+
+  // Find if there's an existing quote request
+  const { data: existingQuote, error: findError } = await supabase
+    .from('quotes')
+    .select('id')
+    .eq('request_id', requestId)
+    .eq('contractor_id', contractorData.id)
+    .eq('status', 'requested')
+    .single();
+
+  if (findError && findError.code !== 'PGRST116') { // Not found is okay
+    throw findError;
+  }
+
+  if (existingQuote) {
+    // Update the existing quote request
+    const { error } = await supabase
+      .from('quotes')
+      .update({
+        amount,
+        description,
+        status: 'pending',
+        submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existingQuote.id);
+
+    if (error) throw error;
+  } else {
+    // Create a new quote
+    const { error } = await supabase
+      .from('quotes')
+      .insert({
+        request_id: requestId,
+        contractor_id: contractorData.id,
+        amount,
+        description,
+        status: 'pending',
+        submitted_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+  }
+};
+
+export const approveQuoteForJob = async (quoteId: string) => {
+  const { data: quote, error: quoteError } = await supabase
+    .from('quotes')
+    .select('*')
+    .eq('id', quoteId)
+    .single();
+
+  if (quoteError) throw quoteError;
+
+  const updateQuote = supabase
+    .from('quotes')
+    .update({
+      status: 'approved',
+      approved_at: new Date().toISOString()
+    })
+    .eq('id', quoteId);
+
+  const updateRequest = supabase
+    .from('maintenance_requests')
+    .update({
+      contractor_id: quote.contractor_id,
+      quoted_amount: quote.amount,
+      status: 'in-progress',
+      assigned_at: new Date().toISOString()
+    })
+    .eq('id', quote.request_id);
+
+  // Decline all other quotes for this request
+  const declineOtherQuotes = supabase
+    .from('quotes')
+    .update({
+      status: 'rejected',
+      updated_at: new Date().toISOString()
+    })
+    .eq('request_id', quote.request_id)
+    .neq('id', quoteId);
+
+  const [quoteUpdate, requestUpdate, declineUpdate] = await Promise.all([updateQuote, updateRequest, declineOtherQuotes]);
+
+  if (quoteUpdate.error) throw quoteUpdate.error;
+  if (requestUpdate.error) throw requestUpdate.error;
+  if (declineUpdate.error) throw declineUpdate.error;
+};
+
+export const updateJobProgressStatus = async (
+  requestId: string, 
+  progress: number, 
+  notes?: string,
+  completionPhotos?: Array<{ url: string }>
+) => {
+  const updates: any = {
+    completion_percentage: progress,
+    updated_at: new Date().toISOString()
+  };
+
+  if (notes) {
+    const { data: currentRequest } = await supabase
+      .from('maintenance_requests')
+      .select('progress_notes')
+      .eq('id', requestId)
+      .single();
+
+    updates.progress_notes = [
+      ...(currentRequest?.progress_notes || []),
+      {
+        note: notes,
+        timestamp: new Date().toISOString()
+      }
+    ];
+  }
+
+  if (completionPhotos && completionPhotos.length > 0) {
+    const { data: currentPhotos } = await supabase
+      .from('maintenance_requests')
+      .select('completion_photos')
+      .eq('id', requestId)
+      .single();
+    
+    updates.completion_photos = [
+      ...(currentPhotos?.completion_photos || []),
+      ...completionPhotos
+    ];
+  }
+
+  if (progress === 100) {
+    updates.status = 'completed';
+  }
+
+  const { error } = await supabase
+    .from('maintenance_requests')
+    .update(updates)
     .eq('id', requestId);
 
   if (error) throw error;
 };
 
+export const rejectQuote = async (quoteId: string) => {
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      status: 'rejected',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', quoteId);
+
+  if (error) throw error;
+};

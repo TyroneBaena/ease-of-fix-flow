@@ -15,15 +15,19 @@ import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { QuotesList } from '@/components/request/QuotesList';
 import { Quote } from '@/types/contractor';
 import { supabase } from '@/lib/supabase';
+import { useUserContext } from '@/contexts/UserContext';
+import { JobProgressCard } from '@/components/contractor/JobProgressCard';
 
 const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { requests } = useMaintenanceRequestContext();
+  const { currentUser } = useUserContext();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [isContractor, setIsContractor] = useState(false);
   
   useEffect(() => {
     if (id) {
@@ -46,7 +50,7 @@ const RequestDetail = () => {
             contractorId: quote.contractor_id,
             amount: quote.amount,
             description: quote.description || undefined,
-            status: quote.status as 'pending' | 'approved' | 'rejected',
+            status: quote.status as 'requested' | 'pending' | 'approved' | 'rejected',
             submittedAt: quote.submitted_at,
             approvedAt: quote.approved_at || undefined,
             createdAt: quote.created_at,
@@ -57,9 +61,24 @@ const RequestDetail = () => {
         }
       };
       
+      // Check if current user is a contractor
+      const checkContractorStatus = async () => {
+        if (!currentUser?.id) return;
+        
+        const { data, error } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('user_id', currentUser.id);
+          
+        if (!error && data && data.length > 0) {
+          setIsContractor(true);
+        }
+      };
+      
       fetchQuotes();
+      checkContractorStatus();
     }
-  }, [id, requests]);
+  }, [id, requests, currentUser]);
   
   const initialComments = [
     {
@@ -119,6 +138,9 @@ const RequestDetail = () => {
     );
   }
 
+  // Is this request assigned to the current contractor?
+  const isContractorAssigned = isContractor && request.contractorId && request.status === 'in-progress';
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -141,13 +163,27 @@ const RequestDetail = () => {
           
           <div className="space-y-6">
             <ContractorProvider>
-              <ContractorAssignment 
-                requestId={request.id} 
-                isAssigned={!!request.contractor_id}
-                onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
-              />
+              {/* Show contractor assignment panel if not assigned yet */}
+              {!request.contractorId && !isContractor && (
+                <ContractorAssignment 
+                  requestId={request.id} 
+                  isAssigned={!!request.contractorId}
+                  onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
+                />
+              )}
               
-              <QuotesList requestId={request.id} quotes={quotes} />
+              {/* Show quotes list if quotes exist */}
+              {quotes.length > 0 && !isContractor && (
+                <QuotesList requestId={request.id} quotes={quotes} />
+              )}
+              
+              {/* For assigned contractors or admin/manager, show job progress */}
+              {request.contractorId && (
+                <JobProgressCard 
+                  request={request} 
+                  isContractor={isContractorAssigned} 
+                />
+              )}
               
               <RequestQuoteDialog 
                 open={quoteDialogOpen} 
@@ -156,8 +192,12 @@ const RequestDetail = () => {
               />
             </ContractorProvider>
             
-            <RequestActions status={request.status} />
-            <RequestHistory history={request.history} />
+            {!isContractor && (
+              <>
+                <RequestActions status={request.status} />
+                <RequestHistory history={request.history} />
+              </>
+            )}
           </div>
         </div>
       </main>

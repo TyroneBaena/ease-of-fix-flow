@@ -18,7 +18,7 @@ export interface Quote {
   contractorId: string;
   amount: number;
   description?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'requested' | 'pending' | 'approved' | 'rejected';
   submittedAt: string;
   approvedAt?: string;
   createdAt: string;

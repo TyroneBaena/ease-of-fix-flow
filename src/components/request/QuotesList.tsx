@@ -3,10 +3,11 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileCheck, DollarSign } from 'lucide-react';
+import { FileCheck, DollarSign, Check, X } from 'lucide-react';
 import { Quote } from '@/types/contractor';
 import { useContractorContext } from '@/contexts/contractor';
 import { toast } from '@/lib/toast';
+import { formatDistanceToNow } from 'date-fns';
 
 interface QuotesListProps {
   requestId: string;
@@ -14,7 +15,7 @@ interface QuotesListProps {
 }
 
 export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
-  const { approveQuote } = useContractorContext();
+  const { approveQuote, rejectQuote } = useContractorContext();
 
   const handleApproveQuote = async (quoteId: string) => {
     try {
@@ -24,10 +25,28 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
       toast.error('Failed to approve quote');
     }
   };
+  
+  const handleRejectQuote = async (quoteId: string) => {
+    try {
+      await rejectQuote(quoteId);
+      toast.success('Quote rejected');
+    } catch (error) {
+      toast.error('Failed to reject quote');
+    }
+  };
 
   if (quotes.length === 0) {
     return null;
   }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'bg-green-500 hover:bg-green-600';
+      case 'rejected': return 'bg-red-500 hover:bg-red-600';
+      case 'requested': return 'bg-blue-500 hover:bg-blue-600';
+      default: return '';
+    }
+  };
 
   return (
     <Card>
@@ -52,23 +71,37 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
                 <p className="text-sm text-muted-foreground">{quote.description}</p>
               )}
               <div className="flex items-center space-x-2">
-                <Badge variant={quote.status === 'approved' ? 'default' : 'secondary'} 
-                       className={quote.status === 'approved' ? 'bg-green-500 hover:bg-green-600' : ''}>
+                <Badge 
+                  variant={status === 'approved' ? 'default' : 'secondary'} 
+                  className={getStatusColor(quote.status)}
+                >
                   {quote.status}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  Submitted {new Date(quote.submittedAt).toLocaleDateString()}
+                  {quote.status === 'requested' ? 'Requested ' : 'Submitted '}
+                  {formatDistanceToNow(new Date(quote.submittedAt), { addSuffix: true })}
                 </span>
               </div>
             </div>
             {quote.status === 'pending' && (
-              <Button 
-                variant="outline" 
-                className="ml-4"
-                onClick={() => handleApproveQuote(quote.id)}
-              >
-                Approve Quote
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  className="bg-green-50 hover:bg-green-100 border-green-200"
+                  onClick={() => handleApproveQuote(quote.id)}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Approve
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="bg-red-50 hover:bg-red-100 border-red-200"
+                  onClick={() => handleRejectQuote(quote.id)}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
+              </div>
             )}
           </div>
         ))}

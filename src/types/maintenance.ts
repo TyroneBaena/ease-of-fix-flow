@@ -1,13 +1,13 @@
 
 export interface MaintenanceRequest {
   id: string;
-  title: string;  // Changed from optional to required
+  title: string;  
   description?: string;
   status: 'pending' | 'in-progress' | 'completed' | 'open';
-  location: string; // Changed from optional to required
+  location: string; 
   priority?: 'low' | 'medium' | 'high';
-  site: string;  // Changed from optional to required
-  submittedBy: string;  // Changed from optional to required
+  site: string;  
+  submittedBy: string;  
   quote?: string;
   date?: string;
   propertyId?: string;
@@ -28,4 +28,12 @@ export interface MaintenanceRequest {
   issueNature: string;
   explanation: string;
   reportDate: string;
+  // Additional fields for contractor functionality
+  contractorId?: string;
+  assignedAt?: string;
+  completionPercentage?: number;
+  completionPhotos?: Array<{ url: string }> | null;
+  progressNotes?: Array<{ note: string; timestamp: string }> | string[];
+  quoteRequested?: boolean;
+  quotedAmount?: number;
 }

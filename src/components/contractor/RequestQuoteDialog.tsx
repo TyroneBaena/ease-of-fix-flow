@@ -71,14 +71,16 @@ export const RequestQuoteDialog = ({
 
     setIsSubmitting(true);
     try {
+      // Send quote requests to each selected contractor
       await Promise.all(
         selectedContractors.map(contractorId => 
-          requestQuote(request.id, contractorId)
+          requestQuote(request.id, contractorId, includeInfo, notes)
         )
       );
       
       toast.success(`Quote request sent to ${selectedContractors.length} contractor(s)`);
       setSelectedContractors([]);
+      setNotes('');
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to send quote requests:', error);
