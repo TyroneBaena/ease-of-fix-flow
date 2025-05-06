@@ -4,8 +4,12 @@ import { Card } from "@/components/ui/card";
 import { BarChart3 } from 'lucide-react';
 import StatusChart from '@/components/StatusChart';
 import CategoryChart from '@/components/CategoryChart';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 
 const AnalyticsCard = () => {
+  // Get maintenance requests from context
+  const { requests } = useMaintenanceRequestContext();
+  
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -16,7 +20,7 @@ const AnalyticsCard = () => {
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-2">Request Status</h3>
           <div className="h-64">
-            <StatusChart />
+            <StatusChart requests={requests} />
           </div>
         </div>
         <div>
