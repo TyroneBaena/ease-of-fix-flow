@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
@@ -16,8 +16,15 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(0);
   
-  const { request, loading, quotes, isContractor } = useRequestDetailData(id);
+  // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
+  const { request, loading, quotes, isContractor } = useRequestDetailData(id, forceRefresh);
+  
+  // Function to refresh the request data
+  const refreshRequestData = () => {
+    setForceRefresh(prev => prev + 1);
+  };
   
   const initialComments = [
     {
@@ -73,6 +80,7 @@ const RequestDetail = () => {
               open={quoteDialogOpen} 
               onOpenChange={setQuoteDialogOpen} 
               request={request}
+              onQuoteSubmitted={refreshRequestData}
             />
           </ContractorProvider>
         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
@@ -7,8 +6,8 @@ import { Quote } from '@/types/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from 'sonner';
 
-export const useRequestDetailData = (requestId: string | undefined) => {
-  const { requests } = useMaintenanceRequestContext();
+export const useRequestDetailData = (requestId: string | undefined, forceRefresh: number = 0) => {
+  const { requests, fetchRequests } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
   const [request, setRequest] = useState<MaintenanceRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,19 +18,31 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   useEffect(() => {
     if (!requestId) return;
     
-    const foundRequest = requests.find(req => req.id === requestId);
-    if (foundRequest) {
-      console.log("useRequestDetailData - Found request:", foundRequest);
-      console.log("useRequestDetailData - contractorId:", foundRequest.contractorId);
-      console.log("useRequestDetailData - status:", foundRequest.status);
-      setRequest(foundRequest);
-    } else {
-      console.log("useRequestDetailData - Request not found for ID:", requestId);
-      toast.error("Request not found");
-    }
+    const loadRequestData = async () => {
+      setLoading(true);
+      
+      // Refresh the requests data if needed
+      if (forceRefresh > 0) {
+        console.log("useRequestDetailData - Force refreshing request data");
+        await fetchRequests();
+      }
+      
+      const foundRequest = requests.find(req => req.id === requestId);
+      if (foundRequest) {
+        console.log("useRequestDetailData - Found request:", foundRequest);
+        console.log("useRequestDetailData - contractorId:", foundRequest.contractorId);
+        console.log("useRequestDetailData - status:", foundRequest.status);
+        setRequest(foundRequest);
+      } else {
+        console.log("useRequestDetailData - Request not found for ID:", requestId);
+        toast.error("Request not found");
+      }
+      
+      setLoading(false);
+    };
     
-    setLoading(false);
-  }, [requestId, requests]);
+    loadRequestData();
+  }, [requestId, requests, forceRefresh, fetchRequests]);
   
   // Effect for quotes and contractor status - keep these separate
   useEffect(() => {
@@ -97,12 +108,13 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     
     fetchQuotes();
     checkContractorStatus();
-  }, [requestId, currentUser?.id]);
+  }, [requestId, currentUser?.id, forceRefresh]);
 
   return {
     request,
     loading,
     quotes,
-    isContractor
+    isContractor,
+    refreshData: () => fetchRequests()
   };
 };

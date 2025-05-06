@@ -45,6 +45,15 @@ export const RequestDetailSidebar = ({
     }
   }, [request.contractorId, isContractor, request.status, isAssigned]);
 
+  // Handler for when a contractor is assigned
+  const handleContractorAssigned = () => {
+    console.log("RequestDetailSidebar - Contractor assigned, updating UI");
+    setIsAssigned(true);
+    
+    // We could fetch the updated request data here instead of reloading the page
+    // For now, we'll just update our local state
+  };
+
   return (
     <div className="space-y-6">
       {/* Show contractor assignment panel if user is not a contractor and no contractor is assigned yet */}
@@ -53,6 +62,7 @@ export const RequestDetailSidebar = ({
           requestId={request.id} 
           isAssigned={isAssigned}
           onOpenQuoteDialog={onOpenQuoteDialog}
+          onContractorAssigned={handleContractorAssigned}
         />
       )}
       

@@ -17,12 +17,14 @@ interface ContractorAssignmentProps {
   requestId: string;
   isAssigned: boolean;
   onOpenQuoteDialog: () => void;
+  onContractorAssigned?: () => void; // New prop for callback
 }
 
 export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   requestId,
   isAssigned,
-  onOpenQuoteDialog
+  onOpenQuoteDialog,
+  onContractorAssigned
 }) => {
   const { contractors, loading, assignContractor, error, loadContractors } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
@@ -62,8 +64,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       console.log("ContractorAssignment - Assignment successful");
       toast.success("Contractor assigned successfully");
       
-      // Force reload the page to reflect changes
-      window.location.reload();
+      // Call the callback instead of reloading the page
+      if (onContractorAssigned) {
+        onContractorAssigned();
+      }
     } catch (error) {
       console.error("Error assigning contractor:", error);
       toast.error("Failed to assign contractor");
