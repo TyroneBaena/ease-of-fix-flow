@@ -38,6 +38,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
+      case 'pending':
         return 'bg-amber-100 text-amber-800';
       case 'in-progress':
         return 'bg-blue-100 text-blue-800';
@@ -47,6 +48,21 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+  
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Open';
+      case 'pending':
+        return 'Pending';
+      case 'in-progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
 
   return (
     <Card className="p-6">
@@ -54,9 +70,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         <div>
           <div className="flex items-center mb-2">
             <Badge className={`${getStatusColor(request.status)} mr-3`}>
-              {request.status === 'open' ? 'Open' : 
-               request.status === 'in-progress' ? 'In Progress' : 
-               'Completed'}
+              {getStatusDisplay(request.status)}
             </Badge>
             <p className="text-sm text-gray-500 flex items-center">
               <Clock className="h-3 w-3 mr-1" />
