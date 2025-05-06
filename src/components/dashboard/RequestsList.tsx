@@ -19,7 +19,7 @@ const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRe
   const [activeFilter, setActiveFilter] = useState('all');
   const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
 
-  // Filter requests based on search term and active filter
+  // Filter and sort requests based on search term and active filter
   useEffect(() => {
     let result = allRequests;
     
@@ -35,6 +35,13 @@ const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRe
     if (activeFilter !== 'all') {
       result = result.filter(request => request.status === activeFilter);
     }
+    
+    // Sort requests by date (newest first)
+    result = [...result].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.reportDate || '');
+      const dateB = new Date(b.createdAt || b.reportDate || '');
+      return dateB.getTime() - dateA.getTime();
+    });
     
     setFilteredRequests(result);
   }, [searchTerm, activeFilter, allRequests]);
