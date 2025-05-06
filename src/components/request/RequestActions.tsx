@@ -18,6 +18,7 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
   const [actionType, setActionType] = useState<'none' | 'complete' | 'reopen' | 'cancel'>('none');
   const [lastActionTime, setLastActionTime] = useState(0);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const onStatusChangeCalledRef = useRef(false);
 
   // Clear any timeouts when component unmounts
   React.useEffect(() => {
@@ -35,17 +36,17 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
     successMessage: string,
     action: 'complete' | 'reopen' | 'cancel'
   ) => {
-    // Strong time-based debouncing - prevent actions within 8 seconds of each other
+    // Strong time-based debouncing - prevent actions within 10 seconds of each other
     const currentTime = Date.now();
-    if (currentTime - lastActionTime < 8000) {
+    if (currentTime - lastActionTime < 10000) {
       console.log(`RequestActions - Action ${action} too soon after last action, skipping`);
-      return Promise.resolve();
+      return;
     }
     
     // Prevent duplicate actions if already processing
     if (isProcessing) {
       console.log(`RequestActions - ${action} action already in progress, skipping`);
-      return Promise.resolve();
+      return;
     }
     
     try {
@@ -53,6 +54,7 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       setActionType(action);
       setIsProcessing(true);
       setLastActionTime(currentTime);
+      onStatusChangeCalledRef.current = false;
       
       console.log(`RequestActions - Performing ${action} action`);
       
@@ -60,12 +62,15 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       await updateJobProgress(requestId, progress, message);
       toast.success(successMessage);
       
-      // Only trigger the parent callback once and with a delay
-      if (onStatusChange) {
+      // Only trigger the parent callback once and after a delay
+      if (onStatusChange && !onStatusChangeCalledRef.current) {
         console.log(`RequestActions - Action ${action} complete, calling onStatusChange once`);
+        onStatusChangeCalledRef.current = true;
+        
+        // Call onStatusChange only once with a delay to avoid rapid state changes
         setTimeout(() => {
           onStatusChange();
-        }, 1000);
+        }, 2000);
       }
       
       // Set a longer timeout before allowing new actions
@@ -78,7 +83,7 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
         setIsProcessing(false);
         setActionType('none');
         processingTimeoutRef.current = null;
-      }, 8000) as unknown as NodeJS.Timeout;
+      }, 10000) as unknown as NodeJS.Timeout;
       
     } catch (error) {
       console.error(`Error ${action} request:`, error);
@@ -88,7 +93,7 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       setTimeout(() => {
         setIsProcessing(false);
         setActionType('none');
-      }, 3000);
+      }, 5000);
     }
   }, [requestId, updateJobProgress, onStatusChange, isProcessing, lastActionTime]);
 

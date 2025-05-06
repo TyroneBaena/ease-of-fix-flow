@@ -16,6 +16,7 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   const [isRefreshAllowed, setIsRefreshAllowed] = useState(true);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const refreshLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshOperationCompleteRef = useRef(false);
   
   // Use our specialized hooks to fetch and manage the data
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
@@ -35,7 +36,7 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   }, []);
   
   // Function to temporarily block refreshes to prevent multiple clicks or infinite loops
-  const lockRefreshes = useCallback((duration: number = 10000) => {
+  const lockRefreshes = useCallback((duration: number = 15000) => {
     console.log("useRequestDetailData - Locking refreshes for", duration, "ms");
     setIsRefreshAllowed(false);
     
@@ -66,9 +67,9 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
       return Promise.resolve();
     }
     
-    // Third protection: Add time-based debouncing - prevent refreshes within 8 seconds
+    // Third protection: Add time-based debouncing - prevent refreshes within 12 seconds
     const currentTime = Date.now();
-    if (currentTime - lastRefreshTime < 8000) {
+    if (currentTime - lastRefreshTime < 12000) {
       console.log("useRequestDetailData - Too soon since last refresh, debouncing");
       return Promise.resolve();
     }
@@ -79,12 +80,13 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
       refreshTimeoutRef.current = null;
     }
     
-    // Temporarily lock refreshes to prevent rapid repeat actions
-    lockRefreshes(8000);
+    // Immediately lock refreshes to prevent rapid repeat actions
+    lockRefreshes(15000);
     
     // Set state variables to track this refresh cycle
     setIsRefreshInProgress(true);
     setLastRefreshTime(currentTime);
+    refreshOperationCompleteRef.current = false;
     
     // Execute the actual refresh operation
     console.log("useRequestDetailData - Starting controlled refresh operation");
@@ -95,8 +97,18 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
       
       refreshPromise
         .then(() => {
+          if (refreshOperationCompleteRef.current) {
+            console.log("useRequestDetailData - Refresh operation already completed, skipping");
+            setIsRefreshInProgress(false);
+            resolve();
+            return;
+          }
+          
+          // Mark operation as complete to prevent duplicate processing
+          refreshOperationCompleteRef.current = true;
+          
           // After base operation completes, increment counter with delay
-          refreshTimeoutRef.current = setTimeout(() => {
+          setTimeout(() => {
             console.log("useRequestDetailData - Incrementing refresh counter");
             setRefreshCounter(prev => prev + 1);
             
@@ -105,8 +117,8 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
               console.log("useRequestDetailData - Reset isRefreshInProgress flag");
               setIsRefreshInProgress(false);
               resolve();
-            }, 5000) as unknown as NodeJS.Timeout;
-          }, 1000) as unknown as NodeJS.Timeout;
+            }, 8000) as unknown as NodeJS.Timeout;
+          }, 2000);
         })
         .catch(error => {
           console.error("Error during refresh:", error);

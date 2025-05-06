@@ -21,6 +21,7 @@ const RequestDetail = () => {
   const [isRefreshRequested, setIsRefreshRequested] = useState(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const refreshLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshCallInProgressRef = useRef(false);
   
   // Add a refresh lock mechanism to prevent rapid repeated refreshes
   const [isRefreshLocked, setIsRefreshLocked] = useState(false);
@@ -29,7 +30,7 @@ const RequestDetail = () => {
   const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
   
   // Function to temporarily lock refreshes
-  const lockRefresh = useCallback((duration: number = 10000) => {
+  const lockRefresh = useCallback((duration: number = 15000) => {
     console.log(`RequestDetail - Locking refresh for ${duration}ms`);
     setIsRefreshLocked(true);
     
@@ -40,6 +41,7 @@ const RequestDetail = () => {
     refreshLockTimeoutRef.current = setTimeout(() => {
       console.log("RequestDetail - Refresh lock released");
       setIsRefreshLocked(false);
+      refreshLockTimeoutRef.current = null;
     }, duration) as unknown as NodeJS.Timeout;
   }, []);
   
@@ -54,14 +56,14 @@ const RequestDetail = () => {
     }
     
     // Skip if a refresh is already in progress or requested
-    if (isRefreshing || isRefreshRequested) {
+    if (isRefreshing || isRefreshRequested || refreshCallInProgressRef.current) {
       console.log("RequestDetail - Refresh already in progress or requested, skipping");
       return;
     }
     
-    // Strong time-based debouncing - 8 second window
+    // Strong time-based debouncing - 15 second window
     const currentTime = Date.now();
-    if (currentTime - lastRefreshCallTime < 8000) {
+    if (currentTime - lastRefreshCallTime < 15000) {
       console.log("RequestDetail - Too soon since last refresh call, debouncing");
       return;
     }
@@ -72,11 +74,12 @@ const RequestDetail = () => {
     }
     
     // Lock refreshes temporarily to prevent new attempts
-    lockRefresh(10000);
+    lockRefresh(15000);
     
     // Mark that we've requested a refresh and update timestamp
     setLastRefreshCallTime(currentTime);
     setIsRefreshRequested(true);
+    refreshCallInProgressRef.current = true;
     
     // Use the hook's refreshData function
     if (refreshData) {
@@ -86,7 +89,9 @@ const RequestDetail = () => {
         refreshTimeoutRef.current = setTimeout(() => {
           console.log("RequestDetail - Clearing refresh requested flag");
           setIsRefreshRequested(false);
-        }, 8000) as unknown as NodeJS.Timeout;
+          refreshCallInProgressRef.current = false;
+          refreshTimeoutRef.current = null;
+        }, 15000) as unknown as NodeJS.Timeout;
       });
     }
   }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested, isRefreshLocked, lockRefresh]);
