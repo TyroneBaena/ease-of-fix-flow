@@ -79,6 +79,7 @@ const RequestDetail = () => {
               quotes={quotes}
               isContractor={isContractor}
               onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
+              onRefreshData={refreshRequestData}
             />
             
             <RequestQuoteDialog 
