@@ -58,8 +58,14 @@ export const changeContractorAssignment = async (requestId: string, contractorId
     timestamp: new Date().toISOString()
   };
 
+  // Fix: Ensure history is a valid array before spreading
+  let existingHistory = [];
+  if (currentRequest?.history && Array.isArray(currentRequest.history)) {
+    existingHistory = currentRequest.history;
+  }
+
   const history = [
-    ...(currentRequest?.history || []),
+    ...existingHistory,
     historyEntry
   ];
 
