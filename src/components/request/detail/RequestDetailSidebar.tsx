@@ -23,10 +23,15 @@ export const RequestDetailSidebar = ({
 }: RequestDetailSidebarProps) => {
   // Is this request assigned to the current contractor?
   const isContractorAssigned = isContractor && request.contractorId && request.status === 'in-progress';
+  
+  // Debug information to help troubleshoot
+  console.log("RequestDetailSidebar - isContractor:", isContractor);
+  console.log("RequestDetailSidebar - request.contractorId:", request.contractorId);
+  console.log("RequestDetailSidebar - showing assignment panel:", !isContractor && !request.contractorId);
 
   return (
     <div className="space-y-6">
-      {/* Show contractor assignment panel if user is not a contractor */}
+      {/* Show contractor assignment panel if user is not a contractor and no contractor is assigned yet */}
       {!isContractor && (
         <ContractorAssignment 
           requestId={request.id} 

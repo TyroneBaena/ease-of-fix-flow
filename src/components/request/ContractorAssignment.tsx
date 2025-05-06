@@ -36,7 +36,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     await assignContractor(requestId, selectedContractor);
   };
 
-  // Only return null if explicitly assigned, don't hide based on other conditions
+  // Only hide component if explicitly assigned, don't hide based on other conditions
   if (isAssigned === true) {
     console.log("ContractorAssignment - Component hidden because isAssigned is true");
     return null;
