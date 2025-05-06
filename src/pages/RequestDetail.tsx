@@ -18,40 +18,49 @@ const RequestDetail = () => {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(0);
   const [lastRefreshCallTime, setLastRefreshCallTime] = useState(0);
+  const [isRefreshRequested, setIsRefreshRequested] = useState(false);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
   const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
   
-  // Function to refresh the request data with double debounce protection
+  // Function to refresh the request data with improved debounce protection
   const refreshRequestData = useCallback(() => {
     console.log("RequestDetail - Refreshing request data requested");
     
-    // Debounce based on component state
-    if (isRefreshing) {
-      console.log("RequestDetail - Refresh already in progress, skipping");
+    // Skip if a refresh is already in progress or requested
+    if (isRefreshing || isRefreshRequested) {
+      console.log("RequestDetail - Refresh already in progress or requested, skipping");
       return;
     }
     
-    // Time-based debouncing
+    // Strong time-based debouncing - 5 second window
     const currentTime = Date.now();
-    if (currentTime - lastRefreshCallTime < 3000) { // 3 second window
+    if (currentTime - lastRefreshCallTime < 5000) {
       console.log("RequestDetail - Too soon since last refresh call, debouncing");
       return;
     }
     
+    // Mark that we've requested a refresh and update timestamp
     setLastRefreshCallTime(currentTime);
+    setIsRefreshRequested(true);
     
-    // Use the hook's refreshData function
+    // Use the hook's refreshData function with a promise chain
     if (refreshData) {
       console.log("RequestDetail - Calling refreshData");
-      refreshData();
+      refreshData().finally(() => {
+        // Clear the refresh requested flag
+        setTimeout(() => {
+          setIsRefreshRequested(false);
+        }, 3000);
+      });
     }
-  }, [refreshData, isRefreshing, lastRefreshCallTime]);
+  }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested]);
   
-  // Add a debug-level effect to track renders
+  // Debug-level effect to track renders
   useEffect(() => {
     console.log("RequestDetail - Component rendered with id:", id);
     console.log("RequestDetail - isRefreshing:", isRefreshing);
+    console.log("RequestDetail - isRefreshRequested:", isRefreshRequested);
     console.log("RequestDetail - lastRefreshCallTime:", new Date(lastRefreshCallTime).toISOString());
   });
   

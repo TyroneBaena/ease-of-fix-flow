@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
@@ -15,66 +15,75 @@ interface RequestActionsProps {
 export const RequestActions = ({ status, requestId, onStatusChange }: RequestActionsProps) => {
   const { updateJobProgress } = useContractorContext();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [actionType, setActionType] = useState<'none' | 'complete' | 'reopen' | 'cancel'>('none');
 
-  const handleCompleteRequest = async () => {
-    // Prevent multiple rapid clicks
+  // Created a proper async function that can be awaited
+  const performStatusUpdate = useCallback(async (
+    progress: number, 
+    message: string, 
+    successMessage: string,
+    action: 'complete' | 'reopen' | 'cancel'
+  ) => {
     if (isProcessing) return;
     
     try {
+      // Set the action type to prevent duplicate actions
+      setActionType(action);
       setIsProcessing(true);
       
-      if (status === 'completed') {
-        // Reopen request by setting progress back to a partial value (e.g., 50%)
-        await updateJobProgress(requestId, 50, "Request reopened by admin/manager");
-        toast.success("Request reopened successfully");
-      } else {
-        // Mark as complete - set progress to 100%
-        await updateJobProgress(requestId, 100, "Request marked as complete by admin/manager");
-        toast.success("Request marked as complete");
-      }
+      // Perform the update
+      await updateJobProgress(requestId, progress, message);
+      toast.success(successMessage);
       
-      // Only trigger the callback after successful completion with a longer delay
+      // Wait a moment before triggering refresh
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Call the status change callback if provided
       if (onStatusChange) {
-        // Use setTimeout with a longer delay to prevent rapid refresh cycles
-        setTimeout(() => {
-          onStatusChange();
-          setIsProcessing(false);
-        }, 300);
-      } else {
-        setIsProcessing(false);
+        onStatusChange();
       }
     } catch (error) {
-      console.error("Error updating request status:", error);
-      toast.error("Failed to update request status");
-      setIsProcessing(false);
+      console.error(`Error ${action} request:`, error);
+      toast.error(`Failed to ${action} request`);
+    } finally {
+      // Reset after a delay to prevent rapid re-clicks
+      setTimeout(() => {
+        setIsProcessing(false);
+        setActionType('none');
+      }, 2000);
     }
-  };
+  }, [requestId, updateJobProgress, onStatusChange, isProcessing]);
 
-  const handleCancelRequest = async () => {
-    // Prevent multiple rapid clicks
-    if (isProcessing) return;
-    
-    try {
-      setIsProcessing(true);
-      
-      // Cancel request logic - update progress to 0 and add a cancellation note
-      await updateJobProgress(requestId, 0, "Request cancelled by admin/manager");
-      toast.success("Request cancelled successfully");
-      
-      // Trigger refresh callback if provided with a longer delay
-      if (onStatusChange) {
-        setTimeout(() => {
-          onStatusChange();
-          setIsProcessing(false);
-        }, 300);
-      } else {
-        setIsProcessing(false);
-      }
-    } catch (error) {
-      console.error("Error cancelling request:", error);
-      toast.error("Failed to cancel request");
-      setIsProcessing(false);
+  const handleCompleteRequest = useCallback(async () => {
+    if (status === 'completed') {
+      await performStatusUpdate(
+        50, 
+        "Request reopened by admin/manager",
+        "Request reopened successfully",
+        'reopen'
+      );
+    } else {
+      await performStatusUpdate(
+        100, 
+        "Request marked as complete by admin/manager",
+        "Request marked as complete",
+        'complete'
+      );
     }
+  }, [status, performStatusUpdate]);
+
+  const handleCancelRequest = useCallback(async () => {
+    await performStatusUpdate(
+      0, 
+      "Request cancelled by admin/manager",
+      "Request cancelled successfully",
+      'cancel'
+    );
+  }, [performStatusUpdate]);
+
+  // Determine if a specific button should be disabled
+  const isButtonDisabled = (action: 'reopen' | 'complete' | 'cancel') => {
+    return isProcessing || (actionType !== 'none' && actionType !== action);
   };
 
   return (
@@ -83,19 +92,19 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       
       <div className="space-y-3">
         <Button 
-          className="w-full justify-start bg-blue-500 hover:bg-blue-600"
+          className="w-full justify-start bg-green-500 hover:bg-green-600"
           onClick={handleCompleteRequest}
-          disabled={isProcessing}
+          disabled={isButtonDisabled(status === 'completed' ? 'reopen' : 'complete')}
         >
           {status === 'completed' ? (
             <>
               <RefreshCcw className="h-4 w-4 mr-2" />
-              Reopen Request
+              {isProcessing && actionType === 'reopen' ? 'Reopening...' : 'Reopen Request'}
             </>
           ) : (
             <>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Mark as Complete
+              {isProcessing && actionType === 'complete' ? 'Completing...' : 'Mark as Complete'}
             </>
           )}
         </Button>
@@ -104,10 +113,10 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
           variant="outline" 
           className="w-full justify-start text-red-600 hover:bg-red-50"
           onClick={handleCancelRequest}
-          disabled={isProcessing}
+          disabled={isButtonDisabled('cancel')}
         >
           <XCircle className="h-4 w-4 mr-2" />
-          Cancel Request
+          {isProcessing && actionType === 'cancel' ? 'Cancelling...' : 'Cancel Request'}
         </Button>
       </div>
     </Card>

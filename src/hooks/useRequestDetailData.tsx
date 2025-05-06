@@ -19,47 +19,50 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
   
-  // Combine refresh functions from child hooks with improved debouncing
-  const refreshData = useCallback(async () => {
+  // Combine refresh functions from child hooks with debounce protection
+  const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Manual refresh requested");
     
     // Prevent multiple rapid refreshes
     if (isRefreshInProgress) {
       console.log("useRequestDetailData - Refresh already in progress, skipping");
-      return;
+      return Promise.resolve(); // Return a resolved promise for chaining
     }
     
-    // Add time-based debouncing - prevent refreshes within 2 seconds of each other
+    // Add time-based debouncing - prevent refreshes within 3 seconds of each other
     const currentTime = Date.now();
-    if (currentTime - lastRefreshTime < 2000) {
+    if (currentTime - lastRefreshTime < 3000) {
       console.log("useRequestDetailData - Too soon since last refresh, debouncing");
-      return;
+      return Promise.resolve(); // Return a resolved promise for chaining
     }
     
     setIsRefreshInProgress(true);
     setLastRefreshTime(currentTime);
     
-    try {
-      if (refreshRequestData) {
-        console.log("useRequestDetailData - Calling refreshRequestData");
-        await refreshRequestData();
-      }
+    // Create a proper promise chain for the refresh operation
+    return new Promise<void>((resolve) => {
+      const refreshPromise = refreshRequestData ? 
+        refreshRequestData() : 
+        Promise.resolve();
       
-      // Use a longer delay to break potential recursive update loops
-      setTimeout(() => {
-        console.log("useRequestDetailData - Incrementing refresh counter");
-        setRefreshCounter(prev => prev + 1);
-        
-        // Reset the refresh flag after a longer delay
+      refreshPromise.then(() => {
+        // Use setTimeout to create a delay before incrementing the counter
         setTimeout(() => {
-          console.log("useRequestDetailData - Reset isRefreshInProgress flag");
-          setIsRefreshInProgress(false);
-        }, 1500);
-      }, 800);
-    } catch (error) {
-      console.error("Error during refresh:", error);
-      setIsRefreshInProgress(false);
-    }
+          setRefreshCounter(prev => prev + 1);
+          
+          // Allow new refreshes after a longer delay
+          setTimeout(() => {
+            console.log("useRequestDetailData - Reset isRefreshInProgress flag");
+            setIsRefreshInProgress(false);
+            resolve();
+          }, 2000);
+        }, 1000);
+      }).catch(error => {
+        console.error("Error during refresh:", error);
+        setIsRefreshInProgress(false);
+        resolve(); // Still resolve the promise in case of error
+      });
+    });
   }, [refreshRequestData, isRefreshInProgress, lastRefreshTime]);
 
   // Reset refresh counter when the requestId changes
