@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HardHat, Quote } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ContractorAssignmentProps {
   requestId: string;
@@ -23,7 +24,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   isAssigned,
   onOpenQuoteDialog
 }) => {
-  const { contractors, loading, assignContractor, error } = useContractorContext();
+  const { contractors, loading, assignContractor, error, loadContractors } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
   
   // Enhanced logging
@@ -34,20 +35,33 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     console.log("ContractorAssignment - Loading state:", loading);
     console.log("ContractorAssignment - Error state:", error);
     
+    // Force load contractors when component mounts
+    if (contractors.length === 0 && !loading) {
+      console.log("ContractorAssignment - Forcing load of contractors");
+      loadContractors();
+    }
+    
     // Reset selected contractor when the component mounts or contractors change
     if (contractors.length > 0 && !selectedContractor) {
+      console.log("ContractorAssignment - Setting selected contractor to:", contractors[0].id);
       setSelectedContractor(contractors[0].id);
     }
-  }, [contractors, requestId, isAssigned, loading, error, selectedContractor]);
+  }, [contractors, requestId, isAssigned, loading, error, loadContractors, selectedContractor]);
 
   const handleAssignment = async () => {
-    if (!selectedContractor) return;
+    if (!selectedContractor) {
+      toast.error("Please select a contractor first");
+      return;
+    }
+    
     try {
       console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
       await assignContractor(requestId, selectedContractor);
       console.log("ContractorAssignment - Assignment successful");
+      toast.success("Contractor assigned successfully");
     } catch (error) {
       console.error("Error assigning contractor:", error);
+      toast.error("Failed to assign contractor");
     }
   };
 
@@ -69,6 +83,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <Select
           value={selectedContractor}
           onValueChange={setSelectedContractor}
+          disabled={loading || contractors.length === 0}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select a contractor" />
@@ -94,7 +109,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             disabled={!selectedContractor || loading || contractors.length === 0}
             className="w-full"
           >
-            Assign Contractor
+            {loading ? "Loading..." : "Assign Contractor"}
           </Button>
           
           <Button 

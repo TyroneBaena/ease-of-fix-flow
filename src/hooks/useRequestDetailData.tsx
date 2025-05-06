@@ -78,18 +78,20 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         const { data, error } = await supabase
           .from('contractors')
           .select('id')
-          .eq('user_id', currentUser.id);
+          .eq('user_id', currentUser.id)
+          .single();
           
-        if (!error && data && data.length > 0) {
-          console.log("useRequestDetailData - User is a contractor");
+        if (!error && data) {
+          console.log("useRequestDetailData - User is a contractor:", data);
           setIsContractor(true);
         } else {
-          console.log("useRequestDetailData - User is not a contractor");
+          console.log("useRequestDetailData - User is not a contractor:", error);
           setIsContractor(false);
         }
       } catch (err) {
         console.error("useRequestDetailData - Exception checking contractor status:", err);
         toast.error("Error checking user role");
+        setIsContractor(false);
       }
     };
     
