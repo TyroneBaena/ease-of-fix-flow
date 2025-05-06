@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
 import { useContractorContext } from '@/contexts/contractor/ContractorContext';
 import { toast } from '@/lib/toast';
 
@@ -18,9 +18,17 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
   const handleCompleteRequest = async () => {
     try {
       if (status === 'completed') {
-        // Reopening logic would go here
-        // For now we'll just show a toast since reopening is not implemented
-        toast.info("Reopening functionality not implemented yet");
+        // Reopen request by setting progress back to a partial value (e.g., 50%)
+        await updateJobProgress(requestId, 50, "Request reopened by admin/manager");
+        toast.success("Request reopened successfully");
+        
+        // Only trigger the callback after successful completion
+        if (onStatusChange) {
+          // Use setTimeout to break the potential update cycle
+          setTimeout(() => {
+            onStatusChange();
+          }, 100);
+        }
       } else {
         // Mark as complete - set progress to 100%
         await updateJobProgress(requestId, 100, "Request marked as complete by admin/manager");
@@ -28,10 +36,10 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
         
         // Only trigger the callback after successful completion
         if (onStatusChange) {
-          // Use setTimeout to break the potential update cycle
+          // Use setTimeout to break the potential update cycle and add more delay
           setTimeout(() => {
             onStatusChange();
-          }, 0);
+          }, 100);
         }
       }
     } catch (error) {
@@ -40,10 +48,23 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
     }
   };
 
-  const handleCancelRequest = () => {
-    // Cancellation logic would go here
-    // For now just show a toast since cancellation is not fully implemented
-    toast.info("Request cancellation not implemented yet");
+  const handleCancelRequest = async () => {
+    try {
+      // Cancel request logic - update progress to 0 and add a cancellation note
+      await updateJobProgress(requestId, 0, "Request cancelled by admin/manager");
+      toast.success("Request cancelled successfully");
+      
+      // Trigger refresh callback if provided
+      if (onStatusChange) {
+        // Use setTimeout to break the potential update cycle
+        setTimeout(() => {
+          onStatusChange();
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      toast.error("Failed to cancel request");
+    }
   };
 
   return (
@@ -55,8 +76,17 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
           className="w-full justify-start bg-blue-500 hover:bg-blue-600"
           onClick={handleCompleteRequest}
         >
-          <CheckCircle className="h-4 w-4 mr-2" />
-          {status === 'completed' ? 'Reopen Request' : 'Mark as Complete'}
+          {status === 'completed' ? (
+            <>
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Reopen Request
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Mark as Complete
+            </>
+          )}
         </Button>
         
         <Button 
