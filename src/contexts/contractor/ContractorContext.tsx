@@ -119,6 +119,7 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       contractors,
       loading,
       error,
+      loadContractors,
       assignContractor,
       requestQuote,
       submitQuote,

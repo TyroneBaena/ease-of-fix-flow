@@ -5,6 +5,7 @@ export interface ContractorContextType {
   contractors: Contractor[];
   loading: boolean;
   error: Error | null;
+  loadContractors: () => Promise<void>;
   assignContractor: (requestId: string, contractorId: string) => Promise<void>;
   requestQuote: (requestId: string, contractorId: string, includeInfo?: any, notes?: string) => Promise<void>;
   submitQuote: (requestId: string, amount: number, description?: string) => Promise<void>;
