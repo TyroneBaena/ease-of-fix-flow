@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
@@ -10,12 +9,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { HardHat, Quote } from 'lucide-react';
+import { HardHat, Quote, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ContractorAssignmentProps {
   requestId: string;
   isAssigned: boolean;
+  currentContractorId?: string;
   onOpenQuoteDialog: () => void;
   onContractorAssigned?: () => void; // Callback for when a contractor is assigned
 }
@@ -23,17 +23,19 @@ interface ContractorAssignmentProps {
 export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   requestId,
   isAssigned,
+  currentContractorId,
   onOpenQuoteDialog,
   onContractorAssigned
 }) => {
-  const { contractors, loading, assignContractor, error, loadContractors } = useContractorContext();
+  const { contractors, loading, assignContractor, changeAssignment, error, loadContractors } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
   const [isAssigning, setIsAssigning] = useState(false);
+  const isReassignment = isAssigned && currentContractorId;
   
   // Enhanced logging
   useEffect(() => {
     console.log("ContractorAssignment - Component mounted or updated");
-    console.log("ContractorAssignment - Props:", { requestId, isAssigned });
+    console.log("ContractorAssignment - Props:", { requestId, isAssigned, currentContractorId });
     console.log("ContractorAssignment - Available contractors:", contractors);
     console.log("ContractorAssignment - Loading state:", loading);
     console.log("ContractorAssignment - Error state:", error);
@@ -44,12 +46,17 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       loadContractors();
     }
     
-    // Reset selected contractor when the component mounts or contractors change
-    if (contractors.length > 0 && !selectedContractor) {
+    // Set the currently assigned contractor as selected if we're in reassignment mode
+    if (isReassignment && currentContractorId) {
+      console.log("ContractorAssignment - Setting selected contractor to current:", currentContractorId);
+      setSelectedContractor(currentContractorId);
+    }
+    // Otherwise set the first contractor as selected if available
+    else if (contractors.length > 0 && !selectedContractor) {
       console.log("ContractorAssignment - Setting selected contractor to:", contractors[0].id);
       setSelectedContractor(contractors[0].id);
     }
-  }, [contractors, requestId, isAssigned, loading, error, loadContractors, selectedContractor]);
+  }, [contractors, requestId, isAssigned, loading, error, loadContractors, selectedContractor, currentContractorId, isReassignment]);
 
   const handleAssignment = async () => {
     if (!selectedContractor) {
@@ -59,26 +66,34 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     
     try {
       setIsAssigning(true);
-      console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
-      await assignContractor(requestId, selectedContractor);
-      console.log("ContractorAssignment - Assignment successful");
-      toast.success("Contractor assigned successfully");
+      
+      if (isReassignment) {
+        console.log("ContractorAssignment - Reassigning contractor:", selectedContractor);
+        await changeAssignment(requestId, selectedContractor);
+        console.log("ContractorAssignment - Reassignment successful");
+        toast.success("Contractor reassigned successfully");
+      } else {
+        console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
+        await assignContractor(requestId, selectedContractor);
+        console.log("ContractorAssignment - Assignment successful");
+        toast.success("Contractor assigned successfully");
+      }
       
       // Call the callback to notify parent component
       if (onContractorAssigned) {
         onContractorAssigned();
       }
     } catch (error) {
-      console.error("Error assigning contractor:", error);
-      toast.error("Failed to assign contractor");
+      console.error("Error assigning/reassigning contractor:", error);
+      toast.error(`Failed to ${isReassignment ? 'reassign' : 'assign'} contractor`);
     } finally {
       setIsAssigning(false);
     }
   };
 
-  // If explicitly assigned, don't render the component
-  if (isAssigned) {
-    console.log("ContractorAssignment - Component hidden because isAssigned is true");
+  // Display even if assigned when in reassignment mode
+  if (isAssigned && !isReassignment) {
+    console.log("ContractorAssignment - Component hidden because isAssigned is true and not in reassignment mode");
     return null;
   }
 
@@ -87,7 +102,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center text-lg font-semibold">
           <HardHat className="mr-2 h-5 w-5" />
-          Contractor
+          {isReassignment ? 'Change Contractor' : 'Contractor'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -120,17 +135,23 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             disabled={!selectedContractor || loading || contractors.length === 0 || isAssigning}
             className="w-full"
           >
-            {isAssigning ? "Assigning..." : loading ? "Loading..." : "Assign Contractor"}
+            {isAssigning ? 
+              (isReassignment ? "Reassigning..." : "Assigning...") : 
+              (loading ? "Loading..." : (isReassignment ? 
+                <span className="flex items-center"><RefreshCw className="mr-2 h-4 w-4" />Change Contractor</span> : 
+                "Assign Contractor"))}
           </Button>
           
-          <Button 
-            variant="outline"
-            onClick={onOpenQuoteDialog}
-            className="w-full flex items-center justify-center"
-          >
-            <Quote className="mr-2 h-4 w-4" />
-            Request Quote
-          </Button>
+          {!isReassignment && (
+            <Button 
+              variant="outline"
+              onClick={onOpenQuoteDialog}
+              className="w-full flex items-center justify-center"
+            >
+              <Quote className="mr-2 h-4 w-4" />
+              Request Quote
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

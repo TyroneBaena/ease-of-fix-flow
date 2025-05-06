@@ -7,6 +7,8 @@ import { RequestHistory } from '@/components/request/RequestHistory';
 import { JobProgressCard } from '@/components/contractor/JobProgressCard';
 import { QuotesList } from '@/components/request/QuotesList';
 import { Quote } from '@/types/contractor';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 interface RequestDetailSidebarProps {
   request: MaintenanceRequest;
@@ -26,6 +28,8 @@ export const RequestDetailSidebar = ({
   
   // State to track if a contractor is assigned to the request
   const [isAssigned, setIsAssigned] = useState(false);
+  // State to track if we're changing a contractor
+  const [isChangingContractor, setIsChangingContractor] = useState(false);
   
   // Update isAssigned when request changes
   useEffect(() => {
@@ -47,24 +51,50 @@ export const RequestDetailSidebar = ({
     console.log("RequestDetailSidebar - request.assignedTo:", request.assignedTo);
     console.log("RequestDetailSidebar - request.status:", request.status);
     console.log("RequestDetailSidebar - isAssigned state:", isAssigned);
-  }, [request.contractorId, request.assignedTo, isContractor, request.status, isAssigned]);
+    console.log("RequestDetailSidebar - isChangingContractor state:", isChangingContractor);
+  }, [request.contractorId, request.assignedTo, isContractor, request.status, isAssigned, isChangingContractor]);
 
   // Handler for when a contractor is assigned
   const handleContractorAssigned = () => {
     console.log("RequestDetailSidebar - Contractor assigned, updating UI");
     setIsAssigned(true);
+    setIsChangingContractor(false);
+  };
+
+  // Handler to toggle contractor change mode
+  const handleChangeContractor = () => {
+    console.log("RequestDetailSidebar - Toggling change contractor mode");
+    setIsChangingContractor(!isChangingContractor);
   };
 
   return (
     <div className="space-y-6">
-      {/* Show contractor assignment panel if user is not a contractor and no contractor is assigned yet */}
-      {!isContractor && !isAssigned && (
+      {/* Show contractor assignment panel if user is not a contractor and either:
+          1. No contractor is assigned yet, or
+          2. User has clicked to change the contractor */}
+      {!isContractor && (!isAssigned || isChangingContractor) && (
         <ContractorAssignment 
           requestId={request.id} 
           isAssigned={isAssigned}
+          currentContractorId={request.contractorId}
           onOpenQuoteDialog={onOpenQuoteDialog}
           onContractorAssigned={handleContractorAssigned}
         />
+      )}
+      
+      {/* Show change contractor button if a contractor is already assigned and we're not in change mode */}
+      {!isContractor && isAssigned && !isChangingContractor && (
+        <div className="mb-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleChangeContractor}
+            className="flex items-center"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Change Contractor
+          </Button>
+        </div>
       )}
       
       {/* Show quotes list if quotes exist */}

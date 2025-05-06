@@ -1,11 +1,11 @@
-
 import { useState } from 'react';
 import { Contractor } from '@/types/contractor';
 import { toast } from '@/lib/toast';
 import { fetchContractors } from './operations/contractorFetch';
 import { 
   assignContractorToRequest, 
-  requestQuoteForJob 
+  requestQuoteForJob,
+  changeContractorAssignment
 } from './operations';
 import { 
   submitQuoteForJob, 
@@ -48,6 +48,17 @@ export const useContractorOperations = () => {
     } catch (err) {
       console.error('Error assigning contractor:', err);
       toast.error('Failed to assign contractor');
+      throw err;
+    }
+  };
+  
+  const changeAssignment = async (requestId: string, contractorId: string) => {
+    try {
+      await changeContractorAssignment(requestId, contractorId);
+      toast.success('Contractor reassigned successfully');
+    } catch (err) {
+      console.error('Error reassigning contractor:', err);
+      toast.error('Failed to reassign contractor');
       throw err;
     }
   };
@@ -118,6 +129,7 @@ export const useContractorOperations = () => {
     error,
     loadContractors,
     assignContractor,
+    changeAssignment,
     requestQuote,
     submitQuote,
     approveQuote,

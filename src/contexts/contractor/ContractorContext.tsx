@@ -1,12 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Contractor, Quote } from '@/types/contractor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { ContractorContextType } from './ContractorContextTypes';
 import { fetchContractors } from './operations/contractorFetch';
-import { assignContractorToRequest } from './operations/contractorOperations';
-import { requestQuoteForJob } from './operations/contractorOperations';
+import { assignContractorToRequest, changeContractorAssignment, requestQuoteForJob } from './operations/contractorOperations';
 import { 
   submitQuoteForJob, 
   approveQuoteForJob, 
@@ -55,6 +53,17 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (err) {
       console.error('Error assigning contractor:', err);
       toast.error('Failed to assign contractor');
+      throw err;
+    }
+  };
+
+  const changeAssignment = async (requestId: string, contractorId: string) => {
+    try {
+      await changeContractorAssignment(requestId, contractorId);
+      toast.success('Contractor reassigned successfully');
+    } catch (err) {
+      console.error('Error reassigning contractor:', err);
+      toast.error('Failed to reassign contractor');
       throw err;
     }
   };
@@ -121,6 +130,7 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       error,
       loadContractors,
       assignContractor,
+      changeAssignment,
       requestQuote,
       submitQuote,
       approveQuote,
