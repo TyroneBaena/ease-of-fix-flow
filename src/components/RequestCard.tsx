@@ -9,7 +9,7 @@ import {
   User,
   ChevronRight
 } from 'lucide-react';
-import { MaintenanceRequest } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 interface RequestCardProps {
   request: MaintenanceRequest;
@@ -20,6 +20,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
+      case 'pending':
         return 'bg-amber-100 text-amber-800';
       case 'in-progress':
         return 'bg-blue-100 text-blue-800';
@@ -27,6 +28,21 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Open';
+      case 'pending':
+        return 'Pending';
+      case 'in-progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
   
@@ -67,9 +83,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={getStatusColor(request.status)}>
-                {request.status === 'open' ? 'Open' : 
-                 request.status === 'in-progress' ? 'In Progress' : 
-                 'Completed'}
+                {getStatusDisplay(request.status)}
               </Badge>
               {displayPriority && (
                 <Badge variant="outline" className={getPriorityColor(displayPriority)}>
