@@ -38,7 +38,7 @@ export const changeContractorAssignment = async (requestId: string, contractorId
   // First, check if the contractor is already assigned to this request to prevent unnecessary updates
   const { data: currentRequest, error: currentRequestError } = await supabase
     .from('maintenance_requests')
-    .select('contractor_id, assigned_to')
+    .select('contractor_id, assigned_to, history')
     .eq('id', requestId)
     .single();
 
@@ -79,15 +79,23 @@ export const changeContractorAssignment = async (requestId: string, contractorId
     historyEntry
   ];
 
+  // Define the update object with proper TypeScript type
+  const updateData: {
+    contractor_id: string;
+    assigned_at: string;
+    assigned_to: string;
+    history: Array<{ action: string; timestamp: string }>;
+  } = {
+    contractor_id: contractorId,
+    assigned_at: new Date().toISOString(),
+    assigned_to: contractorName,
+    history
+  };
+
   // Update the maintenance request with the new contractor
   const { error } = await supabase
     .from('maintenance_requests')
-    .update({
-      contractor_id: contractorId,
-      assigned_at: new Date().toISOString(),
-      assigned_to: contractorName,
-      history
-    })
+    .update(updateData)
     .eq('id', requestId);
 
   if (error) throw error;
