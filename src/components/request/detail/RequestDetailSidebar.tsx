@@ -24,8 +24,8 @@ export const RequestDetailSidebar = ({
   // Is this request assigned to the current contractor?
   const isContractorAssigned = isContractor && request.contractorId && request.status === 'in-progress';
   
-  // Add state to prevent the component from disappearing after initial mount
-  const [shouldShowContractorAssignment, setShouldShowContractorAssignment] = useState(true);
+  // State to track if a contractor is assigned to the request
+  const [isAssigned, setIsAssigned] = useState(!!request.contractorId);
   
   // Debug information to help troubleshoot
   useEffect(() => {
@@ -33,25 +33,25 @@ export const RequestDetailSidebar = ({
     console.log("RequestDetailSidebar - isContractor:", isContractor);
     console.log("RequestDetailSidebar - request.contractorId:", request.contractorId);
     console.log("RequestDetailSidebar - request.status:", request.status);
-    console.log("RequestDetailSidebar - shouldShowContractorAssignment:", shouldShowContractorAssignment);
+    console.log("RequestDetailSidebar - isAssigned state:", isAssigned);
     
-    // Only update the state if we have a contractorId assigned and it wasn't there before
-    if (request.contractorId && shouldShowContractorAssignment) {
-      console.log("RequestDetailSidebar - Setting shouldShowContractorAssignment to false");
-      setShouldShowContractorAssignment(false);
-    } else if (!request.contractorId && !shouldShowContractorAssignment) {
-      console.log("RequestDetailSidebar - Setting shouldShowContractorAssignment to true");
-      setShouldShowContractorAssignment(true);
+    // Update isAssigned when request.contractorId changes
+    if (request.contractorId !== undefined) {
+      const newIsAssigned = !!request.contractorId;
+      if (isAssigned !== newIsAssigned) {
+        console.log("RequestDetailSidebar - Updating isAssigned to:", newIsAssigned);
+        setIsAssigned(newIsAssigned);
+      }
     }
-  }, [isContractor, request.contractorId, request.status, shouldShowContractorAssignment]);
+  }, [request.contractorId, isContractor, request.status, isAssigned]);
 
   return (
     <div className="space-y-6">
       {/* Show contractor assignment panel if user is not a contractor and no contractor is assigned yet */}
-      {!isContractor && (shouldShowContractorAssignment || !request.contractorId) && (
+      {!isContractor && !isAssigned && (
         <ContractorAssignment 
           requestId={request.id} 
-          isAssigned={!!request.contractorId}
+          isAssigned={isAssigned}
           onOpenQuoteDialog={onOpenQuoteDialog}
         />
       )}
@@ -62,7 +62,7 @@ export const RequestDetailSidebar = ({
       )}
       
       {/* For assigned contractors or admin/manager, show job progress */}
-      {request.contractorId && (
+      {isAssigned && (
         <JobProgressCard 
           request={request} 
           isContractor={isContractorAssigned} 

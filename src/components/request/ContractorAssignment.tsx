@@ -26,6 +26,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 }) => {
   const { contractors, loading, assignContractor, error, loadContractors } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
+  const [isAssigning, setIsAssigning] = useState(false);
   
   // Enhanced logging
   useEffect(() => {
@@ -55,13 +56,19 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     }
     
     try {
+      setIsAssigning(true);
       console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
       await assignContractor(requestId, selectedContractor);
       console.log("ContractorAssignment - Assignment successful");
       toast.success("Contractor assigned successfully");
+      
+      // Force reload the page to reflect changes
+      window.location.reload();
     } catch (error) {
       console.error("Error assigning contractor:", error);
       toast.error("Failed to assign contractor");
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -106,10 +113,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <div className="grid grid-cols-1 gap-3">
           <Button
             onClick={handleAssignment}
-            disabled={!selectedContractor || loading || contractors.length === 0}
+            disabled={!selectedContractor || loading || contractors.length === 0 || isAssigning}
             className="w-full"
           >
-            {loading ? "Loading..." : "Assign Contractor"}
+            {isAssigning ? "Assigning..." : loading ? "Loading..." : "Assign Contractor"}
           </Button>
           
           <Button 
