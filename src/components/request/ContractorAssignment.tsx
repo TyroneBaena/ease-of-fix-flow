@@ -23,32 +23,37 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   isAssigned,
   onOpenQuoteDialog
 }) => {
-  const { contractors, loading, assignContractor } = useContractorContext();
+  const { contractors, loading, assignContractor, error } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
-  const [shouldShow, setShouldShow] = useState(!isAssigned);
-
+  
+  // Enhanced logging
   useEffect(() => {
-    // Log when props change to help debug
-    console.log("ContractorAssignment - Props changed:", { requestId, isAssigned });
+    console.log("ContractorAssignment - Component mounted or updated");
+    console.log("ContractorAssignment - Props:", { requestId, isAssigned });
     console.log("ContractorAssignment - Available contractors:", contractors);
+    console.log("ContractorAssignment - Loading state:", loading);
+    console.log("ContractorAssignment - Error state:", error);
     
-    // Only update visibility if isAssigned changes
-    setShouldShow(!isAssigned);
-  }, [isAssigned, contractors, requestId]);
+    // Reset selected contractor when the component mounts or contractors change
+    if (contractors.length > 0 && !selectedContractor) {
+      setSelectedContractor(contractors[0].id);
+    }
+  }, [contractors, requestId, isAssigned, loading, error, selectedContractor]);
 
   const handleAssignment = async () => {
     if (!selectedContractor) return;
     try {
+      console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
       await assignContractor(requestId, selectedContractor);
+      console.log("ContractorAssignment - Assignment successful");
     } catch (error) {
       console.error("Error assigning contractor:", error);
     }
   };
 
   // If explicitly assigned, don't render the component
-  // Important: We use the state variable here to prevent immediate unmounting issues
-  if (shouldShow === false) {
-    console.log("ContractorAssignment - Component hidden because shouldShow is false");
+  if (isAssigned) {
+    console.log("ContractorAssignment - Component hidden because isAssigned is true");
     return null;
   }
 
@@ -86,7 +91,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <div className="grid grid-cols-1 gap-3">
           <Button
             onClick={handleAssignment}
-            disabled={!selectedContractor || loading}
+            disabled={!selectedContractor || loading || contractors.length === 0}
             className="w-full"
           >
             Assign Contractor

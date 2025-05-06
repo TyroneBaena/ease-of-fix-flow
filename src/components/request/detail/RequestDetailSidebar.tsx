@@ -29,13 +29,14 @@ export const RequestDetailSidebar = ({
     console.log("RequestDetailSidebar - Component mounted or updated");
     console.log("RequestDetailSidebar - isContractor:", isContractor);
     console.log("RequestDetailSidebar - request.contractorId:", request.contractorId);
-    console.log("RequestDetailSidebar - showing assignment panel:", !isContractor && !request.contractorId);
-  }, [isContractor, request.contractorId]);
+    console.log("RequestDetailSidebar - request.status:", request.status);
+    console.log("RequestDetailSidebar - showing ContractorAssignment:", !isContractor && !request.contractorId);
+  }, [isContractor, request.contractorId, request.status]);
 
   return (
     <div className="space-y-6">
       {/* Show contractor assignment panel if user is not a contractor and no contractor is assigned yet */}
-      {!isContractor && (
+      {!isContractor && !request.contractorId && (
         <ContractorAssignment 
           requestId={request.id} 
           isAssigned={request.contractorId ? true : false}
