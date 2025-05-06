@@ -38,10 +38,23 @@ const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRe
     
     // Sort requests by date (newest first)
     result = [...result].sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.reportDate || '');
-      const dateB = new Date(b.createdAt || b.reportDate || '');
-      return dateB.getTime() - dateA.getTime();
+      // Extract dates, considering all possible date fields
+      const dateA = new Date(a.updatedAt || a.createdAt || a.reportDate || '');
+      const dateB = new Date(b.updatedAt || b.createdAt || b.reportDate || '');
+      
+      // Ensure we're comparing valid dates - fallback to timestamp comparison if needed
+      const timeA = !isNaN(dateA.getTime()) ? dateA.getTime() : 0;
+      const timeB = !isNaN(dateB.getTime()) ? dateB.getTime() : 0;
+      
+      // Return the comparison (newest first)
+      return timeB - timeA;
     });
+    
+    console.log('Sorted requests:', result.map(r => ({
+      id: r.id, 
+      title: r.title, 
+      date: r.updatedAt || r.createdAt || r.reportDate
+    })));
     
     setFilteredRequests(result);
   }, [searchTerm, activeFilter, allRequests]);
