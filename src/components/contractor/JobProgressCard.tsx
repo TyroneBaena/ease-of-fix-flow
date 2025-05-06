@@ -23,22 +23,41 @@ export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps)
     
     return (
       <div className="space-y-2">
-        {request.progressNotes.map((note: any, index: number) => (
-          <div key={index} className="border-l-2 border-gray-200 pl-3">
-            {typeof note === 'string' ? (
-              <p className="text-sm">{note}</p>
-            ) : (
-              <>
-                <p className="text-sm">{note.note}</p>
-                {note.timestamp && (
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(note.timestamp).toLocaleDateString()}
-                  </p>
+        {request.progressNotes.map((note, index) => {
+          // Handle when note is a string
+          if (typeof note === 'string') {
+            return (
+              <div key={index} className="border-l-2 border-gray-200 pl-3">
+                <p className="text-sm">{note}</p>
+              </div>
+            );
+          }
+          
+          // Handle when note is an object with note and timestamp properties
+          if (typeof note === 'object' && note !== null) {
+            // Extract note content and timestamp if they exist
+            const noteContent = note.note || JSON.stringify(note);
+            const timestamp = note.timestamp 
+              ? new Date(note.timestamp).toLocaleString()
+              : null;
+            
+            return (
+              <div key={index} className="border-l-2 border-gray-200 pl-3">
+                <p className="text-sm">{noteContent}</p>
+                {timestamp && (
+                  <p className="text-xs text-muted-foreground">{timestamp}</p>
                 )}
-              </>
-            )}
-          </div>
-        ))}
+              </div>
+            );
+          }
+          
+          // Fallback for any other type
+          return (
+            <div key={index} className="border-l-2 border-gray-200 pl-3">
+              <p className="text-sm text-muted-foreground">Unknown note format</p>
+            </div>
+          );
+        })}
       </div>
     );
   };
