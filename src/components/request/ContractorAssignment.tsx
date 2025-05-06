@@ -28,14 +28,17 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
   useEffect(() => {
     console.log("ContractorAssignment - Available contractors:", contractors);
-  }, [contractors]);
+    console.log("ContractorAssignment - isAssigned:", isAssigned);
+  }, [contractors, isAssigned]);
 
   const handleAssignment = async () => {
     if (!selectedContractor) return;
     await assignContractor(requestId, selectedContractor);
   };
 
-  if (isAssigned) {
+  // Only return null if explicitly assigned, don't hide based on other conditions
+  if (isAssigned === true) {
+    console.log("ContractorAssignment - Component hidden because isAssigned is true");
     return null;
   }
 

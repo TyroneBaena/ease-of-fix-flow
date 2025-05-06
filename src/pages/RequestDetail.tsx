@@ -35,6 +35,10 @@ const RequestDetail = () => {
       setRequest(foundRequest);
       setLoading(false);
       
+      // Log to debug request object and contractor assignment status
+      console.log("Request detail - request:", foundRequest);
+      console.log("Request detail - contractorId:", foundRequest?.contractorId);
+      
       const fetchQuotes = async () => {
         const { data, error } = await supabase
           .from('quotes')
@@ -164,7 +168,7 @@ const RequestDetail = () => {
           <div className="space-y-6">
             <ContractorProvider>
               {/* Show contractor assignment panel if not assigned yet */}
-              {!request.contractorId && !isContractor && (
+              {!isContractor && (
                 <ContractorAssignment 
                   requestId={request.id} 
                   isAssigned={!!request.contractorId}
