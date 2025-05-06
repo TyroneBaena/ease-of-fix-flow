@@ -17,7 +17,7 @@ interface ContractorAssignmentProps {
   requestId: string;
   isAssigned: boolean;
   onOpenQuoteDialog: () => void;
-  onContractorAssigned?: () => void; // New prop for callback
+  onContractorAssigned?: () => void; // Callback for when a contractor is assigned
 }
 
 export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
@@ -64,7 +64,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       console.log("ContractorAssignment - Assignment successful");
       toast.success("Contractor assigned successfully");
       
-      // Call the callback instead of reloading the page
+      // Call the callback to notify parent component
       if (onContractorAssigned) {
         onContractorAssigned();
       }

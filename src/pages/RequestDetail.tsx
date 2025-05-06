@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
@@ -19,12 +19,17 @@ const RequestDetail = () => {
   const [forceRefresh, setForceRefresh] = useState(0);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
-  const { request, loading, quotes, isContractor } = useRequestDetailData(id, forceRefresh);
+  const { request, loading, quotes, isContractor, refreshData } = useRequestDetailData(id, forceRefresh);
   
   // Function to refresh the request data
-  const refreshRequestData = () => {
-    setForceRefresh(prev => prev + 1);
-  };
+  const refreshRequestData = useCallback(() => {
+    console.log("RequestDetail - Refreshing request data");
+    if (refreshData) {
+      refreshData();
+    } else {
+      setForceRefresh(prev => prev + 1);
+    }
+  }, [refreshData]);
   
   const initialComments = [
     {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
@@ -27,11 +28,66 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
         await fetchRequests();
       }
       
+      // Try to get the latest request data directly from the database
+      try {
+        const { data: freshRequestData, error: freshRequestError } = await supabase
+          .from('maintenance_requests')
+          .select('*')
+          .eq('id', requestId)
+          .single();
+          
+        if (!freshRequestError && freshRequestData) {
+          console.log("useRequestDetailData - Fetched fresh request data:", freshRequestData);
+          // Convert snake_case to camelCase where needed
+          const formattedRequest: MaintenanceRequest = {
+            id: freshRequestData.id,
+            title: freshRequestData.title || freshRequestData.issue_nature || 'Untitled Request',
+            description: freshRequestData.description || '',
+            status: freshRequestData.status,
+            location: freshRequestData.location,
+            priority: freshRequestData.priority as 'low' | 'medium' | 'high' | undefined,
+            site: freshRequestData.site || freshRequestData.category || 'Unknown',
+            submittedBy: freshRequestData.submitted_by || 'Anonymous',
+            propertyId: freshRequestData.property_id,
+            contactNumber: freshRequestData.contact_number,
+            address: freshRequestData.address,
+            attachments: freshRequestData.attachments,
+            category: freshRequestData.category,
+            createdAt: freshRequestData.created_at,
+            updatedAt: freshRequestData.updated_at,
+            dueDate: freshRequestData.due_date,
+            assignedTo: freshRequestData.assigned_to,
+            history: freshRequestData.history,
+            isParticipantRelated: freshRequestData.is_participant_related || false,
+            participantName: freshRequestData.participant_name || 'N/A',
+            attemptedFix: freshRequestData.attempted_fix || '',
+            issueNature: freshRequestData.issue_nature || '',
+            explanation: freshRequestData.explanation || '',
+            reportDate: freshRequestData.report_date || '',
+            contractorId: freshRequestData.contractor_id,
+            assignedAt: freshRequestData.assigned_at,
+            completionPercentage: freshRequestData.completion_percentage,
+            completionPhotos: freshRequestData.completion_photos,
+            progressNotes: freshRequestData.progress_notes,
+            quoteRequested: freshRequestData.quote_requested,
+            quotedAmount: freshRequestData.quoted_amount
+          };
+          
+          setRequest(formattedRequest);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.log("useRequestDetailData - Error fetching fresh data, falling back to context:", err);
+      }
+      
+      // Fall back to data from the context if direct fetch fails
       const foundRequest = requests.find(req => req.id === requestId);
       if (foundRequest) {
-        console.log("useRequestDetailData - Found request:", foundRequest);
+        console.log("useRequestDetailData - Found request in context:", foundRequest);
         console.log("useRequestDetailData - contractorId:", foundRequest.contractorId);
         console.log("useRequestDetailData - status:", foundRequest.status);
+        console.log("useRequestDetailData - assignedTo:", foundRequest.assignedTo);
         setRequest(foundRequest);
       } else {
         console.log("useRequestDetailData - Request not found for ID:", requestId);
@@ -110,11 +166,70 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
     checkContractorStatus();
   }, [requestId, currentUser?.id, forceRefresh]);
 
+  const refreshData = async () => {
+    console.log("useRequestDetailData - Manual refresh requested");
+    await fetchRequests();
+    
+    if (requestId) {
+      // Directly fetch the latest request data
+      try {
+        const { data, error } = await supabase
+          .from('maintenance_requests')
+          .select('*')
+          .eq('id', requestId)
+          .single();
+          
+        if (!error && data) {
+          console.log("useRequestDetailData - Refresh fetched fresh data:", data);
+          // Update the request with the fresh data
+          // We need to convert snake_case to camelCase
+          const formattedRequest: MaintenanceRequest = {
+            id: data.id,
+            title: data.title || data.issue_nature || 'Untitled Request',
+            description: data.description || '',
+            status: data.status,
+            location: data.location,
+            priority: data.priority as 'low' | 'medium' | 'high' | undefined,
+            site: data.site || data.category || 'Unknown',
+            submittedBy: data.submitted_by || 'Anonymous',
+            propertyId: data.property_id,
+            contactNumber: data.contact_number,
+            address: data.address,
+            attachments: data.attachments,
+            category: data.category,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+            dueDate: data.due_date,
+            assignedTo: data.assigned_to,
+            history: data.history,
+            isParticipantRelated: data.is_participant_related || false,
+            participantName: data.participant_name || 'N/A',
+            attemptedFix: data.attempted_fix || '',
+            issueNature: data.issue_nature || '',
+            explanation: data.explanation || '',
+            reportDate: data.report_date || '',
+            contractorId: data.contractor_id,
+            assignedAt: data.assigned_at,
+            completionPercentage: data.completion_percentage,
+            completionPhotos: data.completion_photos,
+            progressNotes: data.progress_notes,
+            quoteRequested: data.quote_requested,
+            quotedAmount: data.quoted_amount
+          };
+          
+          setRequest(formattedRequest);
+        }
+      } catch (err) {
+        console.error("useRequestDetailData - Error directly fetching request:", err);
+      }
+    }
+  };
+
   return {
     request,
     loading,
     quotes,
     isContractor,
-    refreshData: () => fetchRequests()
+    refreshData
   };
 };

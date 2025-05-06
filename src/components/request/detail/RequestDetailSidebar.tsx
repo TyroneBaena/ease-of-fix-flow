@@ -25,33 +25,34 @@ export const RequestDetailSidebar = ({
   const isContractorAssigned = isContractor && request.contractorId && request.status === 'in-progress';
   
   // State to track if a contractor is assigned to the request
-  const [isAssigned, setIsAssigned] = useState(!!request.contractorId);
+  const [isAssigned, setIsAssigned] = useState(false);
+  
+  // Update isAssigned when request changes
+  useEffect(() => {
+    // Check assignment based on contractorId and assignedTo
+    const newIsAssigned = !!request.contractorId || !!request.assignedTo;
+    console.log("RequestDetailSidebar - Checking assignment status:", {
+      contractorId: request.contractorId,
+      assignedTo: request.assignedTo,
+      isAssigned: newIsAssigned
+    });
+    setIsAssigned(newIsAssigned);
+  }, [request.contractorId, request.assignedTo]);
   
   // Debug information to help troubleshoot
   useEffect(() => {
     console.log("RequestDetailSidebar - Component mounted or updated");
     console.log("RequestDetailSidebar - isContractor:", isContractor);
     console.log("RequestDetailSidebar - request.contractorId:", request.contractorId);
+    console.log("RequestDetailSidebar - request.assignedTo:", request.assignedTo);
     console.log("RequestDetailSidebar - request.status:", request.status);
     console.log("RequestDetailSidebar - isAssigned state:", isAssigned);
-    
-    // Update isAssigned when request.contractorId changes
-    if (request.contractorId !== undefined) {
-      const newIsAssigned = !!request.contractorId;
-      if (isAssigned !== newIsAssigned) {
-        console.log("RequestDetailSidebar - Updating isAssigned to:", newIsAssigned);
-        setIsAssigned(newIsAssigned);
-      }
-    }
-  }, [request.contractorId, isContractor, request.status, isAssigned]);
+  }, [request.contractorId, request.assignedTo, isContractor, request.status, isAssigned]);
 
   // Handler for when a contractor is assigned
   const handleContractorAssigned = () => {
     console.log("RequestDetailSidebar - Contractor assigned, updating UI");
     setIsAssigned(true);
-    
-    // We could fetch the updated request data here instead of reloading the page
-    // For now, we'll just update our local state
   };
 
   return (

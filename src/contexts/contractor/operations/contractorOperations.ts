@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { Contractor } from '@/types/contractor';
@@ -26,16 +25,31 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
 };
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
+  // First, get the contractor's details to use their name
+  const { data: contractor, error: contractorError } = await supabase
+    .from('contractors')
+    .select('company_name')
+    .eq('id', contractorId)
+    .single();
+
+  if (contractorError) throw contractorError;
+  
+  const contractorName = contractor?.company_name || 'Unknown Contractor';
+
+  // Update the maintenance request with both the ID and the name
   const { error } = await supabase
     .from('maintenance_requests')
     .update({
       contractor_id: contractorId,
       assigned_at: new Date().toISOString(),
-      status: 'in-progress'
+      status: 'in-progress',
+      assigned_to: contractorName // Store the contractor name
     })
     .eq('id', requestId);
 
   if (error) throw error;
+  
+  console.log(`Assigned contractor ${contractorName} (${contractorId}) to request ${requestId}`);
 };
 
 export const requestQuoteForJob = async (requestId: string, contractorId: string, includeInfo = {}, notes = '') => {
