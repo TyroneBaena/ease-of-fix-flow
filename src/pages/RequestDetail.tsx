@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -17,31 +16,23 @@ const RequestDetail = () => {
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
-  const { request, loading, quotes, isContractor, refreshData } = useRequestDetailData(id, forceRefresh);
+  const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
   
   // Function to refresh the request data with debounce
   const refreshRequestData = useCallback(() => {
     console.log("RequestDetail - Refreshing request data");
     
     // Prevent multiple rapid refreshes
-    if (!isRefreshing) {
-      setIsRefreshing(true);
-      
-      // Use the hook's refreshData function
-      if (refreshData) {
-        refreshData();
-      } else {
-        // Fallback to forcing a refresh via state update
-        setForceRefresh(prev => prev + 1);
-      }
-      
-      // Reset the refreshing flag after a delay
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 500);
+    if (isRefreshing) {
+      console.log("RequestDetail - Refresh already in progress, skipping");
+      return;
+    }
+    
+    // Use the hook's refreshData function
+    if (refreshData) {
+      refreshData();
     }
   }, [refreshData, isRefreshing]);
   
