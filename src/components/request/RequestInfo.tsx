@@ -3,6 +3,7 @@ import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { format } from 'date-fns';
 import { 
   Clock, 
   Calendar, 
@@ -63,6 +64,24 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
+  
+  // Format the timestamp string to a more readable format
+  const formatTimestamp = (timestamp: string): string => {
+    try {
+      // Try to parse the date - if it's already a valid date string
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        // If invalid date, return original
+        return timestamp;
+      }
+      
+      // Format as "May 6, 2025 at 3:45 PM"
+      return format(date, "MMM d, yyyy 'at' h:mm a");
+    } catch (error) {
+      // If any parsing error occurs, return the original string
+      return timestamp;
+    }
+  };
 
   return (
     <Card className="p-6">
@@ -74,7 +93,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
             </Badge>
             <p className="text-sm text-gray-500 flex items-center">
               <Clock className="h-3 w-3 mr-1" />
-              Submitted {request.createdAt}
+              Submitted {formatTimestamp(request.createdAt)}
             </p>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{request.issueNature}</h1>
