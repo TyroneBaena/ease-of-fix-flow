@@ -1,19 +1,21 @@
 
 import React from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { MaintenanceRequest } from '@/types/maintenance';
 
-// Sample data
-import { requests } from '@/data/sampleData';
+interface StatusChartProps {
+  requests: MaintenanceRequest[];
+}
 
-const StatusChart = () => {
-  // Calculate status counts
+const StatusChart: React.FC<StatusChartProps> = ({ requests }) => {
+  // Calculate status counts from actual data
   const statusCounts = requests.reduce((acc, request) => {
     acc[request.status] = (acc[request.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   
   const data = [
-    { name: 'Open', value: statusCounts['open'] || 0, color: '#F59E0B' },
+    { name: 'Open', value: (statusCounts['open'] || 0) + (statusCounts['pending'] || 0), color: '#F59E0B' },
     { name: 'In Progress', value: statusCounts['in-progress'] || 0, color: '#3B82F6' },
     { name: 'Completed', value: statusCounts['completed'] || 0, color: '#10B981' },
   ];

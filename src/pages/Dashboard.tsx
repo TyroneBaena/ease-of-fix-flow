@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsOverview from '@/components/dashboard/StatsOverview';
@@ -12,19 +12,6 @@ const Dashboard = () => {
   const { currentUser } = useUserContext();
   const { requests } = useMaintenanceRequestContext();
   
-  // Calculate request statistics
-  const { openRequests, inProgressRequests, completedRequests } = useMemo(() => {
-    const open = requests.filter(req => req.status === 'open' || req.status === 'pending').length;
-    const inProgress = requests.filter(req => req.status === 'in-progress').length;
-    const completed = requests.filter(req => req.status === 'completed').length;
-    
-    return {
-      openRequests: open,
-      inProgressRequests: inProgress,
-      completedRequests: completed
-    };
-  }, [requests]);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -33,11 +20,7 @@ const Dashboard = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
           <div className="lg:col-span-3 space-y-6">
-            <StatsOverview 
-              openRequests={openRequests}
-              inProgressRequests={inProgressRequests}
-              completedRequests={completedRequests}
-            />
+            <StatsOverview requestsData={requests} />
             <RequestsList allRequests={requests as any} />
           </div>
           <DashboardSidebar />
