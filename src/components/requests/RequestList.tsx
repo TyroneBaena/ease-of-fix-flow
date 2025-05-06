@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RequestCard from '@/components/RequestCard';
-import { MaintenanceRequest, Property } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
+import { Property } from '@/types/property';
 import { 
   Select, 
   SelectContent, 

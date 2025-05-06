@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RequestCard from '@/components/RequestCard';
-import { MaintenanceRequest } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
 import { requests as sampleRequests } from '@/data/sampleData';
 
 interface RequestsListProps {
