@@ -25,20 +25,30 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 }) => {
   const { contractors, loading, assignContractor } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
+  const [shouldShow, setShouldShow] = useState(!isAssigned);
 
   useEffect(() => {
+    // Log when props change to help debug
+    console.log("ContractorAssignment - Props changed:", { requestId, isAssigned });
     console.log("ContractorAssignment - Available contractors:", contractors);
-    console.log("ContractorAssignment - isAssigned:", isAssigned);
-  }, [contractors, isAssigned]);
+    
+    // Only update visibility if isAssigned changes
+    setShouldShow(!isAssigned);
+  }, [isAssigned, contractors, requestId]);
 
   const handleAssignment = async () => {
     if (!selectedContractor) return;
-    await assignContractor(requestId, selectedContractor);
+    try {
+      await assignContractor(requestId, selectedContractor);
+    } catch (error) {
+      console.error("Error assigning contractor:", error);
+    }
   };
 
-  // Only hide component if explicitly assigned, don't hide based on other conditions
-  if (isAssigned === true) {
-    console.log("ContractorAssignment - Component hidden because isAssigned is true");
+  // If explicitly assigned, don't render the component
+  // Important: We use the state variable here to prevent immediate unmounting issues
+  if (shouldShow === false) {
+    console.log("ContractorAssignment - Component hidden because shouldShow is false");
     return null;
   }
 

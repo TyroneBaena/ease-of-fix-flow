@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
 import { RequestActions } from '@/components/request/RequestActions';
@@ -25,9 +25,12 @@ export const RequestDetailSidebar = ({
   const isContractorAssigned = isContractor && request.contractorId && request.status === 'in-progress';
   
   // Debug information to help troubleshoot
-  console.log("RequestDetailSidebar - isContractor:", isContractor);
-  console.log("RequestDetailSidebar - request.contractorId:", request.contractorId);
-  console.log("RequestDetailSidebar - showing assignment panel:", !isContractor && !request.contractorId);
+  useEffect(() => {
+    console.log("RequestDetailSidebar - Component mounted or updated");
+    console.log("RequestDetailSidebar - isContractor:", isContractor);
+    console.log("RequestDetailSidebar - request.contractorId:", request.contractorId);
+    console.log("RequestDetailSidebar - showing assignment panel:", !isContractor && !request.contractorId);
+  }, [isContractor, request.contractorId]);
 
   return (
     <div className="space-y-6">
