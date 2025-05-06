@@ -1,6 +1,5 @@
 
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/lib/toast';
 
 export const submitQuoteForJob = async (
   requestId: string, 

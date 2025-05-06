@@ -2,10 +2,17 @@
 import { useState } from 'react';
 import { Contractor } from '@/types/contractor';
 import { toast } from '@/lib/toast';
-import { fetchContractors } from './operations/contractorFetch';
-import { assignContractorToRequest, requestQuoteForJob } from './operations/contractorOperations';
-import { submitQuoteForJob, approveQuoteForJob } from './operations/quoteOperations';
-import { updateJobProgressStatus } from './operations/progressOperations';
+import { fetchContractors } from './operations';
+import { 
+  assignContractorToRequest, 
+  requestQuoteForJob 
+} from './operations';
+import { 
+  submitQuoteForJob, 
+  approveQuoteForJob, 
+  rejectQuote 
+} from './operations';
+import { updateJobProgressStatus } from './operations';
 import { supabase } from '@/lib/supabase';
 
 export const useContractorOperations = () => {
@@ -77,10 +84,26 @@ export const useContractorOperations = () => {
       throw err;
     }
   };
-
-  const updateJobProgress = async (requestId: string, progress: number, notes?: string) => {
+  
+  const rejectQuoteAction = async (quoteId: string) => {
     try {
-      await updateJobProgressStatus(requestId, progress, notes);
+      await rejectQuote(quoteId);
+      toast.success('Quote rejected');
+    } catch (err) {
+      console.error('Error rejecting quote:', err);
+      toast.error('Failed to reject quote');
+      throw err;
+    }
+  };
+
+  const updateJobProgress = async (
+    requestId: string, 
+    progress: number, 
+    notes?: string, 
+    completionPhotos?: Array<{ url: string }>
+  ) => {
+    try {
+      await updateJobProgressStatus(requestId, progress, notes, completionPhotos);
       toast.success('Progress updated successfully');
     } catch (err) {
       console.error('Error updating progress:', err);
@@ -98,6 +121,7 @@ export const useContractorOperations = () => {
     requestQuote,
     submitQuote,
     approveQuote,
+    rejectQuote: rejectQuoteAction,
     updateJobProgress,
   };
 };
