@@ -4,15 +4,15 @@ import { Contractor, Quote } from '@/types/contractor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { ContractorContextType } from './ContractorContextTypes';
+import { fetchContractors } from './operations/contractorFetch';
+import { assignContractorToRequest } from './operations/contractorOperations';
+import { requestQuoteForJob } from './operations/contractorOperations';
 import { 
-  fetchContractors,
-  assignContractorToRequest,
-  requestQuoteForJob,
-  submitQuoteForJob,
-  approveQuoteForJob,
-  rejectQuote,
-  updateJobProgressStatus
-} from './operations/contractorOperations';
+  submitQuoteForJob, 
+  approveQuoteForJob, 
+  rejectQuote 
+} from './operations/quoteOperations';
+import { updateJobProgressStatus } from './operations/progressOperations';
 
 const ContractorContext = createContext<ContractorContextType | undefined>(undefined);
 
