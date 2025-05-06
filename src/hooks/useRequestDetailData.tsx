@@ -43,21 +43,33 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
             id: freshRequestData.id,
             title: freshRequestData.title || freshRequestData.issue_nature || 'Untitled Request',
             description: freshRequestData.description || '',
-            status: freshRequestData.status,
+            // Ensure status is one of the allowed values
+            status: freshRequestData.status as 'pending' | 'in-progress' | 'completed' | 'open',
             location: freshRequestData.location,
             priority: freshRequestData.priority as 'low' | 'medium' | 'high' | undefined,
             site: freshRequestData.site || freshRequestData.category || 'Unknown',
             submittedBy: freshRequestData.submitted_by || 'Anonymous',
             propertyId: freshRequestData.property_id,
-            contactNumber: freshRequestData.contact_number,
-            address: freshRequestData.address,
-            attachments: freshRequestData.attachments,
+            // Use optional chaining for properties that might not exist
+            contactNumber: freshRequestData?.contact_number || '',
+            address: freshRequestData?.address || '',
+            // Handle JSON fields with proper type casting
+            attachments: freshRequestData.attachments ? 
+              (Array.isArray(freshRequestData.attachments) ? 
+                freshRequestData.attachments as { url: string }[] : 
+                []) : 
+              null,
             category: freshRequestData.category,
             createdAt: freshRequestData.created_at,
             updatedAt: freshRequestData.updated_at,
             dueDate: freshRequestData.due_date,
             assignedTo: freshRequestData.assigned_to,
-            history: freshRequestData.history,
+            // Handle JSON fields with proper type casting
+            history: freshRequestData.history ? 
+              (Array.isArray(freshRequestData.history) ? 
+                freshRequestData.history as { action: string; timestamp: string }[] : 
+                []) : 
+              null,
             isParticipantRelated: freshRequestData.is_participant_related || false,
             participantName: freshRequestData.participant_name || 'N/A',
             attemptedFix: freshRequestData.attempted_fix || '',
@@ -67,10 +79,15 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
             contractorId: freshRequestData.contractor_id,
             assignedAt: freshRequestData.assigned_at,
             completionPercentage: freshRequestData.completion_percentage,
-            completionPhotos: freshRequestData.completion_photos,
-            progressNotes: freshRequestData.progress_notes,
+            // Handle JSON fields with proper type casting
+            completionPhotos: freshRequestData.completion_photos ? 
+              (Array.isArray(freshRequestData.completion_photos) ? 
+                freshRequestData.completion_photos as { url: string }[] : 
+                []) : 
+              null,
             quoteRequested: freshRequestData.quote_requested,
-            quotedAmount: freshRequestData.quoted_amount
+            quotedAmount: freshRequestData.quoted_amount,
+            progressNotes: freshRequestData.progress_notes
           };
           
           setRequest(formattedRequest);
@@ -187,21 +204,33 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
             id: data.id,
             title: data.title || data.issue_nature || 'Untitled Request',
             description: data.description || '',
-            status: data.status,
+            // Ensure status is one of the allowed values
+            status: data.status as 'pending' | 'in-progress' | 'completed' | 'open',
             location: data.location,
             priority: data.priority as 'low' | 'medium' | 'high' | undefined,
             site: data.site || data.category || 'Unknown',
             submittedBy: data.submitted_by || 'Anonymous',
             propertyId: data.property_id,
-            contactNumber: data.contact_number,
-            address: data.address,
-            attachments: data.attachments,
+            // Use optional chaining for properties that might not exist
+            contactNumber: data?.contact_number || '',
+            address: data?.address || '',
+            // Handle JSON fields with proper type casting
+            attachments: data.attachments ? 
+              (Array.isArray(data.attachments) ? 
+                data.attachments as { url: string }[] : 
+                []) : 
+              null,
             category: data.category,
             createdAt: data.created_at,
             updatedAt: data.updated_at,
             dueDate: data.due_date,
             assignedTo: data.assigned_to,
-            history: data.history,
+            // Handle JSON fields with proper type casting
+            history: data.history ? 
+              (Array.isArray(data.history) ? 
+                data.history as { action: string; timestamp: string }[] : 
+                []) : 
+              null,
             isParticipantRelated: data.is_participant_related || false,
             participantName: data.participant_name || 'N/A',
             attemptedFix: data.attempted_fix || '',
@@ -211,10 +240,15 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
             contractorId: data.contractor_id,
             assignedAt: data.assigned_at,
             completionPercentage: data.completion_percentage,
-            completionPhotos: data.completion_photos,
-            progressNotes: data.progress_notes,
+            // Handle JSON fields with proper type casting
+            completionPhotos: data.completion_photos ? 
+              (Array.isArray(data.completion_photos) ? 
+                data.completion_photos as { url: string }[] : 
+                []) : 
+              null,
             quoteRequested: data.quote_requested,
-            quotedAmount: data.quoted_amount
+            quotedAmount: data.quoted_amount,
+            progressNotes: data.progress_notes
           };
           
           setRequest(formattedRequest);
