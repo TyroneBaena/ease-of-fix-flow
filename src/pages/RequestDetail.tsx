@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
@@ -19,14 +19,39 @@ const RequestDetail = () => {
   const [forceRefresh, setForceRefresh] = useState(0);
   const [lastRefreshCallTime, setLastRefreshCallTime] = useState(0);
   const [isRefreshRequested, setIsRefreshRequested] = useState(false);
-  const [refreshTimeout, setRefreshTimeout] = useState<number | null>(null);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add a refresh lock mechanism to prevent rapid repeated refreshes
+  const [isRefreshLocked, setIsRefreshLocked] = useState(false);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
   const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
   
-  // Function to refresh the request data with improved debounce and timeout protection
+  // Function to temporarily lock refreshes
+  const lockRefresh = useCallback((duration: number = 10000) => {
+    console.log(`RequestDetail - Locking refresh for ${duration}ms`);
+    setIsRefreshLocked(true);
+    
+    if (refreshLockTimeoutRef.current) {
+      clearTimeout(refreshLockTimeoutRef.current);
+    }
+    
+    refreshLockTimeoutRef.current = setTimeout(() => {
+      console.log("RequestDetail - Refresh lock released");
+      setIsRefreshLocked(false);
+    }, duration) as unknown as NodeJS.Timeout;
+  }, []);
+  
+  // Function to refresh the request data with stronger protection against loops
   const refreshRequestData = useCallback(() => {
     console.log("RequestDetail - Refreshing request data requested");
+    
+    // Skip if refresh is locked (prevent rapid successive actions)
+    if (isRefreshLocked) {
+      console.log("RequestDetail - Refresh is locked, skipping");
+      return;
+    }
     
     // Skip if a refresh is already in progress or requested
     if (isRefreshing || isRefreshRequested) {
@@ -34,54 +59,49 @@ const RequestDetail = () => {
       return;
     }
     
-    // Strong time-based debouncing - 5 second window
+    // Strong time-based debouncing - 8 second window
     const currentTime = Date.now();
-    if (currentTime - lastRefreshCallTime < 5000) {
+    if (currentTime - lastRefreshCallTime < 8000) {
       console.log("RequestDetail - Too soon since last refresh call, debouncing");
       return;
     }
     
     // Clear any existing timeout to prevent multiple timeouts
-    if (refreshTimeout) {
-      clearTimeout(refreshTimeout);
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
     }
+    
+    // Lock refreshes temporarily to prevent new attempts
+    lockRefresh(10000);
     
     // Mark that we've requested a refresh and update timestamp
     setLastRefreshCallTime(currentTime);
     setIsRefreshRequested(true);
     
-    // Use the hook's refreshData function with a promise chain
+    // Use the hook's refreshData function
     if (refreshData) {
-      console.log("RequestDetail - Calling refreshData");
+      console.log("RequestDetail - Calling refreshData once");
       refreshData().finally(() => {
-        // Clear the refresh requested flag with a new timeout
-        const timeout = window.setTimeout(() => {
+        // Set a timeout to clear the refresh requested flag
+        refreshTimeoutRef.current = setTimeout(() => {
+          console.log("RequestDetail - Clearing refresh requested flag");
           setIsRefreshRequested(false);
-          setRefreshTimeout(null);
-        }, 5000);
-        
-        // Store the timeout ID so we can clear it if needed
-        setRefreshTimeout(timeout as unknown as number);
+        }, 8000) as unknown as NodeJS.Timeout;
       });
     }
-  }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested, refreshTimeout]);
+  }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested, isRefreshLocked, lockRefresh]);
   
   // Clean up any timeouts when component unmounts
   useEffect(() => {
     return () => {
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      if (refreshLockTimeoutRef.current) {
+        clearTimeout(refreshLockTimeoutRef.current);
       }
     };
-  }, [refreshTimeout]);
-  
-  // Debug-level effect to track renders
-  useEffect(() => {
-    console.log("RequestDetail - Component rendered with id:", id);
-    console.log("RequestDetail - isRefreshing:", isRefreshing);
-    console.log("RequestDetail - isRefreshRequested:", isRefreshRequested);
-    console.log("RequestDetail - lastRefreshCallTime:", new Date(lastRefreshCallTime).toISOString());
-  });
+  }, []);
   
   const initialComments = [
     {

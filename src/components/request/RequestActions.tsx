@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
@@ -17,52 +17,74 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionType, setActionType] = useState<'none' | 'complete' | 'reopen' | 'cancel'>('none');
   const [lastActionTime, setLastActionTime] = useState(0);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Created a proper async function that can be awaited
+  // Clear any timeouts when component unmounts
+  React.useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Enhanced debounced action handler with timeout management
   const performStatusUpdate = useCallback(async (
     progress: number, 
     message: string, 
     successMessage: string,
     action: 'complete' | 'reopen' | 'cancel'
   ) => {
-    // Add time-based debouncing - prevent actions within 5 seconds of each other
+    // Strong time-based debouncing - prevent actions within 8 seconds of each other
     const currentTime = Date.now();
-    if (currentTime - lastActionTime < 5000) {
-      console.log(`RequestActions - Action ${action} too soon after last action, debouncing`);
+    if (currentTime - lastActionTime < 8000) {
+      console.log(`RequestActions - Action ${action} too soon after last action, skipping`);
       return Promise.resolve();
     }
     
-    // Prevent duplicate actions
+    // Prevent duplicate actions if already processing
     if (isProcessing) {
       console.log(`RequestActions - ${action} action already in progress, skipping`);
       return Promise.resolve();
     }
     
     try {
-      // Set the action type to prevent duplicate actions
+      // Set the action type and processing state to lock the UI
       setActionType(action);
       setIsProcessing(true);
       setLastActionTime(currentTime);
       
       console.log(`RequestActions - Performing ${action} action`);
       
-      // Perform the update
+      // Perform the actual backend update
       await updateJobProgress(requestId, progress, message);
       toast.success(successMessage);
       
-      // Wait a moment before triggering refresh
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Call the status change callback if provided
+      // Only trigger the parent callback once and with a delay
       if (onStatusChange) {
-        console.log(`RequestActions - Action ${action} complete, calling onStatusChange`);
-        onStatusChange();
+        console.log(`RequestActions - Action ${action} complete, calling onStatusChange once`);
+        setTimeout(() => {
+          onStatusChange();
+        }, 1000);
       }
+      
+      // Set a longer timeout before allowing new actions
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+      
+      processingTimeoutRef.current = setTimeout(() => {
+        console.log(`RequestActions - Resetting processing state after ${action}`);
+        setIsProcessing(false);
+        setActionType('none');
+        processingTimeoutRef.current = null;
+      }, 8000) as unknown as NodeJS.Timeout;
+      
     } catch (error) {
       console.error(`Error ${action} request:`, error);
       toast.error(`Failed to ${action} request`);
-    } finally {
-      // Reset after a delay to prevent rapid re-clicks
+      
+      // Even on error, wait before resetting to prevent rapid retries
       setTimeout(() => {
         setIsProcessing(false);
         setActionType('none');
@@ -70,16 +92,17 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
     }
   }, [requestId, updateJobProgress, onStatusChange, isProcessing, lastActionTime]);
 
-  const handleCompleteRequest = useCallback(async () => {
+  // Handler for complete/reopen actions
+  const handleCompleteRequest = useCallback(() => {
     if (status === 'completed') {
-      await performStatusUpdate(
+      performStatusUpdate(
         50, 
         "Request reopened by admin/manager",
         "Request reopened successfully",
         'reopen'
       );
     } else {
-      await performStatusUpdate(
+      performStatusUpdate(
         100, 
         "Request marked as complete by admin/manager",
         "Request marked as complete",
@@ -88,8 +111,9 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
     }
   }, [status, performStatusUpdate]);
 
-  const handleCancelRequest = useCallback(async () => {
-    await performStatusUpdate(
+  // Handler for cancel action
+  const handleCancelRequest = useCallback(() => {
+    performStatusUpdate(
       0, 
       "Request cancelled by admin/manager",
       "Request cancelled successfully",
