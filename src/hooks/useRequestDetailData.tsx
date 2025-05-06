@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
@@ -43,16 +42,16 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
             id: freshRequestData.id,
             title: freshRequestData.title || freshRequestData.issue_nature || 'Untitled Request',
             description: freshRequestData.description || '',
-            // Ensure status is one of the allowed values
+            // Use type assertion to ensure status is one of the allowed values
             status: freshRequestData.status as 'pending' | 'in-progress' | 'completed' | 'open',
             location: freshRequestData.location,
             priority: freshRequestData.priority as 'low' | 'medium' | 'high' | undefined,
             site: freshRequestData.site || freshRequestData.category || 'Unknown',
             submittedBy: freshRequestData.submitted_by || 'Anonymous',
             propertyId: freshRequestData.property_id,
-            // Use optional chaining for properties that might not exist
-            contactNumber: freshRequestData?.contact_number || '',
-            address: freshRequestData?.address || '',
+            // These fields may not exist in the database response, so use empty string as default
+            contactNumber: '',  // Default fallback value since it's missing from DB
+            address: '',        // Default fallback value since it's missing from DB
             // Handle JSON fields with proper type casting
             attachments: freshRequestData.attachments ? 
               (Array.isArray(freshRequestData.attachments) ? 
@@ -204,16 +203,16 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
             id: data.id,
             title: data.title || data.issue_nature || 'Untitled Request',
             description: data.description || '',
-            // Ensure status is one of the allowed values
+            // Use type assertion for status
             status: data.status as 'pending' | 'in-progress' | 'completed' | 'open',
             location: data.location,
             priority: data.priority as 'low' | 'medium' | 'high' | undefined,
             site: data.site || data.category || 'Unknown',
             submittedBy: data.submitted_by || 'Anonymous',
             propertyId: data.property_id,
-            // Use optional chaining for properties that might not exist
-            contactNumber: data?.contact_number || '',
-            address: data?.address || '',
+            // These fields may not exist in the database response, so use empty string as default
+            contactNumber: '',  // Default fallback value since it's missing from DB
+            address: '',        // Default fallback value since it's missing from DB
             // Handle JSON fields with proper type casting
             attachments: data.attachments ? 
               (Array.isArray(data.attachments) ? 
