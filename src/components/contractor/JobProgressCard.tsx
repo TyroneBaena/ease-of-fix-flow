@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Check, Edit, User } from 'lucide-react';
 import { JobProgressDialog } from './JobProgressDialog';
+import { formatTimestamp } from '@/components/request/detail/utils/dateUtils';
 
 interface JobProgressCardProps {
   request: MaintenanceRequest;
@@ -24,25 +25,45 @@ export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps)
     return (
       <div className="space-y-2">
         {request.progressNotes.map((note, index) => {
-          // Handle when note is a string
+          // Case 1: Note is a string but might actually be JSON
           if (typeof note === 'string') {
-            return (
-              <div key={index} className="border-l-2 border-gray-200 pl-3">
-                <p className="text-sm">{note}</p>
-              </div>
-            );
+            try {
+              // Try to parse if it's a JSON string
+              const parsedNote = JSON.parse(note);
+              if (parsedNote && typeof parsedNote === 'object') {
+                const noteText = parsedNote.note || 'No details provided';
+                const timestamp = parsedNote.timestamp 
+                  ? formatTimestamp(parsedNote.timestamp)
+                  : null;
+                
+                return (
+                  <div key={index} className="border-l-2 border-gray-200 pl-3 py-2">
+                    <p className="text-sm">{noteText}</p>
+                    {timestamp && (
+                      <p className="text-xs text-muted-foreground">{timestamp}</p>
+                    )}
+                  </div>
+                );
+              }
+            } catch (e) {
+              // Not a JSON string, display as is
+              return (
+                <div key={index} className="border-l-2 border-gray-200 pl-3 py-2">
+                  <p className="text-sm">{note}</p>
+                </div>
+              );
+            }
           }
           
-          // Handle when note is an object with note and timestamp properties
+          // Case 2: Note is directly an object
           if (typeof note === 'object' && note !== null) {
-            // Extract note content and timestamp if they exist
             const noteContent = note.note || JSON.stringify(note);
             const timestamp = note.timestamp 
-              ? new Date(note.timestamp).toLocaleString()
+              ? formatTimestamp(note.timestamp)
               : null;
             
             return (
-              <div key={index} className="border-l-2 border-gray-200 pl-3">
+              <div key={index} className="border-l-2 border-gray-200 pl-3 py-2">
                 <p className="text-sm">{noteContent}</p>
                 {timestamp && (
                   <p className="text-xs text-muted-foreground">{timestamp}</p>
@@ -53,7 +74,7 @@ export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps)
           
           // Fallback for any other type
           return (
-            <div key={index} className="border-l-2 border-gray-200 pl-3">
+            <div key={index} className="border-l-2 border-gray-200 pl-3 py-2">
               <p className="text-sm text-muted-foreground">Unknown note format</p>
             </div>
           );
