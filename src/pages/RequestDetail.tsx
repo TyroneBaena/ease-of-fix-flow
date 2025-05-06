@@ -19,11 +19,12 @@ const RequestDetail = () => {
   const [forceRefresh, setForceRefresh] = useState(0);
   const [lastRefreshCallTime, setLastRefreshCallTime] = useState(0);
   const [isRefreshRequested, setIsRefreshRequested] = useState(false);
+  const [refreshTimeout, setRefreshTimeout] = useState<number | null>(null);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
   const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
   
-  // Function to refresh the request data with improved debounce protection
+  // Function to refresh the request data with improved debounce and timeout protection
   const refreshRequestData = useCallback(() => {
     console.log("RequestDetail - Refreshing request data requested");
     
@@ -40,6 +41,11 @@ const RequestDetail = () => {
       return;
     }
     
+    // Clear any existing timeout to prevent multiple timeouts
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+    
     // Mark that we've requested a refresh and update timestamp
     setLastRefreshCallTime(currentTime);
     setIsRefreshRequested(true);
@@ -48,13 +54,26 @@ const RequestDetail = () => {
     if (refreshData) {
       console.log("RequestDetail - Calling refreshData");
       refreshData().finally(() => {
-        // Clear the refresh requested flag
-        setTimeout(() => {
+        // Clear the refresh requested flag with a new timeout
+        const timeout = window.setTimeout(() => {
           setIsRefreshRequested(false);
-        }, 3000);
+          setRefreshTimeout(null);
+        }, 5000);
+        
+        // Store the timeout ID so we can clear it if needed
+        setRefreshTimeout(timeout as unknown as number);
       });
     }
-  }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested]);
+  }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested, refreshTimeout]);
+  
+  // Clean up any timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [refreshTimeout]);
   
   // Debug-level effect to track renders
   useEffect(() => {

@@ -16,6 +16,7 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
   const { updateJobProgress } = useContractorContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionType, setActionType] = useState<'none' | 'complete' | 'reopen' | 'cancel'>('none');
+  const [lastActionTime, setLastActionTime] = useState(0);
 
   // Created a proper async function that can be awaited
   const performStatusUpdate = useCallback(async (
@@ -24,12 +25,26 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
     successMessage: string,
     action: 'complete' | 'reopen' | 'cancel'
   ) => {
-    if (isProcessing) return;
+    // Add time-based debouncing - prevent actions within 5 seconds of each other
+    const currentTime = Date.now();
+    if (currentTime - lastActionTime < 5000) {
+      console.log(`RequestActions - Action ${action} too soon after last action, debouncing`);
+      return Promise.resolve();
+    }
+    
+    // Prevent duplicate actions
+    if (isProcessing) {
+      console.log(`RequestActions - ${action} action already in progress, skipping`);
+      return Promise.resolve();
+    }
     
     try {
       // Set the action type to prevent duplicate actions
       setActionType(action);
       setIsProcessing(true);
+      setLastActionTime(currentTime);
+      
+      console.log(`RequestActions - Performing ${action} action`);
       
       // Perform the update
       await updateJobProgress(requestId, progress, message);
@@ -40,6 +55,7 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       
       // Call the status change callback if provided
       if (onStatusChange) {
+        console.log(`RequestActions - Action ${action} complete, calling onStatusChange`);
         onStatusChange();
       }
     } catch (error) {
@@ -50,9 +66,9 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       setTimeout(() => {
         setIsProcessing(false);
         setActionType('none');
-      }, 2000);
+      }, 3000);
     }
-  }, [requestId, updateJobProgress, onStatusChange, isProcessing]);
+  }, [requestId, updateJobProgress, onStatusChange, isProcessing, lastActionTime]);
 
   const handleCompleteRequest = useCallback(async () => {
     if (status === 'completed') {

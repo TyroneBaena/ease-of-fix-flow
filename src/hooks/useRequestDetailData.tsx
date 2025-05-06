@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
@@ -13,11 +13,21 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   const [refreshCounter, setRefreshCounter] = useState(forceRefresh);
   const [isRefreshInProgress, setIsRefreshInProgress] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Use our specialized hooks to fetch and manage the data
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
+  
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Combine refresh functions from child hooks with debounce protection
   const refreshData = useCallback(() => {
@@ -29,11 +39,17 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
       return Promise.resolve(); // Return a resolved promise for chaining
     }
     
-    // Add time-based debouncing - prevent refreshes within 3 seconds of each other
+    // Add time-based debouncing - prevent refreshes within 5 seconds of each other
     const currentTime = Date.now();
-    if (currentTime - lastRefreshTime < 3000) {
+    if (currentTime - lastRefreshTime < 5000) {
       console.log("useRequestDetailData - Too soon since last refresh, debouncing");
       return Promise.resolve(); // Return a resolved promise for chaining
+    }
+    
+    // Clear any existing timeout to prevent multiple timeouts
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
     }
     
     setIsRefreshInProgress(true);
@@ -47,16 +63,19 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
       
       refreshPromise.then(() => {
         // Use setTimeout to create a delay before incrementing the counter
-        setTimeout(() => {
+        const incrementCounterTimeout = setTimeout(() => {
           setRefreshCounter(prev => prev + 1);
           
           // Allow new refreshes after a longer delay
-          setTimeout(() => {
+          refreshTimeoutRef.current = setTimeout(() => {
             console.log("useRequestDetailData - Reset isRefreshInProgress flag");
             setIsRefreshInProgress(false);
             resolve();
-          }, 2000);
+          }, 5000) as unknown as NodeJS.Timeout;
         }, 1000);
+        
+        // Store the timeout to be able to clear it if needed
+        refreshTimeoutRef.current = incrementCounterTimeout as unknown as NodeJS.Timeout;
       }).catch(error => {
         console.error("Error during refresh:", error);
         setIsRefreshInProgress(false);
