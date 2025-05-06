@@ -21,12 +21,19 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   const refreshData = async () => {
     console.log("useRequestDetailData - Manual refresh requested");
     
-    if (refreshRequestData) {
-      await refreshRequestData();
-    }
+    // Prevent multiple rapid refreshes
+    const shouldRefresh = true; // We can add a debounce mechanism here if needed
     
-    // Increment refresh counter to trigger refetching in child hooks
-    setRefreshCounter(prev => prev + 1);
+    if (shouldRefresh) {
+      if (refreshRequestData) {
+        await refreshRequestData();
+      }
+      
+      // Use setTimeout to break potential recursive update loops
+      setTimeout(() => {
+        setRefreshCounter(prev => prev + 1);
+      }, 100);
+    }
   };
 
   return {

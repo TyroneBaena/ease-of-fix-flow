@@ -25,8 +25,13 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
         // Mark as complete - set progress to 100%
         await updateJobProgress(requestId, 100, "Request marked as complete by admin/manager");
         toast.success("Request marked as complete");
+        
+        // Only trigger the callback after successful completion
         if (onStatusChange) {
-          onStatusChange();
+          // Use setTimeout to break the potential update cycle
+          setTimeout(() => {
+            onStatusChange();
+          }, 0);
         }
       }
     } catch (error) {
