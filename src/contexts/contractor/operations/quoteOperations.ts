@@ -19,20 +19,52 @@ export const submitQuoteForJob = async (
     throw new Error('Contractor ID not found');
   }
 
-  const { error } = await supabase
+  // Find if there's an existing quote request
+  const { data: existingQuote, error: findError } = await supabase
     .from('quotes')
-    .insert({
-      request_id: requestId,
-      contractor_id: contractorData.id,
-      amount,
-      description,
-      status: 'pending'
-    });
+    .select('id')
+    .eq('request_id', requestId)
+    .eq('contractor_id', contractorData.id)
+    .eq('status', 'requested')
+    .single();
 
-  if (error) throw error;
+  if (findError && findError.code !== 'PGRST116') { // Not found is okay
+    throw findError;
+  }
+
+  if (existingQuote) {
+    // Update the existing quote request
+    const { error } = await supabase
+      .from('quotes')
+      .update({
+        amount,
+        description,
+        status: 'pending',
+        submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existingQuote.id);
+
+    if (error) throw error;
+  } else {
+    // Create a new quote
+    const { error } = await supabase
+      .from('quotes')
+      .insert({
+        request_id: requestId,
+        contractor_id: contractorData.id,
+        amount,
+        description,
+        status: 'pending',
+        submitted_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+  }
 };
 
 export const approveQuoteForJob = async (quoteId: string) => {
+  // First get quote details
   const { data: quote, error: quoteError } = await supabase
     .from('quotes')
     .select('*')
@@ -40,6 +72,17 @@ export const approveQuoteForJob = async (quoteId: string) => {
     .single();
 
   if (quoteError) throw quoteError;
+
+  // Get contractor details to store the name
+  const { data: contractor, error: contractorError } = await supabase
+    .from('contractors')
+    .select('company_name')
+    .eq('id', quote.contractor_id)
+    .single();
+
+  if (contractorError) throw contractorError;
+  
+  const contractorName = contractor?.company_name || 'Unknown Contractor';
 
   const updateQuote = supabase
     .from('quotes')
@@ -55,13 +98,36 @@ export const approveQuoteForJob = async (quoteId: string) => {
       contractor_id: quote.contractor_id,
       quoted_amount: quote.amount,
       status: 'in-progress',
-      assigned_at: new Date().toISOString()
+      assigned_at: new Date().toISOString(),
+      assigned_to: contractorName // Store contractor name for display
     })
     .eq('id', quote.request_id);
 
-  const [quoteUpdate, requestUpdate] = await Promise.all([updateQuote, updateRequest]);
+  // Decline all other quotes for this request
+  const declineOtherQuotes = supabase
+    .from('quotes')
+    .update({
+      status: 'rejected',
+      updated_at: new Date().toISOString()
+    })
+    .eq('request_id', quote.request_id)
+    .neq('id', quoteId);
+
+  const [quoteUpdate, requestUpdate, declineUpdate] = await Promise.all([updateQuote, updateRequest, declineOtherQuotes]);
 
   if (quoteUpdate.error) throw quoteUpdate.error;
   if (requestUpdate.error) throw requestUpdate.error;
+  if (declineUpdate.error) throw declineUpdate.error;
 };
 
+export const rejectQuote = async (quoteId: string) => {
+  const { error } = await supabase
+    .from('quotes')
+    .update({
+      status: 'rejected',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', quoteId);
+
+  if (error) throw error;
+};

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { Contractor } from '@/types/contractor';
@@ -43,7 +44,7 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
       contractor_id: contractorId,
       assigned_at: new Date().toISOString(),
       status: 'in-progress',
-      assigned_to: contractorName // Store the contractor name
+      assigned_to: contractorName // Store the contractor name for display
     })
     .eq('id', requestId);
 

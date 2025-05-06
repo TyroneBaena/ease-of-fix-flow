@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { MaintenanceRequest } from '@/types/maintenance';
-import { Check, Edit } from 'lucide-react';
+import { Check, Edit, User } from 'lucide-react';
 import { JobProgressDialog } from './JobProgressDialog';
 
 interface JobProgressCardProps {
@@ -58,6 +58,14 @@ export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {request.assignedTo && (
+            <div className="flex items-center gap-2 text-sm mb-2 border-b pb-2">
+              <User className="h-4 w-4 text-gray-500" />
+              <span className="font-medium">Assigned to:</span> 
+              <span>{request.assignedTo}</span>
+            </div>
+          )}
+
           <div>
             <div className="flex justify-between mb-1 text-sm">
               <span>{progress}% Complete</span>
