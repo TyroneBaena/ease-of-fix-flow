@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
+  console.log(`Assigning contractor ${contractorId} to request ${requestId}`);
+  
   // First, get the contractor's details to use their name
   const { data: contractor, error: contractorError } = await supabase
     .from('contractors')
@@ -31,7 +33,24 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
 };
 
 export const changeContractorAssignment = async (requestId: string, contractorId: string) => {
-  // First, get the contractor's details to use their name
+  console.log(`Starting contractor reassignment for request ${requestId} to contractor ${contractorId}`);
+  
+  // First, check if the contractor is already assigned to this request to prevent unnecessary updates
+  const { data: currentRequest, error: currentRequestError } = await supabase
+    .from('maintenance_requests')
+    .select('contractor_id, assigned_to')
+    .eq('id', requestId)
+    .single();
+
+  if (currentRequestError) throw currentRequestError;
+  
+  // If we're assigning the same contractor, just return without making changes
+  if (currentRequest?.contractor_id === contractorId) {
+    console.log(`Contractor ${contractorId} is already assigned to request ${requestId}, skipping update`);
+    return;
+  }
+
+  // Get the contractor's details to use their name
   const { data: contractor, error: contractorError } = await supabase
     .from('contractors')
     .select('company_name')
@@ -42,15 +61,6 @@ export const changeContractorAssignment = async (requestId: string, contractorId
   
   const contractorName = contractor?.company_name || 'Unknown Contractor';
 
-  // Get the current request to add to history
-  const { data: currentRequest, error: requestError } = await supabase
-    .from('maintenance_requests')
-    .select('history, assigned_to')
-    .eq('id', requestId)
-    .single();
-
-  if (requestError) throw requestError;
-
   // Prepare history update
   const previousContractor = currentRequest?.assigned_to || 'Unknown';
   const historyEntry = {
@@ -58,7 +68,7 @@ export const changeContractorAssignment = async (requestId: string, contractorId
     timestamp: new Date().toISOString()
   };
 
-  // Fix: Ensure history is a valid array before spreading
+  // Ensure history is a valid array
   let existingHistory = [];
   if (currentRequest?.history && Array.isArray(currentRequest.history)) {
     existingHistory = currentRequest.history;
@@ -82,7 +92,7 @@ export const changeContractorAssignment = async (requestId: string, contractorId
 
   if (error) throw error;
   
-  console.log(`Reassigned contractor from ${previousContractor} to ${contractorName} (${contractorId}) for request ${requestId}`);
+  console.log(`Successfully reassigned contractor from ${previousContractor} to ${contractorName} for request ${requestId}`);
 };
 
 export const requestQuoteForJob = async (requestId: string, contractorId: string, includeInfo = {}, notes = '') => {
@@ -111,6 +121,5 @@ export const requestQuoteForJob = async (requestId: string, contractorId: string
 
   if (error) throw error;
   
-  // In a real-world scenario, we might want to notify the contractor via email here
-  console.log(`Quote requested for job ${requestId} from contractor ${contractorId}`);
+  console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
 };

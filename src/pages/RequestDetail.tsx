@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -16,25 +17,43 @@ const RequestDetail = () => {
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(0);
+  const [lastRefreshCallTime, setLastRefreshCallTime] = useState(0);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
   const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
   
-  // Function to refresh the request data with debounce
+  // Function to refresh the request data with double debounce protection
   const refreshRequestData = useCallback(() => {
-    console.log("RequestDetail - Refreshing request data");
+    console.log("RequestDetail - Refreshing request data requested");
     
-    // Prevent multiple rapid refreshes
+    // Debounce based on component state
     if (isRefreshing) {
       console.log("RequestDetail - Refresh already in progress, skipping");
       return;
     }
     
+    // Time-based debouncing
+    const currentTime = Date.now();
+    if (currentTime - lastRefreshCallTime < 3000) { // 3 second window
+      console.log("RequestDetail - Too soon since last refresh call, debouncing");
+      return;
+    }
+    
+    setLastRefreshCallTime(currentTime);
+    
     // Use the hook's refreshData function
     if (refreshData) {
+      console.log("RequestDetail - Calling refreshData");
       refreshData();
     }
-  }, [refreshData, isRefreshing]);
+  }, [refreshData, isRefreshing, lastRefreshCallTime]);
+  
+  // Add a debug-level effect to track renders
+  useEffect(() => {
+    console.log("RequestDetail - Component rendered with id:", id);
+    console.log("RequestDetail - isRefreshing:", isRefreshing);
+    console.log("RequestDetail - lastRefreshCallTime:", new Date(lastRefreshCallTime).toISOString());
+  });
   
   const initialComments = [
     {

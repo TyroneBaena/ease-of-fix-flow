@@ -64,6 +64,12 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       return;
     }
     
+    // Prevent rapid multiple submissions
+    if (isAssigning) {
+      console.log("ContractorAssignment - Assignment already in progress, skipping");
+      return;
+    }
+    
     try {
       setIsAssigning(true);
       
@@ -79,14 +85,25 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         toast.success("Contractor assigned successfully");
       }
       
-      // Call the callback to notify parent component
+      // Call the callback to notify parent component with a delay
+      // This helps prevent rapid refresh cycles
       if (onContractorAssigned) {
-        onContractorAssigned();
+        setTimeout(() => {
+          onContractorAssigned();
+          // Reset the assigning flag after a delay to allow time for the refresh to complete
+          setTimeout(() => {
+            setIsAssigning(false);
+          }, 1000);
+        }, 500);
+      } else {
+        // Reset the assigning flag if there's no callback
+        setTimeout(() => {
+          setIsAssigning(false);
+        }, 1000);
       }
     } catch (error) {
       console.error("Error assigning/reassigning contractor:", error);
       toast.error(`Failed to ${isReassignment ? 'reassign' : 'assign'} contractor`);
-    } finally {
       setIsAssigning(false);
     }
   };
@@ -109,7 +126,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <Select
           value={selectedContractor}
           onValueChange={setSelectedContractor}
-          disabled={loading || contractors.length === 0}
+          disabled={loading || contractors.length === 0 || isAssigning}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select a contractor" />
@@ -147,6 +164,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               variant="outline"
               onClick={onOpenQuoteDialog}
               className="w-full flex items-center justify-center"
+              disabled={isAssigning}
             >
               <Quote className="mr-2 h-4 w-4" />
               Request Quote
