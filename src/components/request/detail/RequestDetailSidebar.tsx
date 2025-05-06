@@ -26,17 +26,16 @@ export const RequestDetailSidebar = ({
     <div className="space-y-6">
       <ContractorAssignment 
         requestId={request.id}
-        status={request.status}
-        contractorId={request.contractorId}
-        assignedTo={request.assignedTo}
-        onAssignmentUpdated={onRefreshData}
+        isAssigned={!!request.contractorId}
+        currentContractorId={request.contractorId}
+        onOpenQuoteDialog={onOpenQuoteDialog}
+        onContractorAssigned={onRefreshData}
       />
       
       {quotes && quotes.length > 0 && (
         <QuotesList 
           quotes={quotes} 
           requestId={request.id}
-          onQuoteApproved={onRefreshData}
         />
       )}
       
