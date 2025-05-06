@@ -167,11 +167,11 @@ const RequestDetail = () => {
           
           <div className="space-y-6">
             <ContractorProvider>
-              {/* Show contractor assignment panel if not assigned yet */}
+              {/* Show contractor assignment panel if user is not a contractor */}
               {!isContractor && (
                 <ContractorAssignment 
                   requestId={request.id} 
-                  isAssigned={!!request.contractorId}
+                  isAssigned={request.contractorId ? true : false}
                   onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
                 />
               )}
