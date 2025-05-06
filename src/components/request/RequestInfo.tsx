@@ -100,7 +100,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         </div>
         <div className="mt-4 sm:mt-0">
           <Badge variant="outline" className="text-blue-600">
-            #{request.id.slice(0, 8)}
+            Request #{request.id.slice(0, 8)}
           </Badge>
         </div>
       </div>
