@@ -24,12 +24,14 @@ interface RequestQuoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: MaintenanceRequest | null;
+  onQuoteSubmitted?: () => void;  // Added this prop to match usage in RequestDetail
 }
 
 export const RequestQuoteDialog = ({
   open,
   onOpenChange,
   request,
+  onQuoteSubmitted,
 }: RequestQuoteDialogProps) => {
   const { contractors, loading, requestQuote } = useContractorContext();
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
@@ -81,6 +83,12 @@ export const RequestQuoteDialog = ({
       toast.success(`Quote request sent to ${selectedContractors.length} contractor(s)`);
       setSelectedContractors([]);
       setNotes('');
+      
+      // Call the onQuoteSubmitted callback if provided
+      if (onQuoteSubmitted) {
+        onQuoteSubmitted();
+      }
+      
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to send quote requests:', error);

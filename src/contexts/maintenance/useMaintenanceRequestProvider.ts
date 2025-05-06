@@ -39,10 +39,12 @@ export const useMaintenanceRequestProvider = () => {
           submittedBy: request.submittedBy || 'Anonymous'
         }));
         setRequests(validatedRequests as MaintenanceRequest[]);
+        return validatedRequests as MaintenanceRequest[];
       } else {
         console.log('No maintenance requests found');
         // If no data from Supabase, use a fallback for testing
-        import('@/data/sampleData').then(({ requests: sampleRequests }) => {
+        try {
+          const { requests: sampleRequests } = await import('@/data/sampleData');
           console.log('Using sample maintenance requests:', sampleRequests);
           // Ensure sample data has required properties
           const validatedSampleRequests = (sampleRequests as any[]).map(request => ({
@@ -53,12 +55,15 @@ export const useMaintenanceRequestProvider = () => {
             submittedBy: request.submittedBy || 'Anonymous'
           }));
           setRequests(validatedSampleRequests as MaintenanceRequest[]);
-        }).catch(err => {
+          return validatedSampleRequests as MaintenanceRequest[];
+        } catch (err) {
           console.error('Failed to load sample data:', err);
-        });
+          return [] as MaintenanceRequest[];
+        }
       }
     } catch (error) {
       console.error('Error loading maintenance requests:', error);
+      return [] as MaintenanceRequest[];
     } finally {
       setLoading(false);
     }
@@ -96,5 +101,6 @@ export const useMaintenanceRequestProvider = () => {
     loading,
     getRequestsForProperty,
     addRequestToProperty,
+    loadRequests,
   };
 };

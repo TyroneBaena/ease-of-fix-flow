@@ -22,7 +22,8 @@ export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }>
     requests: value.requests as MaintenanceRequest[],
     loading: value.loading,
     getRequestsForProperty: value.getRequestsForProperty as (propertyId: string) => MaintenanceRequest[],
-    addRequestToProperty: value.addRequestToProperty
+    addRequestToProperty: value.addRequestToProperty,
+    fetchRequests: value.loadRequests
   };
 
   return (
