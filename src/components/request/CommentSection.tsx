@@ -25,6 +25,18 @@ export const CommentSection = ({ requestId }: CommentSectionProps) => {
     }
   };
 
+  // Helper function to get initials from a user name
+  const getInitials = (name: string): string => {
+    if (!name) return '?';
+    
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <Card className="p-6">
       <h2 className="font-semibold mb-6 flex items-center">
@@ -53,7 +65,9 @@ export const CommentSection = ({ requestId }: CommentSectionProps) => {
             <div key={item.id} className="flex">
               <Avatar className="h-8 w-8 mr-4">
                 <AvatarImage src={item.avatar} alt={item.user} />
-                <AvatarFallback>{item.user.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
+                  {getInitials(item.user)}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-baseline">
