@@ -4,6 +4,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
 import { useContractorStatus } from './request-detail/useContractorStatus';
+import { useRequestCommentsSubscription } from './request-detail/useRequestCommentsSubscription';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
@@ -22,6 +23,13 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
+  
+  // Setup real-time comments subscription
+  const handleNewComment = useCallback(() => {
+    console.log("New comment received, refreshing data");
+    // We don't need to refresh the entire request for comments as they are loaded separately
+  }, []);
+  useRequestCommentsSubscription(requestId, handleNewComment);
   
   // Clean up timeouts on unmount
   useEffect(() => {

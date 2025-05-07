@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      comments: {
+        Row: {
+          created_at: string
+          id: string
+          request_id: string
+          text: string
+          updated_at: string
+          user_id: string
+          user_name: string
+          user_role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          request_id: string
+          text: string
+          updated_at?: string
+          user_id: string
+          user_name: string
+          user_role: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          request_id?: string
+          text?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contractors: {
         Row: {
           address: string | null

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -108,25 +107,6 @@ const RequestDetail = () => {
     };
   }, []);
   
-  const initialComments = [
-    {
-      id: '1',
-      user: 'John Doe',
-      role: 'Maintenance Supervisor',
-      avatar: '/placeholder.svg',
-      text: 'I\'ve assigned this to our electrical team. They will visit tomorrow morning between 9-11 AM. Please ensure access to the location.',
-      timestamp: '2 days ago'
-    },
-    {
-      id: '2',
-      user: 'Sarah Smith',
-      role: 'Requester',
-      avatar: '/placeholder.svg',
-      text: 'Thank you. I\'ll make sure someone is available to provide access during that time.',
-      timestamp: '1 day ago'
-    }
-  ];
-
   const handleNavigateBack = () => navigate('/requests');
 
   if (loading) {
@@ -147,7 +127,7 @@ const RequestDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
             <RequestInfo request={request} />
-            <CommentSection initialComments={initialComments} />
+            <CommentSection requestId={id || ''} />
           </div>
           
           <ContractorProvider>
