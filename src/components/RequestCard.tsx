@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +45,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
     }
   };
   
+  // Keep the getPriorityColor function for future use but remove its usage
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case 'low':
@@ -69,9 +69,6 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
   
   // Get display category (site or category)
   const displayCategory = request.site || request.category;
-  
-  // Get display priority (without default)
-  const displayPriority = request.priority;
 
   return (
     <Card 
@@ -85,11 +82,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
               <Badge className={getStatusColor(request.status)}>
                 {getStatusDisplay(request.status)}
               </Badge>
-              {displayPriority && (
-                <Badge variant="outline" className={getPriorityColor(displayPriority)}>
-                  {displayPriority.charAt(0).toUpperCase() + displayPriority.slice(1)} Priority
-                </Badge>
-              )}
+              {/* Priority badge removed */}
             </div>
             <h3 className="font-semibold text-lg">{displayTitle}</h3>
             <p className="text-gray-600 line-clamp-2">{displayDescription}</p>
@@ -125,4 +118,3 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
 };
 
 export default RequestCard;
-
