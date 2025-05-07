@@ -32,8 +32,23 @@ const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRe
       });
     }
     
+    // Fix: Filter by status correctly (matching the status values in the database)
     if (activeFilter !== 'all') {
-      result = result.filter(request => request.status === activeFilter);
+      result = result.filter(request => {
+        // Normalize status values for consistent comparison
+        const normalizedStatus = request.status.toLowerCase();
+        
+        switch (activeFilter) {
+          case 'open':
+            return normalizedStatus === 'open' || normalizedStatus === 'pending';
+          case 'in-progress':
+            return normalizedStatus === 'in-progress' || normalizedStatus === 'in progress';
+          case 'completed':
+            return normalizedStatus === 'completed';
+          default:
+            return true;
+        }
+      });
     }
     
     // Sort requests by date (newest first)
@@ -50,10 +65,11 @@ const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRe
       return timeB - timeA;
     });
     
-    console.log('Sorted requests:', result.map(r => ({
+    console.log('Filtered requests:', result.map(r => ({
       id: r.id, 
       title: r.title, 
-      date: r.updatedAt || r.createdAt || r.reportDate
+      status: r.status,
+      filter: activeFilter
     })));
     
     setFilteredRequests(result);
