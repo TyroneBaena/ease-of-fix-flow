@@ -70,8 +70,8 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
   // Get display category (site or category)
   const displayCategory = request.site || request.category;
   
-  // Get display priority (or default to medium)
-  const displayPriority = request.priority || 'medium';
+  // Get display priority (without default)
+  const displayPriority = request.priority;
 
   return (
     <Card 
@@ -125,3 +125,4 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
 };
 
 export default RequestCard;
+
