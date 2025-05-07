@@ -34,7 +34,7 @@ export function useComments(requestId: string) {
       id: comment.id,
       user: comment.user_name,
       role: comment.user_role,
-      avatar: '/placeholder.svg', // Default avatar
+      avatar: '', // Default avatar
       text: comment.text,
       timestamp: formatTimestamp(comment.created_at)
     }));
