@@ -31,10 +31,10 @@ export const CommentSection = ({ requestId }: CommentSectionProps) => {
     
     return name
       .split(' ')
-      .map(part => part[0])
-      .slice(0, 2)
+      .map(n => n[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
