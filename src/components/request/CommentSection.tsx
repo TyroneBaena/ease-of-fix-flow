@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Send } from 'lucide-react';
 import { useComments } from '@/hooks/useComments';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+import { useRequestCommentsSubscription } from '@/hooks/request-detail/useRequestCommentsSubscription';
 
 interface CommentSectionProps {
   requestId: string;
@@ -14,8 +16,11 @@ interface CommentSectionProps {
 
 export const CommentSection = ({ requestId }: CommentSectionProps) => {
   const [comment, setComment] = useState('');
-  const { comments, isLoading, addComment } = useComments(requestId);
+  const { comments, isLoading, addComment, refreshComments } = useComments(requestId);
   
+  // Subscribe to real-time comment updates
+  useRequestCommentsSubscription(requestId, refreshComments);
+
   const handleAddComment = async () => {
     if (!comment.trim()) return;
     
@@ -112,9 +117,3 @@ export const CommentSection = ({ requestId }: CommentSectionProps) => {
     </Card>
   );
 };
-
-const Label = ({ children, htmlFor }: { children: React.ReactNode, htmlFor?: string }) => (
-  <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700">
-    {children}
-  </label>
-);
