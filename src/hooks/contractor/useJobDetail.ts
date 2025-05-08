@@ -4,6 +4,14 @@ import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
 
+// Define an interface for the property data structure
+interface PropertyData {
+  address?: string;
+  contact_number?: string;
+  practice_leader?: string;
+  practice_leader_phone?: string;
+}
+
 export const useJobDetail = (jobId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<MaintenanceRequest | null>(null);
@@ -48,8 +56,8 @@ export const useJobDetail = (jobId: string | undefined) => {
             }
           };
           
-          // Extract property information from the join
-          const propertyInfo = data.property || {};
+          // Extract property information from the join and cast it to ensure TypeScript knows the shape
+          const propertyInfo: PropertyData = data.property || {};
           
           const formattedJob: MaintenanceRequest = {
             id: data.id,
