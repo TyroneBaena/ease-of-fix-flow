@@ -56,8 +56,9 @@ export const useJobDetail = (jobId: string | undefined) => {
             }
           };
           
-          // Extract property information from the join and cast it to ensure TypeScript knows the shape
-          const propertyData = data.property || {};
+          // Extract property information from the join
+          // Cast propertyData explicitly to PropertyData to tell TypeScript what shape it has
+          const propertyData = (data.property || {}) as PropertyData;
           const propertyInfo: PropertyData = {
             address: propertyData.address,
             contact_number: propertyData.contact_number,
