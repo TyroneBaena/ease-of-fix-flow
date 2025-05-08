@@ -16,11 +16,18 @@ export const useJobDetail = (jobId: string | undefined) => {
       try {
         setLoading(true);
         
+        // Fetch the job details along with the related property to get the contact information
         const { data, error } = await supabase
           .from('maintenance_requests')
           .select(`
             *,
-            quotes(*)
+            quotes(*),
+            property:property_id(
+              address,
+              contact_number,
+              practice_leader,
+              practice_leader_phone
+            )
           `)
           .eq('id', jobId)
           .single();
@@ -41,6 +48,9 @@ export const useJobDetail = (jobId: string | undefined) => {
             }
           };
           
+          // Extract property information from the join
+          const propertyInfo = data.property || {};
+          
           const formattedJob: MaintenanceRequest = {
             id: data.id,
             title: data.title,
@@ -52,10 +62,10 @@ export const useJobDetail = (jobId: string | undefined) => {
             submittedBy: data.submitted_by || 'Unknown',
             date: data.created_at,
             propertyId: data.property_id,
-            contactNumber: data.contact_number || '',
-            address: data.address || '',
-            practiceLeader: data.practice_leader || '',
-            practiceLeaderPhone: data.practice_leader_phone || '',
+            contactNumber: propertyInfo.contact_number || '',
+            address: propertyInfo.address || '',
+            practiceLeader: propertyInfo.practice_leader || '',
+            practiceLeaderPhone: propertyInfo.practice_leader_phone || '',
             attachments: safeArrayFromJSON(data.attachments),
             category: data.category,
             createdAt: data.created_at,
