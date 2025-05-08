@@ -1,101 +1,107 @@
+import React, { useEffect, useState } from 'react';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from 'react-router-dom';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Dashboard from './pages/Dashboard';
+import NewRequest from './pages/NewRequest';
+import { useUserContext } from './contexts/UserContext';
+import { Loader2 } from 'lucide-react';
+import RequestDetail from './pages/RequestDetail';
+import EditRequest from './pages/EditRequest';
+import Reports from './pages/Reports';
+import Users from './pages/Users';
+import ContractorDashboard from './pages/ContractorDashboard';
+import ContractorJobDetail from './pages/ContractorJobDetail';
 
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { PropertyProvider } from "./contexts/property/PropertyContext";
-import { MaintenanceRequestProvider } from "./contexts/maintenance/MaintenanceRequestContext";
-import { UserProvider } from "./contexts/UserContext";
-import { ContractorProvider } from "./contexts/contractor/ContractorContext";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import SetupPassword from "./pages/SetupPassword";
-import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
-import NewRequest from "./pages/NewRequest";
-import AllRequests from "./pages/AllRequests";
-import RequestDetail from "./pages/RequestDetail";
-import Properties from "./pages/Properties";
-import PropertyDetail from "./pages/PropertyDetail";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import ContractorDashboard from "./pages/ContractorDashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
+const App = () => {
+  const { currentUser, loading } = useUserContext();
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
-const queryClient = new QueryClient();
+  useEffect(() => {
+    if (!loading && isFirstLoad) {
+      setIsFirstLoad(false);
+    }
+  }, [loading, isFirstLoad]);
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ShadcnToaster />
-      <SonnerToaster />
-      <UserProvider>
-        <PropertyProvider>
-          <MaintenanceRequestProvider>
-            <ContractorProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/setup-password" element={<SetupPassword />} />
-                  
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/new-request" element={
-                    <ProtectedRoute>
-                      <NewRequest />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/requests" element={
-                    <ProtectedRoute>
-                      <AllRequests />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/requests/:id" element={
-                    <ProtectedRoute>
-                      <RequestDetail />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/properties" element={
-                    <ProtectedRoute>
-                      <Properties />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/properties/:id" element={
-                    <ProtectedRoute>
-                      <PropertyDetail />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reports" element={
-                    <ProtectedRoute>
-                      <Reports />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/settings" element={
-                    <ProtectedRoute requireAdmin={true} allowManager={true}>
-                      <Settings />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/contractor-dashboard" element={
-                    <ProtectedRoute>
-                      <ContractorDashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </ContractorProvider>
-          </MaintenanceRequestProvider>
-        </PropertyProvider>
-      </UserProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  if (loading && isFirstLoad) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  const routes = [
+    {
+      path: "/login",
+      element: currentUser ? <Navigate to="/dashboard" /> : <Login />,
+    },
+    {
+      path: "/signup",
+      element: currentUser ? <Navigate to="/dashboard" /> : <Signup />,
+    },
+    {
+      path: "/forgot-password",
+      element: currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />,
+    },
+    {
+      path: "/reset-password",
+      element: currentUser ? <Navigate to="/dashboard" /> : <ResetPassword />,
+    },
+    {
+      path: "/dashboard",
+      element: currentUser ? <Dashboard /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/new-request",
+      element: currentUser ? <NewRequest /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/requests/:id",
+      element: currentUser ? <RequestDetail /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/edit-request/:id",
+      element: currentUser ? <EditRequest /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/reports",
+      element: currentUser ? <Reports /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/users",
+      element: currentUser ? <Users /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/contractor-dashboard",
+      element: <ContractorDashboard />,
+    },
+    {
+      path: "/contractor-jobs/:id",
+      element: <ContractorJobDetail />,
+    },
+    {
+      path: "/",
+      element: currentUser ? <Navigate to="/dashboard" /> : <Navigate to="/login" />,
+    },
+  ];
+
+  return (
+    <Router>
+      <Routes>
+        {routes.map((route, index) => (
+          <Route key={index} path={route.path} element={route.element} />
+        ))}
+      </Routes>
+    </Router>
+  );
+};
 
 export default App;
