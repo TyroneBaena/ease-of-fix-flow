@@ -4,11 +4,14 @@ import App from './App.tsx'
 import './index.css'
 import { UserProvider } from './contexts/UserContext'
 import { MaintenanceRequestProvider } from './contexts/maintenance'
+import { PropertyProvider } from './contexts/property/PropertyContext'
 
 createRoot(document.getElementById("root")!).render(
   <UserProvider>
     <MaintenanceRequestProvider>
-      <App />
+      <PropertyProvider>
+        <App />
+      </PropertyProvider>
     </MaintenanceRequestProvider>
   </UserProvider>
 );
