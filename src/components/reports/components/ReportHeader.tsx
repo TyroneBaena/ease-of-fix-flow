@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { MaintenanceRequest } from '@/types/property';
@@ -10,11 +10,13 @@ import { formatDate } from '../utils/reportHelpers';
 interface ReportHeaderProps {
   filteredRequests: MaintenanceRequest[];
   getPropertyName: (propertyId: string) => string;
+  onRefresh?: () => void;
 }
 
 const ReportHeader: React.FC<ReportHeaderProps> = ({ 
   filteredRequests, 
-  getPropertyName 
+  getPropertyName,
+  onRefresh
 }) => {
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
@@ -48,10 +50,26 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({
   return (
     <div className="flex justify-between items-center mb-6">
       <h2 className="text-xl font-semibold">Maintenance Requests Report</h2>
-      <Button onClick={downloadExcel} className="flex items-center">
-        <Download className="mr-2 h-4 w-4" />
-        Download Excel
-      </Button>
+      <div className="flex gap-2">
+        {onRefresh && (
+          <Button 
+            variant="outline" 
+            onClick={onRefresh} 
+            className="flex items-center"
+            title="Refresh data"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        )}
+        <Button 
+          onClick={downloadExcel} 
+          className="flex items-center"
+          disabled={filteredRequests.length === 0}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Download Excel
+        </Button>
+      </div>
     </div>
   );
 };

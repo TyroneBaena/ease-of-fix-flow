@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property';
 import { useUserContext } from '@/contexts/UserContext';
 import { filterMaintenanceRequests } from './utils/reportHelpers';
-import { mockMaintenanceRequests } from './data/mockMaintenanceData';
+import { supabase } from '@/lib/supabase';
+import { MaintenanceRequest } from '@/types/property';
 import ReportHeader from './components/ReportHeader';
 import ReportFilters from './components/ReportFilters';
 import MaintenanceRequestsTable from './components/MaintenanceRequestsTable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 const MaintenanceReport = () => {
   const { properties, loading: propertiesLoading, loadingFailed } = usePropertyContext();
@@ -18,6 +20,9 @@ const MaintenanceReport = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [stableLoadingState, setStableLoadingState] = useState(true);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
   
   // Improved stable loading state management
   useEffect(() => {
@@ -49,8 +54,76 @@ const MaintenanceReport = () => {
     };
   }, [properties, propertiesLoading]);
 
+  // Fetch actual maintenance requests from the database
+  useEffect(() => {
+    if (stableLoadingState || !currentUser) {
+      return;
+    }
+    
+    const fetchMaintenanceRequests = async () => {
+      setIsLoadingRequests(true);
+      setRequestsError(null);
+      
+      try {
+        console.log("Fetching maintenance requests from the database");
+        
+        // Build the query based on user role
+        let query = supabase
+          .from('maintenance_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        // If not admin, filter by assigned properties
+        if (!isAdmin && currentUser?.assignedProperties?.length > 0) {
+          query = query.in('property_id', currentUser.assignedProperties);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching maintenance requests:", error);
+          setRequestsError("Failed to load maintenance requests");
+          toast.error("Error loading maintenance request data");
+          setMaintenanceRequests([]);
+        } else {
+          console.log("Maintenance requests loaded:", data?.length);
+          // Format the data to match our MaintenanceRequest type
+          const formattedRequests = data.map(request => ({
+            id: request.id,
+            title: request.title || request.issue_nature || "Untitled",
+            issueNature: request.issue_nature || request.title || "Untitled",
+            description: request.description || request.explanation || "",
+            explanation: request.explanation || request.description || "",
+            category: request.category || request.site || "",
+            site: request.site || request.category || "",
+            location: request.location || "",
+            propertyId: request.property_id,
+            priority: request.priority || "medium",
+            status: request.status || "pending",
+            createdAt: request.created_at,
+            updatedAt: request.updated_at,
+            submittedBy: request.submitted_by || "Anonymous",
+            isParticipantRelated: request.is_participant_related || false,
+            participantName: request.participant_name || ""
+          })) as MaintenanceRequest[];
+          
+          setMaintenanceRequests(formattedRequests);
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching maintenance requests:", error);
+        setRequestsError("An unexpected error occurred");
+        toast.error("Failed to load report data");
+        setMaintenanceRequests([]);
+      } finally {
+        setIsLoadingRequests(false);
+      }
+    };
+    
+    fetchMaintenanceRequests();
+  }, [currentUser, isAdmin, stableLoadingState]);
+
   // Show skeleton while loading
-  if (stableLoadingState) {
+  if (stableLoadingState || isLoadingRequests) {
     return (
       <div className="space-y-4">
         <div className="flex flex-col space-y-3">
@@ -67,14 +140,14 @@ const MaintenanceReport = () => {
   }
   
   // Show error state if loading failed
-  if (loadingFailed) {
+  if (loadingFailed || requestsError) {
     return (
       <div className="py-4">
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Data Loading Error</AlertTitle>
           <AlertDescription>
-            Unable to load property data. Please try refreshing the page.
+            {requestsError || "Unable to load property data. Please try refreshing the page."}
           </AlertDescription>
         </Alert>
       </div>
@@ -96,8 +169,6 @@ const MaintenanceReport = () => {
         currentUser?.assignedProperties?.includes(prop.id)
       );
 
-  const maintenanceRequests = mockMaintenanceRequests;
-  
   const filteredRequests = filterMaintenanceRequests(
     maintenanceRequests,
     propertyFilter,
@@ -132,6 +203,18 @@ const MaintenanceReport = () => {
         filteredRequests={filteredRequests}
         getPropertyName={getPropertyName}
       />
+      
+      {maintenanceRequests.length > 0 && filteredRequests.length === 0 && (
+        <div className="py-8 text-center">
+          <p className="text-gray-500">No maintenance requests match your current filters.</p>
+        </div>
+      )}
+      
+      {maintenanceRequests.length === 0 && (
+        <div className="py-8 text-center">
+          <p className="text-gray-500">No maintenance requests found in the database.</p>
+        </div>
+      )}
     </div>
   );
 };

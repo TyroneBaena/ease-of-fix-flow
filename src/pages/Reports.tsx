@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,8 @@ import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/property';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 const Reports = () => {
   const { currentUser, loading: userLoading } = useUserContext();
@@ -15,6 +17,38 @@ const Reports = () => {
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
   const [stableLoadingState, setStableLoadingState] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Force refresh of reports data
+  const handleRefresh = useCallback(() => {
+    toast.info("Refreshing report data...");
+    setRefreshKey(prev => prev + 1);
+  }, []);
+  
+  // Set up realtime subscription for maintenance requests
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    // Subscribe to maintenance_requests changes
+    const channel = supabase.channel('reports-maintenance-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public',
+        table: 'maintenance_requests'
+      }, () => {
+        // When a change happens, automatically refresh after a short delay
+        setTimeout(() => {
+          toast.info("Report data updated");
+          setRefreshKey(prev => prev + 1);
+        }, 300);
+      })
+      .subscribe();
+    
+    // Cleanup subscription
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
   
   // Use a better loading mechanism with stable state
   useEffect(() => {
@@ -101,7 +135,7 @@ const Reports = () => {
           
           <TabsContent value="maintenance">
             <Card className="p-6">
-              <MaintenanceReport />
+              <MaintenanceReport key={`maintenance-report-${refreshKey}`} />
             </Card>
           </TabsContent>
           
