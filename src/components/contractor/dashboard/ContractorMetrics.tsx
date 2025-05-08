@@ -23,7 +23,7 @@ export const ContractorMetrics: React.FC<ContractorMetricsProps> = ({
     
     // Add quoted amounts from pending quotes if available
     pendingQuotes.forEach(request => {
-      if (request.quote?.amount) {
+      if (request.quote && typeof request.quote !== 'string' && request.quote.amount) {
         total += Number(request.quote.amount);
       }
     });

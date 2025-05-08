@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
@@ -6,17 +7,13 @@ import {
   Navigate,
 } from 'react-router-dom';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import NewRequest from './pages/NewRequest';
 import { useUserContext } from './contexts/UserContext';
 import { Loader2 } from 'lucide-react';
 import RequestDetail from './pages/RequestDetail';
-import EditRequest from './pages/EditRequest';
 import Reports from './pages/Reports';
-import Users from './pages/Users';
 import ContractorDashboard from './pages/ContractorDashboard';
 import ContractorJobDetail from './pages/ContractorJobDetail';
 
@@ -44,16 +41,8 @@ const App = () => {
       element: currentUser ? <Navigate to="/dashboard" /> : <Login />,
     },
     {
-      path: "/signup",
-      element: currentUser ? <Navigate to="/dashboard" /> : <Signup />,
-    },
-    {
       path: "/forgot-password",
       element: currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />,
-    },
-    {
-      path: "/reset-password",
-      element: currentUser ? <Navigate to="/dashboard" /> : <ResetPassword />,
     },
     {
       path: "/dashboard",
@@ -68,16 +57,8 @@ const App = () => {
       element: currentUser ? <RequestDetail /> : <Navigate to="/login" />,
     },
     {
-      path: "/edit-request/:id",
-      element: currentUser ? <EditRequest /> : <Navigate to="/login" />,
-    },
-    {
       path: "/reports",
       element: currentUser ? <Reports /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/users",
-      element: currentUser ? <Users /> : <Navigate to="/login" />,
     },
     {
       path: "/contractor-dashboard",

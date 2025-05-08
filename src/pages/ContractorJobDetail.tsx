@@ -43,28 +43,41 @@ const ContractorJobDetail = () => {
         if (error) throw error;
         
         if (data) {
+          // Helper function to safely handle potentially non-array JSON fields
+          const safeArrayFromJSON = (jsonField: any): any[] => {
+            if (!jsonField) return [];
+            if (Array.isArray(jsonField)) return jsonField;
+            try {
+              const parsed = typeof jsonField === 'string' ? JSON.parse(jsonField) : jsonField;
+              return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+              console.warn('Failed to parse JSON array:', e);
+              return [];
+            }
+          };
+          
           const formattedJob: MaintenanceRequest = {
             id: data.id,
             title: data.title,
             description: data.description || data.explanation || '',
-            status: data.status,
-            location: data.location,
-            priority: data.priority || 'medium',
+            status: data.status as 'pending' | 'in-progress' | 'completed' | 'open',
+            location: data.location || '',
+            priority: data.priority as 'low' | 'medium' | 'high' || 'medium',
             site: data.site || data.category || '',
             submittedBy: data.submitted_by || 'Unknown',
             date: data.created_at,
             propertyId: data.property_id,
-            contactNumber: data.contact_number,
-            address: data.address,
-            practiceLeader: data.practice_leader,
-            practiceLeaderPhone: data.practice_leader_phone,
-            attachments: data.attachments,
+            contactNumber: data.contact_number || '',
+            address: data.address || '',
+            practiceLeader: data.practice_leader || '',
+            practiceLeaderPhone: data.practice_leader_phone || '',
+            attachments: safeArrayFromJSON(data.attachments),
             category: data.category,
             createdAt: data.created_at,
             updatedAt: data.updated_at,
             dueDate: data.due_date,
             assignedTo: data.assigned_to,
-            history: data.history,
+            history: safeArrayFromJSON(data.history),
             isParticipantRelated: data.is_participant_related || false,
             participantName: data.participant_name || 'N/A',
             attemptedFix: data.attempted_fix || '',
@@ -74,8 +87,8 @@ const ContractorJobDetail = () => {
             contractorId: data.contractor_id,
             assignedAt: data.assigned_at,
             completionPercentage: data.completion_percentage || 0,
-            completionPhotos: data.completion_photos,
-            progressNotes: data.progress_notes || [],
+            completionPhotos: safeArrayFromJSON(data.completion_photos),
+            progressNotes: safeArrayFromJSON(data.progress_notes),
             quoteRequested: data.quote_requested || false,
             quotedAmount: data.quoted_amount,
             // Add quotes if there are any
@@ -403,7 +416,7 @@ const ContractorJobDetail = () => {
           <JobProgressDialog
             open={progressDialogOpen}
             onOpenChange={setProgressDialogOpen}
-            jobId={job.id}
+            requestId={job.id}
             currentProgress={job.completionPercentage || 0}
             onProgressUpdate={() => {
               // Refresh job details after update

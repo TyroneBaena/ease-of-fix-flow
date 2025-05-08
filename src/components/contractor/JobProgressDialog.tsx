@@ -24,6 +24,7 @@ interface JobProgressDialogProps {
   onOpenChange: (open: boolean) => void;
   requestId: string;
   currentProgress?: number;
+  onProgressUpdate?: () => void;
 }
 
 export const JobProgressDialog = ({
@@ -31,6 +32,7 @@ export const JobProgressDialog = ({
   onOpenChange,
   requestId,
   currentProgress = 0,
+  onProgressUpdate,
 }: JobProgressDialogProps) => {
   const [progress, setProgress] = useState<number>(currentProgress);
   const [notes, setNotes] = useState('');
@@ -73,6 +75,7 @@ export const JobProgressDialog = ({
       
       toast.success('Progress updated successfully');
       onOpenChange(false);
+      if (onProgressUpdate) onProgressUpdate();
     } catch (error) {
       console.error('Error updating progress:', error);
       toast.error('Failed to update progress');

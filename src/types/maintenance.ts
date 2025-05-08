@@ -8,7 +8,13 @@ export interface MaintenanceRequest {
   priority?: 'low' | 'medium' | 'high';
   site: string;  
   submittedBy: string;  
-  quote?: string;
+  quote?: {
+    id: string;
+    amount: number;
+    status: string;
+    description?: string;
+    submittedAt?: string;
+  } | string;
   date?: string;
   propertyId?: string;
   contactNumber?: string;
@@ -36,4 +42,5 @@ export interface MaintenanceRequest {
   progressNotes?: Array<{ note: string; timestamp: string }> | string[];
   quoteRequested?: boolean;
   quotedAmount?: number;
+  quotes?: any[];
 }
