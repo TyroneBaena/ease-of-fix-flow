@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -91,7 +90,6 @@ const ContractorJobDetail = () => {
             progressNotes: safeArrayFromJSON(data.progress_notes),
             quoteRequested: data.quote_requested || false,
             quotedAmount: data.quoted_amount,
-            // Add quotes if there are any
             quotes: data.quotes && data.quotes.length > 0 ? data.quotes : undefined
           };
           
