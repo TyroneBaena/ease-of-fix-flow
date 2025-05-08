@@ -19,6 +19,7 @@ import ContractorJobDetail from './pages/ContractorJobDetail';
 import Properties from './pages/Properties';
 import PropertyDetail from './pages/PropertyDetail';
 import AllRequests from './pages/AllRequests';
+import Settings from './pages/Settings';
 
 const App = () => {
   const { currentUser, loading } = useUserContext();
@@ -66,6 +67,10 @@ const App = () => {
     {
       path: "/reports",
       element: currentUser ? <Reports /> : <Navigate to="/login" />,
+    },
+    {
+      path: "/settings",
+      element: currentUser ? <Settings /> : <Navigate to="/login" />,
     },
     {
       path: "/contractor-dashboard",
