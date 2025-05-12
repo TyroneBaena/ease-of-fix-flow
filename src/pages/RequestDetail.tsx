@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -15,94 +16,58 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [forceRefresh, setForceRefresh] = useState(0);
-  const [lastRefreshCallTime, setLastRefreshCallTime] = useState(0);
-  const [isRefreshRequested, setIsRefreshRequested] = useState(false);
+  const [refreshTriggered, setRefreshTriggered] = useState(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshCallInProgressRef = useRef(false);
-  
-  // Add a refresh lock mechanism to prevent rapid repeated refreshes
-  const [isRefreshLocked, setIsRefreshLocked] = useState(false);
   
   // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
-  const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id, forceRefresh);
+  const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id);
   
-  // Function to temporarily lock refreshes
-  const lockRefresh = useCallback((duration: number = 15000) => {
-    console.log(`RequestDetail - Locking refresh for ${duration}ms`);
-    setIsRefreshLocked(true);
+  // Function to refresh the request data with throttling to prevent loops
+  const handleRefreshData = useCallback(() => {
+    console.log("RequestDetail - Controlled refresh requested");
     
-    if (refreshLockTimeoutRef.current) {
-      clearTimeout(refreshLockTimeoutRef.current);
-    }
-    
-    refreshLockTimeoutRef.current = setTimeout(() => {
-      console.log("RequestDetail - Refresh lock released");
-      setIsRefreshLocked(false);
-      refreshLockTimeoutRef.current = null;
-    }, duration) as unknown as NodeJS.Timeout;
-  }, []);
-  
-  // Function to refresh the request data with stronger protection against loops
-  const refreshRequestData = useCallback(() => {
-    console.log("RequestDetail - Refreshing request data requested");
-    
-    // Skip if refresh is locked (prevent rapid successive actions)
-    if (isRefreshLocked) {
-      console.log("RequestDetail - Refresh is locked, skipping");
+    // Skip if a refresh is already pending
+    if (refreshTriggered) {
+      console.log("RequestDetail - Refresh already triggered, skipping");
       return;
     }
     
-    // Skip if a refresh is already in progress or requested
-    if (isRefreshing || isRefreshRequested || refreshCallInProgressRef.current) {
-      console.log("RequestDetail - Refresh already in progress or requested, skipping");
-      return;
-    }
+    // Set flag that refresh was triggered to prevent multiple calls
+    setRefreshTriggered(true);
     
-    // Strong time-based debouncing - 15 second window
-    const currentTime = Date.now();
-    if (currentTime - lastRefreshCallTime < 15000) {
-      console.log("RequestDetail - Too soon since last refresh call, debouncing");
-      return;
-    }
-    
-    // Clear any existing timeout to prevent multiple timeouts
+    // Clear any existing timeout
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
     
-    // Lock refreshes temporarily to prevent new attempts
-    lockRefresh(15000);
+    // Delay the actual refresh to prevent rapid successive calls
+    refreshTimeoutRef.current = setTimeout(() => {
+      console.log("RequestDetail - Executing delayed refresh");
+      
+      if (refreshData) {
+        refreshData().finally(() => {
+          // Reset the flag after refresh completes
+          console.log("RequestDetail - Refresh complete, resetting flag");
+          
+          // Add a delay before allowing another refresh
+          setTimeout(() => {
+            setRefreshTriggered(false);
+          }, 5000);
+        });
+      } else {
+        setRefreshTriggered(false);
+      }
+      
+      refreshTimeoutRef.current = null;
+    }, 1000) as unknown as NodeJS.Timeout;
     
-    // Mark that we've requested a refresh and update timestamp
-    setLastRefreshCallTime(currentTime);
-    setIsRefreshRequested(true);
-    refreshCallInProgressRef.current = true;
-    
-    // Use the hook's refreshData function
-    if (refreshData) {
-      console.log("RequestDetail - Calling refreshData once");
-      refreshData().finally(() => {
-        // Set a timeout to clear the refresh requested flag
-        refreshTimeoutRef.current = setTimeout(() => {
-          console.log("RequestDetail - Clearing refresh requested flag");
-          setIsRefreshRequested(false);
-          refreshCallInProgressRef.current = false;
-          refreshTimeoutRef.current = null;
-        }, 15000) as unknown as NodeJS.Timeout;
-      });
-    }
-  }, [refreshData, isRefreshing, lastRefreshCallTime, isRefreshRequested, isRefreshLocked, lockRefresh]);
+  }, [refreshData, refreshTriggered]);
   
-  // Clean up any timeouts when component unmounts
+  // Clean up timeout on unmount
   useEffect(() => {
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
-      }
-      if (refreshLockTimeoutRef.current) {
-        clearTimeout(refreshLockTimeoutRef.current);
       }
     };
   }, []);
@@ -136,14 +101,14 @@ const RequestDetail = () => {
               quotes={quotes}
               isContractor={isContractor}
               onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
-              onRefreshData={refreshRequestData}
+              onRefreshData={handleRefreshData}
             />
             
             <RequestQuoteDialog 
               open={quoteDialogOpen} 
               onOpenChange={setQuoteDialogOpen} 
               request={request}
-              onQuoteSubmitted={refreshRequestData}
+              onQuoteSubmitted={handleRefreshData}
             />
           </ContractorProvider>
         </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
@@ -30,6 +31,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const { contractors, loading, assignContractor, changeAssignment, error, loadContractors } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
   const [isAssigning, setIsAssigning] = useState(false);
+  const [assignmentComplete, setAssignmentComplete] = useState(false);
   const isReassignment = isAssigned && currentContractorId;
   
   // Enhanced logging
@@ -47,7 +49,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     }
     
     // Set the currently assigned contractor as selected if we're in reassignment mode
-    if (isReassignment && currentContractorId) {
+    if (isReassignment && currentContractorId && !selectedContractor) {
       console.log("ContractorAssignment - Setting selected contractor to current:", currentContractorId);
       setSelectedContractor(currentContractorId);
     }
@@ -65,8 +67,8 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     }
     
     // Prevent rapid multiple submissions
-    if (isAssigning) {
-      console.log("ContractorAssignment - Assignment already in progress, skipping");
+    if (isAssigning || assignmentComplete) {
+      console.log("ContractorAssignment - Assignment already in progress or completed, skipping");
       return;
     }
     
@@ -85,28 +87,35 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         toast.success("Contractor assigned successfully");
       }
       
-      // Call the callback to notify parent component with a delay
-      // This helps prevent rapid refresh cycles
+      // Mark the assignment as complete to prevent multiple calls
+      setAssignmentComplete(true);
+      
+      // Call the callback to notify parent component with a delay and only once
       if (onContractorAssigned) {
+        console.log("ContractorAssignment - Calling onContractorAssigned callback once");
+        // Use setTimeout to allow the UI to update before calling the callback
         setTimeout(() => {
           onContractorAssigned();
-          // Reset the assigning flag after a delay to allow time for the refresh to complete
-          setTimeout(() => {
-            setIsAssigning(false);
-          }, 1000);
         }, 500);
-      } else {
-        // Reset the assigning flag if there's no callback
-        setTimeout(() => {
-          setIsAssigning(false);
-        }, 1000);
       }
+      
+      // Reset the assigning flag after a delay
+      setTimeout(() => {
+        setIsAssigning(false);
+      }, 1000);
+      
     } catch (error) {
       console.error("Error assigning/reassigning contractor:", error);
       toast.error(`Failed to ${isReassignment ? 'reassign' : 'assign'} contractor`);
       setIsAssigning(false);
+      setAssignmentComplete(false);
     }
   };
+
+  // Reset assignment complete state if the request ID changes
+  useEffect(() => {
+    setAssignmentComplete(false);
+  }, [requestId]);
 
   // Display even if assigned when in reassignment mode
   if (isAssigned && !isReassignment) {
@@ -149,14 +158,23 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <div className="grid grid-cols-1 gap-3">
           <Button
             onClick={handleAssignment}
-            disabled={!selectedContractor || loading || contractors.length === 0 || isAssigning}
+            disabled={
+              !selectedContractor || 
+              loading || 
+              contractors.length === 0 || 
+              isAssigning || 
+              assignmentComplete
+            }
             className="w-full"
           >
             {isAssigning ? 
               (isReassignment ? "Reassigning..." : "Assigning...") : 
-              (loading ? "Loading..." : (isReassignment ? 
-                <span className="flex items-center"><RefreshCw className="mr-2 h-4 w-4" />Change Contractor</span> : 
-                "Assign Contractor"))}
+              (loading ? "Loading..." : 
+                (assignmentComplete ? 
+                  (isReassignment ? "Contractor Changed" : "Contractor Assigned") :
+                  (isReassignment ? 
+                    <span className="flex items-center"><RefreshCw className="mr-2 h-4 w-4" />Change Contractor</span> : 
+                    "Assign Contractor")))}
           </Button>
           
           {!isReassignment && (
