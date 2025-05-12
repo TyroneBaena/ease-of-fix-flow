@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
@@ -16,13 +16,9 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   
-  // Refs to control refresh behavior
-  const lastRefreshTime = useRef<number>(0);
-  const refreshPending = useRef<boolean>(false);
-  const isInitialRender = useRef<boolean>(true);
-  
-  // Configure data fetching with smart refresh control
+  // Configure data fetching
   const { 
     request, 
     loading, 
@@ -32,67 +28,32 @@ const RequestDetail = () => {
     isRefreshing 
   } = useRequestDetailData(id);
   
-  // Reset component state on ID change
+  // Reset state on ID change
   useEffect(() => {
-    if (id) {
-      console.log("RequestDetail - Request ID changed to:", id);
-      lastRefreshTime.current = 0;
-      refreshPending.current = false;
-      
-      // If not the initial render, reset the component state
-      if (!isInitialRender.current) {
-        console.log("RequestDetail - Not initial render, resetting state");
-      } else {
-        isInitialRender.current = false;
-      }
-    }
+    setLastRefreshTime(0);
   }, [id]);
   
-  // Smart refresh handler with debouncing and safety checks
+  // Simple throttled refresh handler
   const handleRefreshData = () => {
     console.log("RequestDetail - Refresh requested");
     
     // Skip if already refreshing
-    if (isRefreshing || refreshPending.current) {
-      console.log("RequestDetail - Already refreshing or pending, skipping refresh request");
+    if (isRefreshing) {
+      console.log("RequestDetail - Already refreshing, skipping refresh request");
       return;
     }
     
-    // Implement time-based throttling
+    // Basic throttling to prevent excessive refreshes
     const now = Date.now();
-    const timeSinceLastRefresh = now - lastRefreshTime.current;
-    const MIN_REFRESH_INTERVAL = 10000; // 10 seconds
+    const MIN_REFRESH_INTERVAL = 2000; // 2 seconds
     
-    if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
-      console.log(`RequestDetail - Too soon since last refresh (${timeSinceLastRefresh}ms), debouncing`);
-      
-      if (!refreshPending.current) {
-        console.log("RequestDetail - Setting refresh pending");
-        refreshPending.current = true;
-        
-        // Schedule a refresh after the minimum interval has passed
-        const delay = MIN_REFRESH_INTERVAL - timeSinceLastRefresh;
-        console.log(`RequestDetail - Scheduling delayed refresh in ${delay}ms`);
-        
-        setTimeout(() => {
-          console.log("RequestDetail - Executing delayed refresh");
-          if (refreshData) {
-            lastRefreshTime.current = Date.now();
-            refreshPending.current = false;
-            refreshData();
-          }
-        }, delay);
-      }
-      
+    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+      console.log("RequestDetail - Too soon since last refresh, skipping");
       return;
     }
     
-    // Execute immediate refresh if enough time has passed
-    console.log("RequestDetail - Executing immediate refresh");
-    if (refreshData) {
-      lastRefreshTime.current = now;
-      refreshData();
-    }
+    setLastRefreshTime(now);
+    refreshData();
   };
   
   const handleNavigateBack = () => navigate('/requests');
