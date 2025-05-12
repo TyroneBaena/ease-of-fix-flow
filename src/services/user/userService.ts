@@ -3,6 +3,7 @@ import { User, UserRole } from '@/types/user';
 import { InviteUserResult, UserService } from './types';
 import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQueries';
 import { updateUserProfile, sendPasswordReset, deleteUserAccount } from './userMutations';
+import { adminResetUserPassword, AdminPasswordResetResult } from './adminPasswordReset';
 import { supabase } from '@/integrations/supabase/client';
 
 export const userService: UserService = {
@@ -85,6 +86,20 @@ export const userService: UserService = {
       return {
         success: false,
         message: error.message || "Unknown error occurred"
+      };
+    }
+  },
+  
+  adminResetPassword: async (userId: string, email: string): Promise<AdminPasswordResetResult> => {
+    try {
+      console.log(`Admin requesting password reset for: ${email} (${userId})`);
+      return await adminResetUserPassword(userId, email);
+    } catch (error: any) {
+      console.error("Error in adminResetPassword:", error);
+      return {
+        success: false,
+        message: error.message || "Unknown error occurred",
+        userId
       };
     }
   },

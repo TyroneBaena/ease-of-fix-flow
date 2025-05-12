@@ -17,6 +17,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     updateUser,
     removeUser,
     resetPassword,
+    adminResetPassword,
     signOut
   } = useUserProvider();
 
@@ -31,6 +32,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     updateUser,
     removeUser,
     resetPassword,
+    adminResetPassword,
     // Use direct property for isAdmin
     isAdmin: currentUser?.role === 'admin' || false,
     // Use direct function for canAccessProperty

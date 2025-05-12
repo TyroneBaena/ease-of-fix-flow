@@ -1,6 +1,7 @@
 
 import { User, UserRole } from '@/types/user';
 import { AddUserResult } from './useUserProvider';
+import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
 
 export interface UserContextType {
   currentUser: User | null;
@@ -12,6 +13,7 @@ export interface UserContextType {
   updateUser: (user: User) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
   resetPassword: (userId: string, email: string) => Promise<{success: boolean; message: string}>;
+  adminResetPassword: (userId: string, email: string) => Promise<AdminPasswordResetResult>;
   isAdmin: boolean;  // Changed from function to boolean
   canAccessProperty: (propertyId: string) => boolean;
   signOut: () => Promise<void>;

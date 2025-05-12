@@ -1,8 +1,10 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
+import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
 
 // Define the return type for the addUser function
 export interface AddUserResult {
@@ -130,6 +132,28 @@ export const useUserProvider = () => {
       setLoading(false);
     }
   };
+  
+  const adminResetPassword = async (userId: string, email: string): Promise<AdminPasswordResetResult> => {
+    try {
+      setLoading(true);
+      // Use the new admin reset password function
+      const result = await userService.adminResetPassword(userId, email);
+      
+      if (result.success) {
+        toast.success(`Password reset successful for ${email}`);
+      } else {
+        toast.error(`Failed to reset password: ${result.message}`);
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error('Error in admin password reset:', error);
+      toast.error(`Admin password reset failed: ${error.message || "Unknown error"}`);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const removeUser = async (userId: string) => {
     if (userId === currentUser?.id) {
@@ -159,6 +183,7 @@ export const useUserProvider = () => {
     updateUser,
     removeUser,
     resetPassword,
+    adminResetPassword,
     signOut
   };
 };

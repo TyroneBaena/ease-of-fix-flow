@@ -33,6 +33,8 @@ const UserManagement = () => {
     handlePropertySelection,
     handleSaveUser,
     handleResetPassword,
+    openManualReset,
+    ManualResetDialog,
     confirmDeleteUser,
     handleDeleteUser,
     handlePageChange,
@@ -97,6 +99,7 @@ const UserManagement = () => {
         onEditUser={(user) => handleOpenDialog(true, user)}
         onDeleteUser={confirmDeleteUser}
         onResetPassword={handleResetPassword}
+        onManualResetPassword={openManualReset}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
@@ -123,6 +126,8 @@ const UserManagement = () => {
         isLoading={isLoading}
         onConfirmDelete={handleDeleteUser}
       />
+      
+      <ManualResetDialog />
     </div>
   );
 };

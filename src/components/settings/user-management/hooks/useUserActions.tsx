@@ -4,6 +4,9 @@ import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
 import { User } from '@/types/user';
 import { NewUserFormState } from './useUserDialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Lock, Copy, Check } from "lucide-react";
 
 export const useUserActions = (
   setIsDialogOpen: (isOpen: boolean) => void,
@@ -14,11 +17,15 @@ export const useUserActions = (
   setCurrentPage: (page: number) => void,
   usersPerPage: number
 ) => {
-  const { addUser, updateUser, removeUser, resetPassword, fetchUsers } = useUserContext();
+  const { addUser, updateUser, removeUser, resetPassword, adminResetPassword, fetchUsers } = useUserContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isManualResetOpen, setIsManualResetOpen] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [userToReset, setUserToReset] = useState<{id: string, email: string} | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleSaveUser = async () => {
     if (!newUser.name || !newUser.email) {
@@ -123,6 +130,52 @@ export const useUserActions = (
     }
   };
   
+  const handleManualResetPassword = async () => {
+    if (!userToReset) return;
+    
+    try {
+      setIsLoading(true);
+      const { id, email } = userToReset;
+      
+      const result = await adminResetPassword(id, email);
+      
+      if (result.success && result.message.includes('Password has been reset to:')) {
+        // Extract temporary password from the message
+        const tempPwd = result.message.split('Password has been reset to:')[1].trim();
+        setTempPassword(tempPwd);
+      } else {
+        toast.error(result.message || 'Failed to reset password');
+        setIsManualResetOpen(false);
+      }
+    } catch (error: any) {
+      console.error("Error in manual password reset:", error);
+      toast.error(`Manual password reset failed: ${error.message || 'Unknown error'}`);
+      setIsManualResetOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const copyToClipboard = () => {
+    if (!tempPassword) return;
+    
+    navigator.clipboard.writeText(tempPassword).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Temporary password copied to clipboard");
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      toast.error("Failed to copy password");
+    });
+  };
+  
+  const openManualReset = (userId: string, email: string) => {
+    setUserToReset({ id: userId, email });
+    setIsManualResetOpen(true);
+    setTempPassword(null);
+    setCopied(false);
+  };
+  
   const confirmDeleteUser = (userId: string) => {
     setUserToDelete(userId);
     setIsDeleteConfirmOpen(true);
@@ -148,15 +201,83 @@ export const useUserActions = (
       setIsLoading(false);
     }
   };
+  
+  const ManualResetDialog = () => (
+    <Dialog open={isManualResetOpen} onOpenChange={setIsManualResetOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Manual Password Reset</DialogTitle>
+          <DialogDescription>
+            {tempPassword 
+              ? "A temporary password has been generated. Share it with the user securely."
+              : `Reset password for ${userToReset?.email}?`
+            }
+          </DialogDescription>
+        </DialogHeader>
+        
+        {!tempPassword ? (
+          <DialogFooter className="sm:justify-start">
+            <Button
+              type="button"
+              variant="default"
+              onClick={handleManualResetPassword}
+              disabled={isLoading}
+              className="mt-2 sm:mt-0"
+            >
+              {isLoading ? "Resetting..." : "Generate Temporary Password"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsManualResetOpen(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-md border p-4">
+              <div className="font-mono text-sm">{tempPassword}</div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={copyToClipboard}
+                className="ml-2"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This temporary password will only be shown once.
+            </p>
+            <DialogFooter>
+              <Button
+                type="button"
+                onClick={() => setIsManualResetOpen(false)}
+                className="mt-2"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   return {
     isLoading,
     isDeleteConfirmOpen,
+    isManualResetOpen,
     formError,
     setFormError,
     setIsDeleteConfirmOpen,
     handleSaveUser,
     handleResetPassword,
+    openManualReset,
+    ManualResetDialog,
     confirmDeleteUser,
     handleDeleteUser,
     userToDelete

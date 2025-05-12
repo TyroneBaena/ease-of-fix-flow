@@ -19,6 +19,7 @@ interface UserTableProps {
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
   onResetPassword: (userId: string, email: string) => void;
+  onManualResetPassword?: (userId: string, email: string) => void;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -32,6 +33,7 @@ const UserTable: React.FC<UserTableProps> = ({
   onEditUser,
   onDeleteUser,
   onResetPassword,
+  onManualResetPassword,
   currentPage,
   totalPages,
   onPageChange,
@@ -65,6 +67,7 @@ const UserTable: React.FC<UserTableProps> = ({
               onEditUser={onEditUser}
               onDeleteUser={onDeleteUser}
               onResetPassword={onResetPassword}
+              onManualResetPassword={onManualResetPassword}
             />
           ))}
           {users.length === 0 && (
