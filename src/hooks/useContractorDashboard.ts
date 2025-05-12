@@ -28,19 +28,21 @@ export const useContractorDashboard = () => {
           .maybeSingle();
 
         if (error) throw error;
+        
         if (data) {
           setContractorId(data.id);
           console.log('Found contractor ID:', data.id);
         } else {
           console.log('No contractor found for this user');
           setError('No contractor profile found for this user');
+          toast.error('No contractor profile found for this account');
         }
       } catch (err) {
         console.error('Error fetching contractor ID:', err);
         setError('Could not verify contractor status');
         toast.error('Error loading contractor information');
       } finally {
-        if (!loading) setLoading(false);
+        if (loading) setLoading(false);
       }
     };
 
@@ -184,7 +186,7 @@ export const useContractorDashboard = () => {
       title: request.title || request.issue_nature || 'Untitled request',
       description: request.description || request.explanation || '',
       status: request.status as 'pending' | 'in-progress' | 'completed' | 'open',
-      location: request.location,
+      location: request.location || '',
       priority: request.priority as 'low' | 'medium' | 'high',
       site: request.site || request.category || '',
       submittedBy: request.submitted_by || 'Unknown',
@@ -227,6 +229,8 @@ export const useContractorDashboard = () => {
   const refreshData = () => {
     if (contractorId) {
       setLoading(true);
+      // This will trigger the useEffect that fetches data
+      setContractorId(contractorId);
       toast.info('Refreshing data...');
     }
   };

@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/contexts/UserContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const ContractorHeader = () => {
   const navigate = useNavigate();
-  const { signOut, currentUser } = useUserContext();
+  const { signOut, currentUser, loading } = useUserContext();
 
   const handleSignOut = async () => {
     try {
@@ -31,9 +32,13 @@ export const ContractorHeader = () => {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              {currentUser?.name || 'Contractor'}
-            </span>
+            {loading ? (
+              <Skeleton className="h-5 w-28" />
+            ) : (
+              <span className="text-sm text-gray-600">
+                {currentUser?.name || currentUser?.email || 'Contractor'}
+              </span>
+            )}
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign out

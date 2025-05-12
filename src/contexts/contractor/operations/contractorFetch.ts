@@ -6,13 +6,18 @@ import { toast } from '@/lib/toast';
 export const fetchContractors = async (): Promise<Contractor[]> => {
   try {
     // Check if user is authenticated before attempting to fetch
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      console.error("Authentication error:", authError);
+      throw authError;
+    }
+    
     if (!authData?.user) {
       console.log("User not authenticated, skipping contractor fetch");
       return [];
     }
     
-    console.log("Fetching contractors...");
+    console.log("Fetching contractors with authenticated user:", authData.user.id);
     const { data, error } = await supabase
       .from('contractors')
       .select('*');
@@ -31,7 +36,7 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
         email: item.email,
         phone: item.phone,
         address: item.address || undefined,
-        specialties: item.specialties || undefined,
+        specialties: item.specialties || [],
         createdAt: item.created_at,
         updatedAt: item.updated_at
       }));
@@ -43,9 +48,7 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
   } catch (err) {
     console.error('Error fetching contractors:', err);
     // Only show toast error if we're on a page where contractors are expected
-    if (window.location.pathname.includes('dashboard') || 
-        window.location.pathname.includes('settings') || 
-        window.location.pathname.includes('contractor')) {
+    if (window.location.pathname.includes('contractor')) {
       toast.error('Failed to load contractors');
     }
     throw err;
