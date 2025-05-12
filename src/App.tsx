@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
+import SetupPassword from './pages/SetupPassword';
 import Dashboard from './pages/Dashboard';
 import NewRequest from './pages/NewRequest';
 import { useUserContext } from './contexts/UserContext';
@@ -45,6 +46,7 @@ const App = () => {
       <Routes>
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/forgot-password" element={currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />} />
+        <Route path="/setup-password" element={<SetupPassword />} />
         
         <Route path="/dashboard" element={
           <ProtectedRoute>

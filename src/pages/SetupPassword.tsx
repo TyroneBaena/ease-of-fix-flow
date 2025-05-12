@@ -14,6 +14,7 @@ const SetupPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
+  const [hasSession, setHasSession] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -24,13 +25,26 @@ const SetupPassword = () => {
     if (emailParam) {
       setEmail(emailParam);
     }
+    
+    // Check if there's an active session
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setHasSession(!!data.session);
+      
+      // If there's a session but navigated here via password reset
+      if (data.session && location.hash && location.hash.includes('access_token')) {
+        console.log("Found session with reset token, ready to set new password");
+      }
+    };
+    
+    checkSession();
   }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email) {
-      toast.error("Email is missing. Please use the link from your invitation email");
+      toast.error("Email is missing. Please use the link from your invitation or reset email");
       return;
     }
     
@@ -46,7 +60,7 @@ const SetupPassword = () => {
     
     try {
       setIsLoading(true);
-      console.log(`Setting up password for email: ${email}`);
+      console.log(`Setting up new password for email: ${email}`);
       
       // Update the user's password
       const { error } = await supabase.auth.updateUser({
@@ -54,10 +68,10 @@ const SetupPassword = () => {
       });
       
       if (error) {
+        // If not logged in, this could be a password reset flow
         if (error.message.includes('not logged in')) {
-          // If not logged in, try to sign in with the temporary password first
-          toast.info("Please sign in with your temporary password first");
-          navigate(`/login?email=${encodeURIComponent(email)}&setupPassword=true`);
+          toast.info("Please sign in with your temporary password or use the reset link from your email");
+          navigate(`/login?email=${encodeURIComponent(email)}`);
           return;
         }
         
