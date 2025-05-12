@@ -71,7 +71,7 @@ const SetupPassword = () => {
       if (error) {
         // If not logged in, this could be a password reset flow
         if (error.message.includes('not logged in')) {
-          toast.info("Please sign in with your temporary password or use the reset link from your email");
+          toast.error("Please sign in with your temporary password or use the reset link from your email");
           navigate(`/login?email=${encodeURIComponent(email)}`);
           return;
         }
@@ -162,7 +162,11 @@ const SetupPassword = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full" disabled={isLoading || success}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading || success}
+            >
               {isLoading ? "Setting Up..." : "Set Password & Continue"}
             </Button>
             
