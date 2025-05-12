@@ -22,6 +22,10 @@ import PropertyDetail from './pages/PropertyDetail';
 import AllRequests from './pages/AllRequests';
 import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
+import ContractorJobs from './pages/contractor/ContractorJobs';
+import ContractorSchedule from './pages/contractor/ContractorSchedule';
+import ContractorProfile from './pages/contractor/ContractorProfile';
+import ContractorSettings from './pages/contractor/ContractorSettings';
 
 const App = () => {
   const { currentUser, loading } = useUserContext();
@@ -48,6 +52,7 @@ const App = () => {
         <Route path="/forgot-password" element={currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />} />
         <Route path="/setup-password" element={<SetupPassword />} />
         
+        {/* Admin/Manager Routes */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
@@ -84,6 +89,19 @@ const App = () => {
           </ProtectedRoute>
         } />
         
+        <Route path="/properties" element={
+          <ProtectedRoute>
+            <Properties />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/properties/:id" element={
+          <ProtectedRoute>
+            <PropertyDetail />
+          </ProtectedRoute>
+        } />
+        
+        {/* Contractor Routes */}
         <Route path="/contractor-dashboard" element={
           <ProtectedRoute>
             <ContractorDashboard />
@@ -96,15 +114,27 @@ const App = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/properties" element={
+        <Route path="/contractor-jobs" element={
           <ProtectedRoute>
-            <Properties />
+            <ContractorJobs />
           </ProtectedRoute>
         } />
         
-        <Route path="/properties/:id" element={
+        <Route path="/contractor-schedule" element={
           <ProtectedRoute>
-            <PropertyDetail />
+            <ContractorSchedule />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/contractor-profile" element={
+          <ProtectedRoute>
+            <ContractorProfile />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/contractor-settings" element={
+          <ProtectedRoute>
+            <ContractorSettings />
           </ProtectedRoute>
         } />
         

@@ -1,10 +1,16 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ContractorNavigation } from './ContractorNavigation';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export const ContractorHeader = () => {
   const navigate = useNavigate();
@@ -31,6 +37,65 @@ export const ContractorHeader = () => {
               Contractor Portal
             </h1>
           </div>
+          
+          {/* Desktop Navigation */}
+          <ContractorNavigation />
+          
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <div className="flex flex-col space-y-4 mt-8">
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => navigate('/contractor-dashboard')}
+                  >
+                    <Home className="h-5 w-5 mr-2" />
+                    Dashboard
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => navigate('/contractor-jobs')}
+                  >
+                    <ClipboardList className="h-5 w-5 mr-2" />
+                    Jobs
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => navigate('/contractor-schedule')}
+                  >
+                    <Calendar className="h-5 w-5 mr-2" />
+                    Schedule
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => navigate('/contractor-profile')}
+                  >
+                    <UserCog className="h-5 w-5 mr-2" />
+                    Profile
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => navigate('/contractor-settings')}
+                  >
+                    <Settings className="h-5 w-5 mr-2" />
+                    Settings
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+          
           <div className="flex items-center space-x-4">
             {loading ? (
               <Skeleton className="h-5 w-28" />
