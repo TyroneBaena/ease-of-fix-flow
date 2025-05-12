@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { Contractor } from '@/types/contractor';
 
@@ -21,11 +21,11 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     
     console.log("User role from profile:", userProfile?.role);
     
-    // First, attempt to get all contractors with detailed logging
+    // Get all contractors with detailed logging
     const { data, error, status } = await supabase
       .from('contractors')
       .select('*');

@@ -1,6 +1,6 @@
 
 import { Contractor } from '@/types/contractor';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 
 export const fetchContractors = async (): Promise<Contractor[]> => {
@@ -18,6 +18,7 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
       .select('*');
       
     if (error) {
+      console.error("Error fetching contractors:", error);
       throw error;
     }
     

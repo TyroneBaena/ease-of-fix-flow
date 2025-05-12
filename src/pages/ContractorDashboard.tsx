@@ -13,6 +13,7 @@ import { RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Toaster } from "sonner";
 
 const ContractorDashboard = () => {
   const { 
@@ -37,6 +38,7 @@ const ContractorDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <ContractorHeader />
+        <Toaster position="bottom-right" richColors />
         <main className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-6">
@@ -59,6 +61,7 @@ const ContractorDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <ContractorHeader />
+      <Toaster position="bottom-right" richColors />
       <main className="container mx-auto px-4 py-8">
         {error && (
           <Alert variant="destructive" className="mb-6">

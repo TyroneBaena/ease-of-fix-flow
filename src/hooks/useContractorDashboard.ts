@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from '@/lib/toast';
 
@@ -20,21 +20,27 @@ export const useContractorDashboard = () => {
 
     const fetchContractorId = async () => {
       try {
+        console.log('Fetching contractor ID for user:', currentUser.id);
         const { data, error } = await supabase
           .from('contractors')
           .select('id')
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         if (data) {
           setContractorId(data.id);
           console.log('Found contractor ID:', data.id);
+        } else {
+          console.log('No contractor found for this user');
+          setError('No contractor profile found for this user');
         }
       } catch (err) {
         console.error('Error fetching contractor ID:', err);
         setError('Could not verify contractor status');
         toast.error('Error loading contractor information');
+      } finally {
+        if (!loading) setLoading(false);
       }
     };
 
@@ -50,6 +56,7 @@ export const useContractorDashboard = () => {
         setLoading(true);
         setError(null);
         
+        console.log('Fetching quote requests for contractor:', contractorId);
         // Fetch quote requests
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
@@ -58,8 +65,10 @@ export const useContractorDashboard = () => {
           .eq('status', 'requested');
           
         if (quotesError) throw quotesError;
+        console.log('Fetched quotes:', quotes);
         
         // Fetch active jobs where this contractor is assigned
+        console.log('Fetching active jobs for contractor:', contractorId);
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -67,8 +76,10 @@ export const useContractorDashboard = () => {
           .eq('status', 'in-progress');
           
         if (activeJobsError) throw activeJobsError;
+        console.log('Fetched active jobs:', activeJobsData);
         
         // Fetch completed jobs
+        console.log('Fetching completed jobs for contractor:', contractorId);
         const { data: completedJobsData, error: completedJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -76,6 +87,7 @@ export const useContractorDashboard = () => {
           .eq('status', 'completed');
           
         if (completedJobsError) throw completedJobsError;
+        console.log('Fetched completed jobs:', completedJobsData);
         
         // Map the requests from the quotes to MaintenanceRequest type
         const pendingRequests = quotes.map((quote: any) => mapRequestFromQuote(quote));

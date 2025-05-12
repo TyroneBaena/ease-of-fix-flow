@@ -3,12 +3,13 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { QuoteRequestDialog } from './QuoteRequestDialog';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { RequestsTable } from './requests/RequestsTable';
 import { useContractorContext } from '@/contexts/contractor';
 import { useContractorRequests } from '@/hooks/useContractorRequests';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const groupRequestsByStatus = (requests: MaintenanceRequest[]) => {
   return requests.reduce((acc, request) => {
@@ -40,6 +41,22 @@ export const ContractorRequests = () => {
       toast.error('Failed to submit quote');
     }
   };
+
+  // If loading, show a skeleton loader
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-1/3" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   // If there's an error fetching requests, show an error message
   if (error) {

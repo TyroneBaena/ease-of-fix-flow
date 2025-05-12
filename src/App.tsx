@@ -20,6 +20,7 @@ import Properties from './pages/Properties';
 import PropertyDetail from './pages/PropertyDetail';
 import AllRequests from './pages/AllRequests';
 import Settings from './pages/Settings';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
   const { currentUser, loading } = useUserContext();
@@ -39,67 +40,73 @@ const App = () => {
     );
   }
 
-  const routes = [
-    {
-      path: "/login",
-      element: currentUser ? <Navigate to="/dashboard" /> : <Login />,
-    },
-    {
-      path: "/forgot-password",
-      element: currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />,
-    },
-    {
-      path: "/dashboard",
-      element: currentUser ? <Dashboard /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/new-request",
-      element: currentUser ? <NewRequest /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/requests/:id",
-      element: currentUser ? <RequestDetail /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/requests",
-      element: currentUser ? <AllRequests /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/reports",
-      element: currentUser ? <Reports /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/settings",
-      element: currentUser ? <Settings /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/contractor-dashboard",
-      element: <ContractorDashboard />,
-    },
-    {
-      path: "/contractor-jobs/:id",
-      element: <ContractorJobDetail />,
-    },
-    {
-      path: "/properties",
-      element: currentUser ? <Properties /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/properties/:id",
-      element: currentUser ? <PropertyDetail /> : <Navigate to="/login" />,
-    },
-    {
-      path: "/",
-      element: currentUser ? <Navigate to="/dashboard" /> : <Navigate to="/login" />,
-    },
-  ];
-
   return (
     <Router>
       <Routes>
-        {routes.map((route, index) => (
-          <Route key={index} path={route.path} element={route.element} />
-        ))}
+        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <Login />} />
+        <Route path="/forgot-password" element={currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />} />
+        
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/new-request" element={
+          <ProtectedRoute>
+            <NewRequest />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/requests/:id" element={
+          <ProtectedRoute>
+            <RequestDetail />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/requests" element={
+          <ProtectedRoute>
+            <AllRequests />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <Reports />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/contractor-dashboard" element={
+          <ProtectedRoute>
+            <ContractorDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/contractor-jobs/:id" element={
+          <ProtectedRoute>
+            <ContractorJobDetail />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/properties" element={
+          <ProtectedRoute>
+            <Properties />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/properties/:id" element={
+          <ProtectedRoute>
+            <PropertyDetail />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/" element={currentUser ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );

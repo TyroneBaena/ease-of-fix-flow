@@ -10,8 +10,12 @@ export const ContractorHeader = () => {
   const { signOut, currentUser } = useUserContext();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
@@ -19,7 +23,10 @@ export const ContractorHeader = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 
+              className="text-xl font-semibold text-gray-900 cursor-pointer"
+              onClick={() => navigate('/contractor-dashboard')}
+            >
               Contractor Portal
             </h1>
           </div>
