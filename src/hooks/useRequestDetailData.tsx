@@ -18,10 +18,25 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const lastRefreshTimeRef = useRef<number>(0);
   const refreshInProgressRef = useRef<boolean>(false);
   const requestIdRef = useRef<string | undefined>(requestId);
+  const refreshTimeoutRef = useRef<number | null>(null);
   
   // Update the ref when requestId changes
   useEffect(() => {
     requestIdRef.current = requestId;
+    
+    // Clear any pending refresh when request ID changes
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+    
+    return () => {
+      // Clean up any pending timeout on unmount
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
   }, [requestId]);
   
   // Use our specialized hooks to fetch and manage the data
@@ -43,7 +58,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     setIsRefreshInProgress(false);
   }, [requestId]);
   
-  // Implement a robust refresh function
+  // Implement a robust refresh function with improved throttling and state management
   const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Refresh requested");
     
@@ -59,12 +74,31 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       return Promise.resolve();
     }
     
-    // Implement time-based throttling (15 seconds between refreshes)
+    // Implement time-based throttling (30 seconds between refreshes)
     const now = Date.now();
-    const MIN_REFRESH_INTERVAL = 15000; // 15 seconds
+    const MIN_REFRESH_INTERVAL = 30000; // 30 seconds - increased to prevent rapid refreshes
     
     if (now - lastRefreshTimeRef.current < MIN_REFRESH_INTERVAL) {
-      console.log("useRequestDetailData - Too soon since last refresh, throttling");
+      console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTimeRef.current}ms), throttling`);
+      
+      // Only schedule one pending refresh at a time
+      if (!refreshTimeoutRef.current) {
+        const delay = MIN_REFRESH_INTERVAL - (now - lastRefreshTimeRef.current);
+        console.log(`useRequestDetailData - Scheduling delayed refresh in ${delay}ms`);
+        
+        refreshTimeoutRef.current = window.setTimeout(() => {
+          console.log("useRequestDetailData - Executing delayed refresh");
+          refreshTimeoutRef.current = null; // Clear the ref
+          
+          // Call refresh again now that enough time has passed
+          if (requestIdRef.current) {
+            refreshData();
+          }
+        }, delay) as unknown as number;
+      } else {
+        console.log("useRequestDetailData - A delayed refresh is already scheduled, skipping");
+      }
+      
       return Promise.resolve();
     }
     
@@ -97,14 +131,14 @@ export const useRequestDetailData = (requestId: string | undefined) => {
                 refreshInProgressRef.current = false;
                 setIsRefreshInProgress(false);
                 resolve();
-              }, 1000);
+              }, 2000); // Increased to ensure all updates are processed
             } else {
               console.log("useRequestDetailData - Component unmounted during refresh");
               refreshInProgressRef.current = false;
               setIsRefreshInProgress(false);
               resolve();
             }
-          }, 500);
+          }, 1000); // Increased delay to prevent race conditions
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
 import {
@@ -33,13 +33,27 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const [assignmentComplete, setAssignmentComplete] = useState(false);
   const isReassignment = isAssigned && currentContractorId;
   
-  // Enhanced logging
+  // Reset states when request ID changes
+  useEffect(() => {
+    console.log("ContractorAssignment - Request ID changed, resetting states");
+    setIsAssigning(false);
+    setAssignmentComplete(false);
+    
+    // Set the currently assigned contractor as selected if we're in reassignment mode
+    if (isReassignment && currentContractorId) {
+      console.log("ContractorAssignment - Setting selected contractor to current:", currentContractorId);
+      setSelectedContractor(currentContractorId);
+    }
+    // Otherwise set the first contractor as selected if available
+    else if (contractors.length > 0 && !selectedContractor) {
+      console.log("ContractorAssignment - Setting selected contractor to:", contractors[0].id);
+      setSelectedContractor(contractors[0].id);
+    }
+  }, [requestId]);
+  
+  // Load contractors and set initial selection
   useEffect(() => {
     console.log("ContractorAssignment - Component mounted or updated");
-    console.log("ContractorAssignment - Props:", { requestId, isAssigned, currentContractorId });
-    console.log("ContractorAssignment - Available contractors:", contractors);
-    console.log("ContractorAssignment - Loading state:", loading);
-    console.log("ContractorAssignment - Error state:", error);
     
     // Force load contractors when component mounts
     if (contractors.length === 0 && !loading) {
@@ -57,16 +71,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       console.log("ContractorAssignment - Setting selected contractor to:", contractors[0].id);
       setSelectedContractor(contractors[0].id);
     }
-  }, [contractors, requestId, isAssigned, loading, error, loadContractors, selectedContractor, currentContractorId, isReassignment]);
+  }, [contractors, isAssigned, loading, loadContractors, selectedContractor, currentContractorId, isReassignment]);
 
-  // Reset states when request ID changes
-  useEffect(() => {
-    console.log("ContractorAssignment - Request ID changed, resetting states");
-    setIsAssigning(false);
-    setAssignmentComplete(false);
-  }, [requestId]);
-
-  const handleAssignment = async () => {
+  // Memoized assignment handler to prevent recreation on every render
+  const handleAssignment = useCallback(async () => {
     if (!selectedContractor) {
       toast.error("Please select a contractor first");
       return;
@@ -97,13 +105,14 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       setAssignmentComplete(true);
       setIsAssigning(false);
       
-      // Call the callback after a delay to prevent UI issues
+      // Only trigger parent refresh once with significant delay
       if (onContractorAssigned) {
-        console.log("ContractorAssignment - Delaying onContractorAssigned callback call");
+        // Use a longer delay to ensure DB operations complete fully
+        console.log("ContractorAssignment - Will trigger parent refresh after delay");
         setTimeout(() => {
-          console.log("ContractorAssignment - Calling onContractorAssigned callback once");
+          console.log("ContractorAssignment - Now calling parent refresh callback");
           onContractorAssigned();
-        }, 2000);
+        }, 3000);
       }
       
     } catch (error) {
@@ -112,7 +121,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       setIsAssigning(false);
       setAssignmentComplete(false);
     }
-  };
+  }, [selectedContractor, isAssigning, assignmentComplete, isReassignment, changeAssignment, requestId, assignContractor, onContractorAssigned]);
 
   // Display even if assigned when in reassignment mode
   if (isAssigned && !isReassignment) {

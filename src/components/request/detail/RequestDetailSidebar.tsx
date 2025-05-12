@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
 import { RequestActions } from '@/components/request/RequestActions';
@@ -22,14 +22,13 @@ export const RequestDetailSidebar = ({
   onOpenQuoteDialog,
   onRefreshData
 }: RequestDetailSidebarProps) => {
-  // Handler for contractor assignment that prevents rapid successive refreshes
-  const handleContractorAssigned = () => {
+  // Memoized handler for contractor assignment to prevent recreation on every render
+  const handleContractorAssigned = useCallback(() => {
     console.log("RequestDetailSidebar - Contractor assigned/changed, triggering refresh");
     if (onRefreshData) {
-      // Add a slight delay before refreshing to allow the database to update
-      setTimeout(onRefreshData, 1000);
+      onRefreshData();
     }
-  };
+  }, [onRefreshData]);
 
   return (
     <div className="space-y-6">
