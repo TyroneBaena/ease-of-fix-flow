@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,17 +60,16 @@ const Login = () => {
       // Check if this is a first-time login (using temporary password)
       const params = new URLSearchParams(location.search);
       if (params.get('setupPassword') === 'true') {
-        toast.success("Signed in successfully. Now you can set up your permanent password.");
+        // Note: toast is already shown in signInWithEmailPassword
         navigate(`/setup-password?email=${encodeURIComponent(email)}`);
         return;
       }
       
-      // Make sure we don't show this success message as signInWithEmailPassword already does
+      // Navigate to dashboard - toast is already shown in signInWithEmailPassword
       navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Login error:', error);
-      // Explicit toast message for login failures
-      toast.error("Login failed. Please check your credentials and try again.");
+      // Don't add another toast here since signInWithEmailPassword already shows one
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +100,7 @@ const Login = () => {
             }
           });
           console.log("Updated user role to admin");
+          // Don't show toast here as signIn already shows one
           navigate('/dashboard', { replace: true });
           return;
         }
@@ -131,11 +132,11 @@ const Login = () => {
       
       // Now sign in with the newly created account
       await signIn(demoEmail, demoPassword);
-      toast.success("Signed in as demo admin");
+      // Don't show a toast here as signIn will show one
       navigate('/dashboard');
     } catch (error) {
       console.error('Demo login error:', error);
-      toast.error("Failed to login with demo account");
+      // Don't add a duplicate toast here
     } finally {
       setIsLoading(false);
     }
