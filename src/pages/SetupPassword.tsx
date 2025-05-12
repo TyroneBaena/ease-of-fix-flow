@@ -16,6 +16,7 @@ const SetupPassword = () => {
   const [email, setEmail] = useState('');
   const [hasSession, setHasSession] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -27,13 +28,17 @@ const SetupPassword = () => {
       setEmail(emailParam);
     }
     
+    // Check for reset token in URL hash
+    const hasResetToken = location.hash && location.hash.includes('access_token');
+    setIsResetMode(hasResetToken);
+    
     // Check if there's an active session
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       setHasSession(!!data.session);
       
       // If there's a session but navigated here via password reset
-      if (data.session && location.hash && location.hash.includes('access_token')) {
+      if (data.session && hasResetToken) {
         console.log("Found session with reset token, ready to set new password");
       }
     };
@@ -61,9 +66,33 @@ const SetupPassword = () => {
     
     try {
       setIsLoading(true);
-      console.log(`Setting up new password for email: ${email}`);
+      console.log(`Setting up new password for email: ${email}, isResetMode: ${isResetMode}`);
       
-      // Update the user's password
+      if (isResetMode && !hasSession) {
+        // For password reset flow when no session exists
+        // We need to extract the access token from URL hash
+        const hashParams = new URLSearchParams(location.hash.substring(1)); // Remove the leading '#'
+        const accessToken = hashParams.get('access_token');
+        
+        if (!accessToken) {
+          toast.error("Password reset link is invalid or has expired");
+          return;
+        }
+        
+        // Set the session with the access token
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: hashParams.get('refresh_token') || '',
+        });
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          toast.error(`Failed to authenticate: ${sessionError.message}`);
+          return;
+        }
+      }
+      
+      // Now update the password
       const { error } = await supabase.auth.updateUser({
         password: password
       });
