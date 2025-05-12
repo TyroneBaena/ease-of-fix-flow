@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
@@ -16,61 +16,84 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [refreshTriggered, setRefreshTriggered] = useState(false);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Pass forceRefresh as a dependency to useRequestDetailData to trigger refetches
-  const { request, loading, quotes, isContractor, refreshData, isRefreshing } = useRequestDetailData(id);
+  // Refs to control refresh behavior
+  const lastRefreshTime = useRef<number>(0);
+  const refreshPending = useRef<boolean>(false);
+  const isInitialRender = useRef<boolean>(true);
   
-  // Function to refresh the request data with throttling to prevent loops
-  const handleRefreshData = useCallback(() => {
-    console.log("RequestDetail - Controlled refresh requested");
+  // Configure data fetching with smart refresh control
+  const { 
+    request, 
+    loading, 
+    quotes, 
+    isContractor, 
+    refreshData, 
+    isRefreshing 
+  } = useRequestDetailData(id);
+  
+  // Reset component state on ID change
+  useEffect(() => {
+    if (id) {
+      console.log("RequestDetail - Request ID changed to:", id);
+      lastRefreshTime.current = 0;
+      refreshPending.current = false;
+      
+      // If not the initial render, reset the component state
+      if (!isInitialRender.current) {
+        console.log("RequestDetail - Not initial render, resetting state");
+      } else {
+        isInitialRender.current = false;
+      }
+    }
+  }, [id]);
+  
+  // Smart refresh handler with debouncing and safety checks
+  const handleRefreshData = () => {
+    console.log("RequestDetail - Refresh requested");
     
-    // Skip if a refresh is already pending
-    if (refreshTriggered) {
-      console.log("RequestDetail - Refresh already triggered, skipping");
+    // Skip if already refreshing
+    if (isRefreshing || refreshPending.current) {
+      console.log("RequestDetail - Already refreshing or pending, skipping refresh request");
       return;
     }
     
-    // Set flag that refresh was triggered to prevent multiple calls
-    setRefreshTriggered(true);
+    // Implement time-based throttling
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime.current;
+    const MIN_REFRESH_INTERVAL = 10000; // 10 seconds
     
-    // Clear any existing timeout
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
+    if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+      console.log(`RequestDetail - Too soon since last refresh (${timeSinceLastRefresh}ms), debouncing`);
+      
+      if (!refreshPending.current) {
+        console.log("RequestDetail - Setting refresh pending");
+        refreshPending.current = true;
+        
+        // Schedule a refresh after the minimum interval has passed
+        const delay = MIN_REFRESH_INTERVAL - timeSinceLastRefresh;
+        console.log(`RequestDetail - Scheduling delayed refresh in ${delay}ms`);
+        
+        setTimeout(() => {
+          console.log("RequestDetail - Executing delayed refresh");
+          if (refreshData) {
+            lastRefreshTime.current = Date.now();
+            refreshPending.current = false;
+            refreshData();
+          }
+        }, delay);
+      }
+      
+      return;
     }
     
-    // Delay the actual refresh to prevent rapid successive calls
-    refreshTimeoutRef.current = setTimeout(() => {
-      console.log("RequestDetail - Executing delayed refresh");
-      
-      if (refreshData) {
-        refreshData().finally(() => {
-          // Reset the flag after refresh completes
-          console.log("RequestDetail - Refresh complete, resetting flag");
-          
-          // Add a delay before allowing another refresh
-          setTimeout(() => {
-            setRefreshTriggered(false);
-          }, 5000);
-        });
-      } else {
-        setRefreshTriggered(false);
-      }
-      
-      refreshTimeoutRef.current = null;
-    }, 1000) as unknown as NodeJS.Timeout;
-    
-  }, [refreshData, refreshTriggered]);
-  
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, []);
+    // Execute immediate refresh if enough time has passed
+    console.log("RequestDetail - Executing immediate refresh");
+    if (refreshData) {
+      lastRefreshTime.current = now;
+      refreshData();
+    }
+  };
   
   const handleNavigateBack = () => navigate('/requests');
 

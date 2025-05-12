@@ -22,6 +22,15 @@ export const RequestDetailSidebar = ({
   onOpenQuoteDialog,
   onRefreshData
 }: RequestDetailSidebarProps) => {
+  // Handler for contractor assignment that prevents rapid successive refreshes
+  const handleContractorAssigned = () => {
+    console.log("RequestDetailSidebar - Contractor assigned/changed, triggering refresh");
+    if (onRefreshData) {
+      // Add a slight delay before refreshing to allow the database to update
+      setTimeout(onRefreshData, 1000);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ContractorAssignment 
@@ -29,7 +38,7 @@ export const RequestDetailSidebar = ({
         isAssigned={!!request.contractorId}
         currentContractorId={request.contractorId}
         onOpenQuoteDialog={onOpenQuoteDialog}
-        onContractorAssigned={onRefreshData}
+        onContractorAssigned={handleContractorAssigned}
       />
       
       {quotes && quotes.length > 0 && (

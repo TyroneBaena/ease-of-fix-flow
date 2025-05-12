@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
@@ -60,6 +59,13 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     }
   }, [contractors, requestId, isAssigned, loading, error, loadContractors, selectedContractor, currentContractorId, isReassignment]);
 
+  // Reset states when request ID changes
+  useEffect(() => {
+    console.log("ContractorAssignment - Request ID changed, resetting states");
+    setIsAssigning(false);
+    setAssignmentComplete(false);
+  }, [requestId]);
+
   const handleAssignment = async () => {
     if (!selectedContractor) {
       toast.error("Please select a contractor first");
@@ -89,20 +95,16 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       
       // Mark the assignment as complete to prevent multiple calls
       setAssignmentComplete(true);
+      setIsAssigning(false);
       
-      // Call the callback to notify parent component with a delay and only once
+      // Call the callback after a delay to prevent UI issues
       if (onContractorAssigned) {
-        console.log("ContractorAssignment - Calling onContractorAssigned callback once");
-        // Use setTimeout to allow the UI to update before calling the callback
+        console.log("ContractorAssignment - Delaying onContractorAssigned callback call");
         setTimeout(() => {
+          console.log("ContractorAssignment - Calling onContractorAssigned callback once");
           onContractorAssigned();
-        }, 500);
+        }, 2000);
       }
-      
-      // Reset the assigning flag after a delay
-      setTimeout(() => {
-        setIsAssigning(false);
-      }, 1000);
       
     } catch (error) {
       console.error("Error assigning/reassigning contractor:", error);
@@ -111,11 +113,6 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       setAssignmentComplete(false);
     }
   };
-
-  // Reset assignment complete state if the request ID changes
-  useEffect(() => {
-    setAssignmentComplete(false);
-  }, [requestId]);
 
   // Display even if assigned when in reassignment mode
   if (isAssigned && !isReassignment) {
@@ -135,7 +132,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <Select
           value={selectedContractor}
           onValueChange={setSelectedContractor}
-          disabled={loading || contractors.length === 0 || isAssigning}
+          disabled={loading || contractors.length === 0 || isAssigning || assignmentComplete}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select a contractor" />
@@ -169,15 +166,14 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           >
             {isAssigning ? 
               (isReassignment ? "Reassigning..." : "Assigning...") : 
-              (loading ? "Loading..." : 
-                (assignmentComplete ? 
-                  (isReassignment ? "Contractor Changed" : "Contractor Assigned") :
-                  (isReassignment ? 
-                    <span className="flex items-center"><RefreshCw className="mr-2 h-4 w-4" />Change Contractor</span> : 
-                    "Assign Contractor")))}
+              (assignmentComplete ? 
+                (isReassignment ? "Contractor Changed" : "Contractor Assigned") :
+                (isReassignment ? 
+                  <span className="flex items-center"><RefreshCw className="mr-2 h-4 w-4" />Change Contractor</span> : 
+                  "Assign Contractor"))}
           </Button>
           
-          {!isReassignment && (
+          {!isReassignment && !assignmentComplete && (
             <Button 
               variant="outline"
               onClick={onOpenQuoteDialog}

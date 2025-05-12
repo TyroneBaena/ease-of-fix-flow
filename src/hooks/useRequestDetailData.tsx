@@ -9,15 +9,20 @@ import { useRequestCommentsSubscription } from './request-detail/useRequestComme
 /**
  * Main hook for managing request detail data, combining several smaller hooks
  */
-export const useRequestDetailData = (requestId: string | undefined, forceRefresh: number = 0) => {
+export const useRequestDetailData = (requestId: string | undefined) => {
   const { currentUser } = useUserContext();
-  const [refreshCounter, setRefreshCounter] = useState(forceRefresh);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshInProgress, setIsRefreshInProgress] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const [isRefreshAllowed, setIsRefreshAllowed] = useState(true);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshOperationCompleteRef = useRef(false);
+  
+  // Use refs to track refresh state to avoid closure issues
+  const lastRefreshTimeRef = useRef<number>(0);
+  const refreshInProgressRef = useRef<boolean>(false);
+  const requestIdRef = useRef<string | undefined>(requestId);
+  
+  // Update the ref when requestId changes
+  useEffect(() => {
+    requestIdRef.current = requestId;
+  }, [requestId]);
   
   // Use our specialized hooks to fetch and manage the data
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
@@ -25,121 +30,90 @@ export const useRequestDetailData = (requestId: string | undefined, forceRefresh
   const isContractor = useContractorStatus(currentUser?.id);
   
   // Setup real-time comments subscription
-  const handleNewComment = useCallback(() => {
-    console.log("New comment received, refreshing data");
-    // We don't need to refresh the entire request for comments as they are loaded separately
-  }, []);
-  useRequestCommentsSubscription(requestId, handleNewComment);
+  useRequestCommentsSubscription(requestId, () => {
+    console.log("New comment received, no refresh needed as comments are loaded separately");
+  });
   
-  // Clean up timeouts on unmount
+  // Reset refresh counter when the requestId changes to force fresh data load
   useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      if (refreshLockTimeoutRef.current) {
-        clearTimeout(refreshLockTimeoutRef.current);
-      }
-    };
-  }, []);
+    console.log("useRequestDetailData - Request ID changed, resetting refresh counter");
+    setRefreshCounter(0);
+    lastRefreshTimeRef.current = 0;
+    refreshInProgressRef.current = false;
+    setIsRefreshInProgress(false);
+  }, [requestId]);
   
-  // Function to temporarily block refreshes to prevent multiple clicks or infinite loops
-  const lockRefreshes = useCallback((duration: number = 15000) => {
-    console.log("useRequestDetailData - Locking refreshes for", duration, "ms");
-    setIsRefreshAllowed(false);
-    
-    if (refreshLockTimeoutRef.current) {
-      clearTimeout(refreshLockTimeoutRef.current);
-    }
-    
-    refreshLockTimeoutRef.current = setTimeout(() => {
-      console.log("useRequestDetailData - Refreshes unlocked");
-      setIsRefreshAllowed(true);
-      refreshLockTimeoutRef.current = null;
-    }, duration) as unknown as NodeJS.Timeout;
-  }, []);
-  
-  // Combine refresh functions from child hooks with strong protection against loops
+  // Implement a robust refresh function
   const refreshData = useCallback(() => {
-    console.log("useRequestDetailData - Manual refresh requested");
+    console.log("useRequestDetailData - Refresh requested");
     
-    // First protection: Check if refreshes are currently locked
-    if (!isRefreshAllowed) {
-      console.log("useRequestDetailData - Refreshes are locked, skipping");
+    // Skip if request ID is missing
+    if (!requestIdRef.current) {
+      console.log("useRequestDetailData - No request ID, skipping refresh");
       return Promise.resolve();
     }
     
-    // Second protection: Check if a refresh is already in progress
-    if (isRefreshInProgress) {
+    // Use ref to check if refresh is in progress to avoid race conditions
+    if (refreshInProgressRef.current) {
       console.log("useRequestDetailData - Refresh already in progress, skipping");
       return Promise.resolve();
     }
     
-    // Third protection: Add time-based debouncing - prevent refreshes within 12 seconds
-    const currentTime = Date.now();
-    if (currentTime - lastRefreshTime < 12000) {
-      console.log("useRequestDetailData - Too soon since last refresh, debouncing");
+    // Implement time-based throttling (15 seconds between refreshes)
+    const now = Date.now();
+    const MIN_REFRESH_INTERVAL = 15000; // 15 seconds
+    
+    if (now - lastRefreshTimeRef.current < MIN_REFRESH_INTERVAL) {
+      console.log("useRequestDetailData - Too soon since last refresh, throttling");
       return Promise.resolve();
     }
     
-    // Clear any existing timeout to prevent multiple timeouts
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-      refreshTimeoutRef.current = null;
-    }
-    
-    // Immediately lock refreshes to prevent rapid repeat actions
-    lockRefreshes(15000);
-    
-    // Set state variables to track this refresh cycle
+    // Mark refresh as in progress
+    refreshInProgressRef.current = true;
     setIsRefreshInProgress(true);
-    setLastRefreshTime(currentTime);
-    refreshOperationCompleteRef.current = false;
+    lastRefreshTimeRef.current = now;
     
-    // Execute the actual refresh operation
-    console.log("useRequestDetailData - Starting controlled refresh operation");
+    console.log("useRequestDetailData - Starting refresh operation");
+    
+    // Execute refresh
     return new Promise<void>((resolve) => {
+      // First refresh request data from the database
       const refreshPromise = refreshRequestData ? 
         refreshRequestData() : 
         Promise.resolve();
       
       refreshPromise
         .then(() => {
-          if (refreshOperationCompleteRef.current) {
-            console.log("useRequestDetailData - Refresh operation already completed, skipping");
-            setIsRefreshInProgress(false);
-            resolve();
-            return;
-          }
+          console.log("useRequestDetailData - Base refresh complete, updating counter");
           
-          // Mark operation as complete to prevent duplicate processing
-          refreshOperationCompleteRef.current = true;
-          
-          // After base operation completes, increment counter with delay
+          // Increment counter to trigger other hooks to refresh
           setTimeout(() => {
-            console.log("useRequestDetailData - Incrementing refresh counter");
-            setRefreshCounter(prev => prev + 1);
-            
-            // Allow the system to fully process this change before resetting flags
-            refreshTimeoutRef.current = setTimeout(() => {
-              console.log("useRequestDetailData - Reset isRefreshInProgress flag");
+            if (requestIdRef.current) { // Check if component is still mounted
+              setRefreshCounter(prev => prev + 1);
+              
+              // Reset refresh state after allowing time for updates
+              setTimeout(() => {
+                console.log("useRequestDetailData - Refresh cycle complete");
+                refreshInProgressRef.current = false;
+                setIsRefreshInProgress(false);
+                resolve();
+              }, 1000);
+            } else {
+              console.log("useRequestDetailData - Component unmounted during refresh");
+              refreshInProgressRef.current = false;
               setIsRefreshInProgress(false);
               resolve();
-            }, 8000) as unknown as NodeJS.Timeout;
-          }, 2000);
+            }
+          }, 500);
         })
         .catch(error => {
-          console.error("Error during refresh:", error);
+          console.error("useRequestDetailData - Error during refresh:", error);
+          refreshInProgressRef.current = false;
           setIsRefreshInProgress(false);
-          resolve(); 
+          resolve();
         });
     });
-  }, [refreshRequestData, isRefreshInProgress, lastRefreshTime, isRefreshAllowed, lockRefreshes]);
-
-  // Reset refresh counter when the requestId changes
-  useEffect(() => {
-    setRefreshCounter(forceRefresh);
-  }, [requestId, forceRefresh]);
+  }, [refreshRequestData]);
 
   return {
     request,
