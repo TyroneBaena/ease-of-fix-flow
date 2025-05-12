@@ -9,6 +9,7 @@ import { useComments } from '@/hooks/useComments';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { useRequestCommentsSubscription } from '@/hooks/request-detail/useRequestCommentsSubscription';
+import { toast } from '@/lib/toast';
 
 interface CommentSectionProps {
   requestId: string;

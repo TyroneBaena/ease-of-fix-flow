@@ -5,6 +5,7 @@ import { useMaintenanceRequestData } from './request-detail/useMaintenanceReques
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
 import { useContractorStatus } from './request-detail/useContractorStatus';
 import { useRequestCommentsSubscription } from './request-detail/useRequestCommentsSubscription';
+import { toast } from '@/lib/toast';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
@@ -81,6 +82,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);
+          toast.error("Failed to refresh data");
           setIsRefreshing(false);
         });
     } else {

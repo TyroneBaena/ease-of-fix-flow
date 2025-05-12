@@ -11,6 +11,7 @@ import { RequestDetailHeader } from '@/components/request/detail/RequestDetailHe
 import { RequestDetailSidebar } from '@/components/request/detail/RequestDetailSidebar';
 import { RequestDetailLoading } from '@/components/request/detail/RequestDetailLoading';
 import { RequestDetailNotFound } from '@/components/request/detail/RequestDetailNotFound';
+import { Toaster } from "sonner";
 
 const RequestDetail = () => {
   const { id } = useParams();
@@ -69,6 +70,7 @@ const RequestDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+      <Toaster position="top-right" richColors />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <RequestDetailHeader onBack={handleNavigateBack} />
