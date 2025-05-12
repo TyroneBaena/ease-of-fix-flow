@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 import { convertToAppUser } from './auth/userConverter';
 import { signInWithEmailPassword, signOutUser, updateUserRole as updateRole } from './auth/authOperations';
+import { toast } from '@/lib/toast';
 
 export const useSupabaseAuth = () => {
   const [loading, setLoading] = useState(true);
@@ -93,6 +94,10 @@ export const useSupabaseAuth = () => {
     try {
       const result = await signInWithEmailPassword(email, password);
       return result;
+    } catch (error: any) {
+      // The toast is already shown in signInWithEmailPassword, so we don't need to show it again here
+      console.error('Error in useSupabaseAuth.signIn:', error);
+      throw error; // Re-throw the error so it can be caught by the component
     } finally {
       setLoading(false);
     }

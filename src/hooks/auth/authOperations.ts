@@ -1,7 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/user';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { convertToAppUser } from './userConverter';
 
 /**
@@ -31,9 +30,9 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     toast.success("Signed in successfully");
     
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error signing in:", error);
-    toast.error("Failed to sign in: " + error.message);
+    toast.error("Failed to sign in: " + (error.message || "Unknown error"));
     throw error;
   }
 };
