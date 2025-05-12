@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HardHat, Quote, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 interface ContractorAssignmentProps {
   requestId: string;
@@ -93,12 +94,12 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         console.log("ContractorAssignment - Reassigning contractor:", selectedContractor);
         await changeAssignment(requestId, selectedContractor);
         console.log("ContractorAssignment - Reassignment successful");
-        toast.success("Contractor reassigned successfully");
+        // Toast is triggered from the context function
       } else {
         console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
         await assignContractor(requestId, selectedContractor);
         console.log("ContractorAssignment - Assignment successful");
-        toast.success("Contractor assigned successfully");
+        // Toast is triggered from the context function
       }
       
       // Mark the assignment as complete to prevent multiple calls
@@ -112,12 +113,12 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         setTimeout(() => {
           console.log("ContractorAssignment - Now calling parent refresh callback");
           onContractorAssigned();
-        }, 3000);
+        }, 1500);
       }
       
     } catch (error) {
       console.error("Error assigning/reassigning contractor:", error);
-      toast.error(`Failed to ${isReassignment ? 'reassign' : 'assign'} contractor`);
+      // Toast for error is already shown in the context function
       setIsAssigning(false);
       setAssignmentComplete(false);
     }

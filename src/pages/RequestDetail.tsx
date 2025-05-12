@@ -17,7 +17,7 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Configure data fetching
   const { 
@@ -29,31 +29,17 @@ const RequestDetail = () => {
     isRefreshing 
   } = useRequestDetailData(id);
   
-  // Reset state on ID change
-  useEffect(() => {
-    setLastRefreshTime(0);
-  }, [id]);
-  
-  // Simple throttled refresh handler
+  // Simple throttled refresh handler with debounce
   const handleRefreshData = () => {
     console.log("RequestDetail - Refresh requested");
     
-    // Skip if already refreshing
+    // Skip if already refreshing to prevent duplicate refreshes
     if (isRefreshing) {
       console.log("RequestDetail - Already refreshing, skipping refresh request");
       return;
     }
     
-    // Basic throttling to prevent excessive refreshes
-    const now = Date.now();
-    const MIN_REFRESH_INTERVAL = 2000; // 2 seconds
-    
-    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
-      console.log("RequestDetail - Too soon since last refresh, skipping");
-      return;
-    }
-    
-    setLastRefreshTime(now);
+    // Important: Only refresh once per user action
     refreshData();
   };
   

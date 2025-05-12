@@ -50,9 +50,9 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       return;
     }
     
-    // Implement time-based throttling (5 seconds between refreshes)
+    // Implement time-based throttling (3 seconds between refreshes)
     const now = Date.now();
-    const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
+    const MIN_REFRESH_INTERVAL = 3000; // 3 seconds
     
     if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
       console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTime}ms), throttling`);
@@ -74,7 +74,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
           // Increment counter to trigger other hooks to refresh
           setRefreshCounter(prev => prev + 1);
           
-          // Reset refresh state after a delay
+          // Reset refresh state after a short delay
           setTimeout(() => {
             console.log("useRequestDetailData - Refresh cycle complete");
             setIsRefreshing(false);
@@ -82,7 +82,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);
-          toast.error("Failed to refresh data");
+          // Don't show toast here as it may cause duplicate notifications
           setIsRefreshing(false);
         });
     } else {
