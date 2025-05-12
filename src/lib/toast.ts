@@ -1,7 +1,6 @@
 
 // Export a simplified toast interface based on the sonner library
 import { toast as sonnerToast } from "sonner";
-import { useToast } from "@/hooks/use-toast";
 
 // Default sonner-based implementation
 const toast = {
@@ -13,4 +12,3 @@ const toast = {
 
 // Export the toast utility
 export { toast };
-

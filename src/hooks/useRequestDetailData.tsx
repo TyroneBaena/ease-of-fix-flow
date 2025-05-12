@@ -40,13 +40,13 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     // Skip if request ID is missing
     if (!requestId) {
       console.log("useRequestDetailData - No request ID, skipping refresh");
-      return Promise.resolve();
+      return;
     }
     
     // Skip if already refreshing
     if (isRefreshing) {
       console.log("useRequestDetailData - Already refreshing, skipping");
-      return Promise.resolve();
+      return;
     }
     
     // Implement time-based throttling (5 seconds between refreshes)
@@ -55,7 +55,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     
     if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
       console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTime}ms), throttling`);
-      return Promise.resolve();
+      return;
     }
     
     // Mark refresh as in progress and update last refresh time
@@ -64,14 +64,9 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     
     console.log("useRequestDetailData - Starting refresh operation");
     
-    // Execute refresh
-    return new Promise<void>((resolve) => {
-      // First refresh request data from the database
-      const refreshPromise = refreshRequestData ? 
-        refreshRequestData() : 
-        Promise.resolve();
-      
-      refreshPromise
+    // First refresh request data from the database
+    if (refreshRequestData) {
+      refreshRequestData()
         .then(() => {
           console.log("useRequestDetailData - Base refresh complete, updating counter");
           
@@ -82,15 +77,21 @@ export const useRequestDetailData = (requestId: string | undefined) => {
           setTimeout(() => {
             console.log("useRequestDetailData - Refresh cycle complete");
             setIsRefreshing(false);
-            resolve();
           }, 500);
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);
           setIsRefreshing(false);
-          resolve();
         });
-    });
+    } else {
+      // Just increment counter to trigger hooks to refresh
+      setRefreshCounter(prev => prev + 1);
+      
+      // Reset refresh state after a delay
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
   }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);
 
   return {
