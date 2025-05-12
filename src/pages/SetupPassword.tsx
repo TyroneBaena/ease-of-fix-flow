@@ -15,6 +15,7 @@ const SetupPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [hasSession, setHasSession] = useState(false);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,8 +79,12 @@ const SetupPassword = () => {
         throw error;
       }
       
-      toast.success("Password set successfully! Redirecting to dashboard...");
-      setTimeout(() => navigate('/dashboard'), 2000);
+      // Show success message and set success state
+      toast.success("Password set successfully! You will be redirected to dashboard shortly.");
+      setSuccess(true);
+      
+      // Redirect after a short delay to allow the user to see the success message
+      setTimeout(() => navigate('/dashboard'), 3000);
     } catch (error) {
       console.error('Password setup error:', error);
       toast.error(`Failed to set password: ${error.message}`);
@@ -103,12 +108,21 @@ const SetupPassword = () => {
           </p>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <AlertDescription>
-              Please create a strong password that you'll remember.
-            </AlertDescription>
-          </Alert>
+          {success ? (
+            <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                Your password has been set successfully! Redirecting to dashboard...
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                Please create a strong password that you'll remember.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -148,7 +162,7 @@ const SetupPassword = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || success}>
               {isLoading ? "Setting Up..." : "Set Password & Continue"}
             </Button>
             
