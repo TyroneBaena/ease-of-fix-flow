@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/user';
 import { toast } from '@/lib/toast';
@@ -18,6 +17,7 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     
     if (error) {
       console.error("Error signing in:", error);
+      // Show error toast - we need to keep this one
       toast.error("Failed to sign in: " + error.message);
       throw error;
     }
@@ -27,13 +27,13 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     // For better debugging, log the user's role
     console.log("User role:", data.user?.user_metadata?.role);
     
-    // Show toast notification
+    // Show success toast - keep only this one toast for success
     toast.success("Signed in successfully");
     
     return data;
   } catch (error: any) {
     console.error("Error signing in:", error);
-    toast.error("Failed to sign in: " + (error.message || "Unknown error"));
+    // Don't show duplicate error toast here, it's already shown above
     throw error;
   }
 };
