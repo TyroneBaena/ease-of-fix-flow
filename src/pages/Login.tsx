@@ -11,6 +11,7 @@ import { UserRole } from '@/types/user';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Toaster } from "sonner";
+import { tenantService } from '@/services/user/tenantService';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -57,6 +58,32 @@ const Login = () => {
       console.log(`Attempting to sign in with email: ${email}`);
       const result = await signIn(email, password);
       
+      // Check if the user has a tenant schema
+      if (result?.user) {
+        const hasSchema = await tenantService.verifyUserSchema(result.user.id);
+        
+        if (!hasSchema) {
+          console.log("No schema found for user, attempting to create one");
+          try {
+            // Create schema for user if it doesn't exist (could happen if trigger failed)
+            const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
+              new_user_id: result.user.id
+            });
+            
+            if (rpcError) {
+              console.error("Error creating schema during login:", rpcError);
+              toast.error("There was an issue setting up your account. Please contact support.");
+            } else {
+              console.log("Schema created successfully during login");
+            }
+          } catch (schemaError) {
+            console.error("Exception creating schema during login:", schemaError);
+          }
+        } else {
+          console.log("User has existing schema");
+        }
+      }
+      
       // Check if this is a first-time login (using temporary password)
       const params = new URLSearchParams(location.search);
       if (params.get('setupPassword') === 'true') {
@@ -100,6 +127,23 @@ const Login = () => {
             }
           });
           console.log("Updated user role to admin");
+          
+          // Check or create tenant schema
+          const hasSchema = await tenantService.verifyUserSchema(userData.user.id);
+          if (!hasSchema) {
+            console.log("Creating schema for demo user");
+            // Create schema for demo user
+            const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
+              new_user_id: userData.user.id
+            });
+            
+            if (rpcError) {
+              console.error("Error creating schema for demo user:", rpcError);
+            } else {
+              console.log("Schema created for demo user");
+            }
+          }
+          
           // Don't show toast here as signIn already shows one
           navigate('/dashboard', { replace: true });
           return;
@@ -128,6 +172,29 @@ const Login = () => {
         console.error("Error creating demo user:", signUpError);
         toast.error("Failed to create demo account: " + signUpError.message);
         return;
+      }
+      
+      // Ensure schema is created for the demo user
+      if (data.user) {
+        // The trigger should handle schema creation, but let's check after a short delay
+        setTimeout(async () => {
+          const hasSchema = await tenantService.verifyUserSchema(data.user!.id);
+          if (!hasSchema) {
+            console.log("Creating schema for new demo user");
+            // Create schema manually
+            try {
+              const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
+                new_user_id: data.user!.id
+              });
+              
+              if (rpcError) {
+                console.error("Error creating schema for new demo user:", rpcError);
+              }
+            } catch (err) {
+              console.error("Exception creating schema for demo user:", err);
+            }
+          }
+        }, 1000);
       }
       
       // Now sign in with the newly created account

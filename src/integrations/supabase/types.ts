@@ -332,11 +332,40 @@ export type Database = {
           },
         ]
       }
+      tenant_schemas: {
+        Row: {
+          created_at: string | null
+          id: string
+          schema_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          schema_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          schema_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_tenant_schema: {
+        Args: { new_user_id: string; schema_prefix?: string }
+        Returns: string
+      }
+      get_user_schema: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -344,6 +373,10 @@ export type Database = {
       meta_to_array: {
         Args: { meta: Json }
         Returns: string[]
+      }
+      use_tenant_schema: {
+        Args: { operation: string }
+        Returns: undefined
       }
     }
     Enums: {

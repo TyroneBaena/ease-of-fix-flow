@@ -1,251 +1,164 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.172.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface InviteContractorRequest {
-  email: string;
-  companyName: string;
-  contactName: string;
-  phone: string;
-  address: string | null;
-  specialties: string[];
-}
-
-serve(async (req: Request) => {
-  console.log("Invite contractor function called");
-  
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-  
   try {
-    const body = await req.json();
-    const { email, companyName, contactName, phone, address, specialties } = body as InviteContractorRequest;
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
-    if (!email || !companyName || !contactName || !phone) {
-      console.error("Missing required fields:", { email, companyName, contactName, phone });
-      return new Response(
-        JSON.stringify({ error: "Required fields are missing" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Create Supabase clients - one with service role for admin operations
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Get the JWT from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), { 
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
-    console.log(`Processing contractor invitation for ${email}`);
+    // Verify the JWT and get the user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
-    // Check if the contractor already exists by email
-    const { data: existingContractors, error: searchError } = await supabaseClient
-      .from('contractors')
-      .select('*')
-      .eq('email', email);
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { 
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Ensure user is admin
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
       
-    if (searchError) {
-      throw searchError;
+    if (profileError || profile?.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Admin access required' }), { 
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
-    if (existingContractors && existingContractors.length > 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: `A contractor with the email ${email} already exists` 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Parse request body
+    const { email, name, specialty } = await req.json();
+    
+    if (!email || !name || !specialty) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    
+    const normalizedEmail = email.toLowerCase().trim();
     
     // Generate a temporary password
-    const temporaryPassword = generateTemporaryPassword();
+    const tempPassword = Array(16)
+      .fill(0)
+      .map(() => Math.random().toString(36).charAt(2))
+      .join('');
     
-    // Create a new auth user with the contractor role
-    const { data: authData, error: createError } = await supabaseClient.auth.admin.createUser({
-      email,
-      password: temporaryPassword,
-      email_confirm: true, // Auto-confirm the email
+    // Create the user
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: normalizedEmail,
+      password: tempPassword,
+      email_confirm: true, // Auto-confirm email
       user_metadata: {
-        name: contactName,
+        name,
         role: 'contractor',
-        companyName,
+        specialty,
       }
     });
     
     if (createError) {
-      throw createError;
+      return new Response(JSON.stringify({ error: `Failed to create user: ${createError.message}` }), { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
-    const userId = authData.user.id;
-    
-    // Create a new contractor record
-    const { data: contractorData, error: contractorError } = await supabaseClient
-      .from('contractors')
-      .insert([
-        {
-          user_id: userId,
-          company_name: companyName,
-          contact_name: contactName,
-          email,
-          phone,
-          address,
-          specialties,
-        }
-      ])
-      .select();
+    // Verify schema was created via trigger
+    const { data: schemaCheck, error: schemaError } = await supabaseAdmin
+      .from('tenant_schemas')
+      .select('schema_name')
+      .eq('user_id', newUser.user.id)
+      .single();
       
-    if (contractorError) {
-      throw contractorError;
-    }
-    
-    // Send welcome email with temporary password
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const applicationUrl = Deno.env.get('APPLICATION_URL');
-    const ownerEmail = Deno.env.get('RESEND_OWNER_EMAIL') || 'tyronebaena@gmail.com';
-
-    console.log('Environment Checks:', {
-      RESEND_API_KEY: resendApiKey ? 'Present' : 'Missing',
-      APPLICATION_URL: applicationUrl ? 'Present' : 'Missing',
-      APPLICATION_URL_VALUE: applicationUrl,
-      RESEND_OWNER_EMAIL: ownerEmail
-    });
-    
-    // Ensure application URL doesn't have trailing slash
-    let cleanAppUrl = applicationUrl;
-    if (cleanAppUrl && cleanAppUrl.endsWith('/')) {
-      cleanAppUrl = cleanAppUrl.slice(0, -1);
-    }
-    
-    const loginUrl = cleanAppUrl ? `${cleanAppUrl}/login` : null;
-    
-    if (!resendApiKey) {
-      console.warn("RESEND_API_KEY is not set - skipping email notification");
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Contractor created but email notification skipped (no API key)",
-          contractorId: contractorData[0].id,
-          userId,
-          emailSent: false
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (!loginUrl) {
-      console.warn("APPLICATION_URL is not set - skipping email notification");
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Contractor created but email notification skipped (no application URL)",
-          contractorId: contractorData[0].id,
-          userId,
-          emailSent: false
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const resend = new Resend(resendApiKey);
-    
-    // Check if we're in test mode (can only send to owner email)
-    const emailRecipient = email === ownerEmail ? email : ownerEmail;
-    const isTestMode = email !== ownerEmail;
-    
-    if (isTestMode) {
-      console.log(`NOTE: In test mode, email is redirected to ${ownerEmail} instead of ${email}`);
-    }
-    
-    // Create email content
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #333;">Welcome to Property Manager</h1>
-        <p>Hello ${contactName},</p>
-        <p>You have been invited to join as a contractor for ${companyName}.</p>
-        <p>Here are your temporary credentials:</p>
-        <ul>
-          <li><strong>Email:</strong> ${email}</li>
-          <li><strong>Temporary Password:</strong> ${temporaryPassword}</li>
-        </ul>
-        <p>Please login using these credentials and change your password immediately.</p>
-        <a href="${loginUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; margin-top: 15px;">Login Now</a>
-        <p style="margin-top: 20px;">If you have any questions, please contact the administrator.</p>
-      </div>
-    `;
-    
-    try {
-      const { data: emailData, error: emailError } = await resend.emails.send({
-        from: 'Property Manager <onboarding@resend.dev>',
-        to: [emailRecipient],
-        subject: isTestMode 
-          ? '[TEST] Welcome to Property Manager - Contractor Invitation' 
-          : 'Welcome to Property Manager - Contractor Invitation',
-        html: isTestMode 
-          ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
-          : emailHtml,
+    if (schemaError) {
+      console.log("Schema wasn't automatically created, triggering manual creation");
+      
+      // Manually create schema if trigger didn't work
+      const { error: rpcError } = await supabaseAdmin.rpc('create_tenant_schema', {
+        new_user_id: newUser.user.id
       });
       
-      if (emailError) {
-        console.error("Error sending email:", emailError);
-        throw emailError;
+      if (rpcError) {
+        console.error("Error creating schema manually:", rpcError);
       }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Contractor invited successfully", 
-          contractorId: contractorData[0].id,
-          userId,
-          emailSent: true,
-          emailId: emailData?.id,
-          testMode: isTestMode
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (emailError) {
-      console.error("Email sending failed:", emailError);
-      
-      // Return success since the contractor was created, but note email failed
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Contractor created but invitation email failed",
-          contractorId: contractorData[0].id,
-          userId,
-          emailSent: false,
-          emailError: JSON.stringify(emailError)
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
+    
+    // Create contractor entry
+    const { data: contractor, error: contractorError } = await supabaseAdmin
+      .from('contractors')
+      .insert([
+        { 
+          company_name: name,
+          contact_name: name,
+          email: normalizedEmail,
+          phone: '',
+          specialties: [specialty],
+          user_id: newUser.user.id
+        }
+      ])
+      .select()
+      .single();
+    
+    if (contractorError) {
+      console.error("Error creating contractor record:", contractorError);
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: "User created but contractor profile had issues",
+        userId: newUser.user.id,
+        email: normalizedEmail,
+        loginUrl: `${Deno.env.get('APPLICATION_URL') || ''}/login?email=${encodeURIComponent(normalizedEmail)}&setupPassword=true`
+      }), { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: "Contractor invited successfully",
+      userId: newUser.user.id,
+      email: normalizedEmail,
+      contractorId: contractor.id,
+      loginUrl: `${Deno.env.get('APPLICATION_URL') || ''}/login?email=${encodeURIComponent(normalizedEmail)}&setupPassword=true`
+    }), { 
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    
   } catch (error) {
-    console.error("Invitation error:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: error.status || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
-
-// Helper function to generate a temporary password
-function generateTemporaryPassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}

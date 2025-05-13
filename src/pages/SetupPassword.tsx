@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { tenantService } from '@/services/user/tenantService';
 
 const SetupPassword = () => {
   const [password, setPassword] = useState('');
@@ -17,6 +18,7 @@ const SetupPassword = () => {
   const [hasSession, setHasSession] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [verifyingSchema, setVerifyingSchema] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -93,7 +95,7 @@ const SetupPassword = () => {
       }
       
       // Now update the password
-      const { error } = await supabase.auth.updateUser({
+      const { error, data } = await supabase.auth.updateUser({
         password: password
       });
       
@@ -108,6 +110,34 @@ const SetupPassword = () => {
         throw error;
       }
       
+      // Verify the tenant schema exists for this user
+      setVerifyingSchema(true);
+      if (data.user) {
+        const hasSchema = await tenantService.verifyUserSchema(data.user.id);
+        
+        if (!hasSchema) {
+          console.log("Schema not found for user, attempting to create...");
+          try {
+            // Attempt to create schema manually
+            const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
+              new_user_id: data.user.id
+            });
+            
+            if (rpcError) {
+              console.error("Error creating schema:", rpcError);
+              toast.error("Your account was set up, but there was an issue with your database setup. Please contact support.");
+            } else {
+              console.log("Schema created successfully");
+            }
+          } catch (schemaError) {
+            console.error("Exception creating schema:", schemaError);
+          }
+        } else {
+          console.log("Schema already exists for this user");
+        }
+      }
+      setVerifyingSchema(false);
+      
       // Show success message and set success state
       toast.success("Password set successfully! You will be redirected to dashboard shortly.");
       setSuccess(true);
@@ -119,6 +149,7 @@ const SetupPassword = () => {
       toast.error(`Failed to set password: ${error.message}`);
     } finally {
       setIsLoading(false);
+      setVerifyingSchema(false);
     }
   };
 
@@ -194,9 +225,9 @@ const SetupPassword = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading || success}
+              disabled={isLoading || success || verifyingSchema}
             >
-              {isLoading ? "Setting Up..." : "Set Password & Continue"}
+              {isLoading ? "Setting Up..." : verifyingSchema ? "Configuring Account..." : "Set Password & Continue"}
             </Button>
             
             <p className="text-sm text-center text-gray-500 mt-4">

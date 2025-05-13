@@ -5,6 +5,7 @@ import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQu
 import { updateUserProfile, sendPasswordReset, deleteUserAccount } from './userMutations';
 import { adminResetUserPassword, AdminPasswordResetResult } from './adminPasswordReset';
 import { supabase } from '@/integrations/supabase/client';
+import { tenantService } from './tenantService';
 
 export const userService: UserService = {
   getAllUsers: async () => {
@@ -49,6 +50,16 @@ export const userService: UserService = {
       if (error) {
         console.error("Error inviting user:", error);
         throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
+      }
+      
+      // Check if tenant schema was created properly
+      if (data.success && data.userId) {
+        const schemaExists = await tenantService.verifyUserSchema(data.userId);
+        if (!schemaExists) {
+          console.warn(`Schema was not created automatically for user ${data.userId}, but invitation was successful`);
+        } else {
+          console.log(`Schema was successfully created for user ${data.userId}`);
+        }
       }
       
       // Properly handle the response from the edge function
@@ -121,6 +132,26 @@ export const userService: UserService = {
       return await checkUserAdminStatus(userId);
     } catch (error) {
       console.error("Error in isUserAdmin:", error);
+      return false;
+    }
+  },
+  
+  // New method to get user's assigned schema
+  getUserSchema: async () => {
+    try {
+      return await tenantService.getUserSchema();
+    } catch (error) {
+      console.error("Error getting user schema:", error);
+      return null;
+    }
+  },
+  
+  // New method to set the database search path to the user's schema
+  useUserSchema: async (operation: string) => {
+    try {
+      return await tenantService.useUserSchema(operation);
+    } catch (error) {
+      console.error("Error using user schema:", error);
       return false;
     }
   }
