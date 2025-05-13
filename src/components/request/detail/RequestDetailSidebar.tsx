@@ -22,60 +22,28 @@ export const RequestDetailSidebar = ({
   onOpenQuoteDialog,
   onRefreshData
 }: RequestDetailSidebarProps) => {
-  // Use a ref to prevent multiple refreshes in quick succession
-  const refreshTimeoutRef = useRef<number | null>(null);
-  const isRefreshingRef = useRef(false);
-  const refreshCountRef = useRef(0);
-
-  // DISABLED for troubleshooting - Using stub function that logs but doesn't refresh
+  // Use a ref to track if refresh has been called already
+  const hasRefreshedRef = useRef(false);
+  
+  // Single-execution refresh handler
   const handleContractorAssigned = useCallback(() => {
-    console.log("RequestDetailSidebar - Contractor assigned/changed but refresh DISABLED for troubleshooting");
-    // Uncomment to re-enable
-    /*
-    console.log("RequestDetailSidebar - Contractor assigned/changed, throttling refresh");
+    console.log("RequestDetailSidebar - Contractor assigned/changed, checking if refresh allowed");
     
-    // Increment refresh count to track how many times this is called
-    refreshCountRef.current += 1;
-    console.log(`RequestDetailSidebar - Refresh requested #${refreshCountRef.current}`);
-    
-    // Skip if already refreshing
-    if (isRefreshingRef.current) {
-      console.log("RequestDetailSidebar - Already refreshing, skipping refresh request");
+    // Only allow refresh once per component lifecycle
+    if (hasRefreshedRef.current) {
+      console.log("RequestDetailSidebar - Already refreshed once, preventing additional refreshes");
       return;
     }
     
-    // Hard limit on number of refreshes to prevent infinite loops
-    if (refreshCountRef.current > 3) {
-      console.log("RequestDetailSidebar - Maximum refresh count reached, blocking further refreshes");
-      return;
+    // Mark as refreshed
+    hasRefreshedRef.current = true;
+    
+    // Only call refresh if provided
+    if (onRefreshData) {
+      console.log("RequestDetailSidebar - Executing ONE-TIME refresh");
+      onRefreshData();
     }
-    
-    // Set refreshing flag
-    isRefreshingRef.current = true;
-    
-    // Clear any existing timeout
-    if (refreshTimeoutRef.current) {
-      window.clearTimeout(refreshTimeoutRef.current);
-    }
-    
-    // Set a new timeout with a longer delay to ensure all operations complete
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      console.log("RequestDetailSidebar - Executing refresh after delay");
-      
-      // Only call refresh once
-      if (onRefreshData) {
-        onRefreshData();
-      }
-      
-      // Reset the refreshing state after a much longer delay
-      setTimeout(() => {
-        console.log("RequestDetailSidebar - Refresh cycle complete, resetting state");
-        isRefreshingRef.current = false;
-        refreshTimeoutRef.current = null;
-      }, 10000); // Much longer cooldown period
-    }, 3000); // Longer initial delay
-    */
-  }, []);
+  }, [onRefreshData]);
 
   return (
     <div className="space-y-6">

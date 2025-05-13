@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
@@ -9,7 +8,7 @@ import { toast } from '@/lib/toast';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
- * - REFRESH DISABLED FOR TROUBLESHOOTING
+ * - Controls refresh operations with strict lockout
  */
 export const useRequestDetailData = (requestId: string | undefined) => {
   const { currentUser } = useUserContext();
@@ -17,7 +16,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const refreshLockRef = useRef(false);
-  const maxRefreshAttemptsRef = useRef(0);
+  const refreshCountRef = useRef(0);
   
   // Reset refresh counter when the requestId changes - but don't force fresh data load
   useEffect(() => {
@@ -26,7 +25,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     setLastRefreshTime(0);
     setIsRefreshing(false);
     refreshLockRef.current = false;
-    maxRefreshAttemptsRef.current = 0;
+    refreshCountRef.current = 0;
   }, [requestId]);
   
   // Use our specialized hooks to fetch and manage the data
@@ -36,15 +35,11 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   
   // Setup real-time comments subscription - without auto refresh
   useRequestCommentsSubscription(requestId, () => {
-    console.log("New comment received - auto refresh DISABLED for troubleshooting");
+    console.log("New comment received - no automatic refresh");
   });
   
-  // DISABLED automatic refresh - Using stub function that logs but doesn't refresh
+  // Controlled refresh function with proper safeguards
   const refreshData = useCallback(() => {
-    console.log("useRequestDetailData - Manual refresh requested but DISABLED for troubleshooting");
-    
-    // Uncomment to re-enable
-    /*
     console.log("useRequestDetailData - Refresh requested");
     
     // Skip if request ID is missing
@@ -53,15 +48,15 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       return;
     }
     
-    // Hard limit on number of refreshes per session to prevent infinite loops
-    if (maxRefreshAttemptsRef.current >= 3) {
-      console.log("useRequestDetailData - Maximum refresh attempts reached, blocking further refreshes");
-      return;
-    }
-    
     // Skip if already refreshing
     if (isRefreshing || refreshLockRef.current) {
       console.log("useRequestDetailData - Already refreshing or locked, skipping");
+      return;
+    }
+    
+    // Hard limit on number of refreshes per session to prevent infinite loops
+    if (refreshCountRef.current >= 1) {  // Only allow one refresh per interaction
+      console.log("useRequestDetailData - Maximum refresh count reached, blocking further refreshes");
       return;
     }
     
@@ -80,9 +75,9 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     // Mark refresh as in progress and update last refresh time
     setIsRefreshing(true);
     setLastRefreshTime(now);
-    maxRefreshAttemptsRef.current += 1;
+    refreshCountRef.current += 1;
     
-    console.log(`useRequestDetailData - Starting refresh operation (attempt ${maxRefreshAttemptsRef.current})`);
+    console.log(`useRequestDetailData - Starting refresh operation (attempt ${refreshCountRef.current})`);
     
     // First refresh request data from the database
     if (refreshRequestData) {
@@ -97,15 +92,11 @@ export const useRequestDetailData = (requestId: string | undefined) => {
           setTimeout(() => {
             console.log("useRequestDetailData - Refresh cycle complete");
             setIsRefreshing(false);
-            // Release the lock after a safe period to prevent immediate re-triggering
-            setTimeout(() => {
-              refreshLockRef.current = false;
-            }, 2000);
+            // Keep the lock to prevent more refreshes in this session
           }, 1000);
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);
-          // Don't show toast here as it may cause duplicate notifications
           setIsRefreshing(false);
           refreshLockRef.current = false;
         });
@@ -116,13 +107,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       // Reset refresh state after a delay
       setTimeout(() => {
         setIsRefreshing(false);
-        // Release the lock after a safe period
-        setTimeout(() => {
-          refreshLockRef.current = false;
-        }, 2000);
       }, 1000);
     }
-    */
   }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);
 
   return {

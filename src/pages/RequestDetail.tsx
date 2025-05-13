@@ -17,10 +17,9 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const refreshInProgressRef = useRef(false);
+  const refreshAllowedRef = useRef(true);
   
-  // Configure data fetching with refresh disabled for troubleshooting
+  // Configure data fetching with controlled refresh
   const { 
     request, 
     loading, 
@@ -30,47 +29,39 @@ const RequestDetail = () => {
     isRefreshing 
   } = useRequestDetailData(id);
   
-  // DISABLED for troubleshooting - won't refresh automatically
+  // Controlled refresh handler that only allows one refresh per session
   const handleRefreshData = () => {
-    console.log("RequestDetail - Refresh DISABLED for troubleshooting");
-    // Uncomment to re-enable
-    /*
-    console.log("RequestDetail - Refresh requested");
+    console.log("RequestDetail - Refresh requested, checking if allowed");
     
-    // Skip if already refreshing
-    if (isRefreshing || refreshInProgressRef.current) {
-      console.log("RequestDetail - Already refreshing or in progress, skipping refresh request");
+    if (!refreshAllowedRef.current) {
+      console.log("RequestDetail - Refresh not allowed, already refreshed once");
       return;
     }
     
-    // Implement time-based throttling (10 seconds between page-level refreshes)
-    const now = Date.now();
-    const MIN_REFRESH_INTERVAL = 10000; // 10 seconds
+    // Mark as used - only one refresh per page visit
+    refreshAllowedRef.current = false;
     
-    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
-      console.log(`RequestDetail - Too soon since last refresh (${now - lastRefreshTime}ms), throttling`);
-      return;
-    }
+    console.log("RequestDetail - Executing controlled ONE-TIME refresh");
+    refreshData();
     
-    // Set flags to prevent multiple refreshes
-    refreshInProgressRef.current = true;
-    setLastRefreshTime(now);
-    
-    console.log("RequestDetail - Starting controlled refresh operation");
-    
-    // Add a delay before refreshing to let operations complete
+    // Reset the flag after a significant delay, in case user stays on page
     setTimeout(() => {
-      refreshData();
-      
-      // Reset the flag after a significant delay
-      setTimeout(() => {
-        refreshInProgressRef.current = false;
-      }, 5000);
-    }, 1000);
-    */
+      console.log("RequestDetail - Resetting refresh flag after cooldown");
+      refreshAllowedRef.current = true;
+    }, 10000); // 10 second cooldown
   };
   
   const handleNavigateBack = () => navigate('/requests');
+
+  // Reset refresh allowed flag when component mounts or ID changes
+  useEffect(() => {
+    console.log("RequestDetail - Component mounted or ID changed, resetting refresh allowed flag");
+    refreshAllowedRef.current = true;
+    
+    return () => {
+      console.log("RequestDetail - Component unmounting, cleaning up");
+    };
+  }, [id]);
 
   if (loading) {
     return <RequestDetailLoading />;
