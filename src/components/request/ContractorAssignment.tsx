@@ -108,11 +108,14 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       
       // Only trigger parent refresh once with significant delay
       if (onContractorAssigned) {
-        // Use a longer delay to ensure DB operations complete fully
+        // Don't do immediate refresh, let the toast be visible first
         console.log("ContractorAssignment - Will trigger parent refresh after delay");
-        setTimeout(() => {
-          console.log("ContractorAssignment - Now calling parent refresh callback");
+        // Use a fixed one-time callback instead of an interval to prevent multiple refreshes
+        const timeoutId = setTimeout(() => {
+          console.log("ContractorAssignment - Now calling parent refresh callback once");
           onContractorAssigned();
+          // Clear the timeout to ensure it won't be called again
+          clearTimeout(timeoutId);
         }, 1500);
       }
       
