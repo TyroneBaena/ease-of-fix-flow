@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
@@ -13,10 +14,24 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <h1 className="text-3xl font-bold text-gray-900">MaintenanceHub</h1>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              <UserCircle size={20} />
-              <span>Login</span>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => navigate('/login')}
+              >
+                <UserCircle size={20} />
+                <span>Login</span>
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => navigate('/signup')}
+              >
+                Create Account
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -125,6 +140,8 @@ const Index = () => {
                 <li><a href="/new-request" className="text-gray-300 hover:text-white">New Request</a></li>
                 <li><a href="/dashboard" className="text-gray-300 hover:text-white">Dashboard</a></li>
                 <li><a href="/analytics" className="text-gray-300 hover:text-white">Analytics</a></li>
+                <li><a href="/signup" className="text-gray-300 hover:text-white">Create Account</a></li>
+                <li><a href="/login" className="text-gray-300 hover:text-white">Login</a></li>
               </ul>
             </div>
             <div>
