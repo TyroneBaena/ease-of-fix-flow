@@ -27,9 +27,11 @@ export const RequestDetailSidebar = ({
   const isRefreshingRef = useRef(false);
   const refreshCountRef = useRef(0);
 
-  // Memoized handler for contractor assignment to prevent recreation on every render
-  // with stricter debouncing to prevent multiple rapid refreshes
+  // DISABLED for troubleshooting - Using stub function that logs but doesn't refresh
   const handleContractorAssigned = useCallback(() => {
+    console.log("RequestDetailSidebar - Contractor assigned/changed but refresh DISABLED for troubleshooting");
+    // Uncomment to re-enable
+    /*
     console.log("RequestDetailSidebar - Contractor assigned/changed, throttling refresh");
     
     // Increment refresh count to track how many times this is called
@@ -72,8 +74,8 @@ export const RequestDetailSidebar = ({
         refreshTimeoutRef.current = null;
       }, 10000); // Much longer cooldown period
     }, 3000); // Longer initial delay
-    
-  }, [onRefreshData]);
+    */
+  }, []);
 
   return (
     <div className="space-y-6">

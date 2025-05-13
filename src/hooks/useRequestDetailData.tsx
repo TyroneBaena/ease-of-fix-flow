@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
+ * - REFRESH DISABLED FOR TROUBLESHOOTING
  */
 export const useRequestDetailData = (requestId: string | undefined) => {
   const { currentUser } = useUserContext();
@@ -18,7 +19,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const refreshLockRef = useRef(false);
   const maxRefreshAttemptsRef = useRef(0);
   
-  // Reset refresh counter when the requestId changes to force fresh data load
+  // Reset refresh counter when the requestId changes - but don't force fresh data load
   useEffect(() => {
     console.log("useRequestDetailData - Request ID changed, resetting refresh counter");
     setRefreshCounter(0);
@@ -33,13 +34,17 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
   
-  // Setup real-time comments subscription
+  // Setup real-time comments subscription - without auto refresh
   useRequestCommentsSubscription(requestId, () => {
-    console.log("New comment received, no refresh needed as comments are loaded separately");
+    console.log("New comment received - auto refresh DISABLED for troubleshooting");
   });
   
-  // Implement a refresh function with strong protection against multiple calls
+  // DISABLED automatic refresh - Using stub function that logs but doesn't refresh
   const refreshData = useCallback(() => {
+    console.log("useRequestDetailData - Manual refresh requested but DISABLED for troubleshooting");
+    
+    // Uncomment to re-enable
+    /*
     console.log("useRequestDetailData - Refresh requested");
     
     // Skip if request ID is missing
@@ -117,6 +122,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         }, 2000);
       }, 1000);
     }
+    */
   }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);
 
   return {

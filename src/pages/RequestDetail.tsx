@@ -20,7 +20,7 @@ const RequestDetail = () => {
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const refreshInProgressRef = useRef(false);
   
-  // Configure data fetching
+  // Configure data fetching with refresh disabled for troubleshooting
   const { 
     request, 
     loading, 
@@ -30,8 +30,11 @@ const RequestDetail = () => {
     isRefreshing 
   } = useRequestDetailData(id);
   
-  // Enhanced throttled refresh handler with stronger protections
+  // DISABLED for troubleshooting - won't refresh automatically
   const handleRefreshData = () => {
+    console.log("RequestDetail - Refresh DISABLED for troubleshooting");
+    // Uncomment to re-enable
+    /*
     console.log("RequestDetail - Refresh requested");
     
     // Skip if already refreshing
@@ -64,6 +67,7 @@ const RequestDetail = () => {
         refreshInProgressRef.current = false;
       }, 5000);
     }, 1000);
+    */
   };
   
   const handleNavigateBack = () => navigate('/requests');

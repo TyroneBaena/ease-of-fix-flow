@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
@@ -107,6 +108,11 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       setAssignmentComplete(true);
       setIsAssigning(false);
       
+      // DISABLED for troubleshooting - parent refresh callback is not called
+      console.log("ContractorAssignment - Parent refresh callback DISABLED for troubleshooting");
+      
+      // Uncomment to re-enable
+      /*
       // Strictly call parent refresh only once
       if (onContractorAssigned && !hasCalledParentRef.current) {
         hasCalledParentRef.current = true;
@@ -119,6 +125,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           }
         }, 2500);
       }
+      */
       
     } catch (error) {
       console.error("Error assigning/reassigning contractor:", error);
@@ -126,7 +133,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       setIsAssigning(false);
       setAssignmentComplete(false);
     }
-  }, [selectedContractor, isAssigning, assignmentComplete, isReassignment, changeAssignment, requestId, assignContractor, onContractorAssigned]);
+  }, [selectedContractor, isAssigning, assignmentComplete, isReassignment, changeAssignment, requestId, assignContractor]);
 
   // Display even if assigned when in reassignment mode
   if (isAssigned && !isReassignment) {
