@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
@@ -33,12 +32,14 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignmentComplete, setAssignmentComplete] = useState(false);
   const isReassignment = isAssigned && currentContractorId;
+  const hasCalledParentRef = React.useRef(false);
   
   // Reset states when request ID changes
   useEffect(() => {
     console.log("ContractorAssignment - Request ID changed, resetting states");
     setIsAssigning(false);
     setAssignmentComplete(false);
+    hasCalledParentRef.current = false;
     
     // Set the currently assigned contractor as selected if we're in reassignment mode
     if (isReassignment && currentContractorId) {
@@ -106,28 +107,17 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       setAssignmentComplete(true);
       setIsAssigning(false);
       
-      // Only trigger parent refresh once with significant delay
-      if (onContractorAssigned) {
-        // Don't do immediate refresh, let the toast be visible first
-        console.log("ContractorAssignment - Will trigger parent refresh after delay");
+      // Strictly call parent refresh only once
+      if (onContractorAssigned && !hasCalledParentRef.current) {
+        hasCalledParentRef.current = true;
+        console.log("ContractorAssignment - Triggering parent refresh ONCE with delay");
         
-        // Use a one-time callback with a reference that can be cleaned up
-        const timeoutId = setTimeout(() => {
-          console.log("ContractorAssignment - Now calling parent refresh callback once");
-          // Immediately set a flag to prevent duplicates in case of race conditions
-          setAssignmentComplete(true);
-          onContractorAssigned();
-          
-          // After refresh is triggered, prevent any additional refreshes for a while
-          setTimeout(() => {
-            console.log("ContractorAssignment - Assignment complete cycle finished");
-          }, 3000);
-        }, 1500);
-        
-        // Clean up function to prevent memory leaks and ensure the timeout is cleared
-        return () => {
-          clearTimeout(timeoutId);
-        };
+        // Use a much longer delay to ensure all state updates have settled
+        setTimeout(() => {
+          if (onContractorAssigned) {
+            onContractorAssigned();
+          }
+        }, 2500);
       }
       
     } catch (error) {

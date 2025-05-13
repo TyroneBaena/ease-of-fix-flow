@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Contractor, Quote } from '@/types/contractor';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/lib/toast';
+import { toast } from 'sonner';  // Update toast import for consistency
 import { ContractorContextType } from './ContractorContextTypes';
 import { fetchContractors } from './operations/contractorFetch';
 import { assignContractorToRequest, changeContractorAssignment, requestQuoteForJob } from './operations/contractorOperations';

@@ -17,7 +17,8 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const refreshInProgressRef = useRef(false);
   
   // Configure data fetching
   const { 
@@ -29,18 +30,40 @@ const RequestDetail = () => {
     isRefreshing 
   } = useRequestDetailData(id);
   
-  // Simple throttled refresh handler with debounce
+  // Enhanced throttled refresh handler with stronger protections
   const handleRefreshData = () => {
     console.log("RequestDetail - Refresh requested");
     
-    // Skip if already refreshing to prevent duplicate refreshes
-    if (isRefreshing) {
-      console.log("RequestDetail - Already refreshing, skipping refresh request");
+    // Skip if already refreshing
+    if (isRefreshing || refreshInProgressRef.current) {
+      console.log("RequestDetail - Already refreshing or in progress, skipping refresh request");
       return;
     }
     
-    // Important: Only refresh once per user action
-    refreshData();
+    // Implement time-based throttling (10 seconds between page-level refreshes)
+    const now = Date.now();
+    const MIN_REFRESH_INTERVAL = 10000; // 10 seconds
+    
+    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+      console.log(`RequestDetail - Too soon since last refresh (${now - lastRefreshTime}ms), throttling`);
+      return;
+    }
+    
+    // Set flags to prevent multiple refreshes
+    refreshInProgressRef.current = true;
+    setLastRefreshTime(now);
+    
+    console.log("RequestDetail - Starting controlled refresh operation");
+    
+    // Add a delay before refreshing to let operations complete
+    setTimeout(() => {
+      refreshData();
+      
+      // Reset the flag after a significant delay
+      setTimeout(() => {
+        refreshInProgressRef.current = false;
+      }, 5000);
+    }, 1000);
   };
   
   const handleNavigateBack = () => navigate('/requests');

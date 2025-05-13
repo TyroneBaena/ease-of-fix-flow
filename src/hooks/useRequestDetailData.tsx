@@ -16,6 +16,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const refreshLockRef = useRef(false);
+  const maxRefreshAttemptsRef = useRef(0);
   
   // Reset refresh counter when the requestId changes to force fresh data load
   useEffect(() => {
@@ -24,6 +25,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     setLastRefreshTime(0);
     setIsRefreshing(false);
     refreshLockRef.current = false;
+    maxRefreshAttemptsRef.current = 0;
   }, [requestId]);
   
   // Use our specialized hooks to fetch and manage the data
@@ -36,7 +38,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     console.log("New comment received, no refresh needed as comments are loaded separately");
   });
   
-  // Implement a refresh function with better protection against multiple calls
+  // Implement a refresh function with strong protection against multiple calls
   const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Refresh requested");
     
@@ -46,15 +48,21 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       return;
     }
     
+    // Hard limit on number of refreshes per session to prevent infinite loops
+    if (maxRefreshAttemptsRef.current >= 3) {
+      console.log("useRequestDetailData - Maximum refresh attempts reached, blocking further refreshes");
+      return;
+    }
+    
     // Skip if already refreshing
     if (isRefreshing || refreshLockRef.current) {
       console.log("useRequestDetailData - Already refreshing or locked, skipping");
       return;
     }
     
-    // Implement time-based throttling (3 seconds between refreshes)
+    // Implement stricter time-based throttling (5 seconds between refreshes)
     const now = Date.now();
-    const MIN_REFRESH_INTERVAL = 3000; // 3 seconds
+    const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
     
     if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
       console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTime}ms), throttling`);
@@ -67,8 +75,9 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     // Mark refresh as in progress and update last refresh time
     setIsRefreshing(true);
     setLastRefreshTime(now);
+    maxRefreshAttemptsRef.current += 1;
     
-    console.log("useRequestDetailData - Starting refresh operation");
+    console.log(`useRequestDetailData - Starting refresh operation (attempt ${maxRefreshAttemptsRef.current})`);
     
     // First refresh request data from the database
     if (refreshRequestData) {
@@ -86,8 +95,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
             // Release the lock after a safe period to prevent immediate re-triggering
             setTimeout(() => {
               refreshLockRef.current = false;
-            }, 1000);
-          }, 500);
+            }, 2000);
+          }, 1000);
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);
@@ -105,8 +114,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         // Release the lock after a safe period
         setTimeout(() => {
           refreshLockRef.current = false;
-        }, 1000);
-      }, 500);
+        }, 2000);
+      }, 1000);
     }
   }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);
 
