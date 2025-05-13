@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
@@ -26,6 +25,8 @@ import ContractorJobs from './pages/contractor/ContractorJobs';
 import ContractorSchedule from './pages/contractor/ContractorSchedule';
 import ContractorProfile from './pages/contractor/ContractorProfile';
 import ContractorSettings from './pages/contractor/ContractorSettings';
+import Index from './pages/Index';
+import Signup from './pages/Signup';
 
 const App = () => {
   const { currentUser, loading } = useUserContext();
@@ -48,6 +49,11 @@ const App = () => {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Index />} />
+        
+        {/* Add the new signup route */}
+        <Route path="/signup" element={<Signup />} />
+        
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/forgot-password" element={currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />} />
         <Route path="/setup-password" element={<SetupPassword />} />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -264,6 +263,13 @@ const Login = () => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
+            
+            <p className="text-sm text-center text-gray-500">
+              Don't have an account?{" "}
+              <a href="/signup" className="text-blue-500 hover:underline">
+                Sign up
+              </a>
+            </p>
             
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
