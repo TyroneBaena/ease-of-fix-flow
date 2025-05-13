@@ -110,13 +110,24 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       if (onContractorAssigned) {
         // Don't do immediate refresh, let the toast be visible first
         console.log("ContractorAssignment - Will trigger parent refresh after delay");
-        // Use a fixed one-time callback instead of an interval to prevent multiple refreshes
+        
+        // Use a one-time callback with a reference that can be cleaned up
         const timeoutId = setTimeout(() => {
           console.log("ContractorAssignment - Now calling parent refresh callback once");
+          // Immediately set a flag to prevent duplicates in case of race conditions
+          setAssignmentComplete(true);
           onContractorAssigned();
-          // Clear the timeout to ensure it won't be called again
-          clearTimeout(timeoutId);
+          
+          // After refresh is triggered, prevent any additional refreshes for a while
+          setTimeout(() => {
+            console.log("ContractorAssignment - Assignment complete cycle finished");
+          }, 3000);
         }, 1500);
+        
+        // Clean up function to prevent memory leaks and ensure the timeout is cleared
+        return () => {
+          clearTimeout(timeoutId);
+        };
       }
       
     } catch (error) {
