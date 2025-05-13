@@ -23,4 +23,7 @@ export interface UserService {
   adminResetPassword: (userId: string, email: string) => Promise<AdminPasswordResetResult>;
   deleteUser: (userId: string) => Promise<void>;
   isUserAdmin: (userId: string) => Promise<boolean>;
+  // Add the new schema-related methods to the interface
+  getUserSchema: () => Promise<any>;
+  useUserSchema: (operation: string) => Promise<boolean>;
 }

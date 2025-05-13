@@ -1,4 +1,3 @@
-
 import { User, UserRole } from '@/types/user';
 import { InviteUserResult, UserService } from './types';
 import { fetchAllUsers, checkExistingUser, checkUserAdminStatus } from './userQueries';
@@ -136,7 +135,7 @@ export const userService: UserService = {
     }
   },
   
-  // New method to get user's assigned schema
+  // Implement the schema methods according to the interface
   getUserSchema: async () => {
     try {
       return await tenantService.getUserSchema();
@@ -146,7 +145,6 @@ export const userService: UserService = {
     }
   },
   
-  // New method to set the database search path to the user's schema
   useUserSchema: async (operation: string) => {
     try {
       return await tenantService.useUserSchema(operation);
