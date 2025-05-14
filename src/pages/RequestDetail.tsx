@@ -19,6 +19,7 @@ const RequestDetail = () => {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const refreshAllowedRef = useRef(true);
   const initialLoadCompletedRef = useRef(false);
+  const pageActiveRef = useRef(true);
   
   // Configure data fetching with controlled refresh
   const { 
@@ -39,6 +40,11 @@ const RequestDetail = () => {
       return;
     }
     
+    if (!pageActiveRef.current) {
+      console.log("RequestDetail - Page not active, skipping refresh");
+      return;
+    }
+    
     // Mark as used - only one refresh per page visit
     refreshAllowedRef.current = false;
     
@@ -54,23 +60,16 @@ const RequestDetail = () => {
   
   const handleNavigateBack = () => navigate('/requests');
 
-  // Reset refresh allowed flag when component mounts or ID changes
-  // Add logic to prevent refreshes on tab focus after initial load
+  // Completely block visibility change refreshes
   useEffect(() => {
-    console.log("RequestDetail - Component mounted or ID changed, resetting refresh allowed flag");
-    refreshAllowedRef.current = true;
-    initialLoadCompletedRef.current = false;
-    
-    // Set initial load completed after data is fetched
-    if (!loading && request) {
-      initialLoadCompletedRef.current = true;
-    }
-    
-    // Prevent visibilitychange from triggering refreshes
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("RequestDetail - Tab became visible, but refresh is blocked to prevent flicker");
+        console.log("RequestDetail - Tab became visible, blocking refresh completely");
+        pageActiveRef.current = true;
         // No refresh action on visibility change
+      } else {
+        console.log("RequestDetail - Tab is hidden");
+        pageActiveRef.current = false;
       }
     };
     
@@ -81,6 +80,18 @@ const RequestDetail = () => {
       console.log("RequestDetail - Component unmounting, cleaning up");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
+  }, []);
+  
+  // Reset refresh allowed flag when component mounts or ID changes
+  useEffect(() => {
+    console.log("RequestDetail - Component mounted or ID changed, resetting refresh allowed flag");
+    refreshAllowedRef.current = true;
+    initialLoadCompletedRef.current = false;
+    
+    // Set initial load completed after data is fetched
+    if (!loading && request) {
+      initialLoadCompletedRef.current = true;
+    }
   }, [id, loading, request]);
 
   if (loading) {

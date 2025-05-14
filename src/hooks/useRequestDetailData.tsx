@@ -19,6 +19,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const refreshLockRef = useRef(false);
   const refreshCountRef = useRef(0);
   const initialLoadCompletedRef = useRef(false);
+  const visibilityChangedRef = useRef(false);
   
   // Reset refresh counter when the requestId changes - but don't force fresh data load
   useEffect(() => {
@@ -29,12 +30,28 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     refreshLockRef.current = false;
     refreshCountRef.current = 0;
     initialLoadCompletedRef.current = false;
+    visibilityChangedRef.current = false;
     
     return () => {
       // Cleanup function
       console.log("useRequestDetailData - Cleaning up on requestId change");
     };
   }, [requestId]);
+
+  // Handle visibility change events at the hook level
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("useRequestDetailData - Tab focus detected, marking visibility change");
+        visibilityChangedRef.current = true;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
   
   // Use our specialized hooks to fetch and manage the data
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
@@ -57,6 +74,13 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   // Controlled refresh function with proper safeguards
   const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Refresh requested");
+    
+    // Skip if refresh was triggered by visibility change
+    if (visibilityChangedRef.current) {
+      console.log("useRequestDetailData - Refresh blocked: triggered by tab focus");
+      visibilityChangedRef.current = false;
+      return;
+    }
     
     // Skip if request ID is missing
     if (!requestId) {
