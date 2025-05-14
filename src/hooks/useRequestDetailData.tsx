@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
 import { useContractorStatus } from './request-detail/useContractorStatus';
 import { useRequestCommentsSubscription } from './request-detail/useRequestCommentsSubscription';
-import { toast } from '@/lib/toast';
+import { toast } from 'sonner';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
@@ -16,34 +15,49 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const refreshLockRef = useRef(false);
-  const refreshCountRef = useRef(0);
-  const initialLoadCompletedRef = useRef(false);
-  const visibilityChangedRef = useRef(false);
   
-  // Reset refresh counter when the requestId changes - but don't force fresh data load
+  // Data loading tracking refs
+  const initialDataLoadedRef = useRef(false);
+  const loadInProgressRef = useRef(false);
+  
+  // Strict refresh controls
+  const refreshLockRef = useRef(true); // Start locked
+  const refreshCountRef = useRef(0);
+  const visibilityChangeRef = useRef(false);
+  
+  // Reset all refs when requestId changes
   useEffect(() => {
-    console.log("useRequestDetailData - Request ID changed, resetting refresh counter");
+    console.log("useRequestDetailData - Request ID changed, resetting all controls");
+    
+    // Reset state
     setRefreshCounter(0);
     setLastRefreshTime(0);
     setIsRefreshing(false);
-    refreshLockRef.current = false;
+    
+    // Reset refs
+    initialDataLoadedRef.current = false;
+    loadInProgressRef.current = false;
+    refreshLockRef.current = true; // Start locked
     refreshCountRef.current = 0;
-    initialLoadCompletedRef.current = false;
-    visibilityChangedRef.current = false;
+    visibilityChangeRef.current = false;
+    
+    // After a delay, unlock refresh lock to allow one manual refresh
+    setTimeout(() => {
+      console.log("useRequestDetailData - Unlocking refresh for manual action");
+      refreshLockRef.current = false;
+    }, 2000);
     
     return () => {
-      // Cleanup function
       console.log("useRequestDetailData - Cleaning up on requestId change");
     };
   }, [requestId]);
 
-  // Handle visibility change events at the hook level
+  // Block ALL visibility change refreshes completely
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("useRequestDetailData - Tab focus detected, marking visibility change");
-        visibilityChangedRef.current = true;
+        console.log("useRequestDetailData - Tab focus change detected, BLOCKING any refresh");
+        visibilityChangeRef.current = true;
       }
     };
 
@@ -53,54 +67,62 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     };
   }, []);
   
-  // Use our specialized hooks to fetch and manage the data
-  const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
+  // Use specialized hooks with the refresh counter
+  const { request, loading, refreshRequestData } = useMaintenanceRequestData(
+    requestId, 
+    refreshCounter
+  );
+  
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
   
   // Mark initial load as completed once data is loaded
   useEffect(() => {
-    if (!loading && request && !initialLoadCompletedRef.current) {
-      console.log("useRequestDetailData - Initial load completed");
-      initialLoadCompletedRef.current = true;
+    if (!loading && request && !initialDataLoadedRef.current) {
+      console.log("useRequestDetailData - Initial data load completed");
+      initialDataLoadedRef.current = true;
+      loadInProgressRef.current = false;
     }
   }, [loading, request]);
   
-  // Setup real-time comments subscription - without auto refresh
+  // Listen for comments without triggering refresh
   useRequestCommentsSubscription(requestId, () => {
     console.log("New comment received - no automatic refresh");
   });
   
-  // Controlled refresh function with proper safeguards
+  // Strictly controlled refresh function
   const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Refresh requested");
     
-    // Skip if refresh was triggered by visibility change
-    if (visibilityChangedRef.current) {
-      console.log("useRequestDetailData - Refresh blocked: triggered by tab focus");
-      visibilityChangedRef.current = false;
+    // Block tab visibility triggered refreshes completely
+    if (visibilityChangeRef.current) {
+      console.log("useRequestDetailData - BLOCKING refresh triggered by tab visibility change");
+      visibilityChangeRef.current = false;
       return;
     }
     
-    // Skip if request ID is missing
+    // Skip if no request ID
     if (!requestId) {
       console.log("useRequestDetailData - No request ID, skipping refresh");
       return;
     }
     
-    // Skip if already refreshing
-    if (isRefreshing || refreshLockRef.current) {
-      console.log("useRequestDetailData - Already refreshing or locked, skipping");
+    // Strong refresh control - block if:
+    // 1. Refresh is already in progress
+    // 2. Refresh is locked (e.g. from auto-refresh on mount)
+    // 3. Initial load is still in progress
+    if (isRefreshing || refreshLockRef.current || loadInProgressRef.current) {
+      console.log("useRequestDetailData - Refresh blocked: already refreshing, locked, or load in progress");
       return;
     }
     
-    // Hard limit on number of refreshes per session to prevent infinite loops
-    if (refreshCountRef.current >= 1) {  // Only allow one refresh per interaction
+    // Hard limit to one refresh per session
+    if (refreshCountRef.current >= 1) {
       console.log("useRequestDetailData - Maximum refresh count reached, blocking further refreshes");
       return;
     }
     
-    // Implement stricter time-based throttling (5 seconds between refreshes)
+    // Strict time-based throttling (5 seconds between refreshes)
     const now = Date.now();
     const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
     
@@ -109,8 +131,9 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       return;
     }
     
-    // Add an additional refresh lock to prevent potential race conditions
+    // Apply refresh lock
     refreshLockRef.current = true;
+    loadInProgressRef.current = true;
     
     // Mark refresh as in progress and update last refresh time
     setIsRefreshing(true);
@@ -132,13 +155,14 @@ export const useRequestDetailData = (requestId: string | undefined) => {
           setTimeout(() => {
             console.log("useRequestDetailData - Refresh cycle complete");
             setIsRefreshing(false);
+            loadInProgressRef.current = false;
             // Keep the lock to prevent more refreshes in this session
           }, 1000);
         })
         .catch(error => {
           console.error("useRequestDetailData - Error during refresh:", error);
           setIsRefreshing(false);
-          refreshLockRef.current = false;
+          loadInProgressRef.current = false;
         });
     } else {
       // Just increment counter to trigger hooks to refresh
@@ -147,6 +171,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       // Reset refresh state after a delay
       setTimeout(() => {
         setIsRefreshing(false);
+        loadInProgressRef.current = false;
       }, 1000);
     }
   }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);

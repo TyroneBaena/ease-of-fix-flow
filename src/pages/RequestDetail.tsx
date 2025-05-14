@@ -17,9 +17,11 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const refreshAllowedRef = useRef(true);
-  const initialLoadCompletedRef = useRef(false);
-  const pageActiveRef = useRef(true);
+  
+  // Block multiple refreshes
+  const didInitialRenderRef = useRef(false);
+  const manualRefreshBlockedRef = useRef(true);
+  const pageVisibleRef = useRef(true);
   
   // Configure data fetching with controlled refresh
   const { 
@@ -31,49 +33,44 @@ const RequestDetail = () => {
     isRefreshing 
   } = useRequestDetailData(id);
   
-  // Controlled refresh handler that only allows one refresh per session
+  // Handler for manual refresh with strict blocking
   const handleRefreshData = () => {
-    console.log("RequestDetail - Refresh requested, checking if allowed");
+    console.log("RequestDetail - Manual refresh requested");
     
-    if (!refreshAllowedRef.current) {
-      console.log("RequestDetail - Refresh not allowed, already refreshed once");
+    if (manualRefreshBlockedRef.current) {
+      console.log("RequestDetail - Manual refresh blocked: system protection active");
       return;
     }
     
-    if (!pageActiveRef.current) {
-      console.log("RequestDetail - Page not active, skipping refresh");
+    if (!pageVisibleRef.current) {
+      console.log("RequestDetail - Manual refresh blocked: page not visible");
       return;
     }
-    
-    // Mark as used - only one refresh per page visit
-    refreshAllowedRef.current = false;
     
     console.log("RequestDetail - Executing controlled ONE-TIME refresh");
     refreshData();
     
-    // Reset the flag after a significant delay, in case user stays on page
-    setTimeout(() => {
-      console.log("RequestDetail - Resetting refresh flag after cooldown");
-      refreshAllowedRef.current = true;
-    }, 10000); // 10 second cooldown
+    // Block further manual refreshes permanently
+    manualRefreshBlockedRef.current = true;
   };
   
+  // Navigation handler
   const handleNavigateBack = () => navigate('/requests');
 
-  // Completely block visibility change refreshes
+  // Block ALL visibility change refreshes
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("RequestDetail - Tab became visible, blocking refresh completely");
-        pageActiveRef.current = true;
-        // No refresh action on visibility change
+        console.log("RequestDetail - Tab visibility changed to visible");
+        pageVisibleRef.current = true;
+        // No refresh action on visibility change - COMPLETELY BLOCKED
       } else {
-        console.log("RequestDetail - Tab is hidden");
-        pageActiveRef.current = false;
+        console.log("RequestDetail - Tab visibility changed to hidden");
+        pageVisibleRef.current = false;
       }
     };
     
-    // Add and remove visibility change listener
+    // Add visibility change listener
     document.addEventListener("visibilitychange", handleVisibilityChange);
     
     return () => {
@@ -82,17 +79,18 @@ const RequestDetail = () => {
     };
   }, []);
   
-  // Reset refresh allowed flag when component mounts or ID changes
+  // Allow one manual refresh after initial load is complete
   useEffect(() => {
-    console.log("RequestDetail - Component mounted or ID changed, resetting refresh allowed flag");
-    refreshAllowedRef.current = true;
-    initialLoadCompletedRef.current = false;
-    
-    // Set initial load completed after data is fetched
-    if (!loading && request) {
-      initialLoadCompletedRef.current = true;
+    if (!loading && request && !didInitialRenderRef.current) {
+      didInitialRenderRef.current = true;
+      console.log("RequestDetail - Initial load complete, enabling manual refresh");
+      
+      // Allow one manual refresh after a delay
+      setTimeout(() => {
+        manualRefreshBlockedRef.current = false;
+      }, 5000);
     }
-  }, [id, loading, request]);
+  }, [loading, request]);
 
   if (loading) {
     return <RequestDetailLoading />;
