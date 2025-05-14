@@ -73,7 +73,7 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
               <div className="flex items-center space-x-2">
                 <Badge 
                   variant={status === 'approved' ? 'default' : 'secondary'} 
-                  className={getStatusColor(quote.status)}
+                  className={`text-white ${getStatusColor(quote.status)}`}
                 >
                   {quote.status}
                 </Badge>
