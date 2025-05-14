@@ -105,7 +105,7 @@ const RequestDetail = () => {
       <Navbar />
       <Toaster position="top-right" richColors />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <RequestDetailHeader onBack={handleNavigateBack} />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
