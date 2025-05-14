@@ -1,5 +1,5 @@
 
-import { MaintenanceRequest } from '@/types/property';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 // Mock maintenance requests data with both old and new fields
 export const mockMaintenanceRequests: MaintenanceRequest[] = [
