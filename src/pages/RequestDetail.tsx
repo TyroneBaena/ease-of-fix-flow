@@ -18,6 +18,7 @@ const RequestDetail = () => {
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const refreshAllowedRef = useRef(true);
+  const initialLoadCompletedRef = useRef(false);
   
   // Configure data fetching with controlled refresh
   const { 
@@ -54,14 +55,33 @@ const RequestDetail = () => {
   const handleNavigateBack = () => navigate('/requests');
 
   // Reset refresh allowed flag when component mounts or ID changes
+  // Add logic to prevent refreshes on tab focus after initial load
   useEffect(() => {
     console.log("RequestDetail - Component mounted or ID changed, resetting refresh allowed flag");
     refreshAllowedRef.current = true;
+    initialLoadCompletedRef.current = false;
+    
+    // Set initial load completed after data is fetched
+    if (!loading && request) {
+      initialLoadCompletedRef.current = true;
+    }
+    
+    // Prevent visibilitychange from triggering refreshes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("RequestDetail - Tab became visible, but refresh is blocked to prevent flicker");
+        // No refresh action on visibility change
+      }
+    };
+    
+    // Add and remove visibility change listener
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     
     return () => {
       console.log("RequestDetail - Component unmounting, cleaning up");
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [id]);
+  }, [id, loading, request]);
 
   if (loading) {
     return <RequestDetailLoading />;

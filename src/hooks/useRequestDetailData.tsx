@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
@@ -17,6 +18,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const refreshLockRef = useRef(false);
   const refreshCountRef = useRef(0);
+  const initialLoadCompletedRef = useRef(false);
   
   // Reset refresh counter when the requestId changes - but don't force fresh data load
   useEffect(() => {
@@ -26,12 +28,26 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     setIsRefreshing(false);
     refreshLockRef.current = false;
     refreshCountRef.current = 0;
+    initialLoadCompletedRef.current = false;
+    
+    return () => {
+      // Cleanup function
+      console.log("useRequestDetailData - Cleaning up on requestId change");
+    };
   }, [requestId]);
   
   // Use our specialized hooks to fetch and manage the data
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(requestId, refreshCounter);
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
+  
+  // Mark initial load as completed once data is loaded
+  useEffect(() => {
+    if (!loading && request && !initialLoadCompletedRef.current) {
+      console.log("useRequestDetailData - Initial load completed");
+      initialLoadCompletedRef.current = true;
+    }
+  }, [loading, request]);
   
   // Setup real-time comments subscription - without auto refresh
   useRequestCommentsSubscription(requestId, () => {
