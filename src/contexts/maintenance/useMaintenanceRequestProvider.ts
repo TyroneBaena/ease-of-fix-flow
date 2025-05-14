@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
@@ -23,7 +22,7 @@ export const useMaintenanceRequestProvider = () => {
   }, [currentUser]);
 
   const loadRequests = async () => {
-    console.log('Loading maintenance requests...');
+    console.log('Loading maintenance requests for user:', currentUser?.id);
     setLoading(true);
     try {
       const fetchedRequests = await fetchRequests();
@@ -41,25 +40,9 @@ export const useMaintenanceRequestProvider = () => {
         setRequests(validatedRequests as MaintenanceRequest[]);
         return validatedRequests as MaintenanceRequest[];
       } else {
-        console.log('No maintenance requests found');
-        // If no data from Supabase, use a fallback for testing
-        try {
-          const { requests: sampleRequests } = await import('@/data/sampleData');
-          console.log('Using sample maintenance requests:', sampleRequests);
-          // Ensure sample data has required properties
-          const validatedSampleRequests = (sampleRequests as any[]).map(request => ({
-            ...request,
-            site: request.site || request.category || 'Unknown',
-            title: request.title || request.issueNature || 'Untitled Request',
-            location: request.location || 'Unknown',
-            submittedBy: request.submittedBy || 'Anonymous'
-          }));
-          setRequests(validatedSampleRequests as MaintenanceRequest[]);
-          return validatedSampleRequests as MaintenanceRequest[];
-        } catch (err) {
-          console.error('Failed to load sample data:', err);
-          return [] as MaintenanceRequest[];
-        }
+        console.log('No maintenance requests found for this user');
+        setRequests([]); // Set empty array instead of using sample data
+        return [] as MaintenanceRequest[];
       }
     } catch (error) {
       console.error('Error loading maintenance requests:', error);

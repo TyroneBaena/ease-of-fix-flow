@@ -7,11 +7,18 @@ import { isAttachmentArray, isHistoryArray } from '@/types/property';
 export const useMaintenanceRequestOperations = (currentUser: any) => {
   const fetchRequests = async () => {
     try {
-      console.log('Fetching maintenance requests...');
+      console.log('Fetching maintenance requests...', currentUser?.id);
+      if (!currentUser?.id) {
+        console.log('No current user, returning empty array');
+        return [];
+      }
+      
+      // Only fetch requests owned by the current user
       const { data, error } = await supabase
         .from('maintenance_requests')
-        .select('*');
-
+        .select('*')
+        .eq('user_id', currentUser.id); // Filter by the current user's ID
+      
       if (error) {
         console.error('Error fetching maintenance requests:', error);
         toast.error('Failed to fetch maintenance requests');

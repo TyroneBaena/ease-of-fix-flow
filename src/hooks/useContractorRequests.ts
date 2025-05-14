@@ -3,23 +3,42 @@ import { useState, useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useUserContext } from '@/contexts/UserContext';
 
 export const useContractorRequests = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentUser } = useUserContext();
 
   useEffect(() => {
     const fetchQuoteRequests = async () => {
+      if (!currentUser) {
+        console.log('No current user, skipping request loading');
+        return;
+      }
+      
       setIsLoading(true);
       setError(null);
 
       try {
         console.log('Fetching maintenance requests with quote_requested flag...');
-        const { data, error } = await supabase
+        
+        // For contractors, we fetch requests that are marked for quote
+        // For regular users, we only fetch their own requests
+        let query = supabase
           .from('maintenance_requests')
-          .select('*')
-          .eq('quote_requested', true);
+          .select('*');
+          
+        if (currentUser.role === 'contractor') {
+          // Contractors see requests marked for quote
+          query = query.eq('quote_requested', true);
+        } else {
+          // Regular users only see their own requests
+          query = query.eq('user_id', currentUser.id);
+        }
+        
+        const { data, error } = await query;
         
         if (error) {
           console.error('Error fetching requests:', error);
@@ -110,7 +129,7 @@ export const useContractorRequests = () => {
     };
 
     fetchQuoteRequests();
-  }, []);
+  }, [currentUser]);
 
   return { requests, isLoading, error };
 };

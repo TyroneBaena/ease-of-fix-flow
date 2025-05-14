@@ -12,6 +12,11 @@ const Dashboard = () => {
   const { currentUser } = useUserContext();
   const { requests } = useMaintenanceRequestContext();
   
+  // Filter requests to only show those belonging to the current user
+  const userRequests = currentUser?.role === 'admin' 
+    ? requests 
+    : requests.filter(req => req.user_id === currentUser?.id);
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -20,8 +25,8 @@ const Dashboard = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
           <div className="lg:col-span-3 space-y-6">
-            <StatsOverview requestsData={requests} />
-            <RequestsList allRequests={requests as any} />
+            <StatsOverview requestsData={userRequests} />
+            <RequestsList allRequests={userRequests as any} />
           </div>
           <DashboardSidebar />
         </div>

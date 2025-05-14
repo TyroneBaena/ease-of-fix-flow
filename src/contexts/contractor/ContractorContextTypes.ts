@@ -1,16 +1,22 @@
 
-import { Contractor, Quote } from '@/types/contractor';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 export interface ContractorContextType {
-  contractors: Contractor[];
+  activeJobs: MaintenanceRequest[];
+  completedJobs: MaintenanceRequest[];
   loading: boolean;
-  error: Error | null;
-  loadContractors: () => Promise<void>;
-  assignContractor: (requestId: string, contractorId: string) => Promise<void>;
-  changeAssignment: (requestId: string, contractorId: string) => Promise<void>;
-  requestQuote: (requestId: string, contractorId: string, includeInfo?: any, notes?: string) => Promise<void>;
-  submitQuote: (requestId: string, amount: number, description?: string) => Promise<void>;
-  approveQuote: (quoteId: string) => Promise<void>;
-  rejectQuote: (quoteId: string) => Promise<void>;
-  updateJobProgress: (requestId: string, progress: number, notes?: string, completionPhotos?: Array<{ url: string }>) => Promise<void>;
+  error: string | null;
+  contractorId: string | null;
+  fetchJobs: () => Promise<void>;
+  updateJobProgress: (
+    jobId: string,
+    progress: number,
+    notes: string
+  ) => Promise<boolean>;
+  markJobComplete: (jobId: string) => Promise<boolean>;
+  submitQuote: (
+    jobId: string, 
+    amount: number, 
+    description: string
+  ) => Promise<boolean>;
 }
