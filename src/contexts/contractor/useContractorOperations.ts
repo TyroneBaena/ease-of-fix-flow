@@ -64,9 +64,9 @@ export const useContractorOperations = () => {
     }
   };
 
-  const requestQuote = async (requestId: string, contractorId: string) => {
+  const requestQuote = async (requestId: string, contractorId: string, includeInfo = {}, notes = '') => {
     try {
-      await requestQuoteForJob(requestId, contractorId);
+      await requestQuoteForJob(requestId, contractorId, includeInfo, notes);
       toast.success('Quote request sent to contractor');
     } catch (err) {
       console.error('Error requesting quote:', err);
@@ -79,6 +79,7 @@ export const useContractorOperations = () => {
     try {
       await submitQuoteForJob(requestId, amount, description);
       toast.success('Quote submitted successfully');
+      return true;
     } catch (err) {
       console.error('Error submitting quote:', err);
       toast.error('Failed to submit quote');
@@ -90,6 +91,7 @@ export const useContractorOperations = () => {
     try {
       await approveQuoteForJob(quoteId);
       toast.success('Quote approved and contractor assigned');
+      return true;
     } catch (err) {
       console.error('Error approving quote:', err);
       toast.error('Failed to approve quote');
@@ -101,6 +103,7 @@ export const useContractorOperations = () => {
     try {
       await rejectQuote(quoteId);
       toast.success('Quote rejected');
+      return true;
     } catch (err) {
       console.error('Error rejecting quote:', err);
       toast.error('Failed to reject quote');
@@ -117,6 +120,7 @@ export const useContractorOperations = () => {
     try {
       await updateJobProgressStatus(requestId, progress, notes, completionPhotos);
       toast.success('Progress updated successfully');
+      return true;
     } catch (err) {
       console.error('Error updating progress:', err);
       toast.error('Failed to update progress');

@@ -43,4 +43,8 @@ export interface MaintenanceRequest {
   quoteRequested?: boolean;
   quotedAmount?: number;
   quotes?: any[];
+  // Added field to match backend
+  userId: string;
+  // For backward compatibility
+  user_id?: string;
 }

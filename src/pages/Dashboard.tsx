@@ -13,9 +13,10 @@ const Dashboard = () => {
   const { requests } = useMaintenanceRequestContext();
   
   // Filter requests to only show those belonging to the current user
+  // Updated to use userId instead of user_id to match MaintenanceRequest type
   const userRequests = currentUser?.role === 'admin' 
     ? requests 
-    : requests.filter(req => req.user_id === currentUser?.id);
+    : requests.filter(req => req.userId === currentUser?.id);
   
   return (
     <div className="min-h-screen bg-gray-50">

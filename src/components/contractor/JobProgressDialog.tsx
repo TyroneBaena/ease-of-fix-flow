@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -70,7 +69,7 @@ export const JobProgressDialog = ({
         completionPhotos = await Promise.all(uploads);
       }
       
-      // Update progress
+      // Update progress - now passing correctly according to updated type definition
       await updateJobProgress(requestId, progress, notes, completionPhotos);
       
       toast.success('Progress updated successfully');
