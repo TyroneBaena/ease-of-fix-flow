@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Toaster } from "sonner";
 import { tenantService } from '@/services/user/tenantService';
+import { getRedirectPathByRole } from '@/services/userService';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -24,8 +25,9 @@ const Login = () => {
   // Effect to check if user is already logged in and redirect
   useEffect(() => {
     if (currentUser) {
-      console.log("User is already logged in, redirecting to dashboard");
-      navigate('/dashboard', { replace: true });
+      console.log("User is already logged in, redirecting to appropriate dashboard");
+      const redirectPath = getRedirectPathByRole(currentUser.role);
+      navigate(redirectPath, { replace: true });
     }
   }, [currentUser, navigate]);
 
@@ -86,13 +88,20 @@ const Login = () => {
       // Check if this is a first-time login (using temporary password)
       const params = new URLSearchParams(location.search);
       if (params.get('setupPassword') === 'true') {
-        // Note: toast is already shown in signInWithEmailPassword
         navigate(`/setup-password?email=${encodeURIComponent(email)}`);
         return;
       }
       
-      // Navigate to dashboard - toast is already shown in signInWithEmailPassword
-      navigate('/dashboard', { replace: true });
+      // Determine the correct dashboard based on the user's role
+      if (result?.user) {
+        const userRole = result.user.user_metadata?.role || 'manager';
+        const redirectPath = getRedirectPathByRole(userRole);
+        console.log(`Redirecting user with role ${userRole} to ${redirectPath}`);
+        navigate(redirectPath, { replace: true });
+      } else {
+        // Fallback to default dashboard
+        navigate('/dashboard', { replace: true });
+      }
     } catch (error) {
       console.error('Login error:', error);
       // Don't add another toast here since signInWithEmailPassword already shows one

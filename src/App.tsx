@@ -46,22 +46,35 @@ const App = () => {
     );
   }
 
+  // Helper function to determine home route based on user role
+  const getHomeRoute = () => {
+    if (!currentUser) return "/login";
+    
+    if (currentUser.role === 'contractor') {
+      return "/contractor-dashboard";
+    }
+    
+    return "/dashboard";
+  };
+
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Index />} />
         
-        {/* Add the new signup route */}
         <Route path="/signup" element={<Signup />} />
         
-        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <Login />} />
-        <Route path="/forgot-password" element={currentUser ? <Navigate to="/dashboard" /> : <ForgotPassword />} />
+        <Route path="/login" element={currentUser ? <Navigate to={getHomeRoute()} /> : <Login />} />
+        <Route path="/forgot-password" element={currentUser ? <Navigate to={getHomeRoute()} /> : <ForgotPassword />} />
         <Route path="/setup-password" element={<SetupPassword />} />
         
         {/* Admin/Manager Routes */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <Dashboard />
+            {currentUser?.role === 'contractor' ? 
+              <Navigate to="/contractor-dashboard" replace /> : 
+              <Dashboard />
+            }
           </ProtectedRoute>
         } />
         
@@ -110,7 +123,10 @@ const App = () => {
         {/* Contractor Routes */}
         <Route path="/contractor-dashboard" element={
           <ProtectedRoute>
-            <ContractorDashboard />
+            {currentUser?.role !== 'contractor' ? 
+              <Navigate to="/dashboard" replace /> : 
+              <ContractorDashboard />
+            }
           </ProtectedRoute>
         } />
         
@@ -144,7 +160,7 @@ const App = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/" element={currentUser ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
+        <Route path="/" element={currentUser ? <Navigate to={getHomeRoute()} /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );
