@@ -101,7 +101,8 @@ export const useJobDetail = (jobId: string | undefined) => {
             progressNotes: safeArrayFromJSON(data.progress_notes),
             quoteRequested: data.quote_requested || false,
             quotedAmount: data.quoted_amount,
-            quotes: data.quotes && data.quotes.length > 0 ? data.quotes : undefined
+            quotes: data.quotes && data.quotes.length > 0 ? data.quotes : undefined,
+            userId: data.user_id || 'unknown-user'
           };
           
           setJob(formattedJob);

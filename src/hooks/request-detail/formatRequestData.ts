@@ -54,7 +54,8 @@ export function formatRequestData(data: any): MaintenanceRequest {
       null,
     quoteRequested: data.quote_requested,
     quotedAmount: data.quoted_amount,
-    progressNotes: data.progress_notes
+    progressNotes: data.progress_notes,
+    userId: data.user_id || 'unknown-user'
   };
 
   return formattedRequest;

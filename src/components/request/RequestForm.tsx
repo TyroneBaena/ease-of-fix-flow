@@ -19,6 +19,7 @@ import { LocationField } from './LocationField';
 import { ReportDateField } from './ReportDateField';
 import { SiteField } from './SiteField';
 import { SubmittedByField } from './SubmittedByField';
+import { useUserContext } from '@/contexts/UserContext';
 
 export const RequestForm = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export const RequestForm = () => {
   const propertyIdParam = searchParams.get('propertyId');
   const { properties } = usePropertyContext();
   const { addRequestToProperty } = useMaintenanceRequestContext();
+  const { currentUser } = useUserContext();
   
   const { 
     formState, 
@@ -71,6 +73,11 @@ export const RequestForm = () => {
       return;
     }
     
+    if (!currentUser?.id) {
+      toast.error("You must be logged in to submit a request");
+      return;
+    }
+    
     setIsSubmitting(true);
     
     // Add the request to the selected property
@@ -86,7 +93,9 @@ export const RequestForm = () => {
         reportDate,
         site,
         submittedBy,
-        propertyId
+        propertyId,
+        userId: currentUser.id, // Add the userId field
+        user_id: currentUser.id // For backward compatibility
       });
       
       // Simulate API call

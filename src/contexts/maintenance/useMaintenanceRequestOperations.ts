@@ -141,7 +141,9 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       contactNumber: data.contact_number || undefined,
       address: data.address || undefined,
       practiceLeader: data.practice_leader || undefined,
-      practiceLeaderPhone: data.practice_leader_phone || undefined
+      practiceLeaderPhone: data.practice_leader_phone || undefined,
+      userId: data.user_id,
+      user_id: data.user_id // For backward compatibility
     };
   };
 

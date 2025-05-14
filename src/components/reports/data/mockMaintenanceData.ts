@@ -23,6 +23,7 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     category: 'HVAC',
     priority: 'high',
     propertyId: '1',
+    userId: 'mock-user-id-1',
   },
   {
     id: '2',
@@ -44,6 +45,7 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     category: 'Plumbing',
     priority: 'medium',
     propertyId: '2',
+    userId: 'mock-user-id-2',
   },
   {
     id: '3',
@@ -65,6 +67,7 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     category: 'Electrical',
     priority: 'low',
     propertyId: '1',
+    userId: 'mock-user-id-3',
   },
   {
     id: '4',
@@ -86,6 +89,7 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     category: 'Structural',
     priority: 'medium',
     propertyId: '3',
+    userId: 'mock-user-id-1',
   },
   {
     id: '5',
@@ -107,5 +111,6 @@ export const mockMaintenanceRequests: MaintenanceRequest[] = [
     category: 'IT',
     priority: 'high',
     propertyId: '2',
+    userId: 'mock-user-id-2',
   }
 ];

@@ -36,7 +36,8 @@ export const mapRequestFromDb = (job: any): MaintenanceRequest => ({
   completionPhotos: job.completion_photos ? (Array.isArray(job.completion_photos) ? job.completion_photos : []) : [],
   progressNotes: job.progress_notes ? (Array.isArray(job.progress_notes) ? job.progress_notes : []) : [],
   quoteRequested: job.quote_requested || false,
-  quotedAmount: job.quoted_amount
+  quotedAmount: job.quoted_amount,
+  userId: job.user_id || 'unknown-user'
 });
 
 // Helper function to map quote objects to MaintenanceRequest type
@@ -83,6 +84,7 @@ export const mapRequestFromQuote = (quote: any): MaintenanceRequest => {
     completionPhotos: request.completion_photos ? (Array.isArray(request.completion_photos) ? request.completion_photos : []) : [],
     progressNotes: request.progress_notes ? (Array.isArray(request.progress_notes) ? request.progress_notes : []) : [],
     quoteRequested: request.quote_requested || false,
-    quotedAmount: request.quoted_amount
+    quotedAmount: request.quoted_amount,
+    userId: request.user_id || 'unknown-user'
   };
 };

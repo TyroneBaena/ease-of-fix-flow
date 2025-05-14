@@ -107,7 +107,8 @@ export const useContractorRequests = () => {
               explanation: item.explanation,
               reportDate: item.report_date,
               date: item.created_at, // For compatibility with the RequestsTable component
-              quote: item.quoted_amount ? `$${item.quoted_amount}` : 'No quote'
+              quote: item.quoted_amount ? `$${item.quoted_amount}` : 'No quote',
+              userId: item.user_id || 'unknown-user'
             };
           });
           

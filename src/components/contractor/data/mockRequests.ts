@@ -1,3 +1,4 @@
+
 import { MaintenanceRequest } from '@/types/maintenance';
 
 export const mockRequests: MaintenanceRequest[] = [
@@ -26,7 +27,8 @@ export const mockRequests: MaintenanceRequest[] = [
     attemptedFix: 'Tried resetting the circuit breaker',
     issueNature: 'Broken Air Conditioning Unit',
     explanation: 'The air conditioning unit in the main conference room is not functioning properly.',
-    reportDate: '2023-04-10'
+    reportDate: '2023-04-10',
+    userId: 'mock-user-id-1'
   },
   {
     id: 'REQ-2023-002',
@@ -45,7 +47,8 @@ export const mockRequests: MaintenanceRequest[] = [
     explanation: 'The sink faucet in the staff break room is constantly leaking.',
     reportDate: '2023-04-05',
     site: 'Break Room',
-    submittedBy: 'Mark Johnson'
+    submittedBy: 'Mark Johnson',
+    userId: 'mock-user-id-1'
   },
   {
     id: 'REQ-2023-003',
@@ -64,7 +67,8 @@ export const mockRequests: MaintenanceRequest[] = [
     explanation: 'Three light fixtures in the reception area need to be replaced.',
     reportDate: '2023-03-28',
     site: 'Reception Area',
-    submittedBy: 'Lisa Brown'
+    submittedBy: 'Lisa Brown',
+    userId: 'mock-user-id-2'
   },
   {
     id: 'REQ-2023-004',
@@ -83,7 +87,8 @@ export const mockRequests: MaintenanceRequest[] = [
     explanation: 'Large pothole in the staff parking area needs to be filled.',
     reportDate: '2023-04-12',
     site: 'Parking Lot',
-    submittedBy: 'Robert Taylor'
+    submittedBy: 'Robert Taylor',
+    userId: 'mock-user-id-2'
   },
   {
     id: 'REQ-2023-005',
@@ -102,7 +107,8 @@ export const mockRequests: MaintenanceRequest[] = [
     explanation: 'Two chairs in the waiting room have damaged armrests.',
     reportDate: '2023-04-08',
     site: 'Waiting Area',
-    submittedBy: 'Sarah Johnson'
+    submittedBy: 'Sarah Johnson',
+    userId: 'mock-user-id-3'
   },
   {
     id: 'REQ-2023-006',
@@ -121,6 +127,7 @@ export const mockRequests: MaintenanceRequest[] = [
     explanation: 'Water stains on ceiling indicating possible roof leak.',
     reportDate: '2023-03-15',
     site: 'X-ray Room',
-    submittedBy: 'Michael Wilson'
+    submittedBy: 'Michael Wilson',
+    userId: 'mock-user-id-3'
   }
 ];
