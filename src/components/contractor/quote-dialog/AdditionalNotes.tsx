@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AdditionalNotesProps {
   value: string;
@@ -9,12 +11,12 @@ interface AdditionalNotesProps {
 export const AdditionalNotes = ({ value, onChange }: AdditionalNotesProps) => {
   return (
     <div>
-      <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
-      <textarea 
-        className="w-full min-h-[80px] p-2 text-sm border rounded-md resize-y"
-        placeholder="Add any specific instructions or details for the contractors..."
+      <h3 className="text-sm font-medium mb-3">Additional Notes</h3>
+      <Textarea
+        placeholder="Add any additional notes or requirements for the contractor..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        className="min-h-[100px]"
       />
     </div>
   );
