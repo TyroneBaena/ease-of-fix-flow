@@ -1,14 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useUserContext } from '@/contexts/UserContext';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { Loader2, CheckCircle, AlertCircle, Info, Bell } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Notification } from '@/types/notification';
-import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import NotificationsList from '@/components/notifications/NotificationsList';
 import { supabase } from '@/lib/supabase';
 
 const Notifications = () => {
@@ -158,20 +156,6 @@ const Notifications = () => {
     }
   };
   
-  const getNotificationIcon = (type: Notification['type']) => {
-    switch(type) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning':
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      case 'info':
-      default:
-        return <Info className="h-5 w-5 text-blue-500" />;
-    }
-  };
-  
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsRead(notification.id);
@@ -209,60 +193,11 @@ const Notifications = () => {
           </Button>
         </div>
         
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
-            <p className="text-gray-500">Loading notifications...</p>
-          </div>
-        ) : notifications.length > 0 ? (
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>Notification</TableHead>
-                  <TableHead className="w-28">Time</TableHead>
-                  <TableHead className="w-24">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {notifications.map((notification) => (
-                  <TableRow 
-                    key={notification.id} 
-                    className={`cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <TableCell>
-                      {getNotificationIcon(notification.type)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{notification.title}</div>
-                      <div className="text-gray-500">{notification.message}</div>
-                    </TableCell>
-                    <TableCell>
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell>
-                      {notification.isRead ? (
-                        <Badge variant="outline" className="text-gray-500">Read</Badge>
-                      ) : (
-                        <Badge className="bg-blue-500">New</Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <Bell className="h-16 w-16 text-gray-300 mb-4" />
-            <h2 className="text-xl font-medium text-gray-700">No notifications</h2>
-            <p className="text-gray-500 mt-2">
-              You don't have any notifications at the moment
-            </p>
-          </div>
-        )}
+        <NotificationsList 
+          notifications={notifications}
+          loading={loading}
+          onNotificationClick={handleNotificationClick}
+        />
       </main>
     </div>
   );
