@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useUserContext } from '@/contexts/UserContext';
@@ -17,83 +16,89 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   
   // Fetch notifications when component mounts
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setLoading(true);
-        
-        if (currentUser) {
-          // In a real implementation, this would fetch from your API or Supabase
-          // For now, we'll simulate a network request with a timeout
-          setTimeout(() => {
-            // This is where you'd normally fetch from an API endpoint
-            // For this example, we'll use mock data but as if it were fetched
-            const fetchedNotifications = [
-              {
-                id: '1',
-                title: 'New maintenance request',
-                message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
-                isRead: false,
-                createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-                type: 'info' as const,
-                link: '/requests/123'
-              },
-              {
-                id: '2',
-                title: 'Request approved',
-                message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
-                isRead: true,
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-                type: 'success' as const,
-                link: '/requests/456'
-              },
-              {
-                id: '3',
-                title: 'Urgent: Contractor needed',
-                message: 'An urgent request requires your attention',
-                isRead: false,
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-                type: 'warning' as const,
-                link: '/requests/789'
-              },
-              {
-                id: '4',
-                title: 'Request rejected',
-                message: `The quote for ${currentUser.name}'s property was rejected`,
-                isRead: false,
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-                type: 'error' as const,
-                link: '/requests/101'
-              }
-            ];
-
-            setNotifications(fetchedNotifications);
-            
-            // Update the user's unread count in the context if needed
-            if (currentUser && currentUser.unreadNotifications === undefined) {
-              const unreadCount = fetchedNotifications.filter(n => !n.isRead).length;
-              updateUser({
-                ...currentUser,
-                unreadNotifications: unreadCount
-              });
+    // Prevent multiple fetches and infinite loops
+    if (!hasInitialized) {
+      fetchNotifications();
+      setHasInitialized(true);
+    }
+  }, [hasInitialized]);
+  
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      
+      if (currentUser) {
+        // In a real implementation, this would fetch from your API or Supabase
+        // For now, we'll simulate a network request with a timeout
+        setTimeout(() => {
+          // This is where you'd normally fetch from an API endpoint
+          // For this example, we'll use mock data but as if it were fetched
+          const fetchedNotifications = [
+            {
+              id: '1',
+              title: 'New maintenance request',
+              message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
+              isRead: false,
+              createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+              type: 'info' as const,
+              link: '/requests/123'
+            },
+            {
+              id: '2',
+              title: 'Request approved',
+              message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
+              isRead: true,
+              createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+              type: 'success' as const,
+              link: '/requests/456'
+            },
+            {
+              id: '3',
+              title: 'Urgent: Contractor needed',
+              message: 'An urgent request requires your attention',
+              isRead: false,
+              createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+              type: 'warning' as const,
+              link: '/requests/789'
+            },
+            {
+              id: '4',
+              title: 'Request rejected',
+              message: `The quote for ${currentUser.name}'s property was rejected`,
+              isRead: false,
+              createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+              type: 'error' as const,
+              link: '/requests/101'
             }
-            
-            setLoading(false);
-          }, 800);
-        } else {
+          ];
+
+          setNotifications(fetchedNotifications);
+          
+          // Update the user's unread count in the context if needed
+          // But we do this once only to avoid infinite loops
+          if (currentUser && currentUser.unreadNotifications === undefined) {
+            const unreadCount = fetchedNotifications.filter(n => !n.isRead).length;
+            updateUser({
+              ...currentUser,
+              unreadNotifications: unreadCount
+            });
+          }
+          
           setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-        toast.error("Failed to load notifications");
+        }, 800);
+      } else {
         setLoading(false);
       }
-    };
-
-    fetchNotifications();
-  }, [currentUser, updateUser]);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      toast.error("Failed to load notifications");
+      setLoading(false);
+    }
+  };
   
   const markAllAsRead = async () => {
     try {
