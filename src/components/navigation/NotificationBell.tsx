@@ -25,6 +25,7 @@ export const NotificationBell = () => {
       size="icon" 
       className="relative"
       onClick={handleNotificationClick}
+      aria-label={hasUnread ? `${unreadCount} unread notifications` : "No unread notifications"}
     >
       {hasUnread ? <BellDot className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
       {hasUnread && (

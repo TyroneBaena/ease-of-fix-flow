@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useUserContext } from '@/contexts/UserContext';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -10,55 +10,94 @@ import { toast } from 'sonner';
 import { Loader2, CheckCircle, AlertCircle, Info, Bell } from 'lucide-react';
 import { Notification } from '@/types/notification';
 import { formatDistanceToNow } from 'date-fns';
-
-// This would come from an API in a real app
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'New maintenance request',
-    message: 'A new maintenance request has been submitted for Property A',
-    isRead: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
-    type: 'info',
-    link: '/requests/123'
-  },
-  {
-    id: '2',
-    title: 'Request approved',
-    message: 'Your maintenance request for Property B has been approved',
-    isRead: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // 3 hours ago
-    type: 'success',
-    link: '/requests/456'
-  },
-  {
-    id: '3',
-    title: 'Urgent: Contractor needed',
-    message: 'An urgent request requires your attention',
-    isRead: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    type: 'warning',
-    link: '/requests/789'
-  },
-  {
-    id: '4',
-    title: 'Request rejected',
-    message: 'The quote for Property C was rejected',
-    isRead: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    type: 'error',
-    link: '/requests/101'
-  }
-];
+import { supabase } from '@/lib/supabase';
 
 const Notifications = () => {
   const { currentUser, updateUser } = useUserContext();
-  const [loading, setLoading] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  
+  // Fetch notifications when component mounts
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        
+        if (currentUser) {
+          // In a real implementation, this would fetch from your API or Supabase
+          // For now, we'll simulate a network request with a timeout
+          setTimeout(() => {
+            // This is where you'd normally fetch from an API endpoint
+            // For this example, we'll use mock data but as if it were fetched
+            const fetchedNotifications = [
+              {
+                id: '1',
+                title: 'New maintenance request',
+                message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
+                isRead: false,
+                createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+                type: 'info' as const,
+                link: '/requests/123'
+              },
+              {
+                id: '2',
+                title: 'Request approved',
+                message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
+                isRead: true,
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+                type: 'success' as const,
+                link: '/requests/456'
+              },
+              {
+                id: '3',
+                title: 'Urgent: Contractor needed',
+                message: 'An urgent request requires your attention',
+                isRead: false,
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+                type: 'warning' as const,
+                link: '/requests/789'
+              },
+              {
+                id: '4',
+                title: 'Request rejected',
+                message: `The quote for ${currentUser.name}'s property was rejected`,
+                isRead: false,
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+                type: 'error' as const,
+                link: '/requests/101'
+              }
+            ];
+
+            setNotifications(fetchedNotifications);
+            
+            // Update the user's unread count in the context if needed
+            if (currentUser && currentUser.unreadNotifications === undefined) {
+              const unreadCount = fetchedNotifications.filter(n => !n.isRead).length;
+              updateUser({
+                ...currentUser,
+                unreadNotifications: unreadCount
+              });
+            }
+            
+            setLoading(false);
+          }, 800);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        toast.error("Failed to load notifications");
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [currentUser, updateUser]);
   
   const markAllAsRead = async () => {
     try {
-      setLoading(true);
+      setMarkingAllRead(true);
       
       // Update local state
       setNotifications(prevNotifications => 
@@ -82,7 +121,7 @@ const Notifications = () => {
       console.error('Error marking notifications as read:', error);
       toast.error('Failed to update notifications');
     } finally {
-      setLoading(false);
+      setMarkingAllRead(false);
     }
   };
   
@@ -105,6 +144,8 @@ const Notifications = () => {
           unreadNotifications: unreadCount
         };
         await updateUser(updatedUser);
+        
+        // In a real app, you would also update this in the database
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -132,6 +173,10 @@ const Notifications = () => {
     }
     
     // In a real app, navigate to the linked page if available
+    if (notification.link) {
+      console.log(`Would navigate to: ${notification.link}`);
+      // navigate(notification.link);
+    }
   };
 
   return (
@@ -142,15 +187,15 @@ const Notifications = () => {
           <div>
             <h1 className="text-2xl font-bold">Notifications</h1>
             <p className="text-gray-500">
-              {notifications.filter(n => !n.isRead).length} unread notifications
+              {loading ? "Loading..." : `${notifications.filter(n => !n.isRead).length} unread notifications`}
             </p>
           </div>
           <Button 
             onClick={markAllAsRead} 
             variant="outline"
-            disabled={loading || notifications.every(n => n.isRead)}
+            disabled={markingAllRead || loading || notifications.every(n => n.isRead)}
           >
-            {loading ? (
+            {markingAllRead ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...
@@ -159,7 +204,12 @@ const Notifications = () => {
           </Button>
         </div>
         
-        {notifications.length > 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+            <p className="text-gray-500">Loading notifications...</p>
+          </div>
+        ) : notifications.length > 0 ? (
           <Card>
             <Table>
               <TableHeader>
