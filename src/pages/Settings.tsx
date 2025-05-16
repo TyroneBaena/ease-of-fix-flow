@@ -9,6 +9,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
+import AccountSettings from '@/components/settings/AccountSettings';
 
 const Settings = () => {
   const { currentUser, isAdmin, loading } = useUserContext();
@@ -114,7 +115,7 @@ const Settings = () => {
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
               {!isAdmin && <AdminRoleUpdater />}
-              <p className="text-gray-500">Additional account settings will be implemented in a future update.</p>
+              {currentUser && <AccountSettings user={currentUser} />}
             </Card>
           </TabsContent>
           
