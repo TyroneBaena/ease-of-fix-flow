@@ -6,16 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from '@/lib/toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Key } from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface AccountSettingsProps {
   user: User;
 }
 
 const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
-  const { updateUser } = useUserContext();
+  const { updateUser, resetPassword } = useUserContext();
   const [name, setName] = useState(user.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isResetSubmitting, setIsResetSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +51,26 @@ const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
       toast.error('Failed to update account settings');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setIsResetSubmitting(true);
+    
+    try {
+      const result = await resetPassword(user.id, user.email);
+      
+      if (result.success) {
+        toast.success('Password reset email sent successfully');
+        setIsPasswordDialogOpen(false);
+      } else {
+        toast.error(`Failed to send password reset email: ${result.message}`);
+      }
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast.error(`Password reset failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsResetSubmitting(false);
     }
   };
 
@@ -98,11 +128,55 @@ const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
         <h3 className="text-lg font-medium mb-2">Password</h3>
         <Button
           variant="outline"
-          onClick={() => toast.info("Password reset feature will be implemented in a future update")}
+          onClick={() => setIsPasswordDialogOpen(true)}
         >
           Change Password
         </Button>
       </div>
+
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              We'll send a password reset link to your email address.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="flex items-center justify-center mb-4 text-amber-500">
+              <Key size={32} />
+            </div>
+            <p className="text-center text-gray-700">
+              A link will be sent to: <span className="font-medium">{user.email}</span>
+            </p>
+            <p className="text-center text-gray-500 text-sm mt-2">
+              The link will expire after 24 hours
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPasswordDialogOpen(false)}
+              disabled={isResetSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePasswordReset}
+              disabled={isResetSubmitting}
+            >
+              {isResetSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : 'Send Reset Link'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
