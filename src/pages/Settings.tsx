@@ -10,6 +10,7 @@ import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
+import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
 
 const Settings = () => {
@@ -124,7 +125,7 @@ const Settings = () => {
           <TabsContent value="notifications">
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
-              <p className="text-gray-500">Notification settings will be implemented in a future update.</p>
+              {currentUser && <NotificationSettings user={currentUser} />}
             </Card>
           </TabsContent>
         </Tabs>
