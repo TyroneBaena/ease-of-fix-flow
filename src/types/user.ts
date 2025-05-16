@@ -19,6 +19,7 @@ export interface User {
   assignedProperties?: string[]; // Array of property IDs for managers
   createdAt: string;
   notificationSettings?: NotificationSettings;
+  unreadNotifications?: number; // Count of unread notifications
 }
 
 export interface UserWithSupabaseData extends User {
