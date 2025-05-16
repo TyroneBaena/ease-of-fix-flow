@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
@@ -27,6 +28,7 @@ import ContractorProfile from './pages/contractor/ContractorProfile';
 import ContractorSettings from './pages/contractor/ContractorSettings';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
+import Notifications from './pages/Notifications';
 
 const App = () => {
   const { currentUser, loading } = useUserContext();
@@ -117,6 +119,12 @@ const App = () => {
         <Route path="/properties/:id" element={
           <ProtectedRoute>
             <PropertyDetail />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/notifications" element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         } />
         
