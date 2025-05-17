@@ -3,14 +3,14 @@ import React from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { Notification } from '@/types/notification';
+import { NotificationClient } from '@/types/notification';
 import NotificationItem from './NotificationItem';
 import NotificationEmpty from './NotificationEmpty';
 
 interface NotificationsListProps {
-  notifications: Notification[];
+  notifications: NotificationClient[];
   loading: boolean;
-  onNotificationClick: (notification: Notification) => void;
+  onNotificationClick: (notification: NotificationClient) => void;
 }
 
 const NotificationsList = ({ notifications, loading, onNotificationClick }: NotificationsListProps) => {

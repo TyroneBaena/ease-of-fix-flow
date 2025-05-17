@@ -3,16 +3,16 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, Info } from 'lucide-react';
-import { Notification } from '@/types/notification';
+import { NotificationClient } from '@/types/notification';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NotificationItemProps {
-  notification: Notification;
-  onClick: (notification: Notification) => void;
+  notification: NotificationClient;
+  onClick: (notification: NotificationClient) => void;
 }
 
 export const NotificationItem = ({ notification, onClick }: NotificationItemProps) => {
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = (type: NotificationClient['type']) => {
     switch(type) {
       case 'success':
         return <CheckCircle className="h-5 w-5 text-green-500" />;

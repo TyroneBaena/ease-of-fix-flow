@@ -5,7 +5,7 @@ import { Bell, BellDot } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 
-export const NotificationBell = () => {
+export const NotificationBell = ({ }) => {
   const { currentUser } = useUserContext();
   const navigate = useNavigate();
   
