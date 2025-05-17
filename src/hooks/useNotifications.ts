@@ -77,7 +77,7 @@ export const useNotifications = () => {
           // Fallback to mock data if no notifications in database yet
           const mockNotifications: NotificationClient[] = [
             {
-              id: '1',
+              id: crypto.randomUUID(), // Generate a proper UUID instead of "1"
               title: 'New maintenance request',
               message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
               isRead: false,
@@ -87,7 +87,7 @@ export const useNotifications = () => {
               user_id: currentUser.id
             },
             {
-              id: '2',
+              id: crypto.randomUUID(), // Generate a proper UUID instead of "2"
               title: 'Request approved',
               message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
               isRead: true,
@@ -97,7 +97,7 @@ export const useNotifications = () => {
               user_id: currentUser.id
             },
             {
-              id: '3',
+              id: crypto.randomUUID(), // Generate a proper UUID instead of "3"
               title: 'Urgent: Contractor needed',
               message: 'An urgent request requires your attention',
               isRead: false,
@@ -107,7 +107,7 @@ export const useNotifications = () => {
               user_id: currentUser.id
             },
             {
-              id: '4',
+              id: crypto.randomUUID(), // Generate a proper UUID instead of "4"
               title: 'Request rejected',
               message: `The quote for ${currentUser.name}'s property was rejected`,
               isRead: false,
@@ -204,6 +204,13 @@ export const useNotifications = () => {
     try {
       if (!currentUser) {
         throw new Error('User not authenticated');
+      }
+      
+      // Validate UUID format before sending to Supabase
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(notificationId)) {
+        console.error('Invalid UUID format:', notificationId);
+        toast.error('Invalid notification reference');
+        return;
       }
       
       // Update local state
