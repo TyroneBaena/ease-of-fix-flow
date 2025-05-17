@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Notification } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
@@ -11,7 +11,16 @@ export const useNotifications = () => {
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
   
-  const fetchNotifications = useCallback(async () => {
+  // Fetch notifications when component mounts
+  useEffect(() => {
+    // Prevent multiple fetches and infinite loops
+    if (!hasInitialized) {
+      fetchNotifications();
+      setHasInitialized(true);
+    }
+  }, [hasInitialized]);
+  
+  const fetchNotifications = async () => {
     try {
       setLoading(true);
       
@@ -82,16 +91,7 @@ export const useNotifications = () => {
       toast.error("Failed to load notifications");
       setLoading(false);
     }
-  }, [currentUser, updateUser]);
-  
-  // Fetch notifications when component mounts
-  useEffect(() => {
-    // Prevent multiple fetches and infinite loops
-    if (!hasInitialized) {
-      fetchNotifications();
-      setHasInitialized(true);
-    }
-  }, [hasInitialized, fetchNotifications]);
+  };
   
   const markAllAsRead = async () => {
     try {
@@ -166,8 +166,7 @@ export const useNotifications = () => {
     notifications,
     markingAllRead,
     markAllAsRead,
-    handleNotificationClick,
-    fetchNotifications
+    handleNotificationClick
   };
 };
 

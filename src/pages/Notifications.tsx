@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -13,16 +13,10 @@ const Notifications = () => {
     notifications, 
     markingAllRead, 
     markAllAsRead, 
-    handleNotificationClick,
-    fetchNotifications
+    handleNotificationClick 
   } = useNotifications();
   
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  
-  // Make sure notifications are refreshed when the component mounts
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
 
   return (
     <div className="min-h-screen bg-gray-50">
