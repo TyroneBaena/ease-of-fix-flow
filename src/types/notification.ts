@@ -7,4 +7,5 @@ export interface Notification {
   createdAt: string;
   type: 'info' | 'success' | 'warning' | 'error';
   link?: string;
+  user_id: string;
 }
