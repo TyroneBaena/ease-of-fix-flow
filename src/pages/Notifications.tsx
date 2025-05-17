@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import NotificationsList from '@/components/notifications/NotificationsList';
 import useNotifications from '@/hooks/useNotifications';
+import { Toaster } from "sonner";
 
 const Notifications = () => {
   const { 
@@ -12,14 +13,21 @@ const Notifications = () => {
     notifications, 
     markingAllRead, 
     markAllAsRead, 
-    handleNotificationClick 
+    handleNotificationClick,
+    fetchNotifications
   } = useNotifications();
   
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  
+  // Make sure notifications are refreshed when the component mounts
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+      <Toaster position="bottom-right" />
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
