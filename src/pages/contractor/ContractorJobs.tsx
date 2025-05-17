@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,10 @@ const ContractorJobs = () => {
     refreshData
   } = useContractorDashboard();
 
+  const handleRefresh = () => {
+    refreshData();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <ContractorHeader />
@@ -36,11 +40,12 @@ const ContractorJobs = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={refreshData}
+            onClick={handleRefresh}
             className="flex items-center gap-2"
+            disabled={loading}
           >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
         

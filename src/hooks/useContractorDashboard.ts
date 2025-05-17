@@ -20,17 +20,8 @@ export const useContractorDashboard = () => {
     pendingQuoteRequests, 
     activeJobs, 
     completedJobs,
-    refreshData: refreshContractorData
+    refreshData
   } = useContractorData(contractorId, loading, setLoading, setError);
-
-  const refreshData = () => {
-    if (contractorId) {
-      setLoading(true);
-      // This will trigger the useEffect that fetches data
-      setContractorId(contractorId);
-      refreshContractorData();
-    }
-  };
 
   return {
     pendingQuoteRequests,

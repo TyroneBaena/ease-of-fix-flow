@@ -14,6 +14,7 @@ export const useContractorData = (
   const [pendingQuoteRequests, setPendingQuoteRequests] = useState<MaintenanceRequest[]>([]);
   const [activeJobs, setActiveJobs] = useState<MaintenanceRequest[]>([]);
   const [completedJobs, setCompletedJobs] = useState<MaintenanceRequest[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!contractorId) return;
@@ -103,11 +104,12 @@ export const useContractorData = (
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [contractorId, setLoading, setError]);
+  }, [contractorId, refreshTrigger, setLoading, setError]);
 
   const refreshData = () => {
     if (contractorId) {
       setLoading(true);
+      setRefreshTrigger(prev => prev + 1); // This will trigger the useEffect to run again
       toast.info('Refreshing data...');
     }
   };
