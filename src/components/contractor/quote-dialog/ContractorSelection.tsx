@@ -26,7 +26,10 @@ export const ContractorSelection = ({
     );
   }
 
-  if (!contractors || contractors.length === 0) {
+  // Make sure contractors is always an array even if undefined is received
+  const contractorsList = Array.isArray(contractors) ? contractors : [];
+
+  if (contractorsList.length === 0) {
     return (
       <div>
         <h3 className="text-sm font-medium mb-3">Select Contractors</h3>
@@ -43,7 +46,7 @@ export const ContractorSelection = ({
       <h3 className="text-sm font-medium mb-3">Select Contractors</h3>
       
       <div className="space-y-2">
-        {contractors.map((contractor) => (
+        {contractorsList.map((contractor) => (
           <div key={contractor.id} className="flex items-center space-x-2">
             <Checkbox
               id={`contractor-${contractor.id}`}
