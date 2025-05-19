@@ -32,10 +32,13 @@ export const useContractorOperations = () => {
       }
       
       setLoading(true);
+      console.log("Fetching contractors...");
       const contractorsData = await fetchContractors();
+      console.log("Fetched contractors:", contractorsData);
       setContractors(contractorsData);
       setError(null);
     } catch (err) {
+      console.error("Error loading contractors:", err);
       setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
     } finally {
       setLoading(false);

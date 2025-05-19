@@ -24,7 +24,7 @@ interface RequestQuoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: MaintenanceRequest | null;
-  onQuoteSubmitted?: () => void;  // Added this prop to match usage in RequestDetail
+  onQuoteSubmitted?: () => void;
 }
 
 export const RequestQuoteDialog = ({
@@ -33,7 +33,7 @@ export const RequestQuoteDialog = ({
   request,
   onQuoteSubmitted,
 }: RequestQuoteDialogProps) => {
-  const { contractors, loading, requestQuote } = useContractorContext();
+  const { contractors, loading, requestQuote, loadContractors } = useContractorContext();
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
   const [includeInfo, setIncludeInfo] = useState({
     description: true,
@@ -44,6 +44,29 @@ export const RequestQuoteDialog = ({
   });
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load contractors when the dialog opens
+  useEffect(() => {
+    if (open) {
+      loadContractors();
+      console.log("Dialog opened, loading contractors...");
+    }
+  }, [open, loadContractors]);
+
+  // Reset form when dialog opens or closes
+  useEffect(() => {
+    if (open) {
+      setSelectedContractors([]);
+      setIncludeInfo({
+        description: true,
+        location: true,
+        images: true,
+        contactDetails: true,
+        urgency: true
+      });
+      setNotes('');
+    }
+  }, [open]);
 
   useEffect(() => {
     console.log("Available contractors:", contractors);
@@ -97,20 +120,6 @@ export const RequestQuoteDialog = ({
       setIsSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (open) {
-      setSelectedContractors([]);
-      setIncludeInfo({
-        description: true,
-        location: true,
-        images: true,
-        contactDetails: true,
-        urgency: true
-      });
-      setNotes('');
-    }
-  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
