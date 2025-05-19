@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -44,14 +44,19 @@ export const RequestQuoteDialog = ({
   });
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasLoadedRef = useRef(false);
 
-  // Load contractors when the dialog opens
+  // Load contractors only once when the dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && !hasLoadedRef.current) {
+      console.log("Dialog opened, loading contractors once...");
       loadContractors();
-      console.log("Dialog opened, loading contractors...");
+      hasLoadedRef.current = true;
+    } else if (!open) {
+      // Reset the flag when dialog closes so we can load again next time
+      hasLoadedRef.current = false;
     }
-  }, [open, loadContractors]);
+  }, [open]);
 
   // Reset form when dialog opens or closes
   useEffect(() => {

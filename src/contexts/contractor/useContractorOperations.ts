@@ -23,6 +23,12 @@ export const useContractorOperations = () => {
 
   const loadContractors = async () => {
     try {
+      // Check if we already have contractors loaded
+      if (contractors.length > 0) {
+        console.log("Contractors already loaded, skipping fetch");
+        return;
+      }
+      
       // Check if user is authenticated before loading contractors
       const { data: authData } = await supabase.auth.getUser();
       if (!authData?.user) {
