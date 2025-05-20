@@ -26,9 +26,13 @@ export const ContractorSelection = ({
     );
   }
 
-  // Make sure contractors is always an array even if undefined is received
+  // Fix: Make sure contractors is always an array even if undefined or null is received
   const contractorsList = Array.isArray(contractors) ? contractors : [];
 
+  // Add debug output to help troubleshoot
+  console.log("ContractorSelection - Received contractors:", contractors);
+  console.log("ContractorSelection - Processed contractors list:", contractorsList);
+  
   if (contractorsList.length === 0) {
     return (
       <div>

@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
 import { toast } from '@/lib/toast';
 import { fetchContractors } from './operations/contractorFetch';
@@ -20,6 +19,11 @@ export const useContractorOperations = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  // Add automatic loading of contractors when the component mounts
+  useEffect(() => {
+    loadContractors();
+  }, []); 
 
   const loadContractors = async () => {
     try {

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
@@ -33,7 +32,7 @@ export const RequestQuoteDialog = ({
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { submitQuote } = useContractorContext();
+  const { submitQuote, contractors } = useContractorContext();
   const submittingRef = useRef(false);
   const hasLoadedRef = useRef(false);
 
@@ -48,6 +47,11 @@ export const RequestQuoteDialog = ({
       setIsSubmitting(false);
     }
   }, [open]);
+
+  // Add a useEffect to log when contractors are loaded
+  useEffect(() => {
+    console.log("RequestQuoteDialog - Current contractors:", contractors);
+  }, [contractors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
