@@ -8,7 +8,7 @@ export const submitQuoteForJob = async (
 ) => {
   const { data: contractorData, error: contractorError } = await supabase
     .from('contractors')
-    .select('id')
+    .select('id, company_name')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
     .single();
 
@@ -31,6 +31,21 @@ export const submitQuoteForJob = async (
     throw findError;
   }
 
+  // Get request details to find the requester's user ID
+  const { data: requestData, error: requestError } = await supabase
+    .from('maintenance_requests')
+    .select('user_id, title')
+    .eq('id', requestId)
+    .single();
+    
+  if (requestError) throw requestError;
+  
+  if (!requestData?.user_id) {
+    throw new Error('User ID not found for the request');
+  }
+
+  let quoteId = existingQuote?.id;
+
   if (existingQuote) {
     // Update the existing quote request
     const { error } = await supabase
@@ -47,7 +62,7 @@ export const submitQuoteForJob = async (
     if (error) throw error;
   } else {
     // Create a new quote
-    const { error } = await supabase
+    const { data: newQuote, error } = await supabase
       .from('quotes')
       .insert({
         request_id: requestId,
@@ -56,9 +71,33 @@ export const submitQuoteForJob = async (
         description,
         status: 'pending',
         submitted_at: new Date().toISOString()
-      });
+      })
+      .select('id');
 
     if (error) throw error;
+    quoteId = newQuote?.[0]?.id;
+  }
+  
+  // Create notification for the request owner
+  const formattedAmount = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+  
+  const { error: notificationError } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: requestData.user_id,
+      title: 'Quote Received',
+      message: `${contractorData.company_name} has submitted a quote of ${formattedAmount} for your request: ${requestData.title}`,
+      type: 'info',
+      link: `/requests/${requestId}`,
+      is_read: false
+    });
+  
+  if (notificationError) {
+    console.error('Failed to create notification:', notificationError);
+    // Don't throw here, we don't want to fail the quote submission just because notification creation failed
   }
 };
 
