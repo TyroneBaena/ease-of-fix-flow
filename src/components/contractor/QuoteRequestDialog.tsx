@@ -21,7 +21,7 @@ export const QuoteRequestDialog = ({
   // This wrapper component adapts the new RequestQuoteDialog to the old interface
   const handleQuoteSubmitted = () => {
     // We can't access the actual amount and description here as they're managed internally
-    // by the RequestQuoteDialog, so we pass dummy values that won't be used
+    // by the RequestQuoteDialog, so we pass dummy values
     // The actual submission happens in the RequestQuoteDialog
     onSubmitQuote(0, '');
   };
