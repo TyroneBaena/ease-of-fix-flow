@@ -70,7 +70,7 @@ export const RequestQuoteDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Submit Quote</DialogTitle>
           <DialogDescription>
@@ -78,8 +78,8 @@ export const RequestQuoteDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6">
+        <ScrollArea className="flex-1 pr-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-6 pb-4">
             <IssueDetails
               location={request?.location}
               priority={request?.priority}
