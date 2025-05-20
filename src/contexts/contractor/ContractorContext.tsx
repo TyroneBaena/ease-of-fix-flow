@@ -16,6 +16,10 @@ export const useContractorContext = () => {
 export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const contractorOperations = useContractorOperations();
   
+  // Add console log to verify all required properties are present
+  console.log("ContractorContext - Provider initialized with operations:", 
+    Object.keys(contractorOperations));
+  
   return (
     <ContractorContext.Provider value={contractorOperations}>
       {children}

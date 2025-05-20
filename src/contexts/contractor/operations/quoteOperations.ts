@@ -31,3 +31,6 @@ export const requestQuote = async (
     }, 1000);
   });
 };
+
+// Re-export the function with an alias to match imports in other files
+export { requestQuote as requestQuoteForJob };
