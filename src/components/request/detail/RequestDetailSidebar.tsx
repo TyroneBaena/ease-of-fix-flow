@@ -24,6 +24,7 @@ export const RequestDetailSidebar = ({
 }: RequestDetailSidebarProps) => {
   // Use a ref to track if refresh has been called already
   const hasRefreshedRef = useRef(false);
+  const buttonClickTimeRef = useRef(0);
   
   // Single-execution refresh handler
   const handleContractorAssigned = useCallback(() => {
@@ -44,6 +45,17 @@ export const RequestDetailSidebar = ({
       onRefreshData();
     }
   }, [onRefreshData]);
+
+  // Add debouncing for button click 
+  const handleSubmitQuoteClick = () => {
+    const now = Date.now();
+    // Prevent multiple rapid clicks (1 second cooldown)
+    if (now - buttonClickTimeRef.current < 1000) {
+      return;
+    }
+    buttonClickTimeRef.current = now;
+    onOpenQuoteDialog();
+  };
 
   return (
     <div className="space-y-6">
@@ -77,7 +89,7 @@ export const RequestDetailSidebar = ({
       
       {isContractor && request.status !== 'completed' && (
         <Button 
-          onClick={onOpenQuoteDialog}
+          onClick={handleSubmitQuoteClick}
           className="w-full"
         >
           Submit Quote

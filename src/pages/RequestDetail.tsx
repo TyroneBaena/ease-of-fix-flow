@@ -22,6 +22,7 @@ const RequestDetail = () => {
   const didInitialRenderRef = useRef(false);
   const manualRefreshBlockedRef = useRef(true);
   const pageVisibleRef = useRef(true);
+  const quoteSubmissionInProgressRef = useRef(false);
   
   // Configure data fetching with controlled refresh
   const { 
@@ -30,6 +31,7 @@ const RequestDetail = () => {
     quotes, 
     isContractor, 
     refreshData, 
+    refreshAfterQuoteSubmission, // Use the new specialized refresh function
     isRefreshing 
   } = useRequestDetailData(id);
   
@@ -47,11 +49,34 @@ const RequestDetail = () => {
       return;
     }
     
+    // Block if another operation is in progress
+    if (quoteSubmissionInProgressRef.current) {
+      console.log("RequestDetail - Manual refresh blocked: quote submission in progress");
+      return;
+    }
+    
     console.log("RequestDetail - Executing controlled ONE-TIME refresh");
     refreshData();
     
     // Block further manual refreshes permanently
     manualRefreshBlockedRef.current = true;
+  };
+  
+  // Special handler for quote submission with safety
+  const handleQuoteSubmitted = () => {
+    console.log("RequestDetail - Quote submitted, requesting controlled refresh");
+    
+    // Set the submission flag to prevent other refresh operations
+    quoteSubmissionInProgressRef.current = true;
+    
+    // Use the specialized refresh function for quote submission
+    refreshAfterQuoteSubmission();
+    
+    // Reset the submission flag after a delay
+    setTimeout(() => {
+      console.log("RequestDetail - Quote submission refresh completed");
+      quoteSubmissionInProgressRef.current = false;
+    }, 3000);
   };
   
   // Navigation handler
@@ -127,7 +152,7 @@ const RequestDetail = () => {
               open={quoteDialogOpen} 
               onOpenChange={setQuoteDialogOpen} 
               request={request}
-              onQuoteSubmitted={handleRefreshData}
+              onQuoteSubmitted={handleQuoteSubmitted} // Use the specialized handler
             />
           </ContractorProvider>
         </div>

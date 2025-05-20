@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
@@ -24,6 +25,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const refreshLockRef = useRef(true); // Start locked
   const refreshCountRef = useRef(0);
   const visibilityChangeRef = useRef(false);
+  // Add safety limiter for quote submission refresh
+  const quoteSubmissionTimeRef = useRef(0);
   
   // Reset all refs when requestId changes
   useEffect(() => {
@@ -40,6 +43,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     refreshLockRef.current = true; // Start locked
     refreshCountRef.current = 0;
     visibilityChangeRef.current = false;
+    quoteSubmissionTimeRef.current = 0;
     
     // After a delay, unlock refresh lock to allow one manual refresh
     setTimeout(() => {
@@ -90,7 +94,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     console.log("New comment received - no automatic refresh");
   });
   
-  // Strictly controlled refresh function
+  // Strictly controlled refresh function with additional quote submission safety
   const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Refresh requested");
     
@@ -104,6 +108,13 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     // Skip if no request ID
     if (!requestId) {
       console.log("useRequestDetailData - No request ID, skipping refresh");
+      return;
+    }
+    
+    // NEW: Special handling for quote submission to prevent infinite loop
+    const now = Date.now();
+    if (now - quoteSubmissionTimeRef.current < 5000) {
+      console.log("useRequestDetailData - Quote was just submitted, preventing potential refresh loop");
       return;
     }
     
@@ -123,7 +134,6 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     }
     
     // Strict time-based throttling (5 seconds between refreshes)
-    const now = Date.now();
     const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
     
     if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
@@ -175,6 +185,17 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       }, 1000);
     }
   }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);
+  
+  // Function to call after quote submission specifically
+  const refreshAfterQuoteSubmission = useCallback(() => {
+    // Mark the submission time to prevent loops
+    quoteSubmissionTimeRef.current = Date.now();
+    
+    // Wait a moment before refreshing to avoid race conditions
+    setTimeout(() => {
+      refreshData();
+    }, 1000);
+  }, [refreshData]);
 
   return {
     request,
@@ -182,6 +203,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     quotes,
     isContractor,
     refreshData,
+    refreshAfterQuoteSubmission, // Export new function specifically for quote submission
     isRefreshing
   };
 };
