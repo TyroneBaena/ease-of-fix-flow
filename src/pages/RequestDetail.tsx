@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -16,6 +17,7 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [requestQuoteDialogOpen, setRequestQuoteDialogOpen] = useState(false);  // New state for request quote dialog
   
   // Block multiple refreshes
   const didInitialRenderRef = useRef(false);
@@ -144,14 +146,28 @@ const RequestDetail = () => {
               quotes={quotes}
               isContractor={isContractor}
               onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
+              onOpenRequestQuoteDialog={() => setRequestQuoteDialogOpen(true)}  // New handler
               onRefreshData={handleRefreshData}
             />
             
+            {/* Submit Quote Dialog - Used by contractors to submit quotes */}
             <RequestQuoteDialog 
               open={quoteDialogOpen} 
               onOpenChange={setQuoteDialogOpen} 
               request={request}
               onQuoteSubmitted={handleQuoteSubmitted}
+            />
+            
+            {/* Request Quote Dialog - Used by property managers to request quotes from contractors */}
+            <QuoteRequestDialog
+              open={requestQuoteDialogOpen}
+              onOpenChange={setRequestQuoteDialogOpen}
+              requestDetails={request}
+              onSubmitQuote={() => {
+                // This is a placeholder function as we're not actually submitting a quote here
+                // We're just closing the dialog for now
+                handleQuoteSubmitted();
+              }}
             />
           </ContractorProvider>
         </div>

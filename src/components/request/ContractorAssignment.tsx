@@ -16,7 +16,7 @@ interface ContractorAssignmentProps {
   requestId: string;
   isAssigned: boolean;
   currentContractorId?: string;
-  onOpenQuoteDialog: () => void;
+  onOpenQuoteDialog: () => void; // This is now specifically for requesting quotes, not submitting them
   onContractorAssigned?: () => void; // Callback for when a contractor is assigned
 }
 

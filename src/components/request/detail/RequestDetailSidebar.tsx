@@ -12,6 +12,7 @@ interface RequestDetailSidebarProps {
   quotes: any[];
   isContractor: boolean;
   onOpenQuoteDialog: () => void;
+  onOpenRequestQuoteDialog: () => void;  // New prop for requesting quotes
   onRefreshData?: () => void;
 }
 
@@ -20,6 +21,7 @@ export const RequestDetailSidebar = ({
   quotes,
   isContractor,
   onOpenQuoteDialog,
+  onOpenRequestQuoteDialog,  // New prop
   onRefreshData
 }: RequestDetailSidebarProps) => {
   // Use a ref to track if refresh has been called already
@@ -63,7 +65,7 @@ export const RequestDetailSidebar = ({
         requestId={request.id}
         isAssigned={!!request.contractorId}
         currentContractorId={request.contractorId}
-        onOpenQuoteDialog={onOpenQuoteDialog}
+        onOpenQuoteDialog={onOpenRequestQuoteDialog}  // Changed to use the request quote dialog
         onContractorAssigned={handleContractorAssigned}
       />
       
