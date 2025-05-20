@@ -6,6 +6,7 @@ import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
 import { ContractorProvider } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
+import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
 import { useRequestDetailData } from '@/hooks/useRequestDetailData';
 import { RequestDetailHeader } from '@/components/request/detail/RequestDetailHeader';
 import { RequestDetailSidebar } from '@/components/request/detail/RequestDetailSidebar';
