@@ -1,157 +1,82 @@
-import { useState, useEffect } from 'react';
-import { Contractor } from '@/types/contractor';
-import { toast } from '@/lib/toast';
-import { fetchContractors } from './operations/contractorFetch';
-import { 
-  assignContractorToRequest, 
-  requestQuoteForJob,
-  changeContractorAssignment
-} from './operations';
-import { 
-  submitQuoteForJob, 
-  approveQuoteForJob, 
-  rejectQuote 
-} from './operations';
-import { updateJobProgressStatus } from './operations';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Contractor } from '@/types/contractor';
+import { 
+  fetchContractors, 
+  submitQuote,
+  requestQuote, 
+  IncludeInfo 
+} from './operations';
 
 export const useContractorOperations = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Add automatic loading of contractors when the component mounts
-  useEffect(() => {
-    loadContractors();
-  }, []); 
-
-  const loadContractors = async () => {
+  // Load contractors function
+  const loadContractors = useCallback(async () => {
+    console.log("useContractorOperations - Loading contractors");
+    setLoading(true);
     try {
-      // Check if we already have contractors loaded
-      if (contractors.length > 0) {
-        console.log("Contractors already loaded, skipping fetch");
-        return;
-      }
-      
-      // Check if user is authenticated before loading contractors
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData?.user) {
-        console.log("No authenticated user, skipping contractor loading");
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      console.log("Fetching contractors...");
-      const contractorsData = await fetchContractors();
-      console.log("Fetched contractors:", contractorsData);
-      setContractors(contractorsData);
+      const contractorsList = await fetchContractors();
+      console.log("useContractorOperations - Contractors loaded successfully:", contractorsList);
+      setContractors(contractorsList);
       setError(null);
     } catch (err) {
-      console.error("Error loading contractors:", err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
+      console.error("useContractorOperations - Error loading contractors:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const assignContractor = async (requestId: string, contractorId: string) => {
-    try {
-      await assignContractorToRequest(requestId, contractorId);
-      toast.success('Contractor assigned successfully');
-    } catch (err) {
-      console.error('Error assigning contractor:', err);
-      toast.error('Failed to assign contractor');
-      throw err;
-    }
-  };
-  
-  const changeAssignment = async (requestId: string, contractorId: string) => {
-    try {
-      await changeContractorAssignment(requestId, contractorId);
-      toast.success('Contractor reassigned successfully');
-    } catch (err) {
-      console.error('Error reassigning contractor:', err);
-      toast.error('Failed to reassign contractor');
-      throw err;
-    }
-  };
-
-  const requestQuote = async (requestId: string, contractorId: string, includeInfo = {}, notes = '') => {
-    try {
-      await requestQuoteForJob(requestId, contractorId, includeInfo, notes);
-      toast.success('Quote request sent to contractor');
-    } catch (err) {
-      console.error('Error requesting quote:', err);
-      toast.error('Failed to request quote');
-      throw err;
-    }
-  };
-
-  const submitQuote = async (requestId: string, amount: number, description?: string) => {
-    try {
-      await submitQuoteForJob(requestId, amount, description);
-      toast.success('Quote submitted successfully');
-      return true;
-    } catch (err) {
-      console.error('Error submitting quote:', err);
-      toast.error('Failed to submit quote');
-      throw err;
-    }
-  };
-
-  const approveQuote = async (quoteId: string) => {
-    try {
-      await approveQuoteForJob(quoteId);
-      toast.success('Quote approved and contractor assigned');
-      return true;
-    } catch (err) {
-      console.error('Error approving quote:', err);
-      toast.error('Failed to approve quote');
-      throw err;
-    }
-  };
-  
-  const rejectQuoteAction = async (quoteId: string) => {
-    try {
-      await rejectQuote(quoteId);
-      toast.success('Quote rejected');
-      return true;
-    } catch (err) {
-      console.error('Error rejecting quote:', err);
-      toast.error('Failed to reject quote');
-      throw err;
-    }
-  };
-
-  const updateJobProgress = async (
+  // Submit quote function
+  const handleSubmitQuote = useCallback(async (
     requestId: string, 
-    progress: number, 
-    notes?: string, 
-    completionPhotos?: Array<{ url: string }>
+    amount: number, 
+    description: string
   ) => {
+    console.log(`useContractorOperations - Submitting quote for request ${requestId}`);
     try {
-      await updateJobProgressStatus(requestId, progress, notes, completionPhotos);
-      toast.success('Progress updated successfully');
+      await submitQuote(requestId, amount, description);
+      console.log("useContractorOperations - Quote submitted successfully");
       return true;
     } catch (err) {
-      console.error('Error updating progress:', err);
-      toast.error('Failed to update progress');
+      console.error("useContractorOperations - Error submitting quote:", err);
       throw err;
     }
-  };
+  }, []);
+
+  // Request quote function
+  const handleRequestQuote = useCallback(async (
+    requestId: string,
+    contractorId: string,
+    includeInfo: IncludeInfo,
+    notes: string
+  ) => {
+    console.log(`useContractorOperations - Requesting quote for request ${requestId} from contractor ${contractorId}`);
+    try {
+      await requestQuote(requestId, contractorId, includeInfo, notes);
+      console.log("useContractorOperations - Quote request sent successfully");
+      return true;
+    } catch (err) {
+      console.error("useContractorOperations - Error requesting quote:", err);
+      throw err;
+    }
+  }, []);
+
+  // Load contractors on initial mount
+  useEffect(() => {
+    console.log("useContractorOperations - Initial mount, loading contractors");
+    loadContractors();
+  }, [loadContractors]);
 
   return {
     contractors,
     loading,
     error,
     loadContractors,
-    assignContractor,
-    changeAssignment,
-    requestQuote,
-    submitQuote,
-    approveQuote,
-    rejectQuote: rejectQuoteAction,
-    updateJobProgress,
+    submitQuote: handleSubmitQuote,
+    requestQuote: handleRequestQuote
   };
 };

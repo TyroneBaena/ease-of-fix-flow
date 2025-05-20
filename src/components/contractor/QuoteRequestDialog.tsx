@@ -14,6 +14,7 @@ import { ContractorSelection } from './quote-dialog/ContractorSelection';
 import { IssueDetails } from './quote-dialog/IssueDetails';
 import { ContactInformation } from './quote-dialog/ContactInformation';
 import { IncludeInfoSection } from './quote-dialog/IncludeInfoSection';
+import { AdditionalNotes } from './quote-dialog/AdditionalNotes';
 import { useContractorContext } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from 'sonner';
@@ -32,10 +33,13 @@ export const QuoteRequestDialog = ({
   onSubmitQuote,
 }: QuoteRequestDialogProps) => {
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
+  // Update this to match the expected properties in IncludeInfoSection
   const [includeInfo, setIncludeInfo] = useState({
-    requestDetails: true,
-    contactInfo: true,
-    photos: true
+    description: true,
+    location: true,
+    images: true,
+    contactDetails: true,
+    urgency: true
   });
   const [notes, setNotes] = useState('');
   const { contractors, loading, loadContractors, requestQuote } = useContractorContext();
@@ -47,10 +51,13 @@ export const QuoteRequestDialog = ({
       console.log("QuoteRequestDialog - Dialog opened, loading contractors");
       loadContractors();
       setSelectedContractors([]);
+      // Update this reset to match the new structure
       setIncludeInfo({
-        requestDetails: true,
-        contactInfo: true,
-        photos: true
+        description: true,
+        location: true,
+        images: true,
+        contactDetails: true,
+        urgency: true
       });
       setNotes('');
     }
@@ -104,6 +111,14 @@ export const QuoteRequestDialog = ({
     }
   };
 
+  // Function to handle toggling include info options
+  const handleInfoToggle = (infoType: string) => {
+    setIncludeInfo(prev => ({
+      ...prev,
+      [infoType]: !prev[infoType as keyof typeof prev]
+    }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -124,18 +139,13 @@ export const QuoteRequestDialog = ({
 
           <IncludeInfoSection
             includeInfo={includeInfo}
-            setIncludeInfo={setIncludeInfo}
+            onInfoToggle={handleInfoToggle}
           />
 
-          <div>
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Add any specific details or questions for the contractors..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
+          <AdditionalNotes
+            value={notes}
+            onChange={setNotes}
+          />
 
           <div className="flex justify-end space-x-2">
             <Button
