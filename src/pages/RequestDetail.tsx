@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -31,7 +30,7 @@ const RequestDetail = () => {
     quotes, 
     isContractor, 
     refreshData, 
-    refreshAfterQuoteSubmission, // Use the new specialized refresh function
+    refreshAfterQuoteSubmission,
     isRefreshing 
   } = useRequestDetailData(id);
   
@@ -152,7 +151,7 @@ const RequestDetail = () => {
               open={quoteDialogOpen} 
               onOpenChange={setQuoteDialogOpen} 
               request={request}
-              onQuoteSubmitted={handleQuoteSubmitted} // Use the specialized handler
+              onQuoteSubmitted={handleQuoteSubmitted}
             />
           </ContractorProvider>
         </div>

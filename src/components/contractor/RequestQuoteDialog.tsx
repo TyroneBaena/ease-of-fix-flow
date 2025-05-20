@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,22 +15,32 @@ import { AttachmentGallery } from './quote-dialog/AttachmentGallery';
 import { QuoteForm } from './quote-dialog/QuoteForm';
 import { MaintenanceRequest } from '@/types/maintenance';
 
-interface QuoteRequestDialogProps {
+interface RequestQuoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  requestDetails: MaintenanceRequest | null;
-  onSubmitQuote: (amount: number, description: string) => void;
+  request: MaintenanceRequest | null;
+  onQuoteSubmitted: () => void;
 }
 
-export const QuoteRequestDialog = ({
+export const RequestQuoteDialog = ({
   open,
   onOpenChange,
-  requestDetails,
-  onSubmitQuote,
-}: QuoteRequestDialogProps) => {
+  request,
+  onQuoteSubmitted,
+}: RequestQuoteDialogProps) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const submittingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
+
+  // Reset the flags when dialog is opened or closed
+  useEffect(() => {
+    if (!open) {
+      // Reset the submission flag and loaded flag when dialog is closed
+      submittingRef.current = false;
+      hasLoadedRef.current = false;
+    }
+  }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +56,8 @@ export const QuoteRequestDialog = ({
       submittingRef.current = true;
       
       // Submit quote and close dialog
-      onSubmitQuote(numericAmount, description);
+      // Use the specialized handler for quote submission
+      onQuoteSubmitted();
       
       // Reset form state
       setAmount('');
@@ -54,11 +65,6 @@ export const QuoteRequestDialog = ({
       
       // Close the dialog
       onOpenChange(false);
-      
-      // Reset submission flag after a short delay
-      setTimeout(() => {
-        submittingRef.current = false;
-      }, 500);
     }
   };
 
@@ -68,32 +74,32 @@ export const QuoteRequestDialog = ({
         <DialogHeader>
           <DialogTitle>Submit Quote</DialogTitle>
           <DialogDescription>
-            Request {requestDetails?.id}: {requestDetails?.title}
+            Request {request?.id}: {request?.title}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6">
             <IssueDetails
-              location={requestDetails?.location}
-              priority={requestDetails?.priority}
-              description={requestDetails?.description}
+              location={request?.location}
+              priority={request?.priority}
+              description={request?.description}
             />
 
             <Separator />
 
             <ContactInformation
-              site={requestDetails?.site}
-              address={requestDetails?.address}
-              submittedBy={requestDetails?.submittedBy}
-              contactNumber={requestDetails?.contactNumber}
-              practiceLeader={requestDetails?.practiceLeader}
-              practiceLeaderPhone={requestDetails?.practiceLeaderPhone}
+              site={request?.site}
+              address={request?.address}
+              submittedBy={request?.submittedBy}
+              contactNumber={request?.contactNumber}
+              practiceLeader={request?.practiceLeader}
+              practiceLeaderPhone={request?.practiceLeaderPhone}
             />
 
             <Separator />
 
-            <AttachmentGallery attachments={requestDetails?.attachments} />
+            <AttachmentGallery attachments={request?.attachments} />
           </div>
         </ScrollArea>
 
