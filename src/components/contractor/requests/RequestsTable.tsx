@@ -35,6 +35,39 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
     }
   };
 
+  // Function to determine the display status based on request and quote status
+  const getDisplayStatus = (request: MaintenanceRequest): string => {
+    // If the request has a quote object
+    if (request.quote && typeof request.quote !== 'string') {
+      // Show the quote status if it's pending, approved, or rejected
+      if (['pending', 'approved', 'rejected'].includes(request.quote.status)) {
+        // Capitalize first letter of quote status
+        return `Quote ${request.quote.status.charAt(0).toUpperCase() + request.quote.status.slice(1)}`;
+      } else if (request.quote.status === 'requested') {
+        return 'Quote Requested';
+      }
+    }
+    
+    // If no quote or quote is just a string, show the request status
+    return request.status.charAt(0).toUpperCase() + request.status.slice(1);
+  };
+  
+  // Function to determine badge color based on combined status
+  const getBadgeColor = (request: MaintenanceRequest): string => {
+    // If the request has a quote object with status
+    if (request.quote && typeof request.quote !== 'string') {
+      switch (request.quote.status) {
+        case 'requested': return 'bg-purple-100 text-purple-800';
+        case 'pending': return 'bg-yellow-100 text-yellow-800';
+        case 'approved': return 'bg-green-100 text-green-800';
+        case 'rejected': return 'bg-red-100 text-red-800';
+      }
+    }
+    
+    // Fallback to regular status badge color
+    return getStatusBadgeColor(request.status);
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -56,8 +89,8 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
             <TableCell className="font-mono text-sm">{request.id.substring(0, 8)}</TableCell>
             <TableCell className="font-medium">{request.title}</TableCell>
             <TableCell>
-              <Badge className={getStatusBadgeColor(request.status)}>
-                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+              <Badge className={getBadgeColor(request)}>
+                {getDisplayStatus(request)}
               </Badge>
             </TableCell>
             <TableCell>
