@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { RequestsTable } from '@/components/contractor/requests/RequestsTable';
-import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
+import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { ContractorProvider } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useContractorDashboard } from '@/hooks/useContractorDashboard';
@@ -145,11 +145,11 @@ const ContractorDashboard = () => {
       </main>
       
       <ContractorProvider>
-        <QuoteRequestDialog 
+        <RequestQuoteDialog 
           open={quoteDialogOpen}
           onOpenChange={setQuoteDialogOpen}
-          requestDetails={selectedRequest}
-          onSubmitQuote={() => {
+          request={selectedRequest}
+          onQuoteSubmitted={() => {
             setQuoteDialogOpen(false);
             refreshData();
           }}

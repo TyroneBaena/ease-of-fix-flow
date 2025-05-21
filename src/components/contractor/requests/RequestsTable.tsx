@@ -20,8 +20,11 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
   }
 
   const handleRowClick = (request: MaintenanceRequest) => {
-    // For quote requests that need to be submitted, use the dialog
-    if (request.status === 'pending' && request.quote && typeof request.quote !== 'string' && request.quote.status === 'requested') {
+    // For quote requests that need to be submitted, use the RequestQuoteDialog 
+    // instead of QuoteRequestDialog
+    if (request.status === 'pending' && request.quote && 
+        typeof request.quote !== 'string' && 
+        request.quote.status === 'requested') {
       onSelectRequest(request);
       return;
     }
