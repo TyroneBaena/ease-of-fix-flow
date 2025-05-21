@@ -18,6 +18,7 @@ import { AdditionalNotes } from './quote-dialog/AdditionalNotes';
 import { useContractorContext } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface QuoteRequestDialogProps {
   open: boolean;
@@ -33,7 +34,6 @@ export const QuoteRequestDialog = ({
   onSubmitQuote,
 }: QuoteRequestDialogProps) => {
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
-  // Update this to match the expected properties in IncludeInfoSection
   const [includeInfo, setIncludeInfo] = useState({
     description: true,
     location: true,
@@ -51,7 +51,6 @@ export const QuoteRequestDialog = ({
       console.log("QuoteRequestDialog - Dialog opened, loading contractors");
       loadContractors();
       setSelectedContractors([]);
-      // Update this reset to match the new structure
       setIncludeInfo({
         description: true,
         location: true,
@@ -77,6 +76,42 @@ export const QuoteRequestDialog = ({
     );
   };
 
+  const createNotificationForContractor = async (contractorId: string, requestId: string) => {
+    try {
+      // Get contractor details
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('user_id, company_name')
+        .eq('id', contractorId)
+        .single();
+      
+      if (!contractor?.user_id) {
+        console.error("Missing user_id for contractor:", contractorId);
+        return;
+      }
+      
+      // Create notification in the database
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          title: 'New Quote Request',
+          message: `You have a new quote request for maintenance job #${requestId.substring(0, 8)}`,
+          type: 'info',
+          user_id: contractor.user_id,
+          link: `/contractor/jobs/${requestId}`
+        });
+        
+      if (error) {
+        console.error("Error creating notification:", error);
+        throw error;
+      }
+      
+      console.log(`Notification created for contractor ${contractor.company_name}`);
+    } catch (error) {
+      console.error("Failed to create notification:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requestDetails?.id) {
@@ -94,11 +129,30 @@ export const QuoteRequestDialog = ({
       console.log("QuoteRequestDialog - Submitting quote requests for contractors:", selectedContractors);
       
       // Request quotes from all selected contractors
-      await Promise.all(
-        selectedContractors.map(contractorId =>
-          requestQuote(requestDetails.id!, contractorId, includeInfo, notes)
-        )
-      );
+      const quotePromises = selectedContractors.map(contractorId => {
+        // First request the quote
+        return requestQuote(requestDetails.id!, contractorId, includeInfo, notes)
+          .then(() => {
+            // Then create a notification for the contractor
+            return createNotificationForContractor(contractorId, requestDetails.id!);
+          });
+      });
+      
+      await Promise.all(quotePromises);
+      
+      // Update the maintenance request to mark quote as requested
+      const { error: updateError } = await supabase
+        .from('maintenance_requests')
+        .update({
+          quote_requested: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestDetails.id);
+        
+      if (updateError) {
+        console.error("Error updating maintenance request:", updateError);
+        throw updateError;
+      }
       
       toast.success(`Quote requests sent to ${selectedContractors.length} contractor(s)`);
       onSubmitQuote(0, ''); // Just to trigger the parent's callback

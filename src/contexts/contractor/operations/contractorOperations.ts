@@ -167,4 +167,32 @@ export const approveQuoteForJob = async (quoteId: string) => {
   if (requestUpdate.error) throw requestUpdate.error;
   
   console.log(`Quote ${quoteId} approved successfully`);
+  
+  // Create a notification for the contractor
+  try {
+    const { data: contractor } = await supabase
+      .from('contractors')
+      .select('user_id, company_name')
+      .eq('id', quote.contractor_id)
+      .single();
+    
+    if (contractor?.user_id) {
+      await supabase
+        .from('notifications')
+        .insert({
+          title: 'Quote Approved',
+          message: `Your quote for maintenance request #${quote.request_id.substring(0, 8)} has been approved!`,
+          type: 'success',
+          user_id: contractor.user_id,
+          link: `/contractor/jobs/${quote.request_id}`
+        });
+      
+      console.log(`Approval notification sent to contractor ${contractor.company_name}`);
+    }
+  } catch (notificationError) {
+    console.error("Error creating approval notification:", notificationError);
+    // Don't throw error here to prevent breaking the main process
+  }
+  
+  return true;
 };
