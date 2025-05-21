@@ -11,6 +11,37 @@ import {
   IncludeInfo 
 } from './operations';
 
+// Export this function so it can be used in the index.ts re-exports
+export const submitQuoteForJob = async (
+  requestId: string, 
+  amount: number, 
+  description: string
+) => {
+  const { data: contractorData, error: contractorError } = await supabase
+    .from('contractors')
+    .select('id')
+    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+    .single();
+
+  if (contractorError) throw contractorError;
+  
+  if (!contractorData?.id) {
+    throw new Error('Contractor ID not found');
+  }
+
+  const { error } = await supabase
+    .from('quotes')
+    .insert({
+      request_id: requestId,
+      contractor_id: contractorData.id,
+      amount,
+      description,
+      status: 'pending'
+    });
+
+  if (error) throw error;
+};
+
 export const useContractorOperations = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -167,35 +198,4 @@ export const useContractorOperations = () => {
     rejectQuote: handleRejectQuote,
     updateJobProgress: handleUpdateJobProgress
   };
-};
-
-// Helper function for submitting quotes within the file
-const submitQuoteForJob = async (
-  requestId: string, 
-  amount: number, 
-  description: string
-) => {
-  const { data: contractorData, error: contractorError } = await supabase
-    .from('contractors')
-    .select('id')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-    .single();
-
-  if (contractorError) throw contractorError;
-  
-  if (!contractorData?.id) {
-    throw new Error('Contractor ID not found');
-  }
-
-  const { error } = await supabase
-    .from('quotes')
-    .insert({
-      request_id: requestId,
-      contractor_id: contractorData.id,
-      amount,
-      description,
-      status: 'pending'
-    });
-
-  if (error) throw error;
 };

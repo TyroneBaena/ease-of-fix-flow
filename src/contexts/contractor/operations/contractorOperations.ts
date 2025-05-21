@@ -131,3 +131,40 @@ export const requestQuoteForJob = async (requestId: string, contractorId: string
   
   console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
 };
+
+export const approveQuoteForJob = async (quoteId: string) => {
+  console.log(`Approving quote ${quoteId}`);
+  
+  const { data: quote, error: quoteError } = await supabase
+    .from('quotes')
+    .select('*')
+    .eq('id', quoteId)
+    .single();
+
+  if (quoteError) throw quoteError;
+
+  const updateQuote = supabase
+    .from('quotes')
+    .update({
+      status: 'approved',
+      approved_at: new Date().toISOString()
+    })
+    .eq('id', quoteId);
+
+  const updateRequest = supabase
+    .from('maintenance_requests')
+    .update({
+      contractor_id: quote.contractor_id,
+      quoted_amount: quote.amount,
+      status: 'in-progress',
+      assigned_at: new Date().toISOString()
+    })
+    .eq('id', quote.request_id);
+
+  const [quoteUpdate, requestUpdate] = await Promise.all([updateQuote, updateRequest]);
+
+  if (quoteUpdate.error) throw quoteUpdate.error;
+  if (requestUpdate.error) throw requestUpdate.error;
+  
+  console.log(`Quote ${quoteId} approved successfully`);
+};
