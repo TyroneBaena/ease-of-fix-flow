@@ -57,5 +57,36 @@ export const requestQuote = async (
   return true; // Return success indicator
 };
 
+// Add the submitQuoteForJob function here
+export const submitQuoteForJob = async (
+  requestId: string, 
+  amount: number, 
+  description: string
+) => {
+  const { data: contractorData, error: contractorError } = await supabase
+    .from('contractors')
+    .select('id')
+    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+    .single();
+
+  if (contractorError) throw contractorError;
+  
+  if (!contractorData?.id) {
+    throw new Error('Contractor ID not found');
+  }
+
+  const { error } = await supabase
+    .from('quotes')
+    .insert({
+      request_id: requestId,
+      contractor_id: contractorData.id,
+      amount,
+      description,
+      status: 'pending'
+    });
+
+  if (error) throw error;
+};
+
 // Re-export the function with an alias to match imports in other files
 export { requestQuote as requestQuoteForJob };
