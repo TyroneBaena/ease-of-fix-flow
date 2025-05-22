@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
@@ -29,6 +28,7 @@ import ContractorSettings from './pages/contractor/ContractorSettings';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
 import Notifications from './pages/Notifications';
+import { Toaster } from "./components/ui/toaster";
 
 const App = () => {
   const { currentUser, loading } = useUserContext();
@@ -60,117 +60,122 @@ const App = () => {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        
-        <Route path="/signup" element={<Signup />} />
-        
-        <Route path="/login" element={currentUser ? <Navigate to={getHomeRoute()} /> : <Login />} />
-        <Route path="/forgot-password" element={currentUser ? <Navigate to={getHomeRoute()} /> : <ForgotPassword />} />
-        <Route path="/setup-password" element={<SetupPassword />} />
-        
-        {/* Admin/Manager Routes */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            {currentUser?.role === 'contractor' ? 
-              <Navigate to="/contractor-dashboard" replace /> : 
-              <Dashboard />
-            }
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/new-request" element={
-          <ProtectedRoute>
-            <NewRequest />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/requests/:id" element={
-          <ProtectedRoute>
-            <RequestDetail />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/requests" element={
-          <ProtectedRoute>
-            <AllRequests />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/reports" element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/properties" element={
-          <ProtectedRoute>
-            <Properties />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/properties/:id" element={
-          <ProtectedRoute>
-            <PropertyDetail />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/notifications" element={
-          <ProtectedRoute>
-            <Notifications />
-          </ProtectedRoute>
-        } />
-        
-        {/* Contractor Routes */}
-        <Route path="/contractor-dashboard" element={
-          <ProtectedRoute>
-            {currentUser?.role !== 'contractor' ? 
-              <Navigate to="/dashboard" replace /> : 
-              <ContractorDashboard />
-            }
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/contractor-jobs/:id" element={
-          <ProtectedRoute>
-            <ContractorJobDetail />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/contractor-jobs" element={
-          <ProtectedRoute>
-            <ContractorJobs />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/contractor-schedule" element={
-          <ProtectedRoute>
-            <ContractorSchedule />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/contractor-profile" element={
-          <ProtectedRoute>
-            <ContractorProfile />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/contractor-settings" element={
-          <ProtectedRoute>
-            <ContractorSettings />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/" element={currentUser ? <Navigate to={getHomeRoute()} /> : <Navigate to="/login" />} />
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          
+          <Route path="/signup" element={<Signup />} />
+          
+          <Route path="/login" element={currentUser ? <Navigate to={getHomeRoute()} /> : <Login />} />
+          <Route path="/forgot-password" element={currentUser ? <Navigate to={getHomeRoute()} /> : <ForgotPassword />} />
+          <Route path="/setup-password" element={<SetupPassword />} />
+          
+          {/* Admin/Manager Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              {currentUser?.role === 'contractor' ? 
+                <Navigate to="/contractor-dashboard" replace /> : 
+                <Dashboard />
+              }
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/new-request" element={
+            <ProtectedRoute>
+              <NewRequest />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/requests/:id" element={
+            <ProtectedRoute>
+              <RequestDetail />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/requests" element={
+            <ProtectedRoute>
+              <AllRequests />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/reports" element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/properties" element={
+            <ProtectedRoute>
+              <Properties />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/properties/:id" element={
+            <ProtectedRoute>
+              <PropertyDetail />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/notifications" element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          } />
+          
+          {/* Contractor Routes */}
+          <Route path="/contractor-dashboard" element={
+            <ProtectedRoute>
+              {currentUser?.role !== 'contractor' ? 
+                <Navigate to="/dashboard" replace /> : 
+                <ContractorDashboard />
+              }
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/contractor-jobs/:id" element={
+            <ProtectedRoute>
+              <ContractorJobDetail />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/contractor-jobs" element={
+            <ProtectedRoute>
+              <ContractorJobs />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/contractor-schedule" element={
+            <ProtectedRoute>
+              <ContractorSchedule />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/contractor-profile" element={
+            <ProtectedRoute>
+              <ContractorProfile />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/contractor-settings" element={
+            <ProtectedRoute>
+              <ContractorSettings />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/" element={currentUser ? <Navigate to={getHomeRoute()} /> : <Navigate to="/login" />} />
+        </Routes>
+      </Router>
+      
+      {/* Add Toaster component at the end */}
+      <Toaster />
+    </>
   );
 };
 

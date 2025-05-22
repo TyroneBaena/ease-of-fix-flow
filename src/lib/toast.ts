@@ -1,4 +1,3 @@
 
-import { toast } from 'sonner';
-
-export { toast };
+// Re-export toast from sonner
+export { toast } from "sonner";

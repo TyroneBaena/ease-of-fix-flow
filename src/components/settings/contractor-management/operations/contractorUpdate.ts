@@ -18,6 +18,8 @@ export const updateContractor = async (contractor: Contractor, updates: Partial<
     .eq('id', contractor.id);
     
   if (error) throw error;
+  
+  // Only show toast once when successful
   toast.success('Contractor updated successfully');
   return true;
 };
