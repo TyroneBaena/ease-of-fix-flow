@@ -19,8 +19,10 @@ export const NotificationBell = ({ }) => {
 
   // Update user context with unread count when notifications change
   useEffect(() => {
+    // Only update if we have a valid user, notifications have loaded,
+    // and the unread count is different from what's in the user context
     if (currentUser && !loading && notifications.length > 0) {
-      // Only update if the counts are different
+      // Only update if the counts are different to prevent infinite updates
       if (currentUser.unreadNotifications !== unreadCount) {
         updateUser({
           ...currentUser,
