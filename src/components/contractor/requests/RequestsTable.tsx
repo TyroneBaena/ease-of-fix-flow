@@ -37,19 +37,7 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
 
   // Function to determine the display status based on request and quote status
   const getDisplayStatus = (request: MaintenanceRequest): string => {
-    // If the request has a quote object
-    if (request.quote && typeof request.quote !== 'string') {
-      // Show the quote status if it's pending, approved, or rejected
-      if (['pending', 'approved', 'rejected'].includes(request.quote.status)) {
-        // Capitalize first letter of quote status
-        return `Quote ${request.quote.status.charAt(0).toUpperCase() + request.quote.status.slice(1)}`;
-      } else if (request.quote.status === 'requested') {
-        return 'Quote Requested';
-      }
-    }
-    
-    // If no quote or quote is just a string, show the request status
-    return request.status.charAt(0).toUpperCase() + request.status.slice(1);
+      return request.status;
   };
   
   // Function to determine badge color based on combined status

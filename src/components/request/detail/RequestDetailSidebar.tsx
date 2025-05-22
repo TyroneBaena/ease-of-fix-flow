@@ -89,7 +89,7 @@ export const RequestDetailSidebar = ({
         />
       )}
       
-      {isContractor && request.status !== 'completed' && (
+      {false && isContractor && request.status !== 'completed' && (
         <Button 
           onClick={handleSubmitQuoteClick}
           className="w-full"
