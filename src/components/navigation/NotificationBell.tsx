@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, BellDot } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
@@ -11,11 +11,13 @@ export const NotificationBell = memo(() => {
   const navigate = useNavigate();
   const { notifications } = useNotifications();
   
-  // Calculate unread count directly from notifications data
-  const unreadCount = notifications?.filter(n => !n.isRead)?.length || 0;
+  // Memoize unread count calculation to prevent unnecessary rerenders
+  const unreadCount = useMemo(() => {
+    return notifications?.filter(n => !n.isRead)?.length || 0;
+  }, [notifications]);
   
-  // Determine if there are any unread notifications
-  const hasUnread = unreadCount > 0;
+  // Memoize hasUnread value
+  const hasUnread = useMemo(() => unreadCount > 0, [unreadCount]);
 
   const handleNotificationClick = () => {
     navigate('/notifications');

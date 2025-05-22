@@ -5,7 +5,7 @@ import { Contractor } from '@/types/contractor';
 
 // Add a debounce mechanism for toasts
 let lastToastTime = 0;
-const TOAST_DEBOUNCE_MS = 2000; // Minimum 2 seconds between toasts
+const TOAST_DEBOUNCE_MS = 5000; // Increased to 5 seconds between toasts
 
 export const updateContractor = async (contractor: Contractor, updates: Partial<Contractor>) => {
   try {
@@ -26,12 +26,12 @@ export const updateContractor = async (contractor: Contractor, updates: Partial<
       
     if (error) throw error;
     
-    // Debounce success toast messages to prevent duplicates
+    // Strongly debounce success toast messages to prevent duplicates
     if (now - lastToastTime > TOAST_DEBOUNCE_MS) {
       lastToastTime = now;
       toast.success('Contractor updated successfully');
     } else {
-      console.log('Toast suppressed due to debouncing');
+      console.log('Toast suppressed due to debouncing, last toast was', now - lastToastTime, 'ms ago');
     }
     
     return true;

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
@@ -20,12 +20,12 @@ const RequestDetail = () => {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [requestQuoteDialogOpen, setRequestQuoteDialogOpen] = useState(false);
   
+  // Stabilize ID reference to prevent effect reruns
+  const stableIdRef = useRef(id);
+  
   // Block multiple refreshes with refs
-  const didInitialRenderRef = useRef(false);
-  const manualRefreshBlockedRef = useRef(true);
-  const pageVisibleRef = useRef(true);
   const quoteSubmissionInProgressRef = useRef(false);
-  const idChangedRef = useRef(false);
+  const componentMountedRef = useRef(true);
   
   // Configure data fetching with controlled refresh
   const { 
@@ -36,97 +36,40 @@ const RequestDetail = () => {
     refreshData, 
     refreshAfterQuoteSubmission,
     isRefreshing 
-  } = useRequestDetailData(id);
+  } = useRequestDetailData(stableIdRef.current);
   
-  // Reset refs when id changes
+  // Reset component on unmount
   useEffect(() => {
-    idChangedRef.current = true;
-    didInitialRenderRef.current = false;
-    manualRefreshBlockedRef.current = true;
-    quoteSubmissionInProgressRef.current = false;
-  }, [id]);
-  
-  // Handler for manual refresh with strict blocking
-  const handleRefreshData = () => {
-    console.log("RequestDetail - Manual refresh requested");
-    
-    if (manualRefreshBlockedRef.current) {
-      console.log("RequestDetail - Manual refresh blocked: system protection active");
-      return;
-    }
-    
-    if (!pageVisibleRef.current) {
-      console.log("RequestDetail - Manual refresh blocked: page not visible");
-      return;
-    }
-    
-    // Block if another operation is in progress
-    if (quoteSubmissionInProgressRef.current) {
-      console.log("RequestDetail - Manual refresh blocked: quote submission in progress");
-      return;
-    }
-    
-    console.log("RequestDetail - Executing controlled ONE-TIME refresh");
-    refreshData();
-    
-    // Block further manual refreshes permanently
-    manualRefreshBlockedRef.current = true;
-  };
-  
-  // Special handler for quote submission with safety
-  const handleQuoteSubmitted = () => {
-    console.log("RequestDetail - Quote submitted, requesting controlled refresh");
-    
-    // Set the submission flag to prevent other refresh operations
-    quoteSubmissionInProgressRef.current = true;
-    
-    // Use the specialized refresh function for quote submission
-    refreshAfterQuoteSubmission();
-    
-    // Reset the submission flag after a delay
-    setTimeout(() => {
-      console.log("RequestDetail - Quote submission refresh completed");
-      quoteSubmissionInProgressRef.current = false;
-    }, 3000);
-  };
-  
-  // Navigation handler
-  const handleNavigateBack = () => navigate('/requests');
-
-  // Block ALL visibility change refreshes
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("RequestDetail - Tab visibility changed to visible");
-        pageVisibleRef.current = true;
-        // No refresh action on visibility change - COMPLETELY BLOCKED
-      } else {
-        console.log("RequestDetail - Tab visibility changed to hidden");
-        pageVisibleRef.current = false;
-      }
-    };
-    
-    // Add visibility change listener
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    
+    componentMountedRef.current = true;
     return () => {
-      console.log("RequestDetail - Component unmounting, cleaning up");
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      componentMountedRef.current = false;
     };
   }, []);
   
-  // Allow one manual refresh after initial load is complete
-  useEffect(() => {
-    if (!loading && request && !didInitialRenderRef.current) {
-      didInitialRenderRef.current = true;
-      console.log("RequestDetail - Initial load complete, enabling manual refresh");
-      
-      // Allow one manual refresh after a delay
-      setTimeout(() => {
-        manualRefreshBlockedRef.current = false;
-      }, 5000);
+  // Handler for manual refresh with debounce protection
+  const handleRefreshData = useCallback(() => {
+    if (!componentMountedRef.current || quoteSubmissionInProgressRef.current) {
+      return;
     }
-  }, [loading, request]);
+    refreshData();
+  }, [refreshData]);
+  
+  // Special handler for quote submission with safety
+  const handleQuoteSubmitted = useCallback(() => {
+    if (!componentMountedRef.current) return;
+    
+    quoteSubmissionInProgressRef.current = true;
+    refreshAfterQuoteSubmission();
+    
+    setTimeout(() => {
+      if (componentMountedRef.current) {
+        quoteSubmissionInProgressRef.current = false;
+      }
+    }, 3000);
+  }, [refreshAfterQuoteSubmission]);
+  
+  // Navigation handler - memoized to prevent rerenders
+  const handleNavigateBack = useCallback(() => navigate('/requests'), [navigate]);
 
   if (loading) {
     return <RequestDetailLoading />;
@@ -172,11 +115,7 @@ const RequestDetail = () => {
               open={requestQuoteDialogOpen}
               onOpenChange={setRequestQuoteDialogOpen}
               requestDetails={request}
-              onSubmitQuote={() => {
-                // This is a placeholder function as we're not actually submitting a quote here
-                // We're just closing the dialog for now
-                handleQuoteSubmitted();
-              }}
+              onSubmitQuote={handleQuoteSubmitted}
             />
           </ContractorProvider>
         </div>

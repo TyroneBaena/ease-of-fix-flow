@@ -17,134 +17,80 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Refs for controlling refresh behavior
-  const lastRefreshTimeRef = useRef(0);
+  const lastRefreshTimeRef = useRef(Date.now());
   const initialDataLoadedRef = useRef(false);
   const loadInProgressRef = useRef(false);
   const refreshLockRef = useRef(true); // Start locked
   const refreshCountRef = useRef(0);
-  const visibilityChangeRef = useRef(false);
-  const quoteSubmissionTimeRef = useRef(0);
-  const currentRequestIdRef = useRef<string | undefined>(undefined);
+  const currentRequestIdRef = useRef<string | undefined>(requestId);
+  const isMountedRef = useRef(true);
   
-  // Reset all refs when requestId changes
+  // IMPORTANT: Clear state on unmount to prevent memory leaks and updates after unmount
   useEffect(() => {
-    if (requestId === currentRequestIdRef.current) {
-      return; // Skip if the ID hasn't actually changed
-    }
-    
-    console.log("useRequestDetailData - Request ID changed, resetting all controls");
-    currentRequestIdRef.current = requestId;
-    
-    // Reset state
-    setRefreshCounter(0);
-    setIsRefreshing(false);
-    
-    // Reset refs
-    lastRefreshTimeRef.current = 0;
-    initialDataLoadedRef.current = false;
-    loadInProgressRef.current = false;
-    refreshLockRef.current = true; // Start locked
-    refreshCountRef.current = 0;
-    visibilityChangeRef.current = false;
-    quoteSubmissionTimeRef.current = 0;
-    
-    // After a delay, unlock refresh lock to allow one manual refresh
-    setTimeout(() => {
-      console.log("useRequestDetailData - Unlocking refresh for manual action");
-      if (currentRequestIdRef.current === requestId) { // Only if ID hasn't changed again
-        refreshLockRef.current = false;
-      }
-    }, 2000);
-  }, [requestId]);
-
-  // Block ALL visibility change refreshes completely
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("useRequestDetailData - Tab focus change detected, BLOCKING any refresh");
-        visibilityChangeRef.current = true;
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    isMountedRef.current = true;
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      isMountedRef.current = false;
     };
   }, []);
   
-  // Use specialized hooks with the refresh counter
+  // Use specialized hooks with the refresh counter - but only if we have a valid requestId
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(
     requestId, 
     refreshCounter
   );
   
+  // Only fetch quotes if we have a valid requestId
   const quotes = useRequestQuotes(requestId, refreshCounter);
+  
+  // Check contractor status (depends on currentUser, not requestId)
   const isContractor = useContractorStatus(currentUser?.id);
   
   // Mark initial load as completed once data is loaded
   useEffect(() => {
-    if (!loading && request && !initialDataLoadedRef.current && requestId === currentRequestIdRef.current) {
-      console.log("useRequestDetailData - Initial data load completed");
+    if (!loading && request && !initialDataLoadedRef.current && isMountedRef.current) {
       initialDataLoadedRef.current = true;
       loadInProgressRef.current = false;
+      
+      // After a delay, unlock refresh lock to allow one manual refresh
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          refreshLockRef.current = false;
+        }
+      }, 2000);
     }
-  }, [loading, request, requestId]);
+  }, [loading, request]);
   
   // Listen for comments without triggering refresh
   useRequestCommentsSubscription(requestId, () => {
-    console.log("New comment received - no automatic refresh");
+    // No automatic refresh on comments to prevent infinite loops
   });
   
-  // Strictly controlled refresh function with additional quote submission safety
+  // Strictly controlled refresh function with additional safety
   const refreshData = useCallback(() => {
-    console.log("useRequestDetailData - Refresh requested");
-    
-    // Skip if request ID has changed
-    if (requestId !== currentRequestIdRef.current) {
-      console.log("useRequestDetailData - Request ID changed, ignoring refresh");
-      return;
-    }
-    
-    // Block tab visibility triggered refreshes completely
-    if (visibilityChangeRef.current) {
-      console.log("useRequestDetailData - BLOCKING refresh triggered by tab visibility change");
-      visibilityChangeRef.current = false;
-      return;
-    }
+    // Skip if component is unmounted
+    if (!isMountedRef.current) return;
     
     // Skip if no request ID
-    if (!requestId) {
-      console.log("useRequestDetailData - No request ID, skipping refresh");
-      return;
-    }
-    
-    // Special handling for quote submission to prevent infinite loop
-    const now = Date.now();
-    if (now - quoteSubmissionTimeRef.current < 5000) {
-      console.log("useRequestDetailData - Quote was just submitted, preventing potential refresh loop");
-      return;
-    }
+    if (!requestId) return;
     
     // Strong refresh control - block if:
     // 1. Refresh is already in progress
     // 2. Refresh is locked (e.g. from auto-refresh on mount)
     // 3. Initial load is still in progress
     if (isRefreshing || refreshLockRef.current || loadInProgressRef.current) {
-      console.log("useRequestDetailData - Refresh blocked: already refreshing, locked, or load in progress");
       return;
     }
     
     // Hard limit to one refresh per session
     if (refreshCountRef.current >= 1) {
-      console.log("useRequestDetailData - Maximum refresh count reached, blocking further refreshes");
       return;
     }
     
     // Strict time-based throttling (5 seconds between refreshes)
     const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
+    const now = Date.now();
     
     if (now - lastRefreshTimeRef.current < MIN_REFRESH_INTERVAL) {
-      console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTimeRef.current}ms), throttling`);
       return;
     }
     
@@ -153,59 +99,60 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     loadInProgressRef.current = true;
     
     // Mark refresh as in progress and update last refresh time
-    setIsRefreshing(true);
-    lastRefreshTimeRef.current = now;
-    refreshCountRef.current += 1;
+    if (isMountedRef.current) {
+      setIsRefreshing(true);
+      lastRefreshTimeRef.current = now;
+      refreshCountRef.current += 1;
     
-    console.log(`useRequestDetailData - Starting refresh operation (attempt ${refreshCountRef.current})`);
-    
-    // First refresh request data from the database
-    if (refreshRequestData) {
-      refreshRequestData()
-        .then(() => {
-          console.log("useRequestDetailData - Base refresh complete, updating counter");
-          
-          // Check if request ID is still the same
-          if (requestId === currentRequestIdRef.current) {
+      // First refresh request data from the database
+      if (refreshRequestData) {
+        refreshRequestData()
+          .then(() => {
+            // Skip updates if component unmounted
+            if (!isMountedRef.current) return;
+            
             // Increment counter to trigger other hooks to refresh
             setRefreshCounter(prev => prev + 1);
-          }
-          
-          // Reset refresh state after a short delay
-          setTimeout(() => {
-            console.log("useRequestDetailData - Refresh cycle complete");
+            
+            // Reset refresh state after a short delay
+            setTimeout(() => {
+              if (isMountedRef.current) {
+                setIsRefreshing(false);
+                loadInProgressRef.current = false;
+              }
+            }, 1000);
+          })
+          .catch(error => {
+            // Skip updates if component unmounted
+            if (!isMountedRef.current) return;
+            
+            console.error("useRequestDetailData - Error during refresh:", error);
             setIsRefreshing(false);
             loadInProgressRef.current = false;
-            // Keep the lock to prevent more refreshes in this session
-          }, 1000);
-        })
-        .catch(error => {
-          console.error("useRequestDetailData - Error during refresh:", error);
-          setIsRefreshing(false);
-          loadInProgressRef.current = false;
-        });
-    } else {
-      // Just increment counter to trigger hooks to refresh
-      if (requestId === currentRequestIdRef.current) {
+          });
+      } else {
+        // Just increment counter to trigger hooks to refresh
         setRefreshCounter(prev => prev + 1);
+        
+        // Reset refresh state after a delay
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            setIsRefreshing(false);
+            loadInProgressRef.current = false;
+          }
+        }, 1000);
       }
-      
-      // Reset refresh state after a delay
-      setTimeout(() => {
-        setIsRefreshing(false);
-        loadInProgressRef.current = false;
-      }, 1000);
     }
   }, [requestId, isRefreshing, refreshRequestData]);
   
   // Function to call after quote submission specifically
   const refreshAfterQuoteSubmission = useCallback(() => {
-    // Mark the submission time to prevent loops
-    quoteSubmissionTimeRef.current = Date.now();
+    // Skip if component unmounted
+    if (!isMountedRef.current) return;
     
     // Wait a moment before refreshing to avoid race conditions
     setTimeout(() => {
-      if (requestId === currentRequestIdRef.current) {
+      if (isMountedRef.current && requestId === currentRequestIdRef.current) {
         refreshData();
       }
     }, 1000);
