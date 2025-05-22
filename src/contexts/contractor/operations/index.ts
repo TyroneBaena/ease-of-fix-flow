@@ -8,17 +8,14 @@ export * from './contractorFetch';
 // Re-export the specific functions
 export {
   assignContractorToRequest,
-  changeContractorAssignment
+  changeContractorAssignment,
+  approveQuoteForJob
 } from './contractorOperations';
 
 export {
   requestQuote as requestQuoteForJob,
   submitQuoteForJob
 } from './quoteOperations';
-
-export {
-  approveQuoteForJob
-} from './contractorOperations';
 
 export {
   updateJobProgressStatus

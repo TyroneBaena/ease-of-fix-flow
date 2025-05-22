@@ -24,4 +24,4 @@ export const useContractorOperations = () => {
 };
 
 // Re-export the submitQuoteForJob function so it can be used in the index.ts re-exports
-export { submitQuoteForJob } from '../operations';
+export { submitQuoteForJob } from './operations';
