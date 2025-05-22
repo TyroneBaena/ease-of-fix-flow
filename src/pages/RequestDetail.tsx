@@ -18,13 +18,14 @@ const RequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [requestQuoteDialogOpen, setRequestQuoteDialogOpen] = useState(false);  // New state for request quote dialog
+  const [requestQuoteDialogOpen, setRequestQuoteDialogOpen] = useState(false);
   
-  // Block multiple refreshes
+  // Block multiple refreshes with refs
   const didInitialRenderRef = useRef(false);
   const manualRefreshBlockedRef = useRef(true);
   const pageVisibleRef = useRef(true);
   const quoteSubmissionInProgressRef = useRef(false);
+  const idChangedRef = useRef(false);
   
   // Configure data fetching with controlled refresh
   const { 
@@ -36,6 +37,14 @@ const RequestDetail = () => {
     refreshAfterQuoteSubmission,
     isRefreshing 
   } = useRequestDetailData(id);
+  
+  // Reset refs when id changes
+  useEffect(() => {
+    idChangedRef.current = true;
+    didInitialRenderRef.current = false;
+    manualRefreshBlockedRef.current = true;
+    quoteSubmissionInProgressRef.current = false;
+  }, [id]);
   
   // Handler for manual refresh with strict blocking
   const handleRefreshData = () => {
@@ -130,7 +139,6 @@ const RequestDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <Toaster position="top-right" richColors />
       
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <RequestDetailHeader onBack={handleNavigateBack} />
@@ -147,7 +155,7 @@ const RequestDetail = () => {
               quotes={quotes}
               isContractor={isContractor}
               onOpenQuoteDialog={() => setQuoteDialogOpen(true)}
-              onOpenRequestQuoteDialog={() => setRequestQuoteDialogOpen(true)}  // New handler
+              onOpenRequestQuoteDialog={() => setRequestQuoteDialogOpen(true)}
               onRefreshData={handleRefreshData}
             />
             
@@ -173,6 +181,8 @@ const RequestDetail = () => {
           </ContractorProvider>
         </div>
       </main>
+      
+      <Toaster position="top-right" />
     </div>
   );
 };

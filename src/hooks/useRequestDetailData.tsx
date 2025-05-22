@@ -15,29 +15,32 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const { currentUser } = useUserContext();
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   
-  // Data loading tracking refs
+  // Refs for controlling refresh behavior
+  const lastRefreshTimeRef = useRef(0);
   const initialDataLoadedRef = useRef(false);
   const loadInProgressRef = useRef(false);
-  
-  // Strict refresh controls
   const refreshLockRef = useRef(true); // Start locked
   const refreshCountRef = useRef(0);
   const visibilityChangeRef = useRef(false);
-  // Add safety limiter for quote submission refresh
   const quoteSubmissionTimeRef = useRef(0);
+  const currentRequestIdRef = useRef<string | undefined>(undefined);
   
   // Reset all refs when requestId changes
   useEffect(() => {
+    if (requestId === currentRequestIdRef.current) {
+      return; // Skip if the ID hasn't actually changed
+    }
+    
     console.log("useRequestDetailData - Request ID changed, resetting all controls");
+    currentRequestIdRef.current = requestId;
     
     // Reset state
     setRefreshCounter(0);
-    setLastRefreshTime(0);
     setIsRefreshing(false);
     
     // Reset refs
+    lastRefreshTimeRef.current = 0;
     initialDataLoadedRef.current = false;
     loadInProgressRef.current = false;
     refreshLockRef.current = true; // Start locked
@@ -48,12 +51,10 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     // After a delay, unlock refresh lock to allow one manual refresh
     setTimeout(() => {
       console.log("useRequestDetailData - Unlocking refresh for manual action");
-      refreshLockRef.current = false;
+      if (currentRequestIdRef.current === requestId) { // Only if ID hasn't changed again
+        refreshLockRef.current = false;
+      }
     }, 2000);
-    
-    return () => {
-      console.log("useRequestDetailData - Cleaning up on requestId change");
-    };
   }, [requestId]);
 
   // Block ALL visibility change refreshes completely
@@ -82,12 +83,12 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   
   // Mark initial load as completed once data is loaded
   useEffect(() => {
-    if (!loading && request && !initialDataLoadedRef.current) {
+    if (!loading && request && !initialDataLoadedRef.current && requestId === currentRequestIdRef.current) {
       console.log("useRequestDetailData - Initial data load completed");
       initialDataLoadedRef.current = true;
       loadInProgressRef.current = false;
     }
-  }, [loading, request]);
+  }, [loading, request, requestId]);
   
   // Listen for comments without triggering refresh
   useRequestCommentsSubscription(requestId, () => {
@@ -97,6 +98,12 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   // Strictly controlled refresh function with additional quote submission safety
   const refreshData = useCallback(() => {
     console.log("useRequestDetailData - Refresh requested");
+    
+    // Skip if request ID has changed
+    if (requestId !== currentRequestIdRef.current) {
+      console.log("useRequestDetailData - Request ID changed, ignoring refresh");
+      return;
+    }
     
     // Block tab visibility triggered refreshes completely
     if (visibilityChangeRef.current) {
@@ -111,7 +118,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       return;
     }
     
-    // NEW: Special handling for quote submission to prevent infinite loop
+    // Special handling for quote submission to prevent infinite loop
     const now = Date.now();
     if (now - quoteSubmissionTimeRef.current < 5000) {
       console.log("useRequestDetailData - Quote was just submitted, preventing potential refresh loop");
@@ -136,8 +143,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     // Strict time-based throttling (5 seconds between refreshes)
     const MIN_REFRESH_INTERVAL = 5000; // 5 seconds
     
-    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
-      console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTime}ms), throttling`);
+    if (now - lastRefreshTimeRef.current < MIN_REFRESH_INTERVAL) {
+      console.log(`useRequestDetailData - Too soon since last refresh (${now - lastRefreshTimeRef.current}ms), throttling`);
       return;
     }
     
@@ -147,7 +154,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     
     // Mark refresh as in progress and update last refresh time
     setIsRefreshing(true);
-    setLastRefreshTime(now);
+    lastRefreshTimeRef.current = now;
     refreshCountRef.current += 1;
     
     console.log(`useRequestDetailData - Starting refresh operation (attempt ${refreshCountRef.current})`);
@@ -158,8 +165,11 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         .then(() => {
           console.log("useRequestDetailData - Base refresh complete, updating counter");
           
-          // Increment counter to trigger other hooks to refresh
-          setRefreshCounter(prev => prev + 1);
+          // Check if request ID is still the same
+          if (requestId === currentRequestIdRef.current) {
+            // Increment counter to trigger other hooks to refresh
+            setRefreshCounter(prev => prev + 1);
+          }
           
           // Reset refresh state after a short delay
           setTimeout(() => {
@@ -176,7 +186,9 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         });
     } else {
       // Just increment counter to trigger hooks to refresh
-      setRefreshCounter(prev => prev + 1);
+      if (requestId === currentRequestIdRef.current) {
+        setRefreshCounter(prev => prev + 1);
+      }
       
       // Reset refresh state after a delay
       setTimeout(() => {
@@ -184,7 +196,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
         loadInProgressRef.current = false;
       }, 1000);
     }
-  }, [requestId, isRefreshing, lastRefreshTime, refreshRequestData]);
+  }, [requestId, isRefreshing, refreshRequestData]);
   
   // Function to call after quote submission specifically
   const refreshAfterQuoteSubmission = useCallback(() => {
@@ -193,9 +205,11 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     
     // Wait a moment before refreshing to avoid race conditions
     setTimeout(() => {
-      refreshData();
+      if (requestId === currentRequestIdRef.current) {
+        refreshData();
+      }
     }, 1000);
-  }, [refreshData]);
+  }, [refreshData, requestId]);
 
   return {
     request,
@@ -203,7 +217,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     quotes,
     isContractor,
     refreshData,
-    refreshAfterQuoteSubmission, // Export new function specifically for quote submission
+    refreshAfterQuoteSubmission,
     isRefreshing
   };
 };

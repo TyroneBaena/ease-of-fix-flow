@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Notification, NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
@@ -35,141 +35,173 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+  
+  // Refs to prevent unnecessary updates
+  const lastUpdateTimeRef = useRef<number>(0);
+  const pendingUpdateRef = useRef<boolean>(false);
+  const unreadCountRef = useRef<number | null>(null);
+  const lastFetchedUserIdRef = useRef<string | null>(null);
   
   // Fetch notifications when component mounts
   useEffect(() => {
-    // Prevent multiple fetches and infinite loops
-    if (!hasInitialized) {
+    // Only fetch if we have a user and haven't initialized yet
+    if (currentUser?.id && !hasInitialized) {
+      // Track the current user ID to prevent refetches if user changes
+      lastFetchedUserIdRef.current = currentUser.id;
       fetchNotifications();
       setHasInitialized(true);
     }
-  }, [hasInitialized]);
+  }, [currentUser?.id, hasInitialized]);
   
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       
-      if (currentUser) {
-        // Fetch notifications from Supabase
-        const { data: fetchedData, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          throw error;
-        }
+      // Fetch notifications from Supabase
+      const { data: fetchedData, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
         
-        // If we have real data from database, use it
-        if (fetchedData && fetchedData.length > 0) {
-          // Convert to client notification format
-          const clientNotifications = fetchedData.map(mapToClientNotification);
-          setNotifications(clientNotifications);
-          
-          // Update the user's unread count in the context
-          const unreadCount = fetchedData.filter(n => !n.is_read).length;
-          
-          // Only update if the count is different to prevent infinite loops
-          if (currentUser.unreadNotifications !== unreadCount) {
-            // Use a throttle mechanism to prevent frequent updates
-            const now = Date.now();
-            if (now - lastUpdateTime > 2000) { // Only update if more than 2 seconds since last update
-              updateUser({
-                ...currentUser,
-                unreadNotifications: unreadCount
-              });
-              setLastUpdateTime(now);
-            }
-          }
-        } else {
-          // Fallback to mock data if no notifications in database yet
-          const mockNotifications: NotificationClient[] = [
-            {
-              id: crypto.randomUUID(),
-              title: 'New maintenance request',
-              message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
-              isRead: false,
-              createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-              type: 'info',
-              link: '/requests/123',
-              user_id: currentUser.id
-            },
-            {
-              id: crypto.randomUUID(),
-              title: 'Request approved',
-              message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
-              isRead: true,
-              createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-              type: 'success',
-              link: '/requests/456',
-              user_id: currentUser.id
-            },
-            {
-              id: crypto.randomUUID(),
-              title: 'Urgent: Contractor needed',
-              message: 'An urgent request requires your attention',
-              isRead: false,
-              createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-              type: 'warning',
-              link: '/requests/789',
-              user_id: currentUser.id
-            },
-            {
-              id: crypto.randomUUID(),
-              title: 'Request rejected',
-              message: `The quote for ${currentUser.name}'s property was rejected`,
-              isRead: false,
-              createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-              type: 'error',
-              link: '/requests/101',
-              user_id: currentUser.id
-            }
-          ];
-
-          setNotifications(mockNotifications);
-          
-          // Setup initial notifications in the database
-          for (const notification of mockNotifications) {
-            // Convert to database format (camelCase to snake_case)
-            await supabase.from('notifications').upsert({
-              id: notification.id,
-              title: notification.title,
-              message: notification.message,
-              is_read: notification.isRead,
-              created_at: notification.createdAt,
-              type: notification.type,
-              link: notification.link,
-              user_id: notification.user_id
-            });
-          }
-          
-          // Update the user's unread count in the context if needed
-          const unreadCount = mockNotifications.filter(n => !n.isRead).length;
-          const now = Date.now();
-          if (currentUser && 
-              (currentUser.unreadNotifications === undefined || 
-               currentUser.unreadNotifications !== unreadCount) && 
-              now - lastUpdateTime > 2000) {
-            updateUser({
-              ...currentUser,
-              unreadNotifications: unreadCount
-            });
-            setLastUpdateTime(now);
-          }
-        }
+      if (error) {
+        throw error;
+      }
+      
+      // If we have real data from database, use it
+      if (fetchedData && fetchedData.length > 0) {
+        // Convert to client notification format
+        const clientNotifications = fetchedData.map(mapToClientNotification);
+        setNotifications(clientNotifications);
         
-        setLoading(false);
+        // Update the unread count in our ref (but don't update user context yet)
+        const unreadCount = fetchedData.filter(n => !n.is_read).length;
+        unreadCountRef.current = unreadCount;
+        
+        // Only update user context if the count has changed and we haven't recently updated
+        if (currentUser.unreadNotifications !== unreadCount) {
+          scheduleUserUpdate();
+        }
       } else {
-        setLoading(false);
+        // Fallback to mock data if no notifications in database yet
+        const mockNotifications: NotificationClient[] = [
+          {
+            id: crypto.randomUUID(),
+            title: 'New maintenance request',
+            message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
+            isRead: false,
+            createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+            type: 'info',
+            link: '/requests/123',
+            user_id: currentUser.id
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Request approved',
+            message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
+            isRead: true,
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+            type: 'success',
+            link: '/requests/456',
+            user_id: currentUser.id
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Urgent: Contractor needed',
+            message: 'An urgent request requires your attention',
+            isRead: false,
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+            type: 'warning',
+            link: '/requests/789',
+            user_id: currentUser.id
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Request rejected',
+            message: `The quote for ${currentUser.name}'s property was rejected`,
+            isRead: false,
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+            type: 'error',
+            link: '/requests/101',
+            user_id: currentUser.id
+          }
+        ];
+
+        setNotifications(mockNotifications);
+        
+        // Setup initial notifications in the database
+        for (const notification of mockNotifications) {
+          // Convert to database format (camelCase to snake_case)
+          await supabase.from('notifications').upsert({
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            is_read: notification.isRead,
+            created_at: notification.createdAt,
+            type: notification.type,
+            link: notification.link,
+            user_id: notification.user_id
+          });
+        }
+        
+        // Update the unread count in our ref
+        const unreadCount = mockNotifications.filter(n => !n.isRead).length;
+        unreadCountRef.current = unreadCount;
+        
+        // Schedule an update only if needed
+        if (currentUser && 
+            (currentUser.unreadNotifications === undefined || 
+             currentUser.unreadNotifications !== unreadCount)) {
+          scheduleUserUpdate();
+        }
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast.error("Failed to load notifications");
+    } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+  
+  // Controlled and throttled user context update
+  const scheduleUserUpdate = useCallback(() => {
+    // Skip if already pending or no current user
+    if (pendingUpdateRef.current || !currentUser || unreadCountRef.current === null) {
+      return;
+    }
+    
+    const now = Date.now();
+    
+    // Only update once per 10 seconds maximum
+    if (now - lastUpdateTimeRef.current < 10000) {
+      // If update was too recent, schedule one for later and don't proceed
+      if (!pendingUpdateRef.current) {
+        pendingUpdateRef.current = true;
+        setTimeout(() => {
+          pendingUpdateRef.current = false;
+          scheduleUserUpdate();
+        }, 10000 - (now - lastUpdateTimeRef.current));
+      }
+      return;
+    }
+    
+    // If the unread count hasn't changed, don't update
+    if (currentUser.unreadNotifications === unreadCountRef.current) {
+      return;
+    }
+    
+    // Update user context
+    lastUpdateTimeRef.current = now;
+    updateUser({
+      ...currentUser,
+      unreadNotifications: unreadCountRef.current
+    });
+  }, [currentUser, updateUser]);
   
   const markAllAsRead = async () => {
     try {
@@ -206,18 +238,13 @@ export const useNotifications = () => {
         throw error;
       }
       
-      // Update user context
-      const now = Date.now();
-      if (now - lastUpdateTime > 2000) {
-        const updatedUser = {
-          ...currentUser,
-          unreadNotifications: 0
-        };
-        await updateUser(updatedUser);
-        setLastUpdateTime(now);
-        
-        toast.success('All notifications marked as read');
-      }
+      // Update unread count ref
+      unreadCountRef.current = 0;
+      
+      // Schedule update of user context
+      scheduleUserUpdate();
+      
+      toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error marking notifications as read:', error);
       toast.error('Failed to update notifications');
@@ -265,16 +292,13 @@ export const useNotifications = () => {
         throw error;
       }
       
-      // Update user's unread count
-      const unreadCount = notifications.filter(n => !n.isRead && n.id !== notificationId).length;
-      const now = Date.now();
-      if (now - lastUpdateTime > 2000 && currentUser.unreadNotifications !== unreadCount) {
-        const updatedUser = {
-          ...currentUser,
-          unreadNotifications: unreadCount
-        };
-        await updateUser(updatedUser);
-        setLastUpdateTime(now);
+      // Update unread count ref
+      const newUnreadCount = notifications.filter(n => !n.isRead && n.id !== notificationId).length;
+      unreadCountRef.current = newUnreadCount;
+      
+      // Schedule update of user context if needed
+      if (currentUser.unreadNotifications !== newUnreadCount) {
+        scheduleUserUpdate();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);

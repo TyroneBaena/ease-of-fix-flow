@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, BellDot } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 import useNotifications from '@/hooks/useNotifications';
 
-export const NotificationBell = ({ }) => {
+export const NotificationBell = memo(() => {
   const { currentUser } = useUserContext();
   const navigate = useNavigate();
   const { notifications } = useNotifications();
@@ -37,6 +37,6 @@ export const NotificationBell = ({ }) => {
       )}
     </Button>
   );
-};
+});
 
 export default NotificationBell;
