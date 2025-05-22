@@ -1,10 +1,9 @@
-
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { EmptyState } from './EmptyState';
-import { getStatusBadgeColor } from '../utils/statusBadgeUtils';
+import { getStatusBadgeColor, getQuoteStatusBadgeColor } from '../utils/statusBadgeUtils';
 import { useNavigate } from 'react-router-dom';
 
 interface RequestsTableProps {
@@ -37,19 +36,31 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
 
   // Function to determine the display status based on request and quote status
   const getDisplayStatus = (request: MaintenanceRequest): string => {
-      return request.status;
+    // If the request has a quote object with status, show combined status
+    if (request.quote && typeof request.quote !== 'string') {
+      switch (request.quote.status) {
+        case 'requested': return 'Quote Requested';
+        case 'pending': return 'Quote Submitted';
+        case 'approved': return 'Quote Approved';
+        case 'rejected': return 'Quote Rejected';
+      }
+    }
+    
+    // Otherwise show request status with proper formatting
+    switch (request.status) {
+      case 'pending': return 'Pending';
+      case 'in-progress': return 'In Progress';
+      case 'completed': return 'Completed';
+      case 'open': return 'Open';
+      default: return request.status;
+    }
   };
   
   // Function to determine badge color based on combined status
   const getBadgeColor = (request: MaintenanceRequest): string => {
     // If the request has a quote object with status
     if (request.quote && typeof request.quote !== 'string') {
-      switch (request.quote.status) {
-        case 'requested': return 'bg-purple-100 text-purple-800';
-        case 'pending': return 'bg-yellow-100 text-yellow-800';
-        case 'approved': return 'bg-green-100 text-green-800';
-        case 'rejected': return 'bg-red-100 text-red-800';
-      }
+      return getQuoteStatusBadgeColor(request.quote.status);
     }
     
     // Fallback to regular status badge color
