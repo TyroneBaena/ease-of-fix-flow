@@ -19,8 +19,6 @@ export const updateContractor = async (contractor: Contractor, updates: Partial<
     
   if (error) throw error;
   
-  // Only show toast once when successful - no need to return true
-  // The toast is shown here directly, so it won't cause continuous updates
   toast.success('Contractor updated successfully');
   return true;
 };

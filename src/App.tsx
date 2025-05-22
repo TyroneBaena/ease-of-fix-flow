@@ -173,7 +173,7 @@ const App = () => {
         </Routes>
       </Router>
       
-      {/* Add Toaster component at the end */}
+      {/* Add Toaster component - only use one */}
       <Toaster />
     </>
   );

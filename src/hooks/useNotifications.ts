@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Notification, NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
@@ -69,15 +68,19 @@ export const useNotifications = () => {
           
           // Update the user's unread count in the context
           const unreadCount = fetchedData.filter(n => !n.is_read).length;
-          updateUser({
-            ...currentUser,
-            unreadNotifications: unreadCount
-          });
+          
+          // Only update if the count is different to prevent infinite loops
+          if (currentUser.unreadNotifications !== unreadCount) {
+            updateUser({
+              ...currentUser,
+              unreadNotifications: unreadCount
+            });
+          }
         } else {
           // Fallback to mock data if no notifications in database yet
           const mockNotifications: NotificationClient[] = [
             {
-              id: crypto.randomUUID(), // Generate a proper UUID instead of "1"
+              id: crypto.randomUUID(),
               title: 'New maintenance request',
               message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
               isRead: false,
@@ -87,7 +90,7 @@ export const useNotifications = () => {
               user_id: currentUser.id
             },
             {
-              id: crypto.randomUUID(), // Generate a proper UUID instead of "2"
+              id: crypto.randomUUID(),
               title: 'Request approved',
               message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
               isRead: true,
@@ -97,7 +100,7 @@ export const useNotifications = () => {
               user_id: currentUser.id
             },
             {
-              id: crypto.randomUUID(), // Generate a proper UUID instead of "3"
+              id: crypto.randomUUID(),
               title: 'Urgent: Contractor needed',
               message: 'An urgent request requires your attention',
               isRead: false,
@@ -107,7 +110,7 @@ export const useNotifications = () => {
               user_id: currentUser.id
             },
             {
-              id: crypto.randomUUID(), // Generate a proper UUID instead of "4"
+              id: crypto.randomUUID(),
               title: 'Request rejected',
               message: `The quote for ${currentUser.name}'s property was rejected`,
               isRead: false,
@@ -136,8 +139,8 @@ export const useNotifications = () => {
           }
           
           // Update the user's unread count in the context if needed
-          if (currentUser && currentUser.unreadNotifications === undefined) {
-            const unreadCount = mockNotifications.filter(n => !n.isRead).length;
+          const unreadCount = mockNotifications.filter(n => !n.isRead).length;
+          if (currentUser && (currentUser.unreadNotifications === undefined || currentUser.unreadNotifications !== unreadCount)) {
             updateUser({
               ...currentUser,
               unreadNotifications: unreadCount

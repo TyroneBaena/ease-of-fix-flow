@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, BellDot } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import useNotifications from '@/hooks/useNotifications';
 
 export const NotificationBell = ({ }) => {
-  const { currentUser, updateUser } = useUserContext();
+  const { currentUser } = useUserContext();
   const navigate = useNavigate();
   const { notifications, loading } = useNotifications();
   
@@ -16,21 +16,6 @@ export const NotificationBell = ({ }) => {
   
   // Determine if there are any unread notifications
   const hasUnread = unreadCount > 0;
-
-  // Update user context with unread count when notifications change
-  useEffect(() => {
-    // Only update if we have a valid user, notifications have loaded,
-    // and the unread count is different from what's in the user context
-    if (currentUser && !loading && notifications.length > 0) {
-      // Only update if the counts are different to prevent infinite updates
-      if (currentUser.unreadNotifications !== unreadCount) {
-        updateUser({
-          ...currentUser,
-          unreadNotifications: unreadCount
-        });
-      }
-    }
-  }, [notifications, currentUser, loading, unreadCount, updateUser]);
 
   const handleNotificationClick = () => {
     navigate('/notifications');
