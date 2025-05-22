@@ -9,7 +9,7 @@ import useNotifications from '@/hooks/useNotifications';
 export const NotificationBell = ({ }) => {
   const { currentUser } = useUserContext();
   const navigate = useNavigate();
-  const { notifications, loading } = useNotifications();
+  const { notifications } = useNotifications();
   
   // Calculate unread count directly from notifications data
   const unreadCount = notifications?.filter(n => !n.isRead)?.length || 0;

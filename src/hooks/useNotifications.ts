@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Notification, NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
@@ -34,6 +35,7 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
   
   // Fetch notifications when component mounts
   useEffect(() => {
@@ -71,10 +73,15 @@ export const useNotifications = () => {
           
           // Only update if the count is different to prevent infinite loops
           if (currentUser.unreadNotifications !== unreadCount) {
-            updateUser({
-              ...currentUser,
-              unreadNotifications: unreadCount
-            });
+            // Use a throttle mechanism to prevent frequent updates
+            const now = Date.now();
+            if (now - lastUpdateTime > 2000) { // Only update if more than 2 seconds since last update
+              updateUser({
+                ...currentUser,
+                unreadNotifications: unreadCount
+              });
+              setLastUpdateTime(now);
+            }
           }
         } else {
           // Fallback to mock data if no notifications in database yet
@@ -140,11 +147,16 @@ export const useNotifications = () => {
           
           // Update the user's unread count in the context if needed
           const unreadCount = mockNotifications.filter(n => !n.isRead).length;
-          if (currentUser && (currentUser.unreadNotifications === undefined || currentUser.unreadNotifications !== unreadCount)) {
+          const now = Date.now();
+          if (currentUser && 
+              (currentUser.unreadNotifications === undefined || 
+               currentUser.unreadNotifications !== unreadCount) && 
+              now - lastUpdateTime > 2000) {
             updateUser({
               ...currentUser,
               unreadNotifications: unreadCount
             });
+            setLastUpdateTime(now);
           }
         }
         
@@ -167,6 +179,13 @@ export const useNotifications = () => {
         throw new Error('User not authenticated');
       }
       
+      // Don't proceed if there are no unread notifications
+      const unreadNotifications = notifications.filter(n => !n.isRead);
+      if (unreadNotifications.length === 0) {
+        setMarkingAllRead(false);
+        return;
+      }
+      
       // Update local state
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => ({
@@ -176,7 +195,7 @@ export const useNotifications = () => {
       );
       
       // Update in database
-      const notificationIds = notifications.map(n => n.id);
+      const notificationIds = unreadNotifications.map(n => n.id);
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
@@ -188,13 +207,17 @@ export const useNotifications = () => {
       }
       
       // Update user context
-      const updatedUser = {
-        ...currentUser,
-        unreadNotifications: 0
-      };
-      await updateUser(updatedUser);
-      
-      toast.success('All notifications marked as read');
+      const now = Date.now();
+      if (now - lastUpdateTime > 2000) {
+        const updatedUser = {
+          ...currentUser,
+          unreadNotifications: 0
+        };
+        await updateUser(updatedUser);
+        setLastUpdateTime(now);
+        
+        toast.success('All notifications marked as read');
+      }
     } catch (error) {
       console.error('Error marking notifications as read:', error);
       toast.error('Failed to update notifications');
@@ -207,6 +230,12 @@ export const useNotifications = () => {
     try {
       if (!currentUser) {
         throw new Error('User not authenticated');
+      }
+      
+      // Check if the notification is already read
+      const notification = notifications.find(n => n.id === notificationId);
+      if (!notification || notification.isRead) {
+        return; // Already read, no need to update
       }
       
       // Validate UUID format before sending to Supabase
@@ -238,11 +267,15 @@ export const useNotifications = () => {
       
       // Update user's unread count
       const unreadCount = notifications.filter(n => !n.isRead && n.id !== notificationId).length;
-      const updatedUser = {
-        ...currentUser,
-        unreadNotifications: unreadCount
-      };
-      await updateUser(updatedUser);
+      const now = Date.now();
+      if (now - lastUpdateTime > 2000 && currentUser.unreadNotifications !== unreadCount) {
+        const updatedUser = {
+          ...currentUser,
+          unreadNotifications: unreadCount
+        };
+        await updateUser(updatedUser);
+        setLastUpdateTime(now);
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to update notification');
