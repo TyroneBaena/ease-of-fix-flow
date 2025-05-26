@@ -6,10 +6,8 @@ import {
   ClipboardList, 
   Settings, 
   UserCog,
-  Calendar,
-  Bell
+  Calendar
 } from 'lucide-react';
-import { useContractorNotifications } from '@/hooks/useContractorNotifications';
 
 type NavItem = {
   name: string;
@@ -20,7 +18,6 @@ type NavItem = {
 export const ContractorNavigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { unreadCount } = useContractorNotifications();
   
   const navItems: NavItem[] = [
     { 
@@ -37,11 +34,6 @@ export const ContractorNavigation: React.FC = () => {
       name: 'Schedule', 
       path: '/contractor-schedule', 
       icon: <Calendar className="h-5 w-5" /> 
-    },
-    { 
-      name: 'Notifications', 
-      path: '/contractor-notifications', 
-      icon: <Bell className="h-5 w-5" /> 
     },
     { 
       name: 'Profile', 
@@ -65,7 +57,7 @@ export const ContractorNavigation: React.FC = () => {
         <button
           key={item.name}
           onClick={() => navigate(item.path)}
-          className={`flex items-center px-2 py-1.5 rounded-md transition-colors relative ${
+          className={`flex items-center px-2 py-1.5 rounded-md transition-colors ${
             isActive(item.path) 
               ? 'text-blue-600 font-medium' 
               : 'text-gray-600 hover:text-blue-600'
@@ -73,11 +65,6 @@ export const ContractorNavigation: React.FC = () => {
         >
           <span className="mr-2">{item.icon}</span>
           {item.name}
-          {item.path === '/contractor-notifications' && unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
         </button>
       ))}
     </nav>
