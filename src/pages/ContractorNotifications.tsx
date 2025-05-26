@@ -5,8 +5,11 @@ import { Loader2 } from 'lucide-react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import NotificationsList from '@/components/notifications/NotificationsList';
 import { useContractorNotifications } from '@/hooks/useContractorNotifications';
+import { useUserContext } from '@/contexts/UserContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ContractorNotifications = () => {
+  const { currentUser } = useUserContext();
   const { 
     loading, 
     notifications, 
@@ -15,6 +18,28 @@ const ContractorNotifications = () => {
     markAllAsRead, 
     handleNotificationClick 
   } = useContractorNotifications();
+
+  // Debug information
+  console.log('ContractorNotifications - Current user:', currentUser);
+  console.log('ContractorNotifications - Loading:', loading);
+  console.log('ContractorNotifications - Notifications:', notifications);
+  console.log('ContractorNotifications - Unread count:', unreadCount);
+
+  // Check if user is a contractor
+  if (currentUser && currentUser.role !== 'contractor') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <ContractorHeader />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Access denied. This page is only available to contractors.
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

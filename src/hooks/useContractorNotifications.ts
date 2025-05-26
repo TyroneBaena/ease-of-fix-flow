@@ -4,6 +4,7 @@ import { NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 // Convert database notification to client notification (snake_case to camelCase)
 const mapToClientNotification = (dbNotification: {
@@ -30,6 +31,7 @@ const mapToClientNotification = (dbNotification: {
 
 export const useContractorNotifications = () => {
   const { currentUser } = useUserContext();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
@@ -44,24 +46,27 @@ export const useContractorNotifications = () => {
     
     try {
       setLoading(true);
+      console.log('Fetching contractor notifications for user:', currentUser.id);
       
       // Fetch contractor-specific notifications from Supabase
       const { data: fetchedData, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', currentUser.id)
-        .eq('type', 'contractor') // Filter for contractor-specific notifications
         .order('created_at', { ascending: false });
         
       if (error) {
+        console.error('Error fetching notifications:', error);
         throw error;
       }
       
       if (fetchedData && fetchedData.length > 0) {
+        console.log('Found notifications in database:', fetchedData.length);
         const clientNotifications = fetchedData.map(mapToClientNotification);
         setNotifications(clientNotifications);
         setUnreadCount(fetchedData.filter(n => !n.is_read).length);
       } else {
+        console.log('No notifications found, creating mock contractor notifications');
         // Mock contractor-specific notifications
         const mockNotifications: NotificationClient[] = [
           {
@@ -108,6 +113,24 @@ export const useContractorNotifications = () => {
 
         setNotifications(mockNotifications);
         setUnreadCount(mockNotifications.filter(n => !n.isRead).length);
+        
+        // Store mock notifications in database for future use
+        for (const notification of mockNotifications) {
+          const { error } = await supabase.from('notifications').upsert({
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            is_read: notification.isRead,
+            created_at: notification.createdAt,
+            type: notification.type,
+            link: notification.link,
+            user_id: notification.user_id
+          });
+          
+          if (error) {
+            console.error('Error storing mock notification:', error);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching contractor notifications:', error);
@@ -208,12 +231,15 @@ export const useContractorNotifications = () => {
   };
   
   const handleNotificationClick = (notification: NotificationClient) => {
+    console.log('Notification clicked:', notification);
+    
     if (!notification.isRead) {
       markAsRead(notification.id);
     }
     
     if (notification.link) {
-      console.log(`Would navigate to: ${notification.link}`);
+      console.log(`Navigating to: ${notification.link}`);
+      navigate(notification.link);
     }
   };
 
