@@ -38,7 +38,7 @@ export const ContractorNavigation: React.FC = () => {
     },
     { 
       name: 'Notifications', 
-      path: '/notifications', 
+      path: '/contractor-notifications', 
       icon: <Bell className="h-5 w-5" /> 
     },
     { 
