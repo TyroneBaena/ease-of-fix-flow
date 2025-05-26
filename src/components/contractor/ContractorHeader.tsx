@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ContractorNavigation } from './ContractorNavigation';
+import NotificationBell from '@/components/navigation/NotificationBell';
 import {
   Sheet,
   SheetContent,
@@ -97,6 +98,7 @@ export const ContractorHeader = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            <NotificationBell />
             {loading ? (
               <Skeleton className="h-5 w-28" />
             ) : (

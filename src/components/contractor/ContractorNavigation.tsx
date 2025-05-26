@@ -6,7 +6,8 @@ import {
   ClipboardList, 
   Settings, 
   UserCog,
-  Calendar
+  Calendar,
+  Bell
 } from 'lucide-react';
 
 type NavItem = {
@@ -34,6 +35,11 @@ export const ContractorNavigation: React.FC = () => {
       name: 'Schedule', 
       path: '/contractor-schedule', 
       icon: <Calendar className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Notifications', 
+      path: '/notifications', 
+      icon: <Bell className="h-5 w-5" /> 
     },
     { 
       name: 'Profile', 
