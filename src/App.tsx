@@ -73,7 +73,7 @@ function App() {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/request/:id" element={
+                    <Route path="/requests/:id" element={
                       <ProtectedRoute>
                         <RequestDetail />
                       </ProtectedRoute>
