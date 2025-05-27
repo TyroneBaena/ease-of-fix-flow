@@ -122,7 +122,7 @@ function App() {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/contractor-job/:id" element={
+                    <Route path="/contractor-jobs/:id" element={
                       <ProtectedRoute>
                         <ContractorJobDetail />
                       </ProtectedRoute>
