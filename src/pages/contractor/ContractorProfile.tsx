@@ -6,9 +6,45 @@ import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from "sonner";
+import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { format } from 'date-fns';
 
 const ContractorProfile = () => {
-  const { currentUser, loading } = useUserContext();
+  const { currentUser, loading: userLoading } = useUserContext();
+  const { contractor, loading: contractorLoading, error } = useContractorProfileData();
+
+  const loading = userLoading || contractorLoading;
+
+  if (currentUser && currentUser.role !== 'contractor') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <ContractorHeader />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Access denied. This page is only available to contractors.
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <ContractorHeader />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive">
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -34,27 +70,33 @@ const ContractorProfile = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Full Name</label>
+                        <label className="text-sm font-medium text-gray-500">Company Name</label>
                         <div className="mt-1 p-2 border rounded-md">
-                          {currentUser?.name || 'Not set'}
+                          {contractor?.companyName || 'Not set'}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Contact Name</label>
+                        <div className="mt-1 p-2 border rounded-md">
+                          {contractor?.contactName || currentUser?.name || 'Not set'}
                         </div>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500">Email Address</label>
                         <div className="mt-1 p-2 border rounded-md">
-                          {currentUser?.email || 'Not set'}
+                          {contractor?.email || currentUser?.email || 'Not set'}
                         </div>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500">Phone Number</label>
                         <div className="mt-1 p-2 border rounded-md">
-                          (555) 123-4567
+                          {contractor?.phone || 'Not set'}
                         </div>
                       </div>
-                      <div>
+                      <div className="md:col-span-2">
                         <label className="text-sm font-medium text-gray-500">Address</label>
                         <div className="mt-1 p-2 border rounded-md">
-                          123 Contractor Ave, Service City, SV 12345
+                          {contractor?.address || 'Not set'}
                         </div>
                       </div>
                     </div>
@@ -72,16 +114,32 @@ const ContractorProfile = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {['Plumbing', 'Electrical', 'HVAC', 'Carpentry', 'Painting', 'Flooring', 'Roofing', 'General Repairs'].map((skill) => (
-                      <div key={skill} className="bg-gray-100 p-2 rounded-md text-sm text-center">
-                        {skill}
+                  {loading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton key={i} className="h-8 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {contractor?.specialties && contractor.specialties.length > 0 ? (
+                          contractor.specialties.map((specialty) => (
+                            <div key={specialty} className="bg-gray-100 p-2 rounded-md text-sm text-center">
+                              {specialty}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-full text-gray-500 text-center py-4">
+                            No specialties added yet
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-end">
-                    <Button variant="outline">Manage Skills</Button>
-                  </div>
+                      <div className="flex justify-end">
+                        <Button variant="outline">Manage Skills</Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -93,24 +151,37 @@ const ContractorProfile = () => {
                 <CardTitle>Account Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Member Since</span>
-                    <span className="font-medium">January 15, 2025</span>
+                {loading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Jobs Completed</span>
-                    <span className="font-medium">24</span>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Member Since</span>
+                      <span className="font-medium">
+                        {contractor?.createdAt ? format(new Date(contractor.createdAt), 'MMMM d, yyyy') : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Jobs Completed</span>
+                      <span className="font-medium">{contractor?.jobsCompleted || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Rating</span>
+                      <span className="font-medium">{contractor?.rating || 'N/A'}/5.0</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Account Status</span>
+                      <span className={`font-medium ${contractor?.accountStatus === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                        {contractor?.accountStatus ? contractor.accountStatus.charAt(0).toUpperCase() + contractor.accountStatus.slice(1) : 'Unknown'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Rating</span>
-                    <span className="font-medium">4.8/5.0</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Account Status</span>
-                    <span className="text-green-600 font-medium">Active</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
             
