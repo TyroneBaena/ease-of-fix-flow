@@ -69,7 +69,15 @@ export const EditContractorInfoDialog: React.FC<EditContractorInfoDialogProps> =
     console.log('Form submitted with data:', formData);
     
     if (!currentUser?.id) {
+      console.error('User not authenticated');
       toast.error('User not authenticated');
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.companyName.trim() || !formData.contactName.trim() || !formData.email.trim() || !formData.phone.trim()) {
+      console.error('Required fields missing');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -78,49 +86,55 @@ export const EditContractorInfoDialog: React.FC<EditContractorInfoDialogProps> =
       if (contractor?.id) {
         // Update existing contractor profile
         console.log('Updating contractor profile with ID:', contractor.id);
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('contractors')
           .update({
-            company_name: formData.companyName,
-            contact_name: formData.contactName,
-            email: formData.email,
-            phone: formData.phone,
-            address: formData.address,
+            company_name: formData.companyName.trim(),
+            contact_name: formData.contactName.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone.trim(),
+            address: formData.address.trim(),
             updated_at: new Date().toISOString()
           })
-          .eq('id', contractor.id);
+          .eq('id', contractor.id)
+          .select();
 
         if (error) {
           console.error('Error updating contractor:', error);
           throw error;
         }
+
+        console.log('Contractor updated successfully:', data);
       } else {
         // Create new contractor profile
         console.log('Creating new contractor profile for user:', currentUser.id);
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('contractors')
           .insert({
             user_id: currentUser.id,
-            company_name: formData.companyName,
-            contact_name: formData.contactName,
-            email: formData.email,
-            phone: formData.phone,
-            address: formData.address
-          });
+            company_name: formData.companyName.trim(),
+            contact_name: formData.contactName.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone.trim(),
+            address: formData.address.trim()
+          })
+          .select();
 
         if (error) {
           console.error('Error creating contractor:', error);
           throw error;
         }
+
+        console.log('Contractor created successfully:', data);
       }
 
       console.log('Profile saved successfully');
       toast.success('Profile updated successfully');
       setOpen(false);
       onUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving contractor profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
