@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,45 +33,101 @@ export const EditContractorInfoDialog: React.FC<EditContractorInfoDialogProps> =
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    companyName: contractor?.companyName || '',
-    contactName: contractor?.contactName || currentUser?.name || '',
-    email: contractor?.email || currentUser?.email || '',
-    phone: contractor?.phone || '',
-    address: contractor?.address || ''
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    address: ''
   });
+
+  // Update form data when contractor or dialog opens
+  useEffect(() => {
+    if (contractor && open) {
+      console.log('Setting form data with contractor:', contractor);
+      setFormData({
+        companyName: contractor.companyName || '',
+        contactName: contractor.contactName || currentUser?.name || '',
+        email: contractor.email || currentUser?.email || '',
+        phone: contractor.phone || '',
+        address: contractor.address || ''
+      });
+    } else if (!contractor && open && currentUser) {
+      // If no contractor profile exists, use current user data
+      console.log('Setting form data with current user:', currentUser);
+      setFormData({
+        companyName: '',
+        contactName: currentUser.name || '',
+        email: currentUser.email || '',
+        phone: '',
+        address: ''
+      });
+    }
+  }, [contractor, open, currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contractor?.id) return;
+    console.log('Form submitted with data:', formData);
+    
+    if (!currentUser?.id) {
+      toast.error('User not authenticated');
+      return;
+    }
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('contractors')
-        .update({
-          company_name: formData.companyName,
-          contact_name: formData.contactName,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', contractor.id);
+      if (contractor?.id) {
+        // Update existing contractor profile
+        console.log('Updating contractor profile with ID:', contractor.id);
+        const { error } = await supabase
+          .from('contractors')
+          .update({
+            company_name: formData.companyName,
+            contact_name: formData.contactName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', contractor.id);
 
-      if (error) throw error;
+        if (error) {
+          console.error('Error updating contractor:', error);
+          throw error;
+        }
+      } else {
+        // Create new contractor profile
+        console.log('Creating new contractor profile for user:', currentUser.id);
+        const { error } = await supabase
+          .from('contractors')
+          .insert({
+            user_id: currentUser.id,
+            company_name: formData.companyName,
+            contact_name: formData.contactName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address
+          });
 
+        if (error) {
+          console.error('Error creating contractor:', error);
+          throw error;
+        }
+      }
+
+      console.log('Profile saved successfully');
       toast.success('Profile updated successfully');
       setOpen(false);
       onUpdate();
     } catch (error) {
-      console.error('Error updating contractor profile:', error);
+      console.error('Error saving contractor profile:', error);
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    console.log(`Updating field ${field} with value:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -83,6 +139,9 @@ export const EditContractorInfoDialog: React.FC<EditContractorInfoDialogProps> =
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Information</DialogTitle>
+          <DialogDescription>
+            Update your contractor profile information. All fields are required except address.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
