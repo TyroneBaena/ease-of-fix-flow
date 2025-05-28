@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +6,13 @@ import { useUserContext } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from "sonner";
 import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
+import { EditContractorInfoDialog } from '@/components/contractor/EditContractorInfoDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 
 const ContractorProfile = () => {
   const { currentUser, loading: userLoading } = useUserContext();
-  const { contractor, loading: contractorLoading, error } = useContractorProfileData();
+  const { contractor, loading: contractorLoading, error, refetch } = useContractorProfileData();
 
   const loading = userLoading || contractorLoading;
 
@@ -101,7 +101,9 @@ const ContractorProfile = () => {
                       </div>
                     </div>
                     <div className="flex justify-end">
-                      <Button>Edit Information</Button>
+                      <EditContractorInfoDialog contractor={contractor} onUpdate={refetch}>
+                        <Button>Edit Information</Button>
+                      </EditContractorInfoDialog>
                     </div>
                   </div>
                 )}

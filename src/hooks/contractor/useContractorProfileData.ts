@@ -24,64 +24,69 @@ export const useContractorProfileData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchContractorProfile = async () => {
     if (!currentUser || currentUser.role !== 'contractor') {
       setLoading(false);
       return;
     }
 
-    const fetchContractorProfile = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Fetch contractor data
-        const { data: contractorData, error: contractorError } = await supabase
-          .from('contractors')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .single();
+      // Fetch contractor data
+      const { data: contractorData, error: contractorError } = await supabase
+        .from('contractors')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .single();
 
-        if (contractorError) throw contractorError;
+      if (contractorError) throw contractorError;
 
-        // Fetch completed jobs count
-        const { data: jobsData, error: jobsError } = await supabase
-          .from('maintenance_requests')
-          .select('id')
-          .eq('contractor_id', contractorData.id)
-          .eq('status', 'completed');
+      // Fetch completed jobs count
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('maintenance_requests')
+        .select('id')
+        .eq('contractor_id', contractorData.id)
+        .eq('status', 'completed');
 
-        if (jobsError) throw jobsError;
+      if (jobsError) throw jobsError;
 
-        // Calculate rating (mock for now, could be based on feedback in the future)
-        const rating = 4.8; // This could be calculated from feedback/reviews
+      // Calculate rating (mock for now, could be based on feedback in the future)
+      const rating = 4.8; // This could be calculated from feedback/reviews
 
-        const profile: ContractorProfile = {
-          id: contractorData.id,
-          companyName: contractorData.company_name,
-          contactName: contractorData.contact_name,
-          email: contractorData.email,
-          phone: contractorData.phone,
-          address: contractorData.address,
-          specialties: contractorData.specialties || [],
-          createdAt: contractorData.created_at,
-          jobsCompleted: jobsData?.length || 0,
-          rating: rating,
-          accountStatus: 'active' // This could be a field in the database
-        };
+      const profile: ContractorProfile = {
+        id: contractorData.id,
+        companyName: contractorData.company_name,
+        contactName: contractorData.contact_name,
+        email: contractorData.email,
+        phone: contractorData.phone,
+        address: contractorData.address,
+        specialties: contractorData.specialties || [],
+        createdAt: contractorData.created_at,
+        jobsCompleted: jobsData?.length || 0,
+        rating: rating,
+        accountStatus: 'active' // This could be a field in the database
+      };
 
-        setContractor(profile);
-      } catch (err) {
-        console.error('Error fetching contractor profile:', err);
-        setError('Failed to load contractor profile');
-        toast.error('Could not load profile information');
-      } finally {
-        setLoading(false);
-      }
-    };
+      setContractor(profile);
+    } catch (err) {
+      console.error('Error fetching contractor profile:', err);
+      setError('Failed to load contractor profile');
+      toast.error('Could not load profile information');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchContractorProfile();
   }, [currentUser]);
 
-  return { contractor, loading, error, refetch: () => window.location.reload() };
+  return { 
+    contractor, 
+    loading, 
+    error, 
+    refetch: fetchContractorProfile 
+  };
 };
