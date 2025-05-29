@@ -4,3 +4,6 @@ project_id = "ltjlswzrdgtoddyqmydo"
 [functions]
 [functions.invite-contractor]
 verify_jwt = true
+
+[functions.send-invite]
+verify_jwt = true
