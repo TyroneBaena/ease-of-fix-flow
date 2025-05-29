@@ -17,7 +17,6 @@ import { IssueNatureField } from './IssueNatureField';
 import { ExplanationField } from './ExplanationField';
 import { LocationField } from './LocationField';
 import { ReportDateField } from './ReportDateField';
-import { SiteField } from './SiteField';
 import { SubmittedByField } from './SubmittedByField';
 import { useUserContext } from '@/contexts/UserContext';
 
@@ -59,11 +58,14 @@ export const RequestForm = () => {
       explanation,
       location,
       reportDate,
-      site,
       submittedBy
     } = formState;
     
-    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !site || !submittedBy || !attemptedFix) {
+    // Get the selected property to use its name as the site
+    const selectedProperty = properties.find(p => p.id === propertyId);
+    const site = selectedProperty?.name || 'Unknown Property';
+    
+    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -91,7 +93,7 @@ export const RequestForm = () => {
         explanation,
         location,
         reportDate,
-        site,
+        site, // Use the property name as the site
         submittedBy,
         propertyId,
         userId: currentUser.id, // Add the userId field
@@ -160,12 +162,6 @@ export const RequestForm = () => {
       <ReportDateField
         value={formState.reportDate || ''}
         onChange={(value) => updateFormState('reportDate', value)}
-      />
-      
-      <SiteField
-        value={formState.site || ''}
-        onChange={(value) => updateFormState('site', value)}
-        properties={properties}
       />
       
       <SubmittedByField

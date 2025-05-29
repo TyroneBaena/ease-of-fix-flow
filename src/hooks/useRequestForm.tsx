@@ -10,7 +10,6 @@ interface FormState {
   explanation: string;
   location: string;
   reportDate: string;
-  site: string;
   submittedBy: string;
 }
 
@@ -24,7 +23,6 @@ export const useRequestForm = () => {
     explanation: '',
     location: '',
     reportDate: '',
-    site: '',
     submittedBy: '',
   });
 
