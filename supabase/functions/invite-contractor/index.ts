@@ -84,32 +84,69 @@ serve(async (req: Request) => {
       );
     }
 
-    // Generate temporary password for the contractor
-    const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase();
+    // Check if user already exists in auth system
+    const { data: { users }, error: getUserError } = await supabaseClient.auth.admin.listUsers();
     
-    // Create auth user for the contractor
-    const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
-      email: normalizedEmail,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        name: body.contactName,
-        role: 'contractor'
-      }
-    });
-
-    if (authError) {
-      console.error("Error creating auth user:", authError);
-      throw authError;
+    if (getUserError) {
+      console.error("Error checking existing users:", getUserError);
+      throw getUserError;
     }
 
-    console.log("Auth user created successfully:", authUser.user?.id);
+    const existingAuthUser = users.find(user => user.email === normalizedEmail);
+    let authUserId: string;
+    let tempPassword: string | null = null;
+
+    if (existingAuthUser) {
+      console.log(`Auth user with email ${normalizedEmail} already exists, using existing user`);
+      authUserId = existingAuthUser.id;
+      
+      // Generate a new password for existing user and update it
+      tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase();
+      
+      const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
+        authUserId,
+        {
+          password: tempPassword,
+          user_metadata: {
+            name: body.contactName,
+            role: 'contractor'
+          }
+        }
+      );
+
+      if (updateError) {
+        console.error("Error updating existing user:", updateError);
+        throw updateError;
+      }
+    } else {
+      // Generate temporary password for new user
+      tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase();
+      
+      // Create new auth user
+      const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
+        email: normalizedEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: body.contactName,
+          role: 'contractor'
+        }
+      });
+
+      if (authError) {
+        console.error("Error creating auth user:", authError);
+        throw authError;
+      }
+
+      authUserId = authUser.user!.id;
+      console.log("Auth user created successfully:", authUserId);
+    }
 
     // Create contractor profile
     const { data: contractorData, error: contractorError } = await supabaseClient
       .from('contractors')
       .insert({
-        user_id: authUser.user!.id,
+        user_id: authUserId,
         company_name: body.companyName,
         contact_name: body.contactName,
         email: normalizedEmail,
@@ -122,8 +159,10 @@ serve(async (req: Request) => {
 
     if (contractorError) {
       console.error("Error creating contractor profile:", contractorError);
-      // Clean up auth user if contractor creation fails
-      await supabaseClient.auth.admin.deleteUser(authUser.user!.id);
+      // If contractor creation fails and we created a new user, clean it up
+      if (!existingAuthUser) {
+        await supabaseClient.auth.admin.deleteUser(authUserId);
+      }
       throw contractorError;
     }
 
