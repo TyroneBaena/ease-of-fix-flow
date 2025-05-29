@@ -121,6 +121,7 @@ export const useContractorManagement = () => {
     confirmDeleteContractor,
     handleDeleteContractor,
     handlePageChange,
-    fetchContractors: loadContractors
+    fetchContractors: loadContractors,
+    selectedContractorForDeletion
   };
 };

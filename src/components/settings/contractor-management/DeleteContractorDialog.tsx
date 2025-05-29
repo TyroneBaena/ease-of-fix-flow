@@ -17,7 +17,7 @@ interface DeleteContractorDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   isLoading: boolean;
-  onConfirmDelete: (selectedContractor: Contractor | null) => Promise<void>;
+  onConfirmDelete: () => Promise<void>;
   selectedContractor: Contractor | null;
 }
 
@@ -29,7 +29,7 @@ const DeleteContractorDialog = ({
   selectedContractor
 }: DeleteContractorDialogProps) => {
   const handleDelete = async () => {
-    await onConfirmDelete(selectedContractor);
+    await onConfirmDelete();
   };
 
   return (
@@ -38,7 +38,7 @@ const DeleteContractorDialog = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Contractor</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this contractor? This action cannot be undone.
+            Are you sure you want to delete "{selectedContractor?.companyName}"? This action cannot be undone.
             This will remove the contractor from the system and break any associations with 
             maintenance requests.
           </AlertDialogDescription>

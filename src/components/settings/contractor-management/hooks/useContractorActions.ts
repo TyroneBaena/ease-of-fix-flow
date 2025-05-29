@@ -52,17 +52,23 @@ export const useContractorActions = (
   };
 
   const confirmDeleteContractor = (contractor: Contractor) => {
+    console.log('Setting contractor for deletion:', contractor);
     setSelectedContractorForDeletion(contractor);
     setIsDeleteConfirmOpen(true);
   };
 
-  const handleDeleteContractor = async (selectedContractor: Contractor | null) => {
-    if (!selectedContractor) return;
+  const handleDeleteContractor = async () => {
+    if (!selectedContractorForDeletion) {
+      console.error('No contractor selected for deletion');
+      return;
+    }
     
     try {
       setLoading(true);
-      await deleteContractor(selectedContractor);
+      console.log('Deleting contractor:', selectedContractorForDeletion);
+      await deleteContractor(selectedContractorForDeletion);
       setIsDeleteConfirmOpen(false);
+      setSelectedContractorForDeletion(null);
       await fetchContractors();
     } catch (err) {
       console.error('Error deleting contractor:', err);

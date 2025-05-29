@@ -35,7 +35,8 @@ const ContractorManagement = () => {
     confirmDeleteContractor,
     handleDeleteContractor,
     handlePageChange,
-    fetchContractors
+    fetchContractors,
+    selectedContractorForDeletion
   } = useContractorManagement();
   
   // If not admin, show access denied message
@@ -118,7 +119,7 @@ const ContractorManagement = () => {
         onOpenChange={setIsDeleteConfirmOpen}
         isLoading={isLoading}
         onConfirmDelete={handleDeleteContractor}
-        selectedContractor={selectedContractor}
+        selectedContractor={selectedContractorForDeletion}
       />
     </div>
   );
