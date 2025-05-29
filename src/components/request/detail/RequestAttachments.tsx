@@ -17,8 +17,21 @@ interface RequestAttachmentsProps {
 export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  console.log('RequestAttachments - received attachments:', attachments);
+  console.log('RequestAttachments - attachments type:', typeof attachments);
+  console.log('RequestAttachments - attachments length:', attachments?.length);
+
   if (!attachments || attachments.length === 0) {
-    return null;
+    console.log('RequestAttachments - no attachments to display');
+    return (
+      <div className="mt-6">
+        <h2 className="font-semibold mb-3 flex items-center">
+          <Paperclip className="h-4 w-4 mr-2" />
+          Attachments (0)
+        </h2>
+        <p className="text-gray-500 text-sm">No attachments uploaded</p>
+      </div>
+    );
   }
 
   const openImageModal = (url: string) => {
@@ -43,6 +56,13 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
               alt={attachment.name || `Attachment ${index + 1}`}
               className="w-full h-32 object-cover cursor-pointer transition-transform group-hover:scale-105"
               onClick={() => openImageModal(attachment.url)}
+              onError={(e) => {
+                console.error('Image failed to load:', attachment.url);
+                console.error('Error event:', e);
+              }}
+              onLoad={() => {
+                console.log('Image loaded successfully:', attachment.url);
+              }}
             />
             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
               <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -5,6 +5,9 @@ import { MaintenanceRequest } from '@/types/maintenance';
  * Converts a database request object to our frontend MaintenanceRequest type
  */
 export function formatRequestData(data: any): MaintenanceRequest {
+  console.log('formatRequestData - raw data:', data);
+  console.log('formatRequestData - raw attachments:', data.attachments);
+  
   // Convert snake_case to camelCase where needed
   const formattedRequest: MaintenanceRequest = {
     id: data.id,
@@ -23,11 +26,14 @@ export function formatRequestData(data: any): MaintenanceRequest {
     // Handle JSON fields with proper type casting for attachments
     attachments: data.attachments ? 
       (Array.isArray(data.attachments) ? 
-        data.attachments.map((att: any) => ({
-          url: att.url,
-          name: att.name || undefined,
-          type: att.type || undefined
-        })) : 
+        data.attachments.map((att: any) => {
+          console.log('formatRequestData - processing attachment:', att);
+          return {
+            url: att.url,
+            name: att.name || undefined,
+            type: att.type || undefined
+          };
+        }) : 
         []) : 
       null,
     category: data.category,
@@ -62,5 +68,6 @@ export function formatRequestData(data: any): MaintenanceRequest {
     userId: data.user_id || 'unknown-user'
   };
 
+  console.log('formatRequestData - formatted attachments:', formattedRequest.attachments);
   return formattedRequest;
 }

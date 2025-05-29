@@ -21,11 +21,13 @@ interface RequestInfoProps {
     status: string;
     createdAt: string;
     assignedTo?: string;
-    attachments?: Array<{ url: string }> | null;
+    attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
 }
 
 export const RequestInfo = ({ request }: RequestInfoProps) => {
+  console.log('RequestInfo - attachments:', request.attachments);
+  
   return (
     <Card className="p-6">
       <RequestHeader 
