@@ -39,8 +39,13 @@ const DeleteContractorDialog = ({
           <AlertDialogTitle>Delete Contractor</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete "{selectedContractor?.companyName}"? This action cannot be undone.
-            This will remove the contractor from the system and break any associations with 
-            maintenance requests.
+            <br /><br />
+            <strong>Warning:</strong> This will permanently remove:
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>The contractor from the system</li>
+              <li>All quotes submitted by this contractor</li>
+              <li>Any associations with maintenance requests</li>
+            </ul>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -59,7 +64,7 @@ const DeleteContractorDialog = ({
                 Deleting...
               </>
             ) : (
-              'Delete'
+              'Delete Permanently'
             )}
           </AlertDialogAction>
         </AlertDialogFooter>
