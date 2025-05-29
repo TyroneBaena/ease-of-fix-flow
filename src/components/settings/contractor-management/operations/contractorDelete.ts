@@ -5,7 +5,22 @@ import { Contractor } from '@/types/contractor';
 
 export const deleteContractor = async (contractor: Contractor) => {
   try {
-    // First, delete all quotes associated with this contractor
+    // First, update maintenance requests to remove contractor assignment
+    const { error: requestsError } = await supabase
+      .from('maintenance_requests')
+      .update({
+        contractor_id: null,
+        assigned_at: null,
+        status: 'pending'
+      })
+      .eq('contractor_id', contractor.id);
+    
+    if (requestsError) {
+      console.error('Error updating maintenance requests:', requestsError);
+      throw new Error('Failed to update maintenance requests');
+    }
+    
+    // Then, delete all quotes associated with this contractor
     const { error: quotesError } = await supabase
       .from('quotes')
       .delete()
@@ -16,7 +31,7 @@ export const deleteContractor = async (contractor: Contractor) => {
       throw new Error('Failed to delete contractor quotes');
     }
     
-    // Then delete the contractor
+    // Finally delete the contractor
     const { error: contractorError } = await supabase
       .from('contractors')
       .delete()
@@ -27,7 +42,7 @@ export const deleteContractor = async (contractor: Contractor) => {
       throw contractorError;
     }
     
-    toast.success(`Contractor ${contractor.companyName} and all associated quotes deleted successfully`);
+    toast.success(`Contractor ${contractor.companyName} deleted successfully. Associated maintenance requests have been unassigned.`);
     return true;
   } catch (error) {
     console.error('Delete contractor operation failed:', error);
