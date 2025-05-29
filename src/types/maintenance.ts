@@ -21,7 +21,7 @@ export interface MaintenanceRequest {
   address?: string;
   practiceLeader?: string;
   practiceLeaderPhone?: string;
-  attachments?: Array<{ url: string }> | null;
+  attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   category?: string;
   createdAt: string;
   updatedAt?: string;

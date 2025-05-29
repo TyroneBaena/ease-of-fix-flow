@@ -20,10 +20,14 @@ export function formatRequestData(data: any): MaintenanceRequest {
     // These fields may not exist in the database response, so use empty string as default
     contactNumber: '',  // Default fallback value since it's missing from DB
     address: '',        // Default fallback value since it's missing from DB
-    // Handle JSON fields with proper type casting
+    // Handle JSON fields with proper type casting for attachments
     attachments: data.attachments ? 
       (Array.isArray(data.attachments) ? 
-        data.attachments as { url: string }[] : 
+        data.attachments.map((att: any) => ({
+          url: att.url,
+          name: att.name || undefined,
+          type: att.type || undefined
+        })) : 
         []) : 
       null,
     category: data.category,

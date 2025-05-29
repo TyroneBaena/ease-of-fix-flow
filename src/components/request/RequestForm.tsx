@@ -46,7 +46,7 @@ export const RequestForm = () => {
     }
   }, [propertyIdParam, updateFormState]);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
     const {
@@ -82,9 +82,16 @@ export const RequestForm = () => {
     
     setIsSubmitting(true);
     
-    // Add the request to the selected property
     try {
-      addRequestToProperty({
+      // Convert uploaded files to attachments format
+      const attachments = previewUrls.map((url, index) => ({
+        url: url,
+        name: files[index]?.name || `attachment-${index + 1}`,
+        type: files[index]?.type || 'image/*'
+      }));
+
+      // Add the request to the selected property
+      await addRequestToProperty({
         title: issueNature, // Use issueNature as title which is required
         isParticipantRelated: isParticipantRelated || false,
         participantName: isParticipantRelated ? participantName : 'N/A',
@@ -97,7 +104,8 @@ export const RequestForm = () => {
         submittedBy,
         propertyId,
         userId: currentUser.id, // Add the userId field
-        user_id: currentUser.id // For backward compatibility
+        user_id: currentUser.id, // For backward compatibility
+        attachments: attachments.length > 0 ? attachments : null
       });
       
       // Simulate API call
