@@ -1,154 +1,123 @@
 
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/lib/toast';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { isAttachmentArray, isHistoryArray } from '@/types/property';
+import { toast } from '@/lib/toast';
 
 export const useMaintenanceRequestOperations = (currentUser: any) => {
+  
   const fetchRequests = async () => {
+    console.log('useMaintenanceRequestOperations - fetchRequests called for user:', currentUser?.id);
+    
+    if (!currentUser) {
+      console.log('useMaintenanceRequestOperations - No current user, returning empty array');
+      return [];
+    }
+
     try {
-      console.log('Fetching maintenance requests...', currentUser?.id);
-      if (!currentUser?.id) {
-        console.log('No current user, returning empty array');
-        return [];
-      }
-      
-      // Only fetch requests owned by the current user
-      const { data, error } = await supabase
+      let query = supabase
         .from('maintenance_requests')
         .select('*')
-        .eq('user_id', currentUser.id); // Filter by the current user's ID
-      
-      if (error) {
-        console.error('Error fetching maintenance requests:', error);
-        toast.error('Failed to fetch maintenance requests');
-        return [];
+        .order('created_at', { ascending: false });
+
+      // If not admin, filter by user_id
+      if (currentUser.role !== 'admin') {
+        console.log('useMaintenanceRequestOperations - Non-admin user, filtering by user_id');
+        query = query.eq('user_id', currentUser.id);
+      } else {
+        console.log('useMaintenanceRequestOperations - Admin user, fetching all requests');
       }
 
-      console.log('Raw maintenance requests data:', data);
-      const formattedRequests = data.map(formatRequestData);
-      console.log('Formatted maintenance requests:', formattedRequests);
-      return formattedRequests;
-    } catch (err) {
-      console.error('Unexpected error fetching requests:', err);
-      toast.error('An unexpected error occurred');
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('useMaintenanceRequestOperations - Error fetching requests:', error);
+        throw error;
+      }
+
+      console.log('useMaintenanceRequestOperations - Raw data from database:', data);
+      console.log('useMaintenanceRequestOperations - Number of requests found:', data?.length || 0);
+      
+      if (data && data.length > 0) {
+        // Log attachments for each request
+        data.forEach((request, index) => {
+          console.log(`useMaintenanceRequestOperations - Request ${index + 1} attachments:`, {
+            id: request.id,
+            attachments: request.attachments,
+            attachmentsType: typeof request.attachments
+          });
+        });
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('useMaintenanceRequestOperations - Error in fetchRequests:', error);
       return [];
     }
   };
 
   const addRequest = async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+    console.log('useMaintenanceRequestOperations - addRequest called');
+    console.log('useMaintenanceRequestOperations - Request data received:', requestData);
+    console.log('useMaintenanceRequestOperations - Attachments in request data:', requestData.attachments);
+    
+    if (!currentUser) {
+      console.error('useMaintenanceRequestOperations - No current user for addRequest');
+      toast.error('User not authenticated');
+      return null;
+    }
+
     try {
-      if (!currentUser) {
-        toast.error('You must be logged in to add a request');
-        return;
-      }
+      // Prepare the data for insertion
+      const insertData = {
+        title: requestData.title || requestData.issueNature || 'Untitled Request',
+        description: requestData.explanation || '',
+        category: requestData.site || 'Unknown',
+        location: requestData.location || 'Unknown',
+        priority: 'medium',
+        status: 'pending',
+        site: requestData.site || '',
+        submitted_by: requestData.submittedBy || '',
+        user_id: currentUser.id,
+        property_id: requestData.propertyId,
+        is_participant_related: requestData.isParticipantRelated || false,
+        participant_name: requestData.participantName || 'N/A',
+        attempted_fix: requestData.attemptedFix || '',
+        issue_nature: requestData.issueNature || '',
+        explanation: requestData.explanation || '',
+        report_date: requestData.reportDate || '',
+        attachments: requestData.attachments // This should be the uploaded files array
+      };
 
-      // Ensure required fields are present
-      const title = requestData.title || requestData.issueNature || 'Untitled Request';
-      const location = requestData.location || '';
-      const site = requestData.site || requestData.category || '';
-      const submittedBy = requestData.submittedBy || currentUser.email || 'Anonymous';
-
-      console.log('Adding maintenance request with data:', { ...requestData, title, location, site, submittedBy });
+      console.log('useMaintenanceRequestOperations - Data prepared for database insertion:', insertData);
+      console.log('useMaintenanceRequestOperations - Attachments being saved to DB:', insertData.attachments);
+      console.log('useMaintenanceRequestOperations - Attachments type:', typeof insertData.attachments);
+      console.log('useMaintenanceRequestOperations - Attachments stringified:', JSON.stringify(insertData.attachments));
 
       const { data, error } = await supabase
         .from('maintenance_requests')
-        .insert({
-          title: title,
-          description: requestData.description || requestData.explanation || '',
-          category: requestData.category || site,
-          location: location,
-          priority: requestData.priority || 'medium',
-          property_id: requestData.propertyId,
-          user_id: currentUser.id,
-          is_participant_related: requestData.isParticipantRelated || false,
-          participant_name: requestData.participantName || 'N/A',
-          attempted_fix: requestData.attemptedFix || '',
-          issue_nature: requestData.issueNature || '',
-          explanation: requestData.explanation || '',
-          report_date: requestData.reportDate || new Date().toISOString().split('T')[0],
-          site: site,
-          submitted_by: submittedBy,
-          status: 'pending'
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding maintenance request:', error);
-        toast.error('Failed to add maintenance request');
-        return;
+        console.error('useMaintenanceRequestOperations - Database insert error:', error);
+        throw error;
       }
 
-      console.log('Successfully added maintenance request:', data);
-      return formatRequestData(data);
-    } catch (err) {
-      console.error('Unexpected error adding maintenance request:', err);
-      toast.error('An unexpected error occurred');
+      console.log('useMaintenanceRequestOperations - Database insert successful');
+      console.log('useMaintenanceRequestOperations - Returned data from database:', data);
+      console.log('useMaintenanceRequestOperations - Returned attachments from database:', data?.attachments);
+
+      return data;
+    } catch (error) {
+      console.error('useMaintenanceRequestOperations - Error in addRequest:', error);
+      toast.error('Failed to create maintenance request');
+      return null;
     }
-  };
-
-  const formatRequestData = (data: any): MaintenanceRequest => {
-    console.log('Formatting request data:', data);
-    
-    let processedAttachments = null;
-    if (data.attachments) {
-      if (isAttachmentArray(data.attachments)) {
-        processedAttachments = data.attachments;
-      }
-    }
-
-    let processedHistory = null;
-    if (data.history) {
-      if (isHistoryArray(data.history)) {
-        processedHistory = data.history;
-      }
-    }
-
-    // Map the database status to our application status
-    let status = data.status || 'pending';
-    
-    // Ensure required fields have values
-    const title = data.title || data.issue_nature || 'Untitled Request';
-    const location = data.location || '';
-    const site = data.site || data.category || '';
-    const submittedBy = data.submitted_by || 'Anonymous';
-
-    return {
-      id: data.id,
-      isParticipantRelated: data.is_participant_related || false,
-      participantName: data.participant_name || 'N/A',
-      attemptedFix: data.attempted_fix || '',
-      issueNature: data.issue_nature || title,
-      explanation: data.explanation || data.description || '',
-      location: location,
-      reportDate: data.report_date || data.created_at?.split('T')[0] || '',
-      site: site,
-      submittedBy: submittedBy,
-      status: status,
-      title: title,
-      description: data.description || data.explanation || '',
-      category: data.category || site,
-      priority: data.priority || 'medium',
-      propertyId: data.property_id,
-      createdAt: data.created_at || new Date().toISOString(),
-      updatedAt: data.updated_at,
-      dueDate: data.due_date || undefined,
-      assignedTo: data.assigned_to || undefined,
-      attachments: processedAttachments,
-      history: processedHistory,
-      quote: data.quoted_amount ? `$${data.quoted_amount}` : undefined,
-      contactNumber: data.contact_number || undefined,
-      address: data.address || undefined,
-      practiceLeader: data.practice_leader || undefined,
-      practiceLeaderPhone: data.practice_leader_phone || undefined,
-      userId: data.user_id,
-      user_id: data.user_id // For backward compatibility
-    };
   };
 
   return {
     fetchRequests,
-    addRequest,
+    addRequest
   };
 };
