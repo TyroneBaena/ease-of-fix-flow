@@ -5,25 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { FormItem } from "@/components/ui/form";
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Loader2 } from 'lucide-react';
 
 interface RequestFormAttachmentsProps {
   files: File[];
   previewUrls: string[];
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
+  isUploading?: boolean;
 }
 
 export const RequestFormAttachments = ({
   files,
   previewUrls,
   onFileChange,
-  onRemoveFile
+  onRemoveFile,
+  isUploading = false
 }: RequestFormAttachmentsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleButtonClick = () => {
-    fileInputRef.current?.click();
+    if (!isUploading) {
+      fileInputRef.current?.click();
+    }
   };
 
   return (
@@ -43,13 +47,19 @@ export const RequestFormAttachments = ({
                 type="button" 
                 variant="outline" 
                 onClick={handleButtonClick}
+                disabled={isUploading}
                 className="flex items-center gap-2"
               >
-                <Upload className="h-4 w-4" />
-                Select Files
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {isUploading ? 'Processing...' : 'Select Files'}
               </Button>
               <span className="ml-4 text-sm text-gray-500">
                 {files.length} {files.length === 1 ? 'file' : 'files'} selected
+                {isUploading && ' (uploading...)'}
               </span>
               <Input
                 type="file"
@@ -58,6 +68,7 @@ export const RequestFormAttachments = ({
                 className="hidden"
                 accept="image/*"
                 multiple
+                disabled={isUploading}
               />
             </div>
             
@@ -76,9 +87,15 @@ export const RequestFormAttachments = ({
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6"
                       onClick={() => onRemoveFile(index)}
+                      disabled={isUploading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 text-white animate-spin" />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

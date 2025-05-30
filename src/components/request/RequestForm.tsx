@@ -6,6 +6,7 @@ import { RequestFormProperty } from "./RequestFormProperty";
 import { RequestFormAttachments } from "./RequestFormAttachments";
 import { RequestFormActions } from "./RequestFormActions";
 import { useRequestForm } from "@/hooks/useRequestForm";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 import { toast } from "@/lib/toast";
@@ -27,6 +28,7 @@ export const RequestForm = () => {
   const { properties } = usePropertyContext();
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
+  const { uploadFiles, isUploading } = useFileUpload();
   
   const { 
     formState, 
@@ -83,12 +85,21 @@ export const RequestForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Convert uploaded files to attachments format
-      const attachments = previewUrls.map((url, index) => ({
-        url: url,
-        name: files[index]?.name || `attachment-${index + 1}`,
-        type: files[index]?.type || 'image/*'
-      }));
+      console.log('Starting request submission with files:', files);
+      
+      // Upload files first if any exist
+      let attachments = null;
+      if (files.length > 0) {
+        console.log('Uploading files...');
+        const uploadedFiles = await uploadFiles(files);
+        console.log('Files uploaded successfully:', uploadedFiles);
+        
+        if (uploadedFiles.length > 0) {
+          attachments = uploadedFiles;
+        }
+      }
+
+      console.log('Final attachments to save:', attachments);
 
       // Add the request to the selected property
       await addRequestToProperty({
@@ -105,7 +116,7 @@ export const RequestForm = () => {
         propertyId,
         userId: currentUser.id, // Add the userId field
         user_id: currentUser.id, // For backward compatibility
-        attachments: attachments.length > 0 ? attachments : null
+        attachments: attachments
       });
       
       // Simulate API call
@@ -117,9 +128,11 @@ export const RequestForm = () => {
     } catch (error) {
       setIsSubmitting(false);
       toast.error("An error occurred while submitting the request");
-      console.error(error);
+      console.error('Error submitting request:', error);
     }
   };
+
+  const totalLoading = isSubmitting || isUploading;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -150,6 +163,7 @@ export const RequestForm = () => {
         previewUrls={previewUrls}
         onFileChange={handleFileChange}
         onRemoveFile={removeFile}
+        isUploading={isUploading}
       />
       
       <IssueNatureField
@@ -178,7 +192,7 @@ export const RequestForm = () => {
       />
       
       <RequestFormActions 
-        isSubmitting={isSubmitting}
+        isSubmitting={totalLoading}
         onCancel={() => navigate('/dashboard')}
       />
     </form>
