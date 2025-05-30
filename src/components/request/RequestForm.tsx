@@ -119,16 +119,13 @@ export const RequestForm = () => {
         attachments: attachments
       });
       
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        toast.success("Your maintenance request has been submitted");
-        navigate('/dashboard');
-      }, 1500);
+      toast.success("Your maintenance request has been submitted");
+      navigate('/dashboard');
     } catch (error) {
-      setIsSubmitting(false);
       toast.error("An error occurred while submitting the request");
       console.error('Error submitting request:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
