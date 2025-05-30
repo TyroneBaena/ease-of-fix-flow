@@ -30,6 +30,8 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
       
       // Try to get the latest request data directly from the database
       try {
+        console.log("useMaintenanceRequestData - Fetching request from database, ID:", requestId);
+        
         // Add user filtering to ensure users only see their own data
         const query = supabase
           .from('maintenance_requests')
@@ -42,15 +44,21 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         }
           
         const { data: freshRequestData, error: freshRequestError } = await query.single();
+        
+        console.log("useMaintenanceRequestData - Database query result:");
+        console.log("- Error:", freshRequestError);
+        console.log("- Data:", freshRequestData);
+        console.log("- Raw attachments from database:", freshRequestData?.attachments);
+        console.log("- Attachments type:", typeof freshRequestData?.attachments);
           
         if (!freshRequestError && freshRequestData) {
-          console.log("useMaintenanceRequestData - Fetched fresh request data:", freshRequestData);
-          console.log("useMaintenanceRequestData - Raw attachments from DB:", freshRequestData.attachments);
-          console.log("useMaintenanceRequestData - Attachments type:", typeof freshRequestData.attachments);
+          console.log("useMaintenanceRequestData - Successfully fetched fresh request data");
+          console.log("useMaintenanceRequestData - About to format data...");
           
           const formattedRequest = formatRequestData(freshRequestData);
-          console.log("useMaintenanceRequestData - Formatted request:", formattedRequest);
-          console.log("useMaintenanceRequestData - Formatted attachments:", formattedRequest.attachments);
+          
+          console.log("useMaintenanceRequestData - Formatted request complete");
+          console.log("useMaintenanceRequestData - Final formatted attachments:", formattedRequest.attachments);
           
           setRequest(formattedRequest);
           setLoading(false);
@@ -70,6 +78,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
       }
       
       // Fall back to data from the context if direct fetch fails
+      console.log("useMaintenanceRequestData - Falling back to context data");
       const foundRequest = requests.find(req => req.id === requestId);
       if (foundRequest) {
         console.log("useMaintenanceRequestData - Found request in context:", foundRequest);
@@ -95,6 +104,8 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
 
     // Directly fetch the latest request data
     try {
+      console.log("useMaintenanceRequestData - Manual refresh: Fetching from database");
+      
       const query = supabase
         .from('maintenance_requests')
         .select('*')
@@ -106,19 +117,22 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
       }
         
       const { data, error } = await query.single();
+      
+      console.log("useMaintenanceRequestData - Manual refresh result:");
+      console.log("- Error:", error);
+      console.log("- Data:", data);
+      console.log("- Raw attachments:", data?.attachments);
         
       if (!error && data) {
-        console.log("useMaintenanceRequestData - Refresh fetched fresh data:", data);
-        console.log("useMaintenanceRequestData - Refresh raw attachments:", data.attachments);
-        // Update the request with the fresh data
+        console.log("useMaintenanceRequestData - Manual refresh: formatting data");
         const formattedRequest = formatRequestData(data);
-        console.log("useMaintenanceRequestData - Refresh formatted attachments:", formattedRequest.attachments);
+        console.log("useMaintenanceRequestData - Manual refresh: final attachments:", formattedRequest.attachments);
         setRequest(formattedRequest);
       } else {
-        console.log("useMaintenanceRequestData - Error or no request found:", error);
+        console.log("useMaintenanceRequestData - Manual refresh: Error or no request found:", error);
       }
     } catch (err) {
-      console.error("useMaintenanceRequestData - Error directly fetching request:", err);
+      console.error("useMaintenanceRequestData - Manual refresh: Error directly fetching request:", err);
     }
   };
 

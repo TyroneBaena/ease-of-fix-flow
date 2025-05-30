@@ -5,73 +5,114 @@ import { MaintenanceRequest } from '@/types/maintenance';
  * Converts a database request object to our frontend MaintenanceRequest type
  */
 export function formatRequestData(data: any): MaintenanceRequest {
-  console.log('formatRequestData - raw data:', data);
-  console.log('formatRequestData - raw attachments:', data.attachments);
+  console.log('formatRequestData - START - raw data:', data);
+  console.log('formatRequestData - raw attachments field:', data.attachments);
   console.log('formatRequestData - attachments type:', typeof data.attachments);
+  console.log('formatRequestData - attachments value:', JSON.stringify(data.attachments));
   
   // Function to process attachments from various formats
   const processAttachments = (attachments: any) => {
+    console.log('processAttachments - input:', attachments);
+    console.log('processAttachments - input type:', typeof attachments);
+    
     if (!attachments) {
-      console.log('formatRequestData - No attachments found');
+      console.log('processAttachments - No attachments found (null/undefined)');
       return null;
     }
     
     // If it's a string, try to parse it as JSON
     if (typeof attachments === 'string') {
+      console.log('processAttachments - Processing string attachments:', attachments);
       try {
         const parsed = JSON.parse(attachments);
-        console.log('formatRequestData - Parsed attachments from string:', parsed);
-        return Array.isArray(parsed) ? parsed.map((att: any) => ({
-          url: att.url,
-          name: att.name || undefined,
-          type: att.type || undefined
-        })) : null;
+        console.log('processAttachments - Parsed from string:', parsed);
+        if (Array.isArray(parsed)) {
+          const processedArray = parsed.map((att: any) => ({
+            url: att.url,
+            name: att.name || undefined,
+            type: att.type || undefined
+          }));
+          console.log('processAttachments - Processed array from string:', processedArray);
+          return processedArray;
+        }
+        return null;
       } catch (e) {
-        console.error('formatRequestData - Failed to parse attachments string:', e);
+        console.error('processAttachments - Failed to parse attachments string:', e);
         return null;
       }
     }
     
     // If it's already an array
     if (Array.isArray(attachments)) {
-      console.log('formatRequestData - Processing array attachments:', attachments);
-      return attachments.map((att: any) => {
-        console.log('formatRequestData - processing attachment:', att);
+      console.log('processAttachments - Processing array attachments:', attachments);
+      const processedArray = attachments.map((att: any) => {
+        console.log('processAttachments - processing individual attachment:', att);
         return {
           url: att.url,
           name: att.name || undefined,
           type: att.type || undefined
         };
       });
+      console.log('processAttachments - Final processed array:', processedArray);
+      return processedArray;
     }
     
-    console.log('formatRequestData - Unknown attachments format:', typeof attachments);
+    // If it's an object (JSONB from database)
+    if (typeof attachments === 'object' && attachments !== null) {
+      console.log('processAttachments - Processing object attachments:', attachments);
+      // Check if it's a JSONB array that looks like an object
+      if (attachments.length !== undefined || Array.isArray(attachments)) {
+        console.log('processAttachments - Object appears to be array-like');
+        const arrayData = Array.isArray(attachments) ? attachments : Object.values(attachments);
+        const processedArray = arrayData.map((att: any) => ({
+          url: att.url,
+          name: att.name || undefined,
+          type: att.type || undefined
+        }));
+        console.log('processAttachments - Processed object as array:', processedArray);
+        return processedArray;
+      }
+      
+      // Single attachment object
+      if (attachments.url) {
+        console.log('processAttachments - Processing single attachment object');
+        const singleAttachment = [{
+          url: attachments.url,
+          name: attachments.name || undefined,
+          type: attachments.type || undefined
+        }];
+        console.log('processAttachments - Single attachment result:', singleAttachment);
+        return singleAttachment;
+      }
+    }
+    
+    console.log('processAttachments - Unknown attachments format, returning null');
     return null;
   };
+  
+  // Process the attachments
+  const processedAttachments = processAttachments(data.attachments);
+  console.log('formatRequestData - FINAL processed attachments:', processedAttachments);
   
   // Convert snake_case to camelCase where needed
   const formattedRequest: MaintenanceRequest = {
     id: data.id,
     title: data.title || data.issue_nature || 'Untitled Request',
     description: data.description || '',
-    // Use type assertion to ensure status is one of the allowed values
     status: data.status as 'pending' | 'in-progress' | 'completed' | 'open',
     location: data.location,
     priority: data.priority as 'low' | 'medium' | 'high' | undefined,
     site: data.site || data.category || 'Unknown',
     submittedBy: data.submitted_by || 'Anonymous',
     propertyId: data.property_id,
-    // These fields may not exist in the database response, so use empty string as default
-    contactNumber: '',  // Default fallback value since it's missing from DB
-    address: '',        // Default fallback value since it's missing from DB
-    // Process attachments with enhanced handling
-    attachments: processAttachments(data.attachments),
+    contactNumber: '',
+    address: '',
+    attachments: processedAttachments,
     category: data.category,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
     dueDate: data.due_date,
     assignedTo: data.assigned_to,
-    // Handle JSON fields with proper type casting
     history: data.history ? 
       (Array.isArray(data.history) ? 
         data.history as { action: string; timestamp: string }[] : 
@@ -86,7 +127,6 @@ export function formatRequestData(data: any): MaintenanceRequest {
     contractorId: data.contractor_id,
     assignedAt: data.assigned_at,
     completionPercentage: data.completion_percentage,
-    // Handle JSON fields with proper type casting
     completionPhotos: data.completion_photos ? 
       (Array.isArray(data.completion_photos) ? 
         data.completion_photos as { url: string }[] : 
@@ -98,7 +138,7 @@ export function formatRequestData(data: any): MaintenanceRequest {
     userId: data.user_id || 'unknown-user'
   };
 
-  console.log('formatRequestData - formatted attachments:', formattedRequest.attachments);
-  console.log('formatRequestData - final formatted request:', formattedRequest);
+  console.log('formatRequestData - FINAL formatted request attachments:', formattedRequest.attachments);
+  console.log('formatRequestData - COMPLETE formatted request:', formattedRequest);
   return formattedRequest;
 }

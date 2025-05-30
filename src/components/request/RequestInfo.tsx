@@ -26,7 +26,13 @@ interface RequestInfoProps {
 }
 
 export const RequestInfo = ({ request }: RequestInfoProps) => {
-  console.log('RequestInfo - attachments:', request.attachments);
+  console.log('RequestInfo - COMPONENT START');
+  console.log('RequestInfo - full request object:', request);
+  console.log('RequestInfo - attachments specifically:', request.attachments);
+  console.log('RequestInfo - attachments type:', typeof request.attachments);
+  console.log('RequestInfo - attachments is array?', Array.isArray(request.attachments));
+  console.log('RequestInfo - attachments length:', request.attachments?.length);
+  console.log('RequestInfo - ABOUT TO PASS TO RequestAttachments');
   
   return (
     <Card className="p-6">
