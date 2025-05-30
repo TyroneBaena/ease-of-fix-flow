@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { supabase } from '@/lib/supabase';
@@ -44,7 +45,12 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
           
         if (!freshRequestError && freshRequestData) {
           console.log("useMaintenanceRequestData - Fetched fresh request data:", freshRequestData);
+          console.log("useMaintenanceRequestData - Raw attachments from DB:", freshRequestData.attachments);
+          console.log("useMaintenanceRequestData - Attachments type:", typeof freshRequestData.attachments);
+          
           const formattedRequest = formatRequestData(freshRequestData);
+          console.log("useMaintenanceRequestData - Formatted request:", formattedRequest);
+          console.log("useMaintenanceRequestData - Formatted attachments:", formattedRequest.attachments);
           
           setRequest(formattedRequest);
           setLoading(false);
@@ -67,9 +73,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
       const foundRequest = requests.find(req => req.id === requestId);
       if (foundRequest) {
         console.log("useMaintenanceRequestData - Found request in context:", foundRequest);
-        console.log("useMaintenanceRequestData - contractorId:", foundRequest.contractorId);
-        console.log("useMaintenanceRequestData - status:", foundRequest.status);
-        console.log("useMaintenanceRequestData - assignedTo:", foundRequest.assignedTo);
+        console.log("useMaintenanceRequestData - Context attachments:", foundRequest.attachments);
         setRequest(foundRequest);
       } else {
         console.log("useMaintenanceRequestData - Request not found for ID:", requestId);
@@ -105,8 +109,10 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         
       if (!error && data) {
         console.log("useMaintenanceRequestData - Refresh fetched fresh data:", data);
+        console.log("useMaintenanceRequestData - Refresh raw attachments:", data.attachments);
         // Update the request with the fresh data
         const formattedRequest = formatRequestData(data);
+        console.log("useMaintenanceRequestData - Refresh formatted attachments:", formattedRequest.attachments);
         setRequest(formattedRequest);
       } else {
         console.log("useMaintenanceRequestData - Error or no request found:", error);

@@ -20,9 +20,16 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
   console.log('RequestAttachments - received attachments:', attachments);
   console.log('RequestAttachments - attachments type:', typeof attachments);
   console.log('RequestAttachments - attachments length:', attachments?.length);
+  console.log('RequestAttachments - is array?', Array.isArray(attachments));
 
-  if (!attachments || attachments.length === 0) {
-    console.log('RequestAttachments - no attachments to display');
+  // Check if attachments is null, undefined, or empty array
+  if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+    console.log('RequestAttachments - no attachments to display, reason:', {
+      isNull: attachments === null,
+      isUndefined: attachments === undefined,
+      isArray: Array.isArray(attachments),
+      length: attachments?.length
+    });
     return (
       <div className="mt-6">
         <h2 className="font-semibold mb-3 flex items-center">
@@ -34,7 +41,10 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
     );
   }
 
+  console.log('RequestAttachments - displaying attachments:', attachments);
+
   const openImageModal = (url: string) => {
+    console.log('RequestAttachments - opening image modal for:', url);
     setSelectedImage(url);
   };
 
@@ -49,26 +59,29 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
         Attachments ({attachments.length})
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {attachments.map((attachment, index) => (
-          <div key={index} className="relative rounded-lg overflow-hidden border bg-gray-50 group">
-            <img 
-              src={attachment.url} 
-              alt={attachment.name || `Attachment ${index + 1}`}
-              className="w-full h-32 object-cover cursor-pointer transition-transform group-hover:scale-105"
-              onClick={() => openImageModal(attachment.url)}
-              onError={(e) => {
-                console.error('Image failed to load:', attachment.url);
-                console.error('Error event:', e);
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully:', attachment.url);
-              }}
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-              <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+        {attachments.map((attachment, index) => {
+          console.log('RequestAttachments - rendering attachment:', attachment, 'at index:', index);
+          return (
+            <div key={index} className="relative rounded-lg overflow-hidden border bg-gray-50 group">
+              <img 
+                src={attachment.url} 
+                alt={attachment.name || `Attachment ${index + 1}`}
+                className="w-full h-32 object-cover cursor-pointer transition-transform group-hover:scale-105"
+                onClick={() => openImageModal(attachment.url)}
+                onError={(e) => {
+                  console.error('Image failed to load:', attachment.url);
+                  console.error('Error event:', e);
+                }}
+                onLoad={() => {
+                  console.log('Image loaded successfully:', attachment.url);
+                }}
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Image Modal */}

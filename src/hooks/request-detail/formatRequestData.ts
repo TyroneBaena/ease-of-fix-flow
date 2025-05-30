@@ -7,6 +7,47 @@ import { MaintenanceRequest } from '@/types/maintenance';
 export function formatRequestData(data: any): MaintenanceRequest {
   console.log('formatRequestData - raw data:', data);
   console.log('formatRequestData - raw attachments:', data.attachments);
+  console.log('formatRequestData - attachments type:', typeof data.attachments);
+  
+  // Function to process attachments from various formats
+  const processAttachments = (attachments: any) => {
+    if (!attachments) {
+      console.log('formatRequestData - No attachments found');
+      return null;
+    }
+    
+    // If it's a string, try to parse it as JSON
+    if (typeof attachments === 'string') {
+      try {
+        const parsed = JSON.parse(attachments);
+        console.log('formatRequestData - Parsed attachments from string:', parsed);
+        return Array.isArray(parsed) ? parsed.map((att: any) => ({
+          url: att.url,
+          name: att.name || undefined,
+          type: att.type || undefined
+        })) : null;
+      } catch (e) {
+        console.error('formatRequestData - Failed to parse attachments string:', e);
+        return null;
+      }
+    }
+    
+    // If it's already an array
+    if (Array.isArray(attachments)) {
+      console.log('formatRequestData - Processing array attachments:', attachments);
+      return attachments.map((att: any) => {
+        console.log('formatRequestData - processing attachment:', att);
+        return {
+          url: att.url,
+          name: att.name || undefined,
+          type: att.type || undefined
+        };
+      });
+    }
+    
+    console.log('formatRequestData - Unknown attachments format:', typeof attachments);
+    return null;
+  };
   
   // Convert snake_case to camelCase where needed
   const formattedRequest: MaintenanceRequest = {
@@ -23,19 +64,8 @@ export function formatRequestData(data: any): MaintenanceRequest {
     // These fields may not exist in the database response, so use empty string as default
     contactNumber: '',  // Default fallback value since it's missing from DB
     address: '',        // Default fallback value since it's missing from DB
-    // Handle JSON fields with proper type casting for attachments
-    attachments: data.attachments ? 
-      (Array.isArray(data.attachments) ? 
-        data.attachments.map((att: any) => {
-          console.log('formatRequestData - processing attachment:', att);
-          return {
-            url: att.url,
-            name: att.name || undefined,
-            type: att.type || undefined
-          };
-        }) : 
-        []) : 
-      null,
+    // Process attachments with enhanced handling
+    attachments: processAttachments(data.attachments),
     category: data.category,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -69,5 +99,6 @@ export function formatRequestData(data: any): MaintenanceRequest {
   };
 
   console.log('formatRequestData - formatted attachments:', formattedRequest.attachments);
+  console.log('formatRequestData - final formatted request:', formattedRequest);
   return formattedRequest;
 }
