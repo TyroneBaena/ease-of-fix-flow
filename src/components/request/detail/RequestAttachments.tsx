@@ -16,6 +16,7 @@ interface RequestAttachmentsProps {
 
 export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   console.log('RequestAttachments - received attachments:', attachments);
   console.log('RequestAttachments - attachments type:', typeof attachments);
@@ -46,10 +47,13 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
   const openImageModal = (url: string) => {
     console.log('RequestAttachments - opening image modal for:', url);
     setSelectedImage(url);
+    setIsModalOpen(true);
   };
 
   const closeImageModal = () => {
+    console.log('RequestAttachments - closing image modal');
     setSelectedImage(null);
+    setIsModalOpen(false);
   };
 
   return (
@@ -62,11 +66,11 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
         {attachments.map((attachment, index) => {
           console.log('RequestAttachments - rendering attachment:', attachment, 'at index:', index);
           return (
-            <div key={index} className="relative rounded-lg overflow-hidden border bg-gray-50 group">
+            <div key={index} className="relative rounded-lg overflow-hidden border bg-gray-50 group cursor-pointer">
               <img 
                 src={attachment.url} 
                 alt={attachment.name || `Attachment ${index + 1}`}
-                className="w-full h-32 object-cover cursor-pointer transition-transform group-hover:scale-105"
+                className="w-full h-32 object-cover transition-transform group-hover:scale-105"
                 onClick={() => openImageModal(attachment.url)}
                 onError={(e) => {
                   console.error('Image failed to load:', attachment.url);
@@ -76,7 +80,7 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
                   console.log('Image loaded successfully:', attachment.url);
                 }}
               />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center pointer-events-none">
                 <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
@@ -85,16 +89,16 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
       </div>
 
       {/* Image Modal */}
-      <Dialog open={!!selectedImage} onOpenChange={() => closeImageModal()}>
-        <DialogContent className="max-w-4xl w-full p-0">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl w-full p-0 bg-black/90">
           <DialogTitle className="sr-only">
             Image Preview
           </DialogTitle>
-          <div className="relative">
+          <div className="relative min-h-[300px] flex items-center justify-center">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white"
+              className="absolute top-4 right-4 z-10 text-white hover:bg-white/20"
               onClick={closeImageModal}
             >
               <X className="h-4 w-4" />
@@ -103,7 +107,13 @@ export const RequestAttachments = ({ attachments }: RequestAttachmentsProps) => 
               <img 
                 src={selectedImage} 
                 alt="Full size attachment"
-                className="w-full h-auto max-h-[80vh] object-contain"
+                className="max-w-full max-h-[80vh] object-contain"
+                onError={(e) => {
+                  console.error('Modal image failed to load:', selectedImage);
+                }}
+                onLoad={() => {
+                  console.log('Modal image loaded successfully:', selectedImage);
+                }}
               />
             )}
           </div>
