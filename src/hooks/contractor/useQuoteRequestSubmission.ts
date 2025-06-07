@@ -28,7 +28,7 @@ export const useQuoteRequestSubmission = () => {
       
       if (contractorError) {
         console.error("Error fetching contractor:", contractorError);
-        throw contractorError;
+        throw new Error(`Failed to fetch contractor: ${contractorError.message}`);
       }
       
       if (!contractor?.user_id) {
@@ -49,13 +49,15 @@ export const useQuoteRequestSubmission = () => {
         
       if (notificationError) {
         console.error("Error creating notification:", notificationError);
-        throw notificationError;
+        throw new Error(`Failed to create notification: ${notificationError.message}`);
       }
       
       console.log(`Notification created for contractor ${contractor.company_name}`);
+      return true;
     } catch (error) {
       console.error("Failed to create notification:", error);
-      throw error;
+      // Don't throw here, just log the error - notification failure shouldn't fail the whole process
+      return false;
     }
   };
 
@@ -79,6 +81,7 @@ export const useQuoteRequestSubmission = () => {
     setIsSubmitting(true);
     let successfulRequests = 0;
     let failedRequests = 0;
+    const errors: string[] = [];
     
     try {
       console.log("QuoteRequestSubmission - Submitting quote requests for contractors:", selectedContractors);
@@ -86,52 +89,61 @@ export const useQuoteRequestSubmission = () => {
       // Process each contractor request sequentially to avoid race conditions
       for (const contractorId of selectedContractors) {
         try {
+          console.log(`Processing quote request for contractor: ${contractorId}`);
+          
           // Request the quote first
           await requestQuote(requestDetails.id!, contractorId, includeInfo, notes);
           
-          // Then create a notification for the contractor
+          // Then create a notification for the contractor (don't fail if this fails)
           await createNotificationForContractor(contractorId, requestDetails.id!);
           
           successfulRequests++;
           console.log(`Successfully processed quote request for contractor: ${contractorId}`);
-        } catch (contractorError) {
+        } catch (contractorError: any) {
           console.error(`Error processing contractor ${contractorId}:`, contractorError);
           failedRequests++;
+          errors.push(`Contractor ${contractorId}: ${contractorError.message || 'Unknown error'}`);
         }
       }
       
       // Update the maintenance request to mark quote as requested only if at least one succeeded
       if (successfulRequests > 0) {
-        const { error: updateError } = await supabase
-          .from('maintenance_requests')
-          .update({
-            quote_requested: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', requestDetails.id);
-          
-        if (updateError) {
+        try {
+          const { error: updateError } = await supabase
+            .from('maintenance_requests')
+            .update({
+              quote_requested: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', requestDetails.id);
+            
+          if (updateError) {
+            console.error("Error updating maintenance request:", updateError);
+            // Don't throw here since the quotes were already created successfully
+          }
+        } catch (updateError) {
           console.error("Error updating maintenance request:", updateError);
-          throw updateError;
+          // Continue since quotes were created successfully
         }
       }
       
       // Show appropriate success/error messages
       if (successfulRequests > 0 && failedRequests === 0) {
         toast.success(`Quote requests sent to ${successfulRequests} contractor(s)`);
+        onSuccess();
       } else if (successfulRequests > 0 && failedRequests > 0) {
         toast.success(`Quote requests sent to ${successfulRequests} contractor(s). ${failedRequests} failed.`);
+        console.error("Failed requests details:", errors);
+        onSuccess();
       } else {
         toast.error("Failed to send quote requests to any contractors");
-        return; // Don't close dialog if all failed
+        console.error("All requests failed. Errors:", errors);
+        // Don't close dialog if all failed
       }
       
-      // Close dialog only on success
-      onSuccess();
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in quote request process:", error);
-      toast.error("Failed to request quotes. Please try again.");
+      toast.error(`Failed to request quotes: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }

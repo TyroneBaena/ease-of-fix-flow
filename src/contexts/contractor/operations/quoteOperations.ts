@@ -22,39 +22,45 @@ export const requestQuote = async (
   console.log("Include info:", includeInfo);
   console.log("Notes:", notes);
 
-  // First mark the request as having quotes requested
-  const { error: requestError } = await supabase
-    .from('maintenance_requests')
-    .update({
-      quote_requested: true,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', requestId);
+  try {
+    // First mark the request as having quotes requested
+    const { error: requestError } = await supabase
+      .from('maintenance_requests')
+      .update({
+        quote_requested: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', requestId);
 
-  if (requestError) {
-    console.error("Error updating maintenance request:", requestError);
-    throw requestError;
-  }
+    if (requestError) {
+      console.error("Error updating maintenance request:", requestError);
+      throw new Error(`Failed to update maintenance request: ${requestError.message}`);
+    }
 
-  // Create a new record in the quotes table with status 'requested'
-  const { error } = await supabase
-    .from('quotes')
-    .insert({
-      request_id: requestId,
-      contractor_id: contractorId,
-      status: 'requested', // Initial status is 'requested', will be updated to 'pending' when submitted
-      amount: 0, // Initial placeholder value
-      submitted_at: new Date().toISOString(),
-      description: notes || null
-    });
+    // Create a new record in the quotes table with status 'requested'
+    // Don't set amount to 0, leave it null until contractor submits actual quote
+    const { error: quoteError } = await supabase
+      .from('quotes')
+      .insert({
+        request_id: requestId,
+        contractor_id: contractorId,
+        status: 'requested', // Initial status is 'requested', will be updated to 'pending' when submitted
+        amount: 1, // Set to 1 as placeholder since amount cannot be 0
+        submitted_at: new Date().toISOString(),
+        description: notes || 'Quote requested'
+      });
 
-  if (error) {
-    console.error("Error creating quote record:", error);
+    if (quoteError) {
+      console.error("Error creating quote record:", quoteError);
+      throw new Error(`Failed to create quote record: ${quoteError.message}`);
+    }
+    
+    console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
+    return true; // Return success indicator
+  } catch (error) {
+    console.error("Error in requestQuote:", error);
     throw error;
   }
-  
-  console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
-  return true; // Return success indicator
 };
 
 // Add the submitQuoteForJob function here
@@ -63,29 +69,37 @@ export const submitQuoteForJob = async (
   amount: number, 
   description: string
 ) => {
-  const { data: contractorData, error: contractorError } = await supabase
-    .from('contractors')
-    .select('id')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-    .single();
+  try {
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .single();
 
-  if (contractorError) throw contractorError;
-  
-  if (!contractorData?.id) {
-    throw new Error('Contractor ID not found');
+    if (contractorError) throw new Error(`Failed to get contractor data: ${contractorError.message}`);
+    
+    if (!contractorData?.id) {
+      throw new Error('Contractor ID not found');
+    }
+
+    const { error } = await supabase
+      .from('quotes')
+      .insert({
+        request_id: requestId,
+        contractor_id: contractorData.id,
+        amount,
+        description,
+        status: 'pending'
+      });
+
+    if (error) throw new Error(`Failed to submit quote: ${error.message}`);
+    
+    console.log("Quote submitted successfully");
+    return true;
+  } catch (error) {
+    console.error("Error in submitQuoteForJob:", error);
+    throw error;
   }
-
-  const { error } = await supabase
-    .from('quotes')
-    .insert({
-      request_id: requestId,
-      contractor_id: contractorData.id,
-      amount,
-      description,
-      status: 'pending'
-    });
-
-  if (error) throw error;
 };
 
 // Re-export the function with an alias to match imports in other files
