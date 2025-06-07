@@ -13,6 +13,7 @@ import { IssueDetailsCard } from '@/components/contractor/job-detail/IssueDetail
 import { AttachmentsCard } from '@/components/contractor/job-detail/AttachmentsCard';
 import { ProgressCard } from '@/components/contractor/job-detail/ProgressCard';
 import { ContactCard } from '@/components/contractor/job-detail/ContactCard';
+import { CommentSection } from '@/components/request/CommentSection';
 
 const ContractorJobDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +54,7 @@ const ContractorJobDetail = () => {
             <JobDetailsCard job={job} />
             <IssueDetailsCard job={job} />
             <AttachmentsCard attachments={job.attachments} />
+            <CommentSection requestId={job.id} />
           </div>
           
           {/* Sidebar - right side */}
