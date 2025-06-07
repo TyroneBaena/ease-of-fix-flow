@@ -26,7 +26,7 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests - RLS policies now handle access control properly
+        // Fetch quote requests - RLS policies handle access control properly
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`

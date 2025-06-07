@@ -25,14 +25,13 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
     
     console.log("User role from profile:", userProfile?.role);
     
-    // Get all contractors with detailed logging
-    const { data, error, status } = await supabase
+    // Get all contractors - RLS policies will automatically handle access control
+    const { data, error } = await supabase
       .from('contractors')
       .select('*');
       
     if (error) {
       console.error("Supabase error fetching contractors:", error);
-      console.error("Status code:", status);
       throw error;
     }
     
@@ -54,7 +53,7 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
         updatedAt: item.updated_at
       }));
       
-      console.log("Mapped contractors:", mappedContractors);
+      console.log("Successfully mapped contractors:", mappedContractors);
       return mappedContractors;
     } else {
       console.log("No contractors found in the database");

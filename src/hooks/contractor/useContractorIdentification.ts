@@ -23,7 +23,7 @@ export const useContractorIdentification = () => {
         
         console.log('Fetching contractor ID for user:', currentUser.id);
         
-        // Now that RLS policies are fixed, we can use direct table queries
+        // With clean RLS policies, direct table queries should work properly
         const { data, error } = await supabase
           .from('contractors')
           .select('id')
