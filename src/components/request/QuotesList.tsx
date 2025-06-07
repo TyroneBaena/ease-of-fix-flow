@@ -62,7 +62,7 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
             key={quote.id}
             className="flex items-center justify-between p-4 border rounded-lg bg-background"
           >
-            <div className="space-y-1">
+            <div className="flex-1 space-y-2">
               <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-1" />
                 <span className="font-medium">${quote.amount}</span>
@@ -70,10 +70,10 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
               {quote.description && (
                 <p className="text-sm text-muted-foreground">{quote.description}</p>
               )}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Badge 
-                  variant={status === 'approved' ? 'default' : 'secondary'} 
-                  className={` ${getStatusColor(quote.status)}`}
+                  variant={quote.status === 'approved' ? 'default' : 'secondary'} 
+                  className={`${getStatusColor(quote.status)}`}
                 >
                   {quote.status}
                 </Badge>
@@ -84,9 +84,10 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
               </div>
             </div>
             {quote.status === 'pending' && (
-              <div className="flex space-x-2">
+              <div className="flex gap-2 ml-4">
                 <Button 
                   variant="outline" 
+                  size="sm"
                   className="bg-green-50 hover:bg-green-100 border-green-200"
                   onClick={() => handleApproveQuote(quote.id)}
                 >
@@ -95,6 +96,7 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
                 </Button>
                 <Button 
                   variant="outline"
+                  size="sm"
                   className="bg-red-50 hover:bg-red-100 border-red-200"
                   onClick={() => handleRejectQuote(quote.id)}
                 >

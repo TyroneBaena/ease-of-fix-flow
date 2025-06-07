@@ -62,7 +62,6 @@ const ContractorJobDetail = () => {
               practiceLeader={job.practiceLeader}
               practiceLeaderPhone={job.practiceLeaderPhone}
               address={job.address}
-              practiceLeaderEmail={job.practiceLeaderEmail}
             />
           </div>
         </div>
