@@ -78,6 +78,7 @@ const RequestDetail = () => {
               onOpenChange={setRequestQuoteDialogOpen}
               requestDetails={request}
               onSubmitQuote={refreshAfterQuoteSubmission}
+              onSuccess={refreshData} // Pass refresh callback to refresh page data
             />
           </ContractorProvider>
         </div>

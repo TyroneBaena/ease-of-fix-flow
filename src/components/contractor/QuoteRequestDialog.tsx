@@ -20,6 +20,7 @@ interface QuoteRequestDialogProps {
   onOpenChange: (open: boolean) => void;
   requestDetails: MaintenanceRequest | null;
   onSubmitQuote: (amount: number, description: string) => void;
+  onSuccess?: () => void; // Add optional success callback for refreshing data
 }
 
 export const QuoteRequestDialog = ({
@@ -27,6 +28,7 @@ export const QuoteRequestDialog = ({
   onOpenChange,
   requestDetails,
   onSubmitQuote,
+  onSuccess,
 }: QuoteRequestDialogProps) => {
   const {
     selectedContractors,
@@ -51,7 +53,13 @@ export const QuoteRequestDialog = ({
       selectedContractors,
       includeInfo,
       notes,
-      () => onOpenChange(false)
+      () => {
+        onOpenChange(false);
+        // Call the success callback to refresh data if provided
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
     );
   };
 
