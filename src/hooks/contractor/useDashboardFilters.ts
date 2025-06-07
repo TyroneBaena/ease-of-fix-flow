@@ -13,18 +13,20 @@ export const useDashboardFilters = ({
   activeJobs,
   completedJobs
 }: UseDashboardFiltersProps) => {
-  // Filter quote requests to show ONLY requests that need quotes to be submitted by this contractor
-  // These should be quotes with status 'requested' (contractor needs to submit a quote)
+  // Filter quote requests to show:
+  // 1. 'requested' - contractor needs to submit a quote
+  // 2. 'pending' - quote submitted, waiting for admin review
+  // 3. 'submitted' - quote under admin review
   const filteredQuoteRequests = useMemo(() => {
     console.log('Dashboard Filters - Raw pending quote requests:', pendingQuoteRequests);
     
     const filtered = pendingQuoteRequests.filter(request => {
-      // Only show requests with quote objects that are in 'requested' status
-      // This means the contractor needs to submit a quote for this request
+      // Include requests with quote objects in various statuses
       if (request.quote && typeof request.quote !== 'string') {
-        const isRequested = request.quote.status === 'requested';
-        console.log(`Request ${request.id}: quote status = ${request.quote.status}, showing = ${isRequested}`);
-        return isRequested;
+        const includeStatuses = ['requested', 'pending', 'submitted'];
+        const shouldInclude = includeStatuses.includes(request.quote.status);
+        console.log(`Request ${request.id}: quote status = ${request.quote.status}, including = ${shouldInclude}`);
+        return shouldInclude;
       }
       
       // Legacy support: show requests where quoteRequested is true but no quote object exists yet

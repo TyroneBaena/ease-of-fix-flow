@@ -16,15 +16,15 @@ interface RequestsTableProps {
 export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests = false }: RequestsTableProps) => {
   const navigate = useNavigate();
   
-  // Apply strict filtering for quote requests section
+  // Apply filtering for quote requests section to show all relevant statuses
   const filteredRequests = filterQuoteRequests 
     ? requests.filter(request => {
-        // For quote requests section: ONLY show requests that need quotes from contractors
-        // This means quotes with status 'requested' (contractor needs to submit a quote)
+        // For quote requests section: show requests in various quote stages
         if (request.quote && typeof request.quote !== 'string') {
-          const isRequested = request.quote.status === 'requested';
-          console.log(`RequestsTable - Quote request ${request.id}: status = ${request.quote.status}, include = ${isRequested}`);
-          return isRequested;
+          const includeStatuses = ['requested', 'pending', 'submitted'];
+          const shouldInclude = includeStatuses.includes(request.quote.status);
+          console.log(`RequestsTable - Quote request ${request.id}: status = ${request.quote.status}, include = ${shouldInclude}`);
+          return shouldInclude;
         }
         
         // Legacy support: requests where quoteRequested is true but no quote object exists yet
@@ -83,6 +83,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
         switch (request.quote.status) {
           case 'requested': return 'Quote Requested';
           case 'pending': return 'Quote Submitted';
+          case 'submitted': return 'Admin Review Pending';
           default: return 'Quote Requested';
         }
       }
@@ -148,7 +149,12 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
             </TableCell>
             <TableCell>
               {filterQuoteRequests ? (
-                'Not quoted'
+                // For quote requests, show quote amount if submitted, otherwise "Not quoted"
+                request.quote && typeof request.quote !== 'string' && request.quote.amount
+                  ? `$${request.quote.amount}`
+                  : request.quotedAmount 
+                    ? `$${request.quotedAmount}`
+                    : 'Not quoted'
               ) : (
                 request.quotedAmount 
                   ? `$${request.quotedAmount}` 
