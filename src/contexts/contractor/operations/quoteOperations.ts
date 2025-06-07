@@ -38,14 +38,14 @@ export const requestQuote = async (
     }
 
     // Create a new record in the quotes table with status 'requested'
-    // Don't set amount to 0, leave it null until contractor submits actual quote
+    // Use a minimal amount (1) as placeholder since the actual quote will be submitted later
     const { error: quoteError } = await supabase
       .from('quotes')
       .insert({
         request_id: requestId,
         contractor_id: contractorId,
         status: 'requested', // Initial status is 'requested', will be updated to 'pending' when submitted
-        amount: 1, // Set to 1 as placeholder since amount cannot be 0
+        amount: 1, // Placeholder amount - actual quote will be submitted later
         submitted_at: new Date().toISOString(),
         description: notes || 'Quote requested'
       });
@@ -82,17 +82,45 @@ export const submitQuoteForJob = async (
       throw new Error('Contractor ID not found');
     }
 
-    const { error } = await supabase
+    // Check if a quote request already exists for this contractor and request
+    const { data: existingQuote, error: checkError } = await supabase
       .from('quotes')
-      .insert({
-        request_id: requestId,
-        contractor_id: contractorData.id,
-        amount,
-        description,
-        status: 'pending'
-      });
+      .select('id, status')
+      .eq('request_id', requestId)
+      .eq('contractor_id', contractorData.id)
+      .single();
 
-    if (error) throw new Error(`Failed to submit quote: ${error.message}`);
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw new Error(`Failed to check existing quote: ${checkError.message}`);
+    }
+
+    if (existingQuote) {
+      // Update the existing quote with the actual amount and description
+      const { error: updateError } = await supabase
+        .from('quotes')
+        .update({
+          amount,
+          description,
+          status: 'pending',
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', existingQuote.id);
+
+      if (updateError) throw new Error(`Failed to update quote: ${updateError.message}`);
+    } else {
+      // Create a new quote if none exists
+      const { error: insertError } = await supabase
+        .from('quotes')
+        .insert({
+          request_id: requestId,
+          contractor_id: contractorData.id,
+          amount,
+          description,
+          status: 'pending'
+        });
+
+      if (insertError) throw new Error(`Failed to submit quote: ${insertError.message}`);
+    }
     
     console.log("Quote submitted successfully");
     return true;

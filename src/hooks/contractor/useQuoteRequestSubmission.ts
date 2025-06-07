@@ -106,27 +106,6 @@ export const useQuoteRequestSubmission = () => {
         }
       }
       
-      // Update the maintenance request to mark quote as requested only if at least one succeeded
-      if (successfulRequests > 0) {
-        try {
-          const { error: updateError } = await supabase
-            .from('maintenance_requests')
-            .update({
-              quote_requested: true,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', requestDetails.id);
-            
-          if (updateError) {
-            console.error("Error updating maintenance request:", updateError);
-            // Don't throw here since the quotes were already created successfully
-          }
-        } catch (updateError) {
-          console.error("Error updating maintenance request:", updateError);
-          // Continue since quotes were created successfully
-        }
-      }
-      
       // Show appropriate success/error messages
       if (successfulRequests > 0 && failedRequests === 0) {
         toast.success(`Quote requests sent to ${successfulRequests} contractor(s)`);
