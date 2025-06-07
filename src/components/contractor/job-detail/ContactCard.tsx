@@ -16,6 +16,13 @@ export const ContactCard = ({
   practiceLeaderEmail,
   address 
 }: ContactCardProps) => {
+  console.log('ContactCard props:', {
+    practiceLeader,
+    practiceLeaderPhone,
+    practiceLeaderEmail,
+    address
+  });
+
   return (
     <Card className="p-6">
       <h2 className="font-semibold text-lg mb-4">Contact Information</h2>

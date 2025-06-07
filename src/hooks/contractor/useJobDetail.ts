@@ -25,6 +25,8 @@ export const useJobDetail = (jobId: string | undefined) => {
       try {
         setLoading(true);
         
+        console.log('Fetching job details for ID:', jobId);
+        
         // Fetch the job details along with the related property to get the contact information
         const { data, error } = await supabase
           .from('maintenance_requests')
@@ -42,9 +44,14 @@ export const useJobDetail = (jobId: string | undefined) => {
           .eq('id', jobId)
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error('Database error fetching job:', error);
+          throw error;
+        }
         
         if (data) {
+          console.log('Raw data from database:', data);
+          
           // Helper function to safely handle potentially non-array JSON fields
           const safeArrayFromJSON = (jsonField: any): any[] => {
             if (!jsonField) return [];
@@ -59,17 +66,9 @@ export const useJobDetail = (jobId: string | undefined) => {
           };
           
           // Extract property information from the join
-          // Cast propertyData explicitly to PropertyData to tell TypeScript what shape it has
           const propertyData = (data.property || {}) as PropertyData;
-          const propertyInfo: PropertyData = {
-            address: propertyData.address,
-            contact_number: propertyData.contact_number,
-            practice_leader: propertyData.practice_leader,
-            practice_leader_phone: propertyData.practice_leader_phone,
-            practice_leader_email: propertyData.practice_leader_email
-          };
           
-          console.log('Property info fetched:', propertyInfo);
+          console.log('Property data extracted:', propertyData);
           
           const formattedJob: MaintenanceRequest = {
             id: data.id,
@@ -82,11 +81,11 @@ export const useJobDetail = (jobId: string | undefined) => {
             submittedBy: data.submitted_by || 'Unknown',
             date: data.created_at,
             propertyId: data.property_id,
-            contactNumber: propertyInfo.contact_number || '',
-            address: propertyInfo.address || '',
-            practiceLeader: propertyInfo.practice_leader || '',
-            practiceLeaderPhone: propertyInfo.practice_leader_phone || '',
-            practiceLeaderEmail: propertyInfo.practice_leader_email || '',
+            contactNumber: propertyData.contact_number || '',
+            address: propertyData.address || '',
+            practiceLeader: propertyData.practice_leader || '',
+            practiceLeaderPhone: propertyData.practice_leader_phone || '',
+            practiceLeaderEmail: propertyData.practice_leader_email || '',
             attachments: safeArrayFromJSON(data.attachments),
             category: data.category,
             createdAt: data.created_at,
@@ -111,10 +110,11 @@ export const useJobDetail = (jobId: string | undefined) => {
             userId: data.user_id || 'unknown-user'
           };
           
-          console.log('Formatted job with contact info:', {
+          console.log('Final formatted job with contact info:', {
             practiceLeader: formattedJob.practiceLeader,
             practiceLeaderEmail: formattedJob.practiceLeaderEmail,
-            practiceLeaderPhone: formattedJob.practiceLeaderPhone
+            practiceLeaderPhone: formattedJob.practiceLeaderPhone,
+            address: formattedJob.address
           });
           
           setJob(formattedJob);

@@ -395,8 +395,16 @@ export type Database = {
         Args: { new_user_id: string; schema_prefix?: string }
         Returns: string
       }
+      get_contractor_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_contractor_user_id: {
         Args: { contractor_uuid: string }
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_user_schema: {
@@ -404,6 +412,10 @@ export type Database = {
         Returns: string
       }
       is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_contractor: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
