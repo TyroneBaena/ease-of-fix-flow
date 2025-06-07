@@ -26,7 +26,7 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests specifically for this contractor
+        // Fetch quote requests specifically for this contractor - include both 'requested' and 'pending' status
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -68,7 +68,7 @@ export const useContractorData = (
         }
         console.log('Fetched completed jobs:', completedJobsData);
         
-        // Process pending quote requests - only show quotes specifically for this contractor
+        // Process pending quote requests - show quotes with 'requested' status (need to submit quote)
         const pendingFromQuotes = quotes
           .filter(quote => quote.maintenance_requests && quote.status === 'requested')
           .map((quote: any) => mapRequestFromQuote(quote));
@@ -98,7 +98,7 @@ export const useContractorData = (
     
     fetchContractorData();
     
-    // Set up real-time subscription for any updates
+    // Set up real-time subscription for any updates to quotes and maintenance requests
     const channel = supabase
       .channel('contractor-data-changes')
       .on('postgres_changes', { 

@@ -1,3 +1,4 @@
+
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,8 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
           return true;
         }
         
-        return false;
+        // Also include legacy requests where quoteRequested is true but no quote object exists yet
+        return request.quoteRequested === true && !request.quotedAmount;
       })
     : requests.filter(request => {
         // For job lists: filter out records that don't have quotes

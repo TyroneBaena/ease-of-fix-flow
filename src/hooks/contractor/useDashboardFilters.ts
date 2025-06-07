@@ -13,15 +13,15 @@ export const useDashboardFilters = ({
   activeJobs,
   completedJobs
 }: UseDashboardFiltersProps) => {
-  // Filter quote requests to only show requests that need quotes to be submitted
+  // Filter quote requests to show requests that need quotes to be submitted by this contractor
   const filteredQuoteRequests = useMemo(() => {
     return pendingQuoteRequests.filter(request => {
-      // Only show requests where quotes are requested but not yet submitted or are in 'requested' status
+      // Show requests with quote objects that are in 'requested' status (waiting for contractor to submit quote)
       if (request.quote && typeof request.quote !== 'string') {
-        // Show if quote status is 'requested' (waiting for contractor to submit quote)
         return request.quote.status === 'requested';
       }
-      // Also include requests where quoteRequested is true but no quote object exists yet
+      
+      // Also include legacy requests where quoteRequested is true but no quote object exists yet
       return request.quoteRequested === true && !request.quotedAmount;
     });
   }, [pendingQuoteRequests]);
