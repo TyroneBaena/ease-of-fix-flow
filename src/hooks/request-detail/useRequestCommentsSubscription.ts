@@ -1,16 +1,27 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
  * Hook to subscribe to real-time comments updates
  */
 export function useRequestCommentsSubscription(requestId: string | undefined, onNewComment: () => void) {
+  const channelRef = useRef<any>(null);
+  const currentRequestIdRef = useRef<string | undefined>();
+
   useEffect(() => {
-    if (!requestId) return;
+    if (!requestId || requestId === currentRequestIdRef.current) return;
+    
+    // Clean up previous subscription
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    
+    currentRequestIdRef.current = requestId;
     
     const channel = supabase
-      .channel('comments-changes')
+      .channel(`comments-${requestId}`)
       .on(
         'postgres_changes',
         {
@@ -21,13 +32,21 @@ export function useRequestCommentsSubscription(requestId: string | undefined, on
         },
         (payload) => {
           console.log('New comment received:', payload);
-          onNewComment();
+          // Only call onNewComment if we have a valid payload
+          if (payload.new) {
+            onNewComment();
+          }
         }
       )
       .subscribe();
       
+    channelRef.current = channel;
+    
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [requestId, onNewComment]);
 }

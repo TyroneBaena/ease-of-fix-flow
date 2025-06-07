@@ -24,9 +24,10 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
   
-  // Listen for comments
+  // Listen for comments but don't auto-refresh on every comment
   useRequestCommentsSubscription(requestId, () => {
-    console.log('New comment received, refreshing data...');
+    console.log('New comment received');
+    // Don't automatically refresh data on every comment to prevent excessive loading
   });
   
   const refreshData = useCallback(() => {
@@ -41,7 +42,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
           
           setTimeout(() => {
             setIsRefreshing(false);
-          }, 1000);
+          }, 500); // Reduced timeout to make refresh feel more responsive
         })
         .catch(error => {
           console.error("Error during refresh:", error);
@@ -53,14 +54,15 @@ export const useRequestDetailData = (requestId: string | undefined) => {
       
       setTimeout(() => {
         setIsRefreshing(false);
-      }, 1000);
+      }, 500);
     }
   }, [isRefreshing, refreshRequestData]);
   
   const refreshAfterQuoteSubmission = useCallback(() => {
+    // Only refresh after a brief delay to ensure database operations are complete
     setTimeout(() => {
       refreshData();
-    }, 1000);
+    }, 500); // Reduced delay
   }, [refreshData]);
 
   return {
