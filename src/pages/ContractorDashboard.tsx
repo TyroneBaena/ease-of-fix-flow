@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
@@ -8,7 +9,7 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import { useContractorDashboard } from '@/hooks/useContractorDashboard';
 import { ContractorMetrics } from '@/components/contractor/dashboard/ContractorMetrics';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +22,7 @@ const ContractorDashboard = () => {
     completedJobs, 
     loading, 
     error,
+    contractorId,
     refreshData
   } = useContractorDashboard();
   
@@ -70,12 +72,51 @@ const ContractorDashboard = () => {
     );
   }
 
+  // Error state - show error but allow retry
+  if (error && !contractorId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <ContractorHeader />
+        <Toaster position="bottom-right" richColors />
+        <main className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshData}
+                className="ml-4"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+          
+          <Card className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Contractor Access Required</h2>
+            <p className="text-gray-600 mb-4">
+              You need a contractor profile to access this dashboard. Please contact your administrator to set up your contractor account.
+            </p>
+            <Button onClick={refreshData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <ContractorHeader />
       <Toaster position="bottom-right" richColors />
       <main className="container mx-auto px-4 py-8">
-        {error && (
+        {error && contractorId && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -88,9 +129,10 @@ const ContractorDashboard = () => {
             size="sm" 
             onClick={refreshData}
             className="flex items-center gap-2"
+            disabled={loading}
           >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
         

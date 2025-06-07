@@ -11,31 +11,43 @@ export const useContractorIdentification = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
     const fetchContractorId = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
         console.log('Fetching contractor ID for user:', currentUser.id);
+        
         const { data, error } = await supabase
           .from('contractors')
           .select('id')
           .eq('user_id', currentUser.id)
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Database error fetching contractor ID:', error);
+          throw error;
+        }
         
         if (data) {
           setContractorId(data.id);
           console.log('Found contractor ID:', data.id);
+          toast.success('Contractor profile loaded successfully');
         } else {
-          console.log('No contractor found for this user');
+          console.log('No contractor profile found for this user');
           setError('No contractor profile found for this user');
-          toast.error('No contractor profile found for this account');
+          toast.error('No contractor profile found for this account. Please contact your administrator.');
         }
       } catch (err) {
         console.error('Error fetching contractor ID:', err);
-        setError('Could not verify contractor status');
-        toast.error('Error loading contractor information');
+        const errorMessage = 'Could not verify contractor status';
+        setError(errorMessage);
+        toast.error('Error loading contractor information. Please try refreshing the page.');
       } finally {
         setLoading(false);
       }
