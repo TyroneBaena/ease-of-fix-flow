@@ -395,6 +395,10 @@ export type Database = {
         Args: { new_user_id: string; schema_prefix?: string }
         Returns: string
       }
+      get_contractor_user_id: {
+        Args: { contractor_uuid: string }
+        Returns: string
+      }
       get_user_schema: {
         Args: Record<PropertyKey, never>
         Returns: string

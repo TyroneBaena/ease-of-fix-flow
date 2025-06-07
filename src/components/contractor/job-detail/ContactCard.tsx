@@ -31,6 +31,21 @@ export const ContactCard = ({
           </div>
         )}
         
+        {practiceLeaderEmail && (
+          <div className="flex items-center gap-3">
+            <Mail className="h-4 w-4 text-gray-500" />
+            <div>
+              <p className="text-sm text-gray-500">Practice Leader Email</p>
+              <a 
+                href={`mailto:${practiceLeaderEmail}`}
+                className="font-medium text-blue-600 hover:text-blue-800"
+              >
+                {practiceLeaderEmail}
+              </a>
+            </div>
+          </div>
+        )}
+        
         {practiceLeaderPhone && (
           <div className="flex items-center gap-3">
             <Phone className="h-4 w-4 text-gray-500" />
@@ -41,21 +56,6 @@ export const ContactCard = ({
                 className="font-medium text-blue-600 hover:text-blue-800"
               >
                 {practiceLeaderPhone}
-              </a>
-            </div>
-          </div>
-        )}
-        
-        {practiceLeaderEmail && (
-          <div className="flex items-center gap-3">
-            <Mail className="h-4 w-4 text-gray-500" />
-            <div>
-              <p className="text-sm text-gray-500">Email</p>
-              <a 
-                href={`mailto:${practiceLeaderEmail}`}
-                className="font-medium text-blue-600 hover:text-blue-800"
-              >
-                {practiceLeaderEmail}
               </a>
             </div>
           </div>
