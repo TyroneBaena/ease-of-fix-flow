@@ -63,6 +63,7 @@ const ContractorJobDetail = () => {
             <ContactCard 
               practiceLeader={job.practiceLeader}
               practiceLeaderPhone={job.practiceLeaderPhone}
+              practiceLeaderEmail={job.practiceLeaderEmail}
               address={job.address}
             />
           </div>

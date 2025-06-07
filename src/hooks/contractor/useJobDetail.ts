@@ -10,6 +10,7 @@ interface PropertyData {
   contact_number?: string;
   practice_leader?: string;
   practice_leader_phone?: string;
+  practice_leader_email?: string;
 }
 
 export const useJobDetail = (jobId: string | undefined) => {
@@ -34,7 +35,8 @@ export const useJobDetail = (jobId: string | undefined) => {
               address,
               contact_number,
               practice_leader,
-              practice_leader_phone
+              practice_leader_phone,
+              practice_leader_email
             )
           `)
           .eq('id', jobId)
@@ -63,7 +65,8 @@ export const useJobDetail = (jobId: string | undefined) => {
             address: propertyData.address,
             contact_number: propertyData.contact_number,
             practice_leader: propertyData.practice_leader,
-            practice_leader_phone: propertyData.practice_leader_phone
+            practice_leader_phone: propertyData.practice_leader_phone,
+            practice_leader_email: propertyData.practice_leader_email
           };
           
           const formattedJob: MaintenanceRequest = {
@@ -81,6 +84,7 @@ export const useJobDetail = (jobId: string | undefined) => {
             address: propertyInfo.address || '',
             practiceLeader: propertyInfo.practice_leader || '',
             practiceLeaderPhone: propertyInfo.practice_leader_phone || '',
+            practiceLeaderEmail: propertyInfo.practice_leader_email || '',
             attachments: safeArrayFromJSON(data.attachments),
             category: data.category,
             createdAt: data.created_at,
