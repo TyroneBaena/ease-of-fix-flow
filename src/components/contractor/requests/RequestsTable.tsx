@@ -19,12 +19,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   const filteredRequests = filterQuoteRequests 
     ? requests.filter(request => {
         // For quote requests section: show requests that need quotes from contractors
-        // This includes requests marked as quoteRequested that don't have contractor quotes yet
-        if (request.quoteRequested) {
-          return true;
-        }
-        
-        // Also include requests with quote objects that are in 'requested' status
+        // This includes requests with quote objects that are in 'requested' status
         if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'requested') {
           return true;
         }

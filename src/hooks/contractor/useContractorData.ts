@@ -26,7 +26,7 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests - RLS policies handle access control properly
+        // Fetch quote requests specifically for this contractor
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -40,20 +40,7 @@ export const useContractorData = (
           console.error('Error fetching quotes:', quotesError);
           throw quotesError;
         }
-        console.log('Fetched quotes:', quotes);
-        
-        // Fetch maintenance requests that contractors can quote on
-        // RLS will automatically filter to show only accessible requests
-        const { data: availableRequests, error: availableError } = await supabase
-          .from('maintenance_requests')
-          .select('*')
-          .eq('quote_requested', true);
-          
-        if (availableError) {
-          console.error('Error fetching available requests:', availableError);
-          throw availableError;
-        }
-        console.log('Fetched available requests:', availableRequests);
+        console.log('Fetched quotes for contractor:', quotes);
         
         // Fetch active jobs assigned to this contractor
         const { data: activeJobsData, error: activeJobsError } = await supabase
@@ -81,32 +68,22 @@ export const useContractorData = (
         }
         console.log('Fetched completed jobs:', completedJobsData);
         
-        // Process pending quote requests
+        // Process pending quote requests - only show quotes specifically for this contractor
         const pendingFromQuotes = quotes
-          .filter(quote => quote.maintenance_requests)
+          .filter(quote => quote.maintenance_requests && quote.status === 'requested')
           .map((quote: any) => mapRequestFromQuote(quote));
-          
-        const pendingFromRequests = availableRequests
-          .filter(request => !quotes.some(quote => quote.request_id === request.id))
-          .map(mapRequestFromDb);
-        
-        // Combine and deduplicate pending requests
-        const allPendingRequests = [...pendingFromQuotes, ...pendingFromRequests];
-        const uniquePendingRequests = allPendingRequests.filter((request, index, self) => 
-          index === self.findIndex(r => r.id === request.id)
-        );
         
         const activeRequests = activeJobsData.map(mapRequestFromDb);
         const completedRequests = completedJobsData.map(mapRequestFromDb);
         
-        setPendingQuoteRequests(uniquePendingRequests);
+        setPendingQuoteRequests(pendingFromQuotes);
         setActiveJobs(activeRequests);
         setCompletedJobs(completedRequests);
         
-        console.log(`Successfully loaded contractor data: ${uniquePendingRequests.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+        console.log(`Successfully loaded contractor data: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
         
         // Show success message if we have data
-        if (uniquePendingRequests.length > 0 || activeRequests.length > 0 || completedRequests.length > 0) {
+        if (pendingFromQuotes.length > 0 || activeRequests.length > 0 || completedRequests.length > 0) {
           toast.success('Contractor data loaded successfully');
         }
         
