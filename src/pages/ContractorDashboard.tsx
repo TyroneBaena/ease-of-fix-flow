@@ -32,16 +32,33 @@ const ContractorDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
 
-  // Check authentication and redirect if not logged in
+  // Strict authentication check with immediate redirect
   useEffect(() => {
+    console.log('ContractorDashboard - Auth check:', { 
+      authLoading, 
+      currentUser: !!currentUser,
+      userId: currentUser?.id 
+    });
+    
     if (!authLoading && !currentUser) {
-      console.log('ContractorDashboard - No authenticated user, redirecting to login');
+      console.log('ContractorDashboard - No authenticated user, redirecting to login immediately');
       navigate('/login', { replace: true });
+      return;
+    }
+    
+    // Additional check to ensure user has contractor role (if applicable)
+    if (!authLoading && currentUser && currentUser.role !== 'contractor') {
+      console.log('ContractorDashboard - User is not a contractor, redirecting to appropriate dashboard');
+      // Redirect to appropriate dashboard based on role
+      const redirectPath = currentUser.role === 'admin' ? '/dashboard' : '/dashboard';
+      navigate(redirectPath, { replace: true });
+      return;
     }
   }, [currentUser, authLoading, navigate]);
 
-  // Don't render anything if user is not authenticated
-  if (!authLoading && !currentUser) {
+  // Prevent any rendering if user is not authenticated or not a contractor
+  if (!authLoading && (!currentUser || currentUser.role !== 'contractor')) {
+    console.log('ContractorDashboard - Blocking render due to authentication/authorization failure');
     return null;
   }
   
@@ -61,7 +78,7 @@ const ContractorDashboard = () => {
     completedJobs
   });
 
-  // Loading skeleton placeholder
+  // Loading skeleton placeholder - but only if we have a valid user
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -84,8 +101,8 @@ const ContractorDashboard = () => {
         loading={loading}
       />
 
-      {/* Only show main content if no blocking error */}
-      {(!error || contractorId) && (
+      {/* Only show main content if no blocking error and user is authenticated */}
+      {(!error || contractorId) && currentUser && (
         <main className="container mx-auto px-4 py-8">
           {error && contractorId && (
             <DashboardErrorState 

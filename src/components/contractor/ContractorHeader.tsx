@@ -19,14 +19,18 @@ export const ContractorHeader = () => {
 
   const handleSignOut = async () => {
     try {
-      console.log("ContractorHeader: Starting sign out");
-      await signOut();
-      console.log("ContractorHeader: Sign out completed, navigating to login");
-      // Use replace to prevent going back to dashboard
+      console.log("ContractorHeader: Starting sign out process");
+      
+      // Immediately navigate to login to prevent UI issues
       navigate('/login', { replace: true });
+      
+      // Then perform the actual sign out
+      await signOut();
+      
+      console.log("ContractorHeader: Sign out completed successfully");
     } catch (error) {
       console.error("ContractorHeader: Error during sign out:", error);
-      // Even if there's an error, navigate to login
+      // Even if there's an error, ensure we're on the login page
       navigate('/login', { replace: true });
     }
   };

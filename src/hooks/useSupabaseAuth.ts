@@ -60,14 +60,19 @@ export const useSupabaseAuth = () => {
             .then(appUser => {
               console.log("Setting user after sign in:", appUser);
               setCurrentUser(appUser);
+              setLoading(false);
             })
-            .catch(error => console.error("Error converting user:", error));
+            .catch(error => {
+              console.error("Error converting user:", error);
+              setLoading(false);
+            });
         }, 0);
       } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out");
+        console.log("User signed out, clearing state");
         setCurrentUser(null);
         setSupabaseUser(null);
         setIsSigningOut(false);
+        setLoading(false);
       } else if (event === 'USER_UPDATED') {
         setTimeout(() => {
           convertToAppUser(session.user)
@@ -107,7 +112,7 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Sign out with improved error handling
+  // Sign out with improved error handling and state management
   const signOut = async () => {
     // Prevent multiple simultaneous logout attempts
     if (isSigningOut) {
@@ -118,7 +123,7 @@ export const useSupabaseAuth = () => {
     try {
       setIsSigningOut(true);
       setLoading(true);
-      console.log("Starting sign out process");
+      console.log("Starting sign out process in useSupabaseAuth");
       
       // Clear user state immediately to prevent UI issues
       setCurrentUser(null);
@@ -127,9 +132,9 @@ export const useSupabaseAuth = () => {
       // Call the sign out function
       await signOutUser();
       
-      console.log("Sign out completed successfully");
+      console.log("Sign out completed successfully in useSupabaseAuth");
     } catch (error: any) {
-      console.error('Error during sign out:', error);
+      console.error('Error during sign out in useSupabaseAuth:', error);
       
       // Even if there's an error, ensure the local state is cleared
       setCurrentUser(null);

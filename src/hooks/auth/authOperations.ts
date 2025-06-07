@@ -39,45 +39,57 @@ export const signInWithEmailPassword = async (email: string, password: string) =
 };
 
 /**
- * Sign out the current user with improved error handling
+ * Sign out the current user with improved error handling and proper cleanup
  */
 export const signOutUser = async () => {
   try {
-    console.log("Attempting to sign out user");
+    console.log("Starting sign out process");
     
     // Get current session to check if user is actually signed in
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      console.log("No active session found, considering logout successful");
+      console.log("No active session found, user already signed out");
       toast.success("Signed out successfully");
       return;
     }
+    
+    console.log("Active session found, proceeding with sign out");
     
     const { error } = await supabase.auth.signOut();
     
     if (error) {
       console.error("Error during sign out:", error);
-      // Don't throw error - we want logout to always succeed from UI perspective
+      // Even on error, we'll consider it successful from UI perspective
       toast.success("Signed out successfully");
     } else {
-      console.log("Sign out successful");
+      console.log("Sign out completed successfully");
       toast.success("Signed out successfully");
     }
     
-    // Clear any cached user data in localStorage
+    // Clear any cached data in localStorage
     try {
       localStorage.removeItem('supabase.auth.token');
+      localStorage.clear(); // Clear all localStorage to ensure clean state
     } catch (localStorageError) {
       console.warn("Could not clear localStorage:", localStorageError);
     }
     
     // Force a small delay to ensure state is cleared properly
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    console.log("Sign out process completed");
   } catch (error: any) {
-    console.error("Error signing out:", error);
-    // Don't show error toast for logout - just log it
-    console.log("Logout completed despite error");
+    console.error("Error in sign out process:", error);
+    // Always consider logout successful from UI perspective
+    toast.success("Signed out successfully");
+    
+    // Force clear localStorage even on error
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.warn("Could not clear localStorage on error:", e);
+    }
   }
 };
 
