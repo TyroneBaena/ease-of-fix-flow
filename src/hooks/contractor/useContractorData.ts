@@ -26,7 +26,7 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests - RLS policies now handle access control automatically
+        // Fetch quote requests - new RLS policies should handle access control
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -43,7 +43,7 @@ export const useContractorData = (
         console.log('Fetched quotes:', quotes);
         
         // Fetch maintenance requests that contractors can quote on
-        // RLS will automatically filter to show only accessible requests
+        // New RLS will automatically filter to show only accessible requests
         const { data: availableRequests, error: availableError } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -103,11 +103,17 @@ export const useContractorData = (
         setActiveJobs(activeRequests);
         setCompletedJobs(completedRequests);
         
-        console.log(`Loaded ${uniquePendingRequests.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+        console.log(`Successfully loaded contractor data: ${uniquePendingRequests.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+        
+        // Show success message if we have data
+        if (uniquePendingRequests.length > 0 || activeRequests.length > 0 || completedRequests.length > 0) {
+          toast.success('Contractor data loaded successfully');
+        }
+        
       } catch (error) {
         console.error('Error fetching contractor data:', error);
         setError('Failed to load contractor dashboard data');
-        toast.error('Could not load job data');
+        toast.error('Could not load job data. Please try refreshing the page.');
       } finally {
         setLoading(false);
       }

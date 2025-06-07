@@ -26,7 +26,7 @@ export const useJobDetail = (jobId: string | undefined) => {
         
         console.log('Fetching job details for ID:', jobId);
         
-        // Fetch the job details - RLS policies will handle access control
+        // Fetch the job details - new RLS policies will handle access control automatically
         const { data, error } = await supabase
           .from('maintenance_requests')
           .select(`
@@ -44,7 +44,7 @@ export const useJobDetail = (jobId: string | undefined) => {
         if (data) {
           console.log('Raw maintenance request data:', data);
           
-          // Fetch the property data separately
+          // Fetch the property data separately if needed
           let propertyData: PropertyData = {};
           if (data.property_id) {
             console.log('Fetching property data for property ID:', data.property_id);
@@ -116,7 +116,8 @@ export const useJobDetail = (jobId: string | undefined) => {
             userId: data.user_id || 'unknown-user'
           };
           
-          console.log('Final formatted job with contact info:', {
+          console.log('Successfully formatted job data with contact info:', {
+            jobId: formattedJob.id,
             practiceLeader: formattedJob.practiceLeader,
             practiceLeaderEmail: formattedJob.practiceLeaderEmail,
             practiceLeaderPhone: formattedJob.practiceLeaderPhone,
@@ -130,7 +131,7 @@ export const useJobDetail = (jobId: string | undefined) => {
       } catch (err) {
         console.error('Error fetching job details:', err);
         setError('Failed to load job details');
-        toast.error('Failed to load job details');
+        toast.error('Failed to load job details. Please check your permissions.');
       } finally {
         setLoading(false);
       }
