@@ -407,6 +407,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_role_for_maintenance: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_schema: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -419,6 +423,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_contractor_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       meta_to_array: {
         Args: { meta: Json }
         Returns: string[]
@@ -426,6 +434,10 @@ export type Database = {
       use_tenant_schema: {
         Args: { operation: string }
         Returns: undefined
+      }
+      user_has_property_access: {
+        Args: { property_uuid: string }
+        Returns: boolean
       }
     }
     Enums: {
