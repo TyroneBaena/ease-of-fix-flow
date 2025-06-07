@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
@@ -103,14 +104,37 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Sign out
+  // Sign out with improved error handling
   const signOut = async () => {
-    setLoading(true);
     try {
+      // Check if there's actually a user to sign out
+      if (!currentUser && !supabaseUser) {
+        console.log("No user session found, clearing state anyway");
+        setCurrentUser(null);
+        setSupabaseUser(null);
+        return;
+      }
+
+      setLoading(true);
+      console.log("Starting sign out process");
+      
+      // Call the sign out function
       await signOutUser();
+      
       // Explicitly clear the user state after logout
       setCurrentUser(null);
       setSupabaseUser(null);
+      
+      console.log("Sign out completed successfully");
+    } catch (error: any) {
+      console.error('Error during sign out:', error);
+      
+      // Even if there's an error, clear the local state
+      setCurrentUser(null);
+      setSupabaseUser(null);
+      
+      // Show error toast but don't throw - we want logout to always "succeed" from UI perspective
+      toast.error("Sign out completed with warnings");
     } finally {
       setLoading(false);
     }

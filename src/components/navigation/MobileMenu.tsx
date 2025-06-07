@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Plus, Settings, Menu as MenuIcon } from 'lucide-react';
@@ -47,8 +48,16 @@ export const MobileMenu = () => {
   };
   
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+    try {
+      console.log("MobileMenu: Starting sign out");
+      await signOut();
+      console.log("MobileMenu: Sign out completed, navigating to login");
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error("MobileMenu: Error during sign out:", error);
+      // Even if there's an error, still navigate to login
+      navigate('/login', { replace: true });
+    }
   };
 
   // Log user info for debugging - updated to use isAdmin as boolean

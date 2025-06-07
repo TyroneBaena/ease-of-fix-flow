@@ -21,8 +21,16 @@ export const UserMenu = () => {
     : 'U';
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+    try {
+      console.log("UserMenu: Starting sign out");
+      await signOut();
+      console.log("UserMenu: Sign out completed, navigating to login");
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error("UserMenu: Error during sign out:", error);
+      // Even if there's an error, still navigate to login
+      navigate('/login', { replace: true });
+    }
   };
 
   // Log user info for debugging - updated to use isAdmin as boolean
