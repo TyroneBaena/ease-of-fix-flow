@@ -26,7 +26,8 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests specifically for this contractor - include both 'requested' and 'pending' status
+        // Fetch quote requests specifically for this contractor - ONLY 'requested' status
+        // These are quotes that the contractor needs to submit
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -34,15 +35,15 @@ export const useContractorData = (
             maintenance_requests(*)
           `)
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'pending']);
+          .eq('status', 'requested'); // ONLY requested quotes
           
         if (quotesError) {
           console.error('Error fetching quotes:', quotesError);
           throw quotesError;
         }
-        console.log('Fetched quotes for contractor:', quotes);
+        console.log('Fetched requested quotes for contractor:', quotes);
         
-        // Fetch active jobs assigned to this contractor
+        // Fetch active jobs assigned to this contractor (in-progress with approved quotes)
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -68,7 +69,7 @@ export const useContractorData = (
         }
         console.log('Fetched completed jobs:', completedJobsData);
         
-        // Process pending quote requests - show quotes with 'requested' status (need to submit quote)
+        // Process pending quote requests - only show quotes with 'requested' status
         const pendingFromQuotes = quotes
           .filter(quote => quote.maintenance_requests && quote.status === 'requested')
           .map((quote: any) => mapRequestFromQuote(quote));

@@ -10,44 +10,48 @@ import { useNavigate } from 'react-router-dom';
 interface RequestsTableProps {
   requests: MaintenanceRequest[];
   onSelectRequest: (request: MaintenanceRequest) => void;
-  filterQuoteRequests?: boolean; // New prop to control filtering
+  filterQuoteRequests?: boolean;
 }
 
 export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests = false }: RequestsTableProps) => {
   const navigate = useNavigate();
   
-  // Apply different filtering based on the section
+  // Apply strict filtering for quote requests section
   const filteredRequests = filterQuoteRequests 
     ? requests.filter(request => {
-        // For quote requests section: show requests that need quotes from contractors
-        // This includes requests with quote objects that are in 'requested' status
-        if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'requested') {
-          return true;
+        // For quote requests section: ONLY show requests that need quotes from contractors
+        // This means quotes with status 'requested' (contractor needs to submit a quote)
+        if (request.quote && typeof request.quote !== 'string') {
+          return request.quote.status === 'requested';
         }
         
-        // Also include legacy requests where quoteRequested is true but no quote object exists yet
-        return request.quoteRequested === true && !request.quotedAmount;
+        // Legacy support: requests where quoteRequested is true but no quote object exists yet
+        return request.quoteRequested === true && !request.quotedAmount && !request.quote;
       })
     : requests.filter(request => {
-        // For job lists: filter out records that don't have quotes
+        // For job lists: filter out records that don't have quotes or aren't in proper status
         const hasQuote = request.quotedAmount || 
                         (request.quote && typeof request.quote !== 'string' && request.quote.amount);
         return hasQuote;
       });
   
+  console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
   console.log('RequestsTable - Original requests:', requests.length);
   console.log('RequestsTable - Filtered requests:', filteredRequests.length);
-  console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
-  console.log('RequestsTable - Filtered requests data:', filteredRequests);
+  console.log('RequestsTable - Filtered requests data:', filteredRequests.map(r => ({
+    id: r.id.substring(0, 8),
+    title: r.title,
+    quoteStatus: r.quote && typeof r.quote !== 'string' ? r.quote.status : 'no quote',
+    quoteRequested: r.quoteRequested
+  })));
   
   if (filteredRequests.length === 0) {
     return <EmptyState />;
   }
 
   const handleRowClick = (request: MaintenanceRequest) => {
-    console.log('RequestsTable - Row clicked:', request);
+    console.log('RequestsTable - Row clicked:', request.id);
     console.log('RequestsTable - Request quote status:', request.quote);
-    console.log('RequestsTable - Request quoteRequested:', request.quoteRequested);
     
     // For quote requests that need quotes to be submitted by contractors
     if (filterQuoteRequests) {
