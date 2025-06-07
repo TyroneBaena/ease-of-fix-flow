@@ -41,6 +41,7 @@ export const ManageSkillsDialog: React.FC<ManageSkillsDialogProps> = ({
 
   useEffect(() => {
     if (contractor && open) {
+      console.log('ManageSkillsDialog - Setting initial skills from contractor:', contractor.specialties);
       setSkills(contractor.specialties || []);
     }
   }, [contractor, open]);
@@ -48,17 +49,20 @@ export const ManageSkillsDialog: React.FC<ManageSkillsDialogProps> = ({
   const handleAddSkill = () => {
     const trimmedSkill = newSkill.trim();
     if (trimmedSkill && !skills.includes(trimmedSkill)) {
+      console.log('Adding skill:', trimmedSkill);
       setSkills([...skills, trimmedSkill]);
       setNewSkill('');
     }
   };
 
   const handleRemoveSkill = (skillToRemove: string) => {
+    console.log('Removing skill:', skillToRemove);
     setSkills(skills.filter(skill => skill !== skillToRemove));
   };
 
   const handleAddCommonSkill = (skill: string) => {
     if (!skills.includes(skill)) {
+      console.log('Adding common skill:', skill);
       setSkills([...skills, skill]);
     }
   };
@@ -67,17 +71,46 @@ export const ManageSkillsDialog: React.FC<ManageSkillsDialogProps> = ({
     e.preventDefault();
     
     if (!contractor?.id) {
+      console.error('ManageSkillsDialog - No contractor ID found');
       toast.error('Contractor profile not found');
       return;
     }
 
-    console.log('Updating contractor skills:', {
+    console.log('ManageSkillsDialog - Starting update process:', {
       contractorId: contractor.id,
-      skills: skills
+      currentSkills: contractor.specialties,
+      newSkills: skills,
+      skillsChanged: JSON.stringify(contractor.specialties) !== JSON.stringify(skills)
     });
+
+    // Check if skills actually changed
+    const skillsChanged = JSON.stringify(contractor.specialties?.sort()) !== JSON.stringify(skills.sort());
+    if (!skillsChanged) {
+      console.log('ManageSkillsDialog - No changes detected, closing dialog');
+      toast.success('No changes to save');
+      setOpen(false);
+      return;
+    }
 
     setLoading(true);
     try {
+      console.log('ManageSkillsDialog - Executing database update');
+      
+      // First, let's verify the contractor exists
+      const { data: existingContractor, error: fetchError } = await supabase
+        .from('contractors')
+        .select('id, specialties')
+        .eq('id', contractor.id)
+        .single();
+
+      if (fetchError) {
+        console.error('ManageSkillsDialog - Error fetching contractor for verification:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('ManageSkillsDialog - Existing contractor data:', existingContractor);
+
+      // Now update the specialties
       const { data, error } = await supabase
         .from('contractors')
         .update({
@@ -85,27 +118,55 @@ export const ManageSkillsDialog: React.FC<ManageSkillsDialogProps> = ({
           updated_at: new Date().toISOString()
         })
         .eq('id', contractor.id)
-        .select();
+        .select('id, specialties, updated_at');
 
       if (error) {
-        console.error('Database error:', error);
+        console.error('ManageSkillsDialog - Database update error:', error);
         throw error;
       }
 
-      console.log('Update successful:', data);
+      console.log('ManageSkillsDialog - Update successful, returned data:', data);
+
+      // Verify the update actually happened
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('contractors')
+        .select('specialties, updated_at')
+        .eq('id', contractor.id)
+        .single();
+
+      if (verificationError) {
+        console.error('ManageSkillsDialog - Verification error:', verificationError);
+      } else {
+        console.log('ManageSkillsDialog - Post-update verification:', verificationData);
+      }
+
       toast.success('Skills updated successfully');
       setOpen(false);
+      
+      console.log('ManageSkillsDialog - Calling onUpdate callback');
+      // Call the update callback
       onUpdate();
+      
     } catch (error: any) {
-      console.error('Error updating skills:', error);
+      console.error('ManageSkillsDialog - Error during update process:', error);
       toast.error(error.message || 'Failed to update skills');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDialogClose = (newOpen: boolean) => {
+    console.log('ManageSkillsDialog - Dialog open state changing to:', newOpen);
+    setOpen(newOpen);
+    if (!newOpen) {
+      // Reset skills when closing dialog
+      setSkills(contractor?.specialties || []);
+      setNewSkill('');
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>

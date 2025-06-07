@@ -22,13 +22,19 @@ const ContractorProfile = () => {
   const loading = userLoading || contractorLoading;
 
   // Debug logging for contractor data
-  console.log('ContractorProfile - contractor data:', contractor);
-  console.log('ContractorProfile - contractor specialties:', contractor?.specialties);
+  console.log('ContractorProfile - Current contractor data:', contractor);
+  console.log('ContractorProfile - Contractor specialties:', contractor?.specialties);
+  console.log('ContractorProfile - Loading state:', loading);
 
   const handleSkillsUpdate = async () => {
-    console.log('Skills updated, refetching contractor data...');
-    await refetch();
-    // Note: contractor state will be updated after this function completes
+    console.log('ContractorProfile - Skills update triggered, refetching data...');
+    
+    try {
+      await refetch();
+      console.log('ContractorProfile - Refetch completed successfully');
+    } catch (error) {
+      console.error('ContractorProfile - Error during refetch:', error);
+    }
   };
 
   if (currentUser && currentUser.role !== 'contractor') {

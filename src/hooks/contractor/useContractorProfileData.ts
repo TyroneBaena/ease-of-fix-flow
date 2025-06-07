@@ -26,6 +26,7 @@ export const useContractorProfileData = () => {
 
   const fetchContractorProfile = async () => {
     if (!currentUser || currentUser.role !== 'contractor') {
+      console.log('useContractorProfileData - No contractor user found');
       setLoading(false);
       return;
     }
@@ -34,21 +35,27 @@ export const useContractorProfileData = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Fetching contractor profile for user:', currentUser.id);
+      console.log('useContractorProfileData - Starting fetch for user:', currentUser.id);
 
-      // Fetch contractor data with fresh query (bypass cache)
+      // Fetch contractor data with fresh query (no cache)
       const { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
         .select('*')
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid errors if no data found
 
       if (contractorError) {
-        console.error('Error fetching contractor data:', contractorError);
+        console.error('useContractorProfileData - Error fetching contractor data:', contractorError);
         throw contractorError;
       }
 
-      console.log('Contractor data fetched:', contractorData);
+      if (!contractorData) {
+        console.log('useContractorProfileData - No contractor profile found for user');
+        setError('No contractor profile found');
+        return;
+      }
+
+      console.log('useContractorProfileData - Raw contractor data from database:', contractorData);
 
       // Fetch completed jobs count
       const { data: jobsData, error: jobsError } = await supabase
@@ -58,8 +65,8 @@ export const useContractorProfileData = () => {
         .eq('status', 'completed');
 
       if (jobsError) {
-        console.error('Error fetching jobs data:', jobsError);
-        throw jobsError;
+        console.error('useContractorProfileData - Error fetching jobs data:', jobsError);
+        // Don't throw error for jobs, just log it
       }
 
       // Calculate rating (mock for now, could be based on feedback in the future)
@@ -79,10 +86,12 @@ export const useContractorProfileData = () => {
         accountStatus: 'active' // This could be a field in the database
       };
 
-      console.log('Setting contractor profile:', profile);
+      console.log('useContractorProfileData - Final contractor profile object:', profile);
+      console.log('useContractorProfileData - Specialties array:', profile.specialties);
+      
       setContractor(profile);
     } catch (err) {
-      console.error('Error fetching contractor profile:', err);
+      console.error('useContractorProfileData - Error in fetch process:', err);
       setError('Failed to load contractor profile');
       toast.error('Could not load profile information');
     } finally {
@@ -91,6 +100,7 @@ export const useContractorProfileData = () => {
   };
 
   useEffect(() => {
+    console.log('useContractorProfileData - useEffect triggered, currentUser:', currentUser?.id);
     fetchContractorProfile();
   }, [currentUser]);
 
