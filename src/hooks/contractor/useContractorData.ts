@@ -26,7 +26,7 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests - these are requests where quotes have been requested from this contractor
+        // Fetch quote requests - RLS policies now handle access control automatically
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -42,20 +42,20 @@ export const useContractorData = (
         }
         console.log('Fetched quotes:', quotes);
         
-        // Fetch jobs where quote_requested is true but no quotes exist yet for this contractor
-        const { data: quoteRequestedJobs, error: quoteRequestedError } = await supabase
+        // Fetch maintenance requests that contractors can quote on
+        // RLS will automatically filter to show only accessible requests
+        const { data: availableRequests, error: availableError } = await supabase
           .from('maintenance_requests')
           .select('*')
-          .eq('quote_requested', true)
-          .is('contractor_id', null);
+          .eq('quote_requested', true);
           
-        if (quoteRequestedError) {
-          console.error('Error fetching quote requested jobs:', quoteRequestedError);
-          throw quoteRequestedError;
+        if (availableError) {
+          console.error('Error fetching available requests:', availableError);
+          throw availableError;
         }
-        console.log('Fetched quote requested jobs:', quoteRequestedJobs);
+        console.log('Fetched available requests:', availableRequests);
         
-        // Fetch active jobs where this contractor is assigned
+        // Fetch active jobs assigned to this contractor
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -86,7 +86,9 @@ export const useContractorData = (
           .filter(quote => quote.maintenance_requests)
           .map((quote: any) => mapRequestFromQuote(quote));
           
-        const pendingFromRequests = quoteRequestedJobs.map(mapRequestFromDb);
+        const pendingFromRequests = availableRequests
+          .filter(request => !quotes.some(quote => quote.request_id === request.id))
+          .map(mapRequestFromDb);
         
         // Combine and deduplicate pending requests
         const allPendingRequests = [...pendingFromQuotes, ...pendingFromRequests];
@@ -119,8 +121,7 @@ export const useContractorData = (
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public',
-        table: 'maintenance_requests',
-        filter: `contractor_id=eq.${contractorId}`
+        table: 'maintenance_requests'
       }, () => {
         console.log('Maintenance request updated, refreshing data');
         fetchContractorData();
@@ -128,19 +129,9 @@ export const useContractorData = (
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public',
-        table: 'quotes',
-        filter: `contractor_id=eq.${contractorId}`
+        table: 'quotes'
       }, () => {
         console.log('Quote updated, refreshing data');
-        fetchContractorData();
-      })
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public',
-        table: 'maintenance_requests',
-        filter: `quote_requested=eq.true`
-      }, () => {
-        console.log('Quote requested for new job, refreshing data');
         fetchContractorData();
       })
       .subscribe();

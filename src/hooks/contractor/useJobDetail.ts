@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
 
-// Define an interface for the property data structure
 interface PropertyData {
   address?: string;
   contact_number?: string;
@@ -27,24 +26,7 @@ export const useJobDetail = (jobId: string | undefined) => {
         
         console.log('Fetching job details for ID:', jobId);
         
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('User not authenticated');
-        }
-
-        // Check if user is a contractor
-        const { data: contractorData } = await supabase
-          .from('contractors')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        console.log('Current user ID:', user.id);
-        console.log('Contractor data:', contractorData);
-        
-        // Fetch the job details - for contractors, don't filter by contractor_id
-        // as they might need to see jobs for quoting that aren't assigned yet
+        // Fetch the job details - RLS policies will handle access control
         const { data, error } = await supabase
           .from('maintenance_requests')
           .select(`
@@ -62,20 +44,7 @@ export const useJobDetail = (jobId: string | undefined) => {
         if (data) {
           console.log('Raw maintenance request data:', data);
           
-          // For contractors, verify they have access to this job
-          if (contractorData) {
-            const hasAccess = 
-              data.contractor_id === contractorData.id || // Assigned to them
-              data.quote_requested === true || // Available for quoting
-              data.status === 'pending'; // Pending jobs they can potentially quote
-              
-            if (!hasAccess) {
-              setError('You do not have access to this job');
-              return;
-            }
-          }
-          
-          // Now fetch the property data separately
+          // Fetch the property data separately
           let propertyData: PropertyData = {};
           if (data.property_id) {
             console.log('Fetching property data for property ID:', data.property_id);
@@ -83,7 +52,7 @@ export const useJobDetail = (jobId: string | undefined) => {
               .from('properties')
               .select('address, contact_number, practice_leader, practice_leader_phone, practice_leader_email')
               .eq('id', data.property_id)
-              .single();
+              .maybeSingle();
               
             if (propertyError) {
               console.warn('Could not fetch property data:', propertyError);
@@ -156,7 +125,7 @@ export const useJobDetail = (jobId: string | undefined) => {
           
           setJob(formattedJob);
         } else {
-          setError('Job not found');
+          setError('Job not found or access denied');
         }
       } catch (err) {
         console.error('Error fetching job details:', err);
