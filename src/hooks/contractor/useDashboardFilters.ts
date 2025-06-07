@@ -38,6 +38,7 @@ export const useDashboardFilters = ({
   }, [pendingQuoteRequests]);
 
   // Filter active jobs to only show jobs that are actually in progress with approved quotes
+  // These should NOT appear in quote requests section
   const filteredActiveJobs = useMemo(() => {
     return activeJobs.filter(request => {
       // Only show jobs that are in 'in-progress' status AND have approved quotes

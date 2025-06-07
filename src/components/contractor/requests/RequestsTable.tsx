@@ -22,17 +22,25 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
         // For quote requests section: ONLY show requests that need quotes from contractors
         // This means quotes with status 'requested' (contractor needs to submit a quote)
         if (request.quote && typeof request.quote !== 'string') {
-          return request.quote.status === 'requested';
+          const isRequested = request.quote.status === 'requested';
+          console.log(`RequestsTable - Quote request ${request.id}: status = ${request.quote.status}, include = ${isRequested}`);
+          return isRequested;
         }
         
         // Legacy support: requests where quoteRequested is true but no quote object exists yet
-        return request.quoteRequested === true && !request.quotedAmount && !request.quote;
+        const isLegacy = request.quoteRequested === true && !request.quotedAmount && !request.quote;
+        console.log(`RequestsTable - Legacy request ${request.id}: quoteRequested = ${request.quoteRequested}, include = ${isLegacy}`);
+        return isLegacy;
       })
     : requests.filter(request => {
-        // For job lists: filter out records that don't have quotes or aren't in proper status
+        // For job lists: only show records that have proper job status and quotes
+        const isJob = request.status === 'in-progress' || request.status === 'completed';
         const hasQuote = request.quotedAmount || 
                         (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-        return hasQuote;
+        const isApprovedJob = request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved';
+        
+        console.log(`RequestsTable - Job ${request.id}: isJob = ${isJob}, hasQuote = ${hasQuote}, isApprovedJob = ${isApprovedJob}`);
+        return isJob && (hasQuote || isApprovedJob);
       });
   
   console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
@@ -41,6 +49,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   console.log('RequestsTable - Filtered requests data:', filteredRequests.map(r => ({
     id: r.id.substring(0, 8),
     title: r.title,
+    status: r.status,
     quoteStatus: r.quote && typeof r.quote !== 'string' ? r.quote.status : 'no quote',
     quoteRequested: r.quoteRequested
   })));
@@ -68,22 +77,25 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
 
   // Function to determine the display status based on request and quote status
   const getDisplayStatus = (request: MaintenanceRequest): string => {
-    // If the request has a quote object with status, show combined status
-    if (request.quote && typeof request.quote !== 'string') {
-      switch (request.quote.status) {
-        case 'requested': return 'Quote Requested';
-        case 'pending': return 'Quote Submitted';
-        case 'approved': return 'Quote Approved';
-        case 'rejected': return 'Quote Rejected';
+    // If we're in quote requests section, show quote-specific statuses
+    if (filterQuoteRequests) {
+      if (request.quote && typeof request.quote !== 'string') {
+        switch (request.quote.status) {
+          case 'requested': return 'Quote Requested';
+          case 'pending': return 'Quote Submitted';
+          default: return 'Quote Requested';
+        }
       }
-    }
-    
-    // Check if quote is requested via the boolean flag
-    if (request.quoteRequested) {
+      
+      // Check if quote is requested via the boolean flag
+      if (request.quoteRequested) {
+        return 'Quote Requested';
+      }
+      
       return 'Quote Requested';
     }
     
-    // Otherwise show request status with proper formatting
+    // For jobs section, show job status
     switch (request.status) {
       case 'pending': return 'Pending';
       case 'in-progress': return 'In Progress';
@@ -95,17 +107,17 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   
   // Function to determine badge color based on combined status
   const getBadgeColor = (request: MaintenanceRequest): string => {
-    // If the request has a quote object with status
-    if (request.quote && typeof request.quote !== 'string') {
-      return getQuoteStatusBadgeColor(request.quote.status);
-    }
-    
-    // If quote is requested via boolean flag
-    if (request.quoteRequested) {
+    // If we're in quote requests section, use quote colors
+    if (filterQuoteRequests) {
+      if (request.quote && typeof request.quote !== 'string') {
+        return getQuoteStatusBadgeColor(request.quote.status);
+      }
+      
+      // Default for quote requests
       return getQuoteStatusBadgeColor('requested');
     }
     
-    // Fallback to regular status badge color
+    // For jobs section, use job status colors
     return getStatusBadgeColor(request.status);
   };
 
@@ -135,12 +147,15 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
               </Badge>
             </TableCell>
             <TableCell>
-              {request.quotedAmount 
-                ? `$${request.quotedAmount}` 
-                : request.quote && typeof request.quote !== 'string' && request.quote.amount
-                  ? `$${request.quote.amount}` 
-                  : 'Not quoted'
-              }
+              {filterQuoteRequests ? (
+                'Not quoted'
+              ) : (
+                request.quotedAmount 
+                  ? `$${request.quotedAmount}` 
+                  : request.quote && typeof request.quote !== 'string' && request.quote.amount
+                    ? `$${request.quote.amount}` 
+                    : 'Not quoted'
+              )}
             </TableCell>
             <TableCell className="text-muted-foreground text-sm">
               {request.date ? formatDistanceToNow(new Date(request.date), { addSuffix: true }) : 'Unknown'}

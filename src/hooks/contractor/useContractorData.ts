@@ -44,6 +44,7 @@ export const useContractorData = (
         console.log('Fetched requested quotes for contractor:', quotes);
         
         // Fetch active jobs assigned to this contractor (in-progress with approved quotes)
+        // These should NOT appear in quote requests
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
