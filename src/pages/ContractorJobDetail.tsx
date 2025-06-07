@@ -46,19 +46,23 @@ const ContractorJobDetail = () => {
           onUpdateProgress={() => setProgressDialogOpen(true)} 
         />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        {/* Enhanced layout with better spacing and organization */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main content - left side */}
+          <div className="lg:col-span-2 space-y-8">
             <JobDetailsCard job={job} />
             <IssueDetailsCard job={job} />
             <AttachmentsCard attachments={job.attachments} />
           </div>
           
-          <div className="space-y-6">
+          {/* Sidebar - right side */}
+          <div className="space-y-8">
             <ProgressCard request={job} />
             <ContactCard 
               practiceLeader={job.practiceLeader}
               practiceLeaderPhone={job.practiceLeaderPhone}
               address={job.address}
+              practiceLeaderEmail={job.practiceLeaderEmail}
             />
           </div>
         </div>
