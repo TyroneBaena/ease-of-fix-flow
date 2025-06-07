@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
@@ -11,9 +12,13 @@ import { DashboardErrorState } from '@/components/contractor/dashboard/Dashboard
 import { DashboardLoadingState } from '@/components/contractor/dashboard/DashboardLoadingState';
 import { DashboardContent } from '@/components/contractor/dashboard/DashboardContent';
 import { useDashboardFilters } from '@/hooks/contractor/useDashboardFilters';
+import { useUserContext } from '@/contexts/UserContext';
 import { Toaster } from "sonner";
 
 const ContractorDashboard = () => {
+  const navigate = useNavigate();
+  const { currentUser, loading: authLoading } = useUserContext();
+  
   const { 
     pendingQuoteRequests, 
     activeJobs, 
@@ -26,6 +31,19 @@ const ContractorDashboard = () => {
   
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+
+  // Check authentication and redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      console.log('ContractorDashboard - No authenticated user, redirecting to login');
+      navigate('/login', { replace: true });
+    }
+  }, [currentUser, authLoading, navigate]);
+
+  // Don't render anything if user is not authenticated
+  if (!authLoading && !currentUser) {
+    return null;
+  }
   
   const handleSelectRequest = (request: MaintenanceRequest) => {
     console.log('ContractorDashboard - Request selected:', request);
@@ -44,7 +62,7 @@ const ContractorDashboard = () => {
   });
 
   // Loading skeleton placeholder
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <ContractorHeader />

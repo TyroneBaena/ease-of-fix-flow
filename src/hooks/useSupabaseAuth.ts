@@ -10,6 +10,7 @@ export const useSupabaseAuth = () => {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [supabaseUser, setSupabaseUser] = useState(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     let subscription;
@@ -51,6 +52,7 @@ export const useSupabaseAuth = () => {
       if (event === 'SIGNED_IN' && session?.user) {
         // Set supabase user immediately
         setSupabaseUser(session.user);
+        setIsSigningOut(false);
         
         // Use setTimeout to defer profile fetching after the callback has finished
         setTimeout(() => {
@@ -65,6 +67,7 @@ export const useSupabaseAuth = () => {
         console.log("User signed out");
         setCurrentUser(null);
         setSupabaseUser(null);
+        setIsSigningOut(false);
       } else if (event === 'USER_UPDATED') {
         setTimeout(() => {
           convertToAppUser(session.user)
@@ -106,30 +109,29 @@ export const useSupabaseAuth = () => {
 
   // Sign out with improved error handling
   const signOut = async () => {
-    try {
-      // Check if there's actually a user to sign out
-      if (!currentUser && !supabaseUser) {
-        console.log("No user session found, clearing state anyway");
-        setCurrentUser(null);
-        setSupabaseUser(null);
-        return;
-      }
+    // Prevent multiple simultaneous logout attempts
+    if (isSigningOut) {
+      console.log("Sign out already in progress, skipping");
+      return;
+    }
 
+    try {
+      setIsSigningOut(true);
       setLoading(true);
       console.log("Starting sign out process");
       
-      // Call the sign out function
-      await signOutUser();
-      
-      // Explicitly clear the user state after logout
+      // Clear user state immediately to prevent UI issues
       setCurrentUser(null);
       setSupabaseUser(null);
+      
+      // Call the sign out function
+      await signOutUser();
       
       console.log("Sign out completed successfully");
     } catch (error: any) {
       console.error('Error during sign out:', error);
       
-      // Even if there's an error, clear the local state
+      // Even if there's an error, ensure the local state is cleared
       setCurrentUser(null);
       setSupabaseUser(null);
       
@@ -137,6 +139,7 @@ export const useSupabaseAuth = () => {
       toast.error("Sign out completed with warnings");
     } finally {
       setLoading(false);
+      setIsSigningOut(false);
     }
   };
 

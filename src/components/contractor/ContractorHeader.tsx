@@ -19,12 +19,22 @@ export const ContractorHeader = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log("ContractorHeader: Starting sign out");
       await signOut();
-      navigate('/login');
+      console.log("ContractorHeader: Sign out completed, navigating to login");
+      // Use replace to prevent going back to dashboard
+      navigate('/login', { replace: true });
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("ContractorHeader: Error during sign out:", error);
+      // Even if there's an error, navigate to login
+      navigate('/login', { replace: true });
     }
   };
+
+  // Don't render header if no user (during logout process)
+  if (!loading && !currentUser) {
+    return null;
+  }
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-30">
@@ -33,75 +43,79 @@ export const ContractorHeader = () => {
           <div className="flex items-center">
             <h1 
               className="text-xl font-semibold text-gray-900 cursor-pointer"
-              onClick={() => navigate('/contractor-dashboard')}
+              onClick={() => currentUser && navigate('/contractor-dashboard')}
             >
               Contractor Portal
             </h1>
           </div>
           
           {/* Desktop Navigation */}
-          <ContractorNavigation />
+          {currentUser && <ContractorNavigation />}
           
           {/* Mobile Navigation */}
-          <div className="md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right">
-                <div className="flex flex-col space-y-4 mt-8">
-                  <Button
-                    variant="ghost"
-                    className="justify-start"
-                    onClick={() => navigate('/contractor-dashboard')}
-                  >
-                    <Home className="h-5 w-5 mr-2" />
-                    Dashboard
+          {currentUser && (
+            <div className="md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Menu className="h-5 w-5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start"
-                    onClick={() => navigate('/contractor-jobs')}
-                  >
-                    <ClipboardList className="h-5 w-5 mr-2" />
-                    Jobs
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start"
-                    onClick={() => navigate('/contractor-schedule')}
-                  >
-                    <Calendar className="h-5 w-5 mr-2" />
-                    Schedule
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start"
-                    onClick={() => navigate('/contractor-profile')}
-                  >
-                    <UserCog className="h-5 w-5 mr-2" />
-                    Profile
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+                </SheetTrigger>
+                <SheetContent side="right">
+                  <div className="flex flex-col space-y-4 mt-8">
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => navigate('/contractor-dashboard')}
+                    >
+                      <Home className="h-5 w-5 mr-2" />
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => navigate('/contractor-jobs')}
+                    >
+                      <ClipboardList className="h-5 w-5 mr-2" />
+                      Jobs
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => navigate('/contractor-schedule')}
+                    >
+                      <Calendar className="h-5 w-5 mr-2" />
+                      Schedule
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => navigate('/contractor-profile')}
+                    >
+                      <UserCog className="h-5 w-5 mr-2" />
+                      Profile
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
           
           <div className="flex items-center space-x-4">
-            <ContractorNotificationBell />
+            {currentUser && <ContractorNotificationBell />}
             {loading ? (
               <Skeleton className="h-5 w-28" />
-            ) : (
+            ) : currentUser ? (
               <span className="text-sm text-gray-600">
-                {currentUser?.name || currentUser?.email || 'Contractor'}
+                {currentUser.name || currentUser.email || 'Contractor'}
               </span>
+            ) : null}
+            {currentUser && (
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign out
+              </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </Button>
           </div>
         </div>
       </div>
