@@ -1,4 +1,3 @@
-
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -19,20 +18,18 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   // Apply different filtering based on the section
   const filteredRequests = filterQuoteRequests 
     ? requests.filter(request => {
-        // For quote requests section: filter out converted jobs
-        if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved') {
-          return false;
+        // For quote requests section: show requests that need quotes from contractors
+        // This includes requests marked as quote_requested that don't have contractor quotes yet
+        if (request.quoteRequested || request.quote_requested) {
+          return true;
         }
         
-        if (request.status === 'in-progress' || request.status === 'completed') {
-          return false;
+        // Also include requests with quote objects that are in 'requested' status
+        if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'requested') {
+          return true;
         }
         
-        if (request.contractorId && request.status !== 'pending') {
-          return false;
-        }
-        
-        return true;
+        return false;
       })
     : requests.filter(request => {
         // For job lists: filter out records that don't have quotes
@@ -44,17 +41,20 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   console.log('RequestsTable - Original requests:', requests.length);
   console.log('RequestsTable - Filtered requests:', filteredRequests.length);
   console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
+  console.log('RequestsTable - Filtered requests data:', filteredRequests);
   
   if (filteredRequests.length === 0) {
     return <EmptyState />;
   }
 
   const handleRowClick = (request: MaintenanceRequest) => {
-    // For quote requests that need to be submitted, use the RequestQuoteDialog 
-    // instead of QuoteRequestDialog
-    if (request.status === 'pending' && request.quote && 
-        typeof request.quote !== 'string' && 
-        request.quote.status === 'requested') {
+    console.log('RequestsTable - Row clicked:', request);
+    console.log('RequestsTable - Request quote status:', request.quote);
+    console.log('RequestsTable - Request quote_requested:', request.quoteRequested || request.quote_requested);
+    
+    // For quote requests that need quotes to be submitted by contractors
+    if (filterQuoteRequests) {
+      // Always open the quote submission dialog for quote requests
       onSelectRequest(request);
       return;
     }
@@ -77,6 +77,11 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
       }
     }
     
+    // Check if quote is requested via the boolean flag
+    if (request.quoteRequested || request.quote_requested) {
+      return 'Quote Requested';
+    }
+    
     // Otherwise show request status with proper formatting
     switch (request.status) {
       case 'pending': return 'Pending';
@@ -92,6 +97,11 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
     // If the request has a quote object with status
     if (request.quote && typeof request.quote !== 'string') {
       return getQuoteStatusBadgeColor(request.quote.status);
+    }
+    
+    // If quote is requested via boolean flag
+    if (request.quoteRequested || request.quote_requested) {
+      return getQuoteStatusBadgeColor('requested');
     }
     
     // Fallback to regular status badge color

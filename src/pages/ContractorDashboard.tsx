@@ -30,6 +30,7 @@ const ContractorDashboard = () => {
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   
   const handleSelectRequest = (request: MaintenanceRequest) => {
+    console.log('ContractorDashboard - Request selected:', request);
     setSelectedRequest(request);
     setQuoteDialogOpen(true);
   };
@@ -208,6 +209,7 @@ const ContractorDashboard = () => {
           request={selectedRequest}
           onQuoteSubmitted={() => {
             setQuoteDialogOpen(false);
+            setSelectedRequest(null);
             refreshData();
           }}
         />
