@@ -28,7 +28,7 @@ const ContractorProfile = () => {
   const handleSkillsUpdate = async () => {
     console.log('Skills updated, refetching contractor data...');
     await refetch();
-    console.log('Refetch completed, new contractor data:', contractor);
+    // Note: contractor state will be updated after this function completes
   };
 
   if (currentUser && currentUser.role !== 'contractor') {

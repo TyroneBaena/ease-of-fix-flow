@@ -36,7 +36,7 @@ export const useContractorProfileData = () => {
 
       console.log('Fetching contractor profile for user:', currentUser.id);
 
-      // Fetch contractor data
+      // Fetch contractor data with fresh query (bypass cache)
       const { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
         .select('*')
