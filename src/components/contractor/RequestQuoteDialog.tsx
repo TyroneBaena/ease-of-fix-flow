@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
@@ -100,15 +101,15 @@ export const RequestQuoteDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Submit Quote</DialogTitle>
           <DialogDescription>
             Request {request?.id}: {request?.title}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4 max-h-[60vh] overflow-y-auto">
+        <ScrollArea className="flex-1 pr-4 max-h-[70vh] overflow-y-auto">
           <div className="space-y-6 pb-4">
             <IssueDetails
               location={request?.location}
@@ -133,17 +134,19 @@ export const RequestQuoteDialog = ({
           </div>
         </ScrollArea>
 
-        <Separator className="my-4" />
+        <Separator className="my-4 flex-shrink-0" />
 
-        <QuoteForm
-          amount={amount}
-          description={description}
-          onAmountChange={setAmount}
-          onDescriptionChange={(value) => setDescription(value)}
-          onSubmit={handleSubmit}
-          onCancel={() => onOpenChange(false)}
-          isSubmitting={isSubmitting}
-        />
+        <div className="flex-shrink-0">
+          <QuoteForm
+            amount={amount}
+            description={description}
+            onAmountChange={setAmount}
+            onDescriptionChange={(value) => setDescription(value)}
+            onSubmit={handleSubmit}
+            onCancel={() => onOpenChange(false)}
+            isSubmitting={isSubmitting}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
