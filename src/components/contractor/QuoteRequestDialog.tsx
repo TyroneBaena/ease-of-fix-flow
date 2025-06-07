@@ -45,7 +45,7 @@ export const QuoteRequestDialog = ({
   const { contractors, loading, loadContractors, requestQuote } = useContractorContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load contractors when dialog opens
+  // Load contractors when dialog opens - FIXED: removed loadContractors from dependency array
   useEffect(() => {
     if (open) {
       console.log("QuoteRequestDialog - Dialog opened, loading contractors");
@@ -60,7 +60,7 @@ export const QuoteRequestDialog = ({
       });
       setNotes('');
     }
-  }, [open, loadContractors]);
+  }, [open]); // FIXED: Only depend on 'open', not 'loadContractors'
 
   // Debug logging for contractors
   useEffect(() => {
