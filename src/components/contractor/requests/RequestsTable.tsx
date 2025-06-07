@@ -21,8 +21,23 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
     if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved') {
       return false;
     }
+    
+    // If the request status is 'in-progress' or 'completed', it's already a job
+    if (request.status === 'in-progress' || request.status === 'completed') {
+      return false;
+    }
+    
+    // If the request has a contractor_id assigned and is not pending, it's likely a job
+    if (request.contractorId && request.status !== 'pending') {
+      return false;
+    }
+    
     return true;
   });
+  
+  console.log('RequestsTable - Original requests:', requests.length);
+  console.log('RequestsTable - Filtered requests:', filteredRequests.length);
+  console.log('RequestsTable - Filtered out requests:', requests.filter(r => !filteredRequests.includes(r)));
   
   if (filteredRequests.length === 0) {
     return <EmptyState />;
