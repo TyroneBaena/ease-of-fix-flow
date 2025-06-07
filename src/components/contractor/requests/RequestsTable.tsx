@@ -19,8 +19,8 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   const filteredRequests = filterQuoteRequests 
     ? requests.filter(request => {
         // For quote requests section: show requests that need quotes from contractors
-        // This includes requests marked as quote_requested that don't have contractor quotes yet
-        if (request.quoteRequested || request.quote_requested) {
+        // This includes requests marked as quoteRequested that don't have contractor quotes yet
+        if (request.quoteRequested) {
           return true;
         }
         
@@ -50,7 +50,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
   const handleRowClick = (request: MaintenanceRequest) => {
     console.log('RequestsTable - Row clicked:', request);
     console.log('RequestsTable - Request quote status:', request.quote);
-    console.log('RequestsTable - Request quote_requested:', request.quoteRequested || request.quote_requested);
+    console.log('RequestsTable - Request quoteRequested:', request.quoteRequested);
     
     // For quote requests that need quotes to be submitted by contractors
     if (filterQuoteRequests) {
@@ -78,7 +78,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
     }
     
     // Check if quote is requested via the boolean flag
-    if (request.quoteRequested || request.quote_requested) {
+    if (request.quoteRequested) {
       return 'Quote Requested';
     }
     
@@ -100,7 +100,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
     }
     
     // If quote is requested via boolean flag
-    if (request.quoteRequested || request.quote_requested) {
+    if (request.quoteRequested) {
       return getQuoteStatusBadgeColor('requested');
     }
     
