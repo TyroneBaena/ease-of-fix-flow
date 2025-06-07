@@ -71,18 +71,28 @@ export const ManageSkillsDialog: React.FC<ManageSkillsDialogProps> = ({
       return;
     }
 
+    console.log('Updating contractor skills:', {
+      contractorId: contractor.id,
+      skills: skills
+    });
+
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('contractors')
         .update({
           specialties: skills,
           updated_at: new Date().toISOString()
         })
-        .eq('id', contractor.id);
+        .eq('id', contractor.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
+      console.log('Update successful:', data);
       toast.success('Skills updated successfully');
       setOpen(false);
       onUpdate();
