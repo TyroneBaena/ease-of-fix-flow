@@ -1,3 +1,4 @@
+
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,16 @@ interface RequestsTableProps {
 export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps) => {
   const navigate = useNavigate();
   
-  if (requests.length === 0) {
+  // Filter out quote requests that have been accepted/converted into jobs
+  const filteredRequests = requests.filter(request => {
+    // If the request has a quote object with approved status, it's been converted to a job
+    if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved') {
+      return false;
+    }
+    return true;
+  });
+  
+  if (filteredRequests.length === 0) {
     return <EmptyState />;
   }
 
@@ -79,7 +89,7 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
         </TableRow>
       </TableHeader>
       <TableBody>
-        {requests.map((request) => (
+        {filteredRequests.map((request) => (
           <TableRow
             key={request.id}
             className="cursor-pointer hover:bg-gray-50"
