@@ -1,152 +1,147 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Filter } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import RequestCard from '@/components/RequestCard';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { requests as sampleRequests } from '@/data/sampleData';
+import { formatDistanceToNow } from 'date-fns';
+import { Eye, User, Clock } from 'lucide-react';
 
 interface RequestsListProps {
-  allRequests?: MaintenanceRequest[];
+  allRequests: MaintenanceRequest[];
+  onRequestSelect?: (request: MaintenanceRequest) => void;
+  selectedRequest?: MaintenanceRequest | null;
 }
 
-const RequestsList = ({ allRequests = sampleRequests as unknown as MaintenanceRequest[] }: RequestsListProps) => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
-
-  // Filter and sort requests based on search term and active filter
-  useEffect(() => {
-    let result = allRequests;
-    
-    if (searchTerm) {
-      result = result.filter(req => {
-        const title = req.issueNature || req.title || '';
-        const description = req.explanation || req.description || '';
-        return title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-               description.toLowerCase().includes(searchTerm.toLowerCase());
-      });
+const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: RequestsListProps) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'in-progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-    
-    // Fix: Filter by status correctly (matching the status values in the database)
-    if (activeFilter !== 'all') {
-      result = result.filter(request => {
-        // Normalize status values for consistent comparison
-        const normalizedStatus = request.status.toLowerCase();
-        
-        switch (activeFilter) {
-          case 'open':
-            return normalizedStatus === 'open' || normalizedStatus === 'pending';
-          case 'in-progress':
-            return normalizedStatus === 'in-progress' || normalizedStatus === 'in progress';
-          case 'completed':
-            return normalizedStatus === 'completed';
-          default:
-            return true;
-        }
-      });
-    }
-    
-    // Sort requests by date (newest first)
-    result = [...result].sort((a, b) => {
-      // Extract dates, considering all possible date fields
-      const dateA = new Date(a.updatedAt || a.createdAt || a.reportDate || '');
-      const dateB = new Date(b.updatedAt || b.createdAt || b.reportDate || '');
-      
-      // Ensure we're comparing valid dates - fallback to timestamp comparison if needed
-      const timeA = !isNaN(dateA.getTime()) ? dateA.getTime() : 0;
-      const timeB = !isNaN(dateB.getTime()) ? dateB.getTime() : 0;
-      
-      // Return the comparison (newest first)
-      return timeB - timeA;
-    });
-    
-    console.log('Filtered requests:', result.map(r => ({
-      id: r.id, 
-      title: r.title, 
-      status: r.status,
-      filter: activeFilter
-    })));
-    
-    setFilteredRequests(result);
-  }, [searchTerm, activeFilter, allRequests]);
-
-  const handleFilterChange = (filter: string) => {
-    setActiveFilter(filter);
   };
 
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-100 text-red-800';
+      case 'medium':
+        return 'bg-orange-100 text-orange-800';
+      case 'low':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Show recent requests (limit to 10 for better UI)
+  const recentRequests = allRequests
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4 sm:mb-0">Recent Requests</h2>
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <Search className="h-4 w-4 absolute top-3 left-3 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search requests..."
-              className="pl-10 w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Recent Maintenance Requests</span>
+          <span className="text-sm font-normal text-gray-500">
+            {allRequests.length} total requests
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {recentRequests.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No maintenance requests found</p>
+            <p className="text-sm mt-1">Submit your first request to get started</p>
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      
-      <div className="flex space-x-2 mb-6 overflow-x-auto">
-        <Badge 
-          onClick={() => handleFilterChange('all')} 
-          className={`cursor-pointer ${activeFilter === 'all' ? 'bg-gray-900' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
-        >
-          All
-        </Badge>
-        <Badge 
-          onClick={() => handleFilterChange('open')} 
-          className={`cursor-pointer ${activeFilter === 'open' ? 'bg-amber-500' : 'bg-amber-100 hover:bg-amber-200 text-amber-800'}`}
-        >
-          Open
-        </Badge>
-        <Badge 
-          onClick={() => handleFilterChange('in-progress')} 
-          className={`cursor-pointer ${activeFilter === 'in-progress' ? 'bg-blue-500' : 'bg-blue-100 hover:bg-blue-200 text-blue-800'}`}
-        >
-          In Progress
-        </Badge>
-        <Badge 
-          onClick={() => handleFilterChange('completed')} 
-          className={`cursor-pointer ${activeFilter === 'completed' ? 'bg-green-500' : 'bg-green-100 hover:bg-green-200 text-green-800'}`}
-        >
-          Completed
-        </Badge>
-      </div>
-      
-      <div className="space-y-4">
-        {filteredRequests.length > 0 ? (
-          filteredRequests.slice(0, 5).map(request => (
-            <RequestCard key={request.id} request={request} onClick={() => navigate(`/requests/${request.id}`)} />
-          ))
         ) : (
-          <div className="text-center py-10">
-            <p className="text-gray-500">No matching requests found</p>
+          <div className="space-y-4">
+            {recentRequests.map((request) => (
+              <div 
+                key={request.id} 
+                className={`p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${
+                  selectedRequest?.id === request.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                }`}
+                onClick={() => onRequestSelect?.(request)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {request.title}
+                      </h3>
+                      <Badge className={getStatusColor(request.status)}>
+                        {request.status}
+                      </Badge>
+                      {request.priority && (
+                        <Badge variant="outline" className={getPriorityColor(request.priority)}>
+                          {request.priority}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                      {request.description || request.explanation}
+                    </p>
+                    
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                      </span>
+                      
+                      <span>{request.location}</span>
+                      
+                      {request.assignedTo && (
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {request.assignedTo}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {(request.contractorId || request.completionPercentage > 0) && (
+                      <div className="mt-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">Progress:</span>
+                          <span className="font-medium">{request.completionPercentage || 0}%</span>
+                          <div className="w-16 h-1 bg-gray-200 rounded-full">
+                            <div 
+                              className="h-1 bg-blue-500 rounded-full transition-all"
+                              style={{ width: `${request.completionPercentage || 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="ml-4 flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`/request/${request.id}`, '_blank');
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-      </div>
-      
-      {filteredRequests.length > 5 && (
-        <div className="mt-6 text-center">
-          <Button variant="outline" onClick={() => navigate('/requests')}>
-            View All Requests
-          </Button>
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
