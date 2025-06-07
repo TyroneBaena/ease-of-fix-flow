@@ -12,28 +12,10 @@ export const usePropertyProvider = (): PropertyContextType => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
   const { currentUser } = useUserContext();
-  const [fetchAttempted, setFetchAttempted] = useState(false);
-
-  // Set a safeguard to prevent infinite loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loading && !fetchAttempted) {
-        console.log('PropertyContext: Safeguard timeout triggered, setting loading to false');
-        setLoading(false);
-      }
-    }, 3000); // 3 seconds timeout
-
-    return () => clearTimeout(timer);
-  }, [loading, fetchAttempted]);
 
   useEffect(() => {
-    // Only fetch if we have a user - add a slight delay to prevent race conditions
     if (currentUser) {
-      const timer = setTimeout(() => {
-        fetchAndSetProperties();
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      fetchAndSetProperties();
     } else {
       setProperties([]);
       setLoading(false);
@@ -46,7 +28,6 @@ export const usePropertyProvider = (): PropertyContextType => {
     try {
       setLoading(true);
       setLoadingFailed(false);
-      setFetchAttempted(true);
       console.log('PropertyContext: Fetching properties');
       
       const formattedProperties = await fetchProperties();
@@ -54,9 +35,9 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('PropertyContext: Properties fetched successfully', formattedProperties.length);
       setProperties(formattedProperties);
     } catch (err) {
-      console.error('Unexpected error fetching properties:', err);
+      console.error('Error fetching properties:', err);
       setLoadingFailed(true);
-      toast.error('An unexpected error occurred');
+      toast.error('Failed to load properties');
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,8 @@ import { toast } from '@/lib/toast';
 
 // Fetch properties from Supabase
 export const fetchProperties = async (): Promise<Property[]> => {
+  console.log('Fetching properties with clean RLS policies');
+  
   const { data, error } = await supabase
     .from('properties')
     .select('*');
@@ -12,8 +14,10 @@ export const fetchProperties = async (): Promise<Property[]> => {
   if (error) {
     console.error('Error fetching properties:', error);
     toast.error('Failed to fetch properties');
-    return [];
+    throw error;
   }
+
+  console.log('Properties fetched successfully:', data?.length || 0);
 
   // Format properties to match our Property type
   const formattedProperties: Property[] = data.map(prop => ({
