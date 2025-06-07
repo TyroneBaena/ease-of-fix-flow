@@ -26,8 +26,8 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests specifically for this contractor - ONLY 'requested' status
-        // These are quotes that the contractor needs to submit
+        // Fetch quote requests for this contractor - include 'requested', 'pending', and 'submitted' statuses
+        // These represent: contractor needs to submit, quote submitted awaiting review, quote under admin review
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -35,13 +35,13 @@ export const useContractorData = (
             maintenance_requests(*)
           `)
           .eq('contractor_id', contractorId)
-          .eq('status', 'requested'); // ONLY requested quotes
+          .in('status', ['requested', 'pending', 'submitted']); // Include all quote request statuses
           
         if (quotesError) {
           console.error('Error fetching quotes:', quotesError);
           throw quotesError;
         }
-        console.log('Fetched requested quotes for contractor:', quotes);
+        console.log('Fetched quote requests for contractor:', quotes);
         
         // Fetch active jobs assigned to this contractor (in-progress with approved quotes)
         // These should NOT appear in quote requests
@@ -70,9 +70,9 @@ export const useContractorData = (
         }
         console.log('Fetched completed jobs:', completedJobsData);
         
-        // Process pending quote requests - only show quotes with 'requested' status
+        // Process pending quote requests - include all relevant statuses
         const pendingFromQuotes = quotes
-          .filter(quote => quote.maintenance_requests && quote.status === 'requested')
+          .filter(quote => quote.maintenance_requests && ['requested', 'pending', 'submitted'].includes(quote.status))
           .map((quote: any) => mapRequestFromQuote(quote));
         
         const activeRequests = activeJobsData.map(mapRequestFromDb);

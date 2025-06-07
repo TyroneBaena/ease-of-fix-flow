@@ -83,7 +83,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
         switch (request.quote.status) {
           case 'requested': return 'Quote Requested';
           case 'pending': return 'Quote Submitted';
-          case 'submitted': return 'Admin Review Pending';
+          case 'submitted': return 'Awaiting Approval';
           default: return 'Quote Requested';
         }
       }

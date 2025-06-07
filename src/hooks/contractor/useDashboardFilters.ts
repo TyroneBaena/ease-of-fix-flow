@@ -13,9 +13,9 @@ export const useDashboardFilters = ({
   activeJobs,
   completedJobs
 }: UseDashboardFiltersProps) => {
-  // Filter quote requests to show:
+  // Filter quote requests to show all relevant quote stages:
   // 1. 'requested' - contractor needs to submit a quote
-  // 2. 'pending' - quote submitted, waiting for admin review
+  // 2. 'pending' - quote submitted by contractor, waiting for admin review
   // 3. 'submitted' - quote under admin review
   const filteredQuoteRequests = useMemo(() => {
     console.log('Dashboard Filters - Raw pending quote requests:', pendingQuoteRequests);
