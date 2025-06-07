@@ -20,6 +20,19 @@ const ContractorJobs = () => {
     refreshData
   } = useContractorDashboard();
 
+  // Filter active and completed jobs to only show those with quotes (same logic as dashboard)
+  const filteredActiveJobs = activeJobs.filter(request => {
+    const hasQuote = request.quotedAmount || 
+                    (request.quote && typeof request.quote !== 'string' && request.quote.amount);
+    return hasQuote;
+  });
+
+  const filteredCompletedJobs = completedJobs.filter(request => {
+    const hasQuote = request.quotedAmount || 
+                    (request.quote && typeof request.quote !== 'string' && request.quote.amount);
+    return hasQuote;
+  });
+
   const handleRefresh = () => {
     refreshData();
   };
@@ -59,10 +72,10 @@ const ContractorJobs = () => {
             <Tabs defaultValue="active">
               <TabsList className="mb-4">
                 <TabsTrigger value="active">
-                  Active Jobs ({activeJobs.length})
+                  Active Jobs ({filteredActiveJobs.length})
                 </TabsTrigger>
                 <TabsTrigger value="completed">
-                  Completed ({completedJobs.length})
+                  Completed ({filteredCompletedJobs.length})
                 </TabsTrigger>
               </TabsList>
               
