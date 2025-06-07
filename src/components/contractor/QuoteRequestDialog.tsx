@@ -45,7 +45,7 @@ export const QuoteRequestDialog = ({
   const { contractors, loading, loadContractors, requestQuote } = useContractorContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load contractors when dialog opens - FIXED: removed loadContractors from dependency array
+  // Load contractors when dialog opens
   useEffect(() => {
     if (open) {
       console.log("QuoteRequestDialog - Dialog opened, loading contractors");
@@ -60,7 +60,7 @@ export const QuoteRequestDialog = ({
       });
       setNotes('');
     }
-  }, [open]); // FIXED: Only depend on 'open', not 'loadContractors'
+  }, [open]);
 
   // Debug logging for contractors
   useEffect(() => {
@@ -79,19 +79,24 @@ export const QuoteRequestDialog = ({
   const createNotificationForContractor = async (contractorId: string, requestId: string) => {
     try {
       // Get contractor details
-      const { data: contractor } = await supabase
+      const { data: contractor, error: contractorError } = await supabase
         .from('contractors')
         .select('user_id, company_name')
         .eq('id', contractorId)
         .single();
       
+      if (contractorError) {
+        console.error("Error fetching contractor:", contractorError);
+        throw contractorError;
+      }
+      
       if (!contractor?.user_id) {
         console.error("Missing user_id for contractor:", contractorId);
-        return;
+        throw new Error("Contractor user_id not found");
       }
       
       // Create notification in the database
-      const { error } = await supabase
+      const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
           title: 'New Quote Request',
@@ -101,19 +106,21 @@ export const QuoteRequestDialog = ({
           link: `/contractor/jobs/${requestId}`
         });
         
-      if (error) {
-        console.error("Error creating notification:", error);
-        throw error;
+      if (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        throw notificationError;
       }
       
       console.log(`Notification created for contractor ${contractor.company_name}`);
     } catch (error) {
       console.error("Failed to create notification:", error);
+      throw error; // Re-throw to handle in parent function
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!requestDetails?.id) {
       toast.error("Request details are missing");
       return;
@@ -125,20 +132,26 @@ export const QuoteRequestDialog = ({
     }
 
     setIsSubmitting(true);
+    
     try {
       console.log("QuoteRequestDialog - Submitting quote requests for contractors:", selectedContractors);
       
-      // Request quotes from all selected contractors
-      const quotePromises = selectedContractors.map(contractorId => {
-        // First request the quote
-        return requestQuote(requestDetails.id!, contractorId, includeInfo, notes)
-          .then(() => {
-            // Then create a notification for the contractor
-            return createNotificationForContractor(contractorId, requestDetails.id!);
-          });
-      });
-      
-      await Promise.all(quotePromises);
+      // Process each contractor request sequentially to avoid race conditions
+      for (const contractorId of selectedContractors) {
+        try {
+          // Request the quote first
+          await requestQuote(requestDetails.id!, contractorId, includeInfo, notes);
+          
+          // Then create a notification for the contractor
+          await createNotificationForContractor(contractorId, requestDetails.id!);
+          
+          console.log(`Successfully processed quote request for contractor: ${contractorId}`);
+        } catch (contractorError) {
+          console.error(`Error processing contractor ${contractorId}:`, contractorError);
+          // Continue with other contractors even if one fails
+          toast.error(`Failed to send quote request to one contractor`);
+        }
+      }
       
       // Update the maintenance request to mark quote as requested
       const { error: updateError } = await supabase
@@ -154,14 +167,15 @@ export const QuoteRequestDialog = ({
         throw updateError;
       }
       
+      // Show success message
       toast.success(`Quote requests sent to ${selectedContractors.length} contractor(s)`);
       
-      // FIXED: Close dialog immediately without triggering parent callback that causes refresh loop
+      // Close dialog
       onOpenChange(false);
       
     } catch (error) {
-      console.error("Error requesting quotes:", error);
-      toast.error("Failed to request quotes");
+      console.error("Error in quote request process:", error);
+      toast.error("Failed to request quotes. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
