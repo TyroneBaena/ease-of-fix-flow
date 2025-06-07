@@ -1,3 +1,4 @@
+
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,29 +16,34 @@ interface RequestsTableProps {
 export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests = false }: RequestsTableProps) => {
   const navigate = useNavigate();
   
-  // Only apply filtering if filterQuoteRequests is true (for quote requests section)
-  const filteredRequests = filterQuoteRequests ? requests.filter(request => {
-    // If the request has a quote object with approved status, it's been converted to a job
-    if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved') {
-      return false;
-    }
-    
-    // If the request status is 'in-progress' or 'completed', it's already a job
-    if (request.status === 'in-progress' || request.status === 'completed') {
-      return false;
-    }
-    
-    // If the request has a contractor_id assigned and is not pending, it's likely a job
-    if (request.contractorId && request.status !== 'pending') {
-      return false;
-    }
-    
-    return true;
-  }) : requests;
+  // Apply different filtering based on the section
+  const filteredRequests = filterQuoteRequests 
+    ? requests.filter(request => {
+        // For quote requests section: filter out converted jobs
+        if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved') {
+          return false;
+        }
+        
+        if (request.status === 'in-progress' || request.status === 'completed') {
+          return false;
+        }
+        
+        if (request.contractorId && request.status !== 'pending') {
+          return false;
+        }
+        
+        return true;
+      })
+    : requests.filter(request => {
+        // For job lists: filter out records that don't have quotes
+        const hasQuote = request.quotedAmount || 
+                        (request.quote && typeof request.quote !== 'string' && request.quote.amount);
+        return hasQuote;
+      });
   
   console.log('RequestsTable - Original requests:', requests.length);
   console.log('RequestsTable - Filtered requests:', filteredRequests.length);
-  console.log('RequestsTable - Filter applied:', filterQuoteRequests);
+  console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
   
   if (filteredRequests.length === 0) {
     return <EmptyState />;
