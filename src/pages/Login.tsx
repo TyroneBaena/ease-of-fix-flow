@@ -11,6 +11,7 @@ import { AlertCircle } from 'lucide-react';
 import { Toaster } from "sonner";
 import { tenantService } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
