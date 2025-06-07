@@ -69,6 +69,8 @@ export const useJobDetail = (jobId: string | undefined) => {
             practice_leader_email: propertyData.practice_leader_email
           };
           
+          console.log('Property info fetched:', propertyInfo);
+          
           const formattedJob: MaintenanceRequest = {
             id: data.id,
             title: data.title,
@@ -108,6 +110,12 @@ export const useJobDetail = (jobId: string | undefined) => {
             quotes: data.quotes && data.quotes.length > 0 ? data.quotes : undefined,
             userId: data.user_id || 'unknown-user'
           };
+          
+          console.log('Formatted job with contact info:', {
+            practiceLeader: formattedJob.practiceLeader,
+            practiceLeaderEmail: formattedJob.practiceLeaderEmail,
+            practiceLeaderPhone: formattedJob.practiceLeaderPhone
+          });
           
           setJob(formattedJob);
         } else {

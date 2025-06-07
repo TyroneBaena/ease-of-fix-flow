@@ -38,6 +38,13 @@ const ContractorJobDetail = () => {
     );
   }
 
+  console.log('Job data in ContractorJobDetail:', {
+    practiceLeader: job.practiceLeader,
+    practiceLeaderEmail: job.practiceLeaderEmail,
+    practiceLeaderPhone: job.practiceLeaderPhone,
+    address: job.address
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <ContractorHeader />
