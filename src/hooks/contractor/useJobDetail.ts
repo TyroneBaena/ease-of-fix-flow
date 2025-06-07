@@ -27,21 +27,24 @@ export const useJobDetail = (jobId: string | undefined) => {
         
         console.log('Fetching job details for ID:', jobId);
         
-        // First, get the contractor ID for the current user
-        const { data: contractorData, error: contractorError } = await supabase
-          .from('contractors')
-          .select('id')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .single();
-
-        if (contractorError) {
-          console.error('Error fetching contractor ID:', contractorError);
-          throw contractorError;
+        // Get the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('User not authenticated');
         }
 
-        console.log('Current contractor ID:', contractorData?.id);
+        // Check if user is a contractor
+        const { data: contractorData } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        console.log('Current user ID:', user.id);
+        console.log('Contractor data:', contractorData);
         
-        // Fetch the job details
+        // Fetch the job details - for contractors, don't filter by contractor_id
+        // as they might need to see jobs for quoting that aren't assigned yet
         const { data, error } = await supabase
           .from('maintenance_requests')
           .select(`
@@ -49,7 +52,6 @@ export const useJobDetail = (jobId: string | undefined) => {
             quotes(*)
           `)
           .eq('id', jobId)
-          .eq('contractor_id', contractorData.id)
           .single();
           
         if (error) {
@@ -59,6 +61,19 @@ export const useJobDetail = (jobId: string | undefined) => {
         
         if (data) {
           console.log('Raw maintenance request data:', data);
+          
+          // For contractors, verify they have access to this job
+          if (contractorData) {
+            const hasAccess = 
+              data.contractor_id === contractorData.id || // Assigned to them
+              data.quote_requested === true || // Available for quoting
+              data.status === 'pending'; // Pending jobs they can potentially quote
+              
+            if (!hasAccess) {
+              setError('You do not have access to this job');
+              return;
+            }
+          }
           
           // Now fetch the property data separately
           let propertyData: PropertyData = {};
