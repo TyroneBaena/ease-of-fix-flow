@@ -34,6 +34,8 @@ export const useContractorProfileData = () => {
       setLoading(true);
       setError(null);
 
+      console.log('Fetching contractor profile for user:', currentUser.id);
+
       // Fetch contractor data
       const { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
@@ -41,7 +43,12 @@ export const useContractorProfileData = () => {
         .eq('user_id', currentUser.id)
         .single();
 
-      if (contractorError) throw contractorError;
+      if (contractorError) {
+        console.error('Error fetching contractor data:', contractorError);
+        throw contractorError;
+      }
+
+      console.log('Contractor data fetched:', contractorData);
 
       // Fetch completed jobs count
       const { data: jobsData, error: jobsError } = await supabase
@@ -50,7 +57,10 @@ export const useContractorProfileData = () => {
         .eq('contractor_id', contractorData.id)
         .eq('status', 'completed');
 
-      if (jobsError) throw jobsError;
+      if (jobsError) {
+        console.error('Error fetching jobs data:', jobsError);
+        throw jobsError;
+      }
 
       // Calculate rating (mock for now, could be based on feedback in the future)
       const rating = 4.8; // This could be calculated from feedback/reviews
@@ -69,6 +79,7 @@ export const useContractorProfileData = () => {
         accountStatus: 'active' // This could be a field in the database
       };
 
+      console.log('Setting contractor profile:', profile);
       setContractor(profile);
     } catch (err) {
       console.error('Error fetching contractor profile:', err);

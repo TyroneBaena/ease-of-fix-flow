@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +20,16 @@ const ContractorProfile = () => {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const loading = userLoading || contractorLoading;
+
+  // Debug logging for contractor data
+  console.log('ContractorProfile - contractor data:', contractor);
+  console.log('ContractorProfile - contractor specialties:', contractor?.specialties);
+
+  const handleSkillsUpdate = async () => {
+    console.log('Skills updated, refetching contractor data...');
+    await refetch();
+    console.log('Refetch completed, new contractor data:', contractor);
+  };
 
   if (currentUser && currentUser.role !== 'contractor') {
     return (
@@ -201,7 +210,7 @@ const ContractorProfile = () => {
                       <div className="flex justify-end">
                         <ManageSkillsDialog 
                           contractor={contractor} 
-                          onUpdate={refetch}
+                          onUpdate={handleSkillsUpdate}
                         >
                           <Button variant="outline" className="flex items-center gap-2">
                             <Settings className="h-4 w-4" />
