@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Menu, Home, ClipboardList, Calendar, UserCog, Settings } from 'lucide-react';
+import { LogOut, Menu, Home, ClipboardList, Calendar, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -83,14 +83,6 @@ export const ContractorHeader = () => {
                   >
                     <UserCog className="h-5 w-5 mr-2" />
                     Profile
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start"
-                    onClick={() => navigate('/contractor-settings')}
-                  >
-                    <Settings className="h-5 w-5 mr-2" />
-                    Settings
                   </Button>
                 </div>
               </SheetContent>

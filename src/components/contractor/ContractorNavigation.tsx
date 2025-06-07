@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
   ClipboardList, 
-  Settings, 
   UserCog,
   Calendar
 } from 'lucide-react';
@@ -39,11 +38,6 @@ export const ContractorNavigation: React.FC = () => {
       name: 'Profile', 
       path: '/contractor-profile', 
       icon: <UserCog className="h-5 w-5" /> 
-    },
-    { 
-      name: 'Settings', 
-      path: '/contractor-settings', 
-      icon: <Settings className="h-5 w-5" /> 
     }
   ];
   
