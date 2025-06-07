@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 interface QuotesListProps {
   requestId: string;
   quotes?: Quote[];
+  onDataChange?: () => void; // New prop for refreshing data
 }
 
 interface ContractorInfo {
@@ -23,7 +23,7 @@ interface ContractorInfo {
   email: string;
 }
 
-export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
+export const QuotesList = ({ requestId, quotes = [], onDataChange }: QuotesListProps) => {
   const { approveQuote, rejectQuote } = useContractorContext();
   const [contractorsMap, setContractorsMap] = useState<Record<string, ContractorInfo>>({});
   const [loadingContractors, setLoadingContractors] = useState(true);
@@ -77,6 +77,10 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
     try {
       await approveQuote(quoteId);
       toast.success('Quote approved successfully');
+      // Refresh the page data after successful approval
+      if (onDataChange) {
+        onDataChange();
+      }
     } catch (error) {
       toast.error('Failed to approve quote');
     }
@@ -86,6 +90,10 @@ export const QuotesList = ({ requestId, quotes = [] }: QuotesListProps) => {
     try {
       await rejectQuote(quoteId);
       toast.success('Quote rejected');
+      // Refresh the page data after successful rejection
+      if (onDataChange) {
+        onDataChange();
+      }
     } catch (error) {
       toast.error('Failed to reject quote');
     }

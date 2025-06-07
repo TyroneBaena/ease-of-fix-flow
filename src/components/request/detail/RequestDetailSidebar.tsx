@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
@@ -73,6 +72,7 @@ export const RequestDetailSidebar = ({
         <QuotesList 
           quotes={quotes} 
           requestId={request.id}
+          onDataChange={onRefreshData}
         />
       )}
       
