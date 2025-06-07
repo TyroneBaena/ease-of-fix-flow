@@ -22,8 +22,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   loading,
   onSelectRequest
 }) => {
-  console.log('DashboardContent - Quote Requests received:', filteredQuoteRequests.length);
-  console.log('DashboardContent - Quote Requests data:', filteredQuoteRequests.map(r => ({
+  console.log('DashboardContent - Raw Quote Requests received:', filteredQuoteRequests.length);
+  console.log('DashboardContent - Raw Quote Requests data:', filteredQuoteRequests.map(r => ({
     id: r.id.substring(0, 8),
     title: r.title,
     status: r.status,
@@ -31,25 +31,38 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     quoteRequested: r.quoteRequested,
     hasQuotedAmount: !!r.quotedAmount
   })));
-  console.log('DashboardContent - Active Jobs:', filteredActiveJobs.length);
-  console.log('DashboardContent - Completed Jobs:', filteredCompletedJobs.length);
 
-  // Additional filtering to ensure we only show true quote requests that need contractor action
+  // STRICT filtering to ensure ONLY quote requests that need contractor quotes are shown
+  // Exclude ANY in-progress, completed, or other job statuses
   const displayQuoteRequests = filteredQuoteRequests.filter(request => {
-    // Only show requests where contractor needs to submit a quote
+    // FIRST: Exclude any in-progress or completed jobs - these should NEVER be in quote requests
+    if (request.status === 'in-progress' || request.status === 'completed') {
+      console.log(`DashboardContent - EXCLUDING ${request.id.substring(0, 8)}: status is ${request.status} (not a quote request)`);
+      return false;
+    }
+
+    // SECOND: Only include requests with 'pending' or 'open' status that need quotes
+    if (request.status !== 'pending' && request.status !== 'open') {
+      console.log(`DashboardContent - EXCLUDING ${request.id.substring(0, 8)}: status is ${request.status} (not pending/open)`);
+      return false;
+    }
+
+    // THIRD: Check if contractor needs to submit a quote
     if (request.quote && typeof request.quote !== 'string') {
       const needsQuote = request.quote.status === 'requested';
       console.log(`DashboardContent - Request ${request.id.substring(0, 8)}: quote status = ${request.quote.status}, needs quote = ${needsQuote}`);
       return needsQuote;
     }
     
-    // Legacy support: show requests where quoteRequested is true but no quote object exists
+    // FOURTH: Legacy support - show requests where quoteRequested is true but no quote object exists
     const isLegacyRequest = request.quoteRequested === true && !request.quotedAmount && !request.quote;
     console.log(`DashboardContent - Request ${request.id.substring(0, 8)}: legacy request = ${isLegacyRequest}`);
     return isLegacyRequest;
   });
 
-  console.log('DashboardContent - Final display quote requests:', displayQuoteRequests.length);
+  console.log('DashboardContent - Final QUOTE REQUESTS (after strict filtering):', displayQuoteRequests.length);
+  console.log('DashboardContent - Final ACTIVE JOBS:', filteredActiveJobs.length);
+  console.log('DashboardContent - Final COMPLETED JOBS:', filteredCompletedJobs.length);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
