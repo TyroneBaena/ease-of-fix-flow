@@ -72,6 +72,7 @@ const ContractorJobs = () => {
                   onSelectRequest={(request) => {
                     window.location.href = `/contractor-jobs/${request.id}`;
                   }}
+                  filterQuoteRequests={false}
                 />
               </TabsContent>
               
@@ -81,6 +82,7 @@ const ContractorJobs = () => {
                   onSelectRequest={(request) => {
                     window.location.href = `/contractor-jobs/${request.id}`;
                   }}
+                  filterQuoteRequests={false}
                 />
               </TabsContent>
             </Tabs>

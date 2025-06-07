@@ -1,4 +1,3 @@
-
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +9,14 @@ import { useNavigate } from 'react-router-dom';
 interface RequestsTableProps {
   requests: MaintenanceRequest[];
   onSelectRequest: (request: MaintenanceRequest) => void;
+  filterQuoteRequests?: boolean; // New prop to control filtering
 }
 
-export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps) => {
+export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests = false }: RequestsTableProps) => {
   const navigate = useNavigate();
   
-  // Filter out quote requests that have been accepted/converted into jobs
-  const filteredRequests = requests.filter(request => {
+  // Only apply filtering if filterQuoteRequests is true (for quote requests section)
+  const filteredRequests = filterQuoteRequests ? requests.filter(request => {
     // If the request has a quote object with approved status, it's been converted to a job
     if (request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved') {
       return false;
@@ -33,11 +33,11 @@ export const RequestsTable = ({ requests, onSelectRequest }: RequestsTableProps)
     }
     
     return true;
-  });
+  }) : requests;
   
   console.log('RequestsTable - Original requests:', requests.length);
   console.log('RequestsTable - Filtered requests:', filteredRequests.length);
-  console.log('RequestsTable - Filtered out requests:', requests.filter(r => !filteredRequests.includes(r)));
+  console.log('RequestsTable - Filter applied:', filterQuoteRequests);
   
   if (filteredRequests.length === 0) {
     return <EmptyState />;

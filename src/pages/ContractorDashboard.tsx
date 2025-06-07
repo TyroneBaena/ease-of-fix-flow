@@ -96,6 +96,7 @@ const ContractorDashboard = () => {
               <RequestsTable 
                 requests={pendingQuoteRequests} 
                 onSelectRequest={handleSelectRequest}
+                filterQuoteRequests={true}
               />
             </Card>
             
@@ -114,7 +115,8 @@ const ContractorDashboard = () => {
                 <TabsContent value="active">
                   <RequestsTable 
                     requests={activeJobs}
-                    onSelectRequest={handleSelectRequest} 
+                    onSelectRequest={handleSelectRequest}
+                    filterQuoteRequests={false}
                   />
                 </TabsContent>
                 
@@ -122,6 +124,7 @@ const ContractorDashboard = () => {
                   <RequestsTable 
                     requests={completedJobs} 
                     onSelectRequest={handleSelectRequest}
+                    filterQuoteRequests={false}
                   />
                 </TabsContent>
               </Tabs>
