@@ -68,10 +68,10 @@ const ContractorJobDetail = () => {
           <div className="space-y-8">
             <ProgressCard request={job} />
             <ContactCard 
-              practiceLeader={job.practiceLeader}
-              practiceLeaderPhone={job.practiceLeaderPhone}
-              practiceLeaderEmail={job.practiceLeaderEmail}
-              address={job.address}
+              practiceLeader={job.practiceLeader || ''}
+              practiceLeaderPhone={job.practiceLeaderPhone || ''}
+              practiceLeaderEmail={job.practiceLeaderEmail || ''}
+              address={job.address || ''}
             />
           </div>
         </div>
