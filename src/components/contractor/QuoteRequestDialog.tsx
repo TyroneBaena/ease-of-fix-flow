@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,17 +8,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { ContractorSelection } from './quote-dialog/ContractorSelection';
-import { IssueDetails } from './quote-dialog/IssueDetails';
-import { ContactInformation } from './quote-dialog/ContactInformation';
 import { IncludeInfoSection } from './quote-dialog/IncludeInfoSection';
 import { AdditionalNotes } from './quote-dialog/AdditionalNotes';
-import { useContractorContext } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { toast } from '@/lib/toast';
-import { supabase } from '@/lib/supabase';
+import { useQuoteRequestDialog } from '@/hooks/contractor/useQuoteRequestDialog';
+import { useQuoteRequestSubmission } from '@/hooks/contractor/useQuoteRequestSubmission';
 
 interface QuoteRequestDialogProps {
   open: boolean;
@@ -33,171 +28,31 @@ export const QuoteRequestDialog = ({
   requestDetails,
   onSubmitQuote,
 }: QuoteRequestDialogProps) => {
-  const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
-  const [includeInfo, setIncludeInfo] = useState({
-    description: true,
-    location: true,
-    images: true,
-    contactDetails: true,
-    urgency: true
-  });
-  const [notes, setNotes] = useState('');
-  const { contractors, loading, loadContractors, requestQuote } = useContractorContext();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    selectedContractors,
+    includeInfo,
+    notes,
+    contractors,
+    loading,
+    setNotes,
+    handleContractorSelection,
+    handleInfoToggle
+  } = useQuoteRequestDialog(open);
 
-  // Load contractors when dialog opens
-  useEffect(() => {
-    if (open) {
-      console.log("QuoteRequestDialog - Dialog opened, loading contractors");
-      loadContractors();
-      setSelectedContractors([]);
-      setIncludeInfo({
-        description: true,
-        location: true,
-        images: true,
-        contactDetails: true,
-        urgency: true
-      });
-      setNotes('');
-    }
-  }, [open]);
-
-  // Debug logging for contractors
-  useEffect(() => {
-    console.log("QuoteRequestDialog - Contractors updated:", contractors);
-    console.log("QuoteRequestDialog - Loading state:", loading);
-  }, [contractors, loading]);
-
-  const handleContractorSelection = (contractorId: string) => {
-    setSelectedContractors(prev =>
-      prev.includes(contractorId)
-        ? prev.filter(id => id !== contractorId)
-        : [...prev, contractorId]
-    );
-  };
-
-  const createNotificationForContractor = async (contractorId: string, requestId: string) => {
-    try {
-      // Get contractor details
-      const { data: contractor, error: contractorError } = await supabase
-        .from('contractors')
-        .select('user_id, company_name')
-        .eq('id', contractorId)
-        .single();
-      
-      if (contractorError) {
-        console.error("Error fetching contractor:", contractorError);
-        throw contractorError;
-      }
-      
-      if (!contractor?.user_id) {
-        console.error("Missing user_id for contractor:", contractorId);
-        throw new Error("Contractor user_id not found");
-      }
-      
-      // Create notification in the database
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          title: 'New Quote Request',
-          message: `You have a new quote request for maintenance job #${requestId.substring(0, 8)}`,
-          type: 'info',
-          user_id: contractor.user_id,
-          link: `/contractor/jobs/${requestId}`
-        });
-        
-      if (notificationError) {
-        console.error("Error creating notification:", notificationError);
-        throw notificationError;
-      }
-      
-      console.log(`Notification created for contractor ${contractor.company_name}`);
-    } catch (error) {
-      console.error("Failed to create notification:", error);
-      throw error;
-    }
-  };
+  const { isSubmitting, submitQuoteRequests } = useQuoteRequestSubmission();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!requestDetails?.id) {
-      toast.error("Request details are missing");
-      return;
-    }
+    if (!requestDetails) return;
 
-    if (selectedContractors.length === 0) {
-      toast.error("Please select at least one contractor");
-      return;
-    }
-
-    setIsSubmitting(true);
-    let successfulRequests = 0;
-    let failedRequests = 0;
-    
-    try {
-      console.log("QuoteRequestDialog - Submitting quote requests for contractors:", selectedContractors);
-      
-      // Process each contractor request sequentially to avoid race conditions
-      for (const contractorId of selectedContractors) {
-        try {
-          // Request the quote first
-          await requestQuote(requestDetails.id!, contractorId, includeInfo, notes);
-          
-          // Then create a notification for the contractor
-          await createNotificationForContractor(contractorId, requestDetails.id!);
-          
-          successfulRequests++;
-          console.log(`Successfully processed quote request for contractor: ${contractorId}`);
-        } catch (contractorError) {
-          console.error(`Error processing contractor ${contractorId}:`, contractorError);
-          failedRequests++;
-        }
-      }
-      
-      // Update the maintenance request to mark quote as requested only if at least one succeeded
-      if (successfulRequests > 0) {
-        const { error: updateError } = await supabase
-          .from('maintenance_requests')
-          .update({
-            quote_requested: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', requestDetails.id);
-          
-        if (updateError) {
-          console.error("Error updating maintenance request:", updateError);
-          throw updateError;
-        }
-      }
-      
-      // Show appropriate success/error messages
-      if (successfulRequests > 0 && failedRequests === 0) {
-        toast.success(`Quote requests sent to ${successfulRequests} contractor(s)`);
-      } else if (successfulRequests > 0 && failedRequests > 0) {
-        toast.success(`Quote requests sent to ${successfulRequests} contractor(s). ${failedRequests} failed.`);
-      } else {
-        toast.error("Failed to send quote requests to any contractors");
-        return; // Don't close dialog if all failed
-      }
-      
-      // Close dialog only on success
-      onOpenChange(false);
-      
-    } catch (error) {
-      console.error("Error in quote request process:", error);
-      toast.error("Failed to request quotes. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Function to handle toggling include info options
-  const handleInfoToggle = (infoType: string) => {
-    setIncludeInfo(prev => ({
-      ...prev,
-      [infoType]: !prev[infoType as keyof typeof prev]
-    }));
+    await submitQuoteRequests(
+      requestDetails,
+      selectedContractors,
+      includeInfo,
+      notes,
+      () => onOpenChange(false)
+    );
   };
 
   return (
