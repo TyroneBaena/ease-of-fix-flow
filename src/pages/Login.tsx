@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,8 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { toast } from '@/lib/toast';
-import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/user';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Toaster } from "sonner";
@@ -110,113 +109,6 @@ const Login = () => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    try {
-      setIsLoading(true);
-      const demoEmail = "demo-user@example.com";
-      const demoPassword = "password123";
-      
-      console.log("Attempting demo login...");
-      
-      // First try to sign in directly - if the user already exists
-      try {
-        // Try to sign in first
-        await signIn(demoEmail, demoPassword);
-        
-        // If signed in successfully, update the user's role to admin
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          // Update the user's metadata to set role as admin
-          await supabase.auth.updateUser({
-            data: {
-              name: 'Demo Admin',
-              role: 'admin' as UserRole,
-              assignedProperties: []
-            }
-          });
-          console.log("Updated user role to admin");
-          
-          // Check or create tenant schema
-          const hasSchema = await tenantService.verifyUserSchema(userData.user.id);
-          if (!hasSchema) {
-            console.log("Creating schema for demo user");
-            // Create schema for demo user
-            const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
-              new_user_id: userData.user.id
-            });
-            
-            if (rpcError) {
-              console.error("Error creating schema for demo user:", rpcError);
-            } else {
-              console.log("Schema created for demo user");
-            }
-          }
-          
-          // Don't show toast here as signIn already shows one
-          navigate('/dashboard', { replace: true });
-          return;
-        }
-        
-        navigate('/dashboard', { replace: true });
-        return;
-      } catch (signInError) {
-        console.log("Demo user doesn't exist yet, creating...");
-      }
-      
-      // If sign-in failed, create the demo user with admin role
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: demoEmail,
-        password: demoPassword,
-        options: {
-          data: {
-            name: 'Demo Admin',
-            role: 'admin' as UserRole,
-            assignedProperties: []
-          }
-        }
-      });
-      
-      if (signUpError) {
-        console.error("Error creating demo user:", signUpError);
-        toast.error("Failed to create demo account: " + signUpError.message);
-        return;
-      }
-      
-      // Ensure schema is created for the demo user
-      if (data.user) {
-        // The trigger should handle schema creation, but let's check after a short delay
-        setTimeout(async () => {
-          const hasSchema = await tenantService.verifyUserSchema(data.user!.id);
-          if (!hasSchema) {
-            console.log("Creating schema for new demo user");
-            // Create schema manually
-            try {
-              const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
-                new_user_id: data.user!.id
-              });
-              
-              if (rpcError) {
-                console.error("Error creating schema for new demo user:", rpcError);
-              }
-            } catch (err) {
-              console.error("Exception creating schema for demo user:", err);
-            }
-          }
-        }, 1000);
-      }
-      
-      // Now sign in with the newly created account
-      await signIn(demoEmail, demoPassword);
-      // Don't show a toast here as signIn will show one
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Demo login error:', error);
-      // Don't add a duplicate toast here
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Toaster position="top-right" richColors />
@@ -279,25 +171,6 @@ const Login = () => {
                 Sign up
               </a>
             </p>
-            
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or</span>
-              </div>
-            </div>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full" 
-              onClick={handleDemoLogin}
-              disabled={isLoading}
-            >
-              Demo Login (No Password Required)
-            </Button>
           </form>
         </CardContent>
       </Card>
