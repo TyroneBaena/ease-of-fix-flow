@@ -17,7 +17,7 @@ import { IncludeInfoSection } from './quote-dialog/IncludeInfoSection';
 import { AdditionalNotes } from './quote-dialog/AdditionalNotes';
 import { useContractorContext } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { supabase } from '@/lib/supabase';
 
 interface QuoteRequestDialogProps {
@@ -114,7 +114,7 @@ export const QuoteRequestDialog = ({
       console.log(`Notification created for contractor ${contractor.company_name}`);
     } catch (error) {
       console.error("Failed to create notification:", error);
-      throw error; // Re-throw to handle in parent function
+      throw error;
     }
   };
 
@@ -132,6 +132,8 @@ export const QuoteRequestDialog = ({
     }
 
     setIsSubmitting(true);
+    let successfulRequests = 0;
+    let failedRequests = 0;
     
     try {
       console.log("QuoteRequestDialog - Submitting quote requests for contractors:", selectedContractors);
@@ -145,32 +147,41 @@ export const QuoteRequestDialog = ({
           // Then create a notification for the contractor
           await createNotificationForContractor(contractorId, requestDetails.id!);
           
+          successfulRequests++;
           console.log(`Successfully processed quote request for contractor: ${contractorId}`);
         } catch (contractorError) {
           console.error(`Error processing contractor ${contractorId}:`, contractorError);
-          // Continue with other contractors even if one fails
-          toast.error(`Failed to send quote request to one contractor`);
+          failedRequests++;
         }
       }
       
-      // Update the maintenance request to mark quote as requested
-      const { error: updateError } = await supabase
-        .from('maintenance_requests')
-        .update({
-          quote_requested: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestDetails.id);
-        
-      if (updateError) {
-        console.error("Error updating maintenance request:", updateError);
-        throw updateError;
+      // Update the maintenance request to mark quote as requested only if at least one succeeded
+      if (successfulRequests > 0) {
+        const { error: updateError } = await supabase
+          .from('maintenance_requests')
+          .update({
+            quote_requested: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', requestDetails.id);
+          
+        if (updateError) {
+          console.error("Error updating maintenance request:", updateError);
+          throw updateError;
+        }
       }
       
-      // Show success message
-      toast.success(`Quote requests sent to ${selectedContractors.length} contractor(s)`);
+      // Show appropriate success/error messages
+      if (successfulRequests > 0 && failedRequests === 0) {
+        toast.success(`Quote requests sent to ${successfulRequests} contractor(s)`);
+      } else if (successfulRequests > 0 && failedRequests > 0) {
+        toast.success(`Quote requests sent to ${successfulRequests} contractor(s). ${failedRequests} failed.`);
+      } else {
+        toast.error("Failed to send quote requests to any contractors");
+        return; // Don't close dialog if all failed
+      }
       
-      // Close dialog
+      // Close dialog only on success
       onOpenChange(false);
       
     } catch (error) {
