@@ -26,7 +26,7 @@ export const useContractorData = (
         
         console.log('Fetching contractor data for contractor ID:', contractorId);
         
-        // Fetch quote requests - new RLS policies should handle access control
+        // Fetch quote requests - RLS policies now handle access control properly
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -43,7 +43,7 @@ export const useContractorData = (
         console.log('Fetched quotes:', quotes);
         
         // Fetch maintenance requests that contractors can quote on
-        // New RLS will automatically filter to show only accessible requests
+        // RLS will automatically filter to show only accessible requests
         const { data: availableRequests, error: availableError } = await supabase
           .from('maintenance_requests')
           .select('*')
