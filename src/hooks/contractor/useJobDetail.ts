@@ -27,21 +27,29 @@ export const useJobDetail = (jobId: string | undefined) => {
         
         console.log('Fetching job details for ID:', jobId);
         
-        // Fetch the job details along with the related property to get the contact information
+        // First, get the contractor ID for the current user
+        const { data: contractorData, error: contractorError } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .single();
+
+        if (contractorError) {
+          console.error('Error fetching contractor ID:', contractorError);
+          throw contractorError;
+        }
+
+        console.log('Current contractor ID:', contractorData?.id);
+        
+        // Fetch the job details
         const { data, error } = await supabase
           .from('maintenance_requests')
           .select(`
             *,
-            quotes(*),
-            property:property_id(
-              address,
-              contact_number,
-              practice_leader,
-              practice_leader_phone,
-              practice_leader_email
-            )
+            quotes(*)
           `)
           .eq('id', jobId)
+          .eq('contractor_id', contractorData.id)
           .single();
           
         if (error) {
@@ -50,7 +58,26 @@ export const useJobDetail = (jobId: string | undefined) => {
         }
         
         if (data) {
-          console.log('Raw data from database:', data);
+          console.log('Raw maintenance request data:', data);
+          
+          // Now fetch the property data separately
+          let propertyData: PropertyData = {};
+          if (data.property_id) {
+            console.log('Fetching property data for property ID:', data.property_id);
+            const { data: property, error: propertyError } = await supabase
+              .from('properties')
+              .select('address, contact_number, practice_leader, practice_leader_phone, practice_leader_email')
+              .eq('id', data.property_id)
+              .single();
+              
+            if (propertyError) {
+              console.warn('Could not fetch property data:', propertyError);
+              // Don't throw error, just continue without property data
+            } else {
+              propertyData = property || {};
+              console.log('Fetched property data:', propertyData);
+            }
+          }
           
           // Helper function to safely handle potentially non-array JSON fields
           const safeArrayFromJSON = (jsonField: any): any[] => {
@@ -64,11 +91,6 @@ export const useJobDetail = (jobId: string | undefined) => {
               return [];
             }
           };
-          
-          // Extract property information from the join
-          const propertyData = (data.property || {}) as PropertyData;
-          
-          console.log('Property data extracted:', propertyData);
           
           const formattedJob: MaintenanceRequest = {
             id: data.id,
