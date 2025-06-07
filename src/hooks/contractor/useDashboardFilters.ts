@@ -18,10 +18,11 @@ export const useDashboardFilters = ({
     return pendingQuoteRequests.filter(request => {
       // Only show requests where quotes are requested but not yet submitted or are in 'requested' status
       if (request.quote && typeof request.quote !== 'string') {
+        // Show if quote status is 'requested' (waiting for contractor to submit quote)
         return request.quote.status === 'requested';
       }
       // Also include requests where quoteRequested is true but no quote object exists yet
-      return request.quoteRequested === true;
+      return request.quoteRequested === true && !request.quotedAmount;
     });
   }, [pendingQuoteRequests]);
 
@@ -49,7 +50,8 @@ export const useDashboardFilters = ({
     });
   }, [completedJobs]);
 
-  console.log('Dashboard Filters - Quote Requests:', filteredQuoteRequests.length);
+  console.log('Dashboard Filters - Pending Quote Requests (raw):', pendingQuoteRequests);
+  console.log('Dashboard Filters - Filtered Quote Requests:', filteredQuoteRequests.length);
   console.log('Dashboard Filters - Active Jobs:', filteredActiveJobs.length);
   console.log('Dashboard Filters - Completed Jobs:', filteredCompletedJobs.length);
 

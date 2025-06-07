@@ -22,6 +22,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   loading,
   onSelectRequest
 }) => {
+  console.log('DashboardContent - Quote Requests:', filteredQuoteRequests);
+  console.log('DashboardContent - Active Jobs:', filteredActiveJobs);
+  console.log('DashboardContent - Completed Jobs:', filteredCompletedJobs);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-3 space-y-6">
