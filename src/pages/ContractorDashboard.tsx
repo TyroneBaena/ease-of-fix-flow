@@ -35,18 +35,39 @@ const ContractorDashboard = () => {
     setQuoteDialogOpen(true);
   };
 
-  // Filter active and completed jobs to only show those with quotes
-  const filteredActiveJobs = activeJobs.filter(request => {
-    const hasQuote = request.quotedAmount || 
-                    (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-    return hasQuote;
+  // Filter quote requests to only show requests that need quotes to be submitted
+  const filteredQuoteRequests = pendingQuoteRequests.filter(request => {
+    // Only show requests where quotes are requested but not yet submitted or are in 'requested' status
+    if (request.quote && typeof request.quote !== 'string') {
+      return request.quote.status === 'requested';
+    }
+    // Also include requests where quoteRequested is true but no quote object exists yet
+    return request.quoteRequested === true;
   });
 
+  // Filter active jobs to only show jobs that are actually in progress (not just quote submissions)
+  const filteredActiveJobs = activeJobs.filter(request => {
+    // Only show jobs that are in 'in-progress' status and have approved quotes
+    if (request.status === 'in-progress') {
+      if (request.quote && typeof request.quote !== 'string') {
+        return request.quote.status === 'approved';
+      }
+      // Or if it has a quoted amount (legacy data)
+      return request.quotedAmount !== undefined && request.quotedAmount !== null;
+    }
+    return false;
+  });
+
+  // Filter completed jobs to only show jobs that are completed and had quotes
   const filteredCompletedJobs = completedJobs.filter(request => {
     const hasQuote = request.quotedAmount || 
                     (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-    return hasQuote;
+    return hasQuote && request.status === 'completed';
   });
+
+  console.log('ContractorDashboard - Quote Requests:', filteredQuoteRequests.length);
+  console.log('ContractorDashboard - Active Jobs:', filteredActiveJobs.length);
+  console.log('ContractorDashboard - Completed Jobs:', filteredCompletedJobs.length);
 
   // Loading skeleton placeholder
   if (loading) {
@@ -140,16 +161,16 @@ const ContractorDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3 space-y-6">
             <ContractorMetrics 
-              pendingQuotes={pendingQuoteRequests}
+              pendingQuotes={filteredQuoteRequests}
               activeJobs={filteredActiveJobs}
               completedJobs={filteredCompletedJobs}
               loading={loading}
             />
             
             <Card className="p-6">
-              <h2 className="font-semibold text-lg mb-4">Quote Requests</h2>
+              <h2 className="font-semibold text-lg mb-4">Quote Requests ({filteredQuoteRequests.length})</h2>
               <RequestsTable 
-                requests={pendingQuoteRequests} 
+                requests={filteredQuoteRequests} 
                 onSelectRequest={handleSelectRequest}
                 filterQuoteRequests={true}
               />
@@ -169,7 +190,7 @@ const ContractorDashboard = () => {
                 
                 <TabsContent value="active">
                   <RequestsTable 
-                    requests={activeJobs}
+                    requests={filteredActiveJobs}
                     onSelectRequest={handleSelectRequest}
                     filterQuoteRequests={false}
                   />
@@ -177,7 +198,7 @@ const ContractorDashboard = () => {
                 
                 <TabsContent value="completed">
                   <RequestsTable 
-                    requests={completedJobs} 
+                    requests={filteredCompletedJobs} 
                     onSelectRequest={handleSelectRequest}
                     filterQuoteRequests={false}
                   />
