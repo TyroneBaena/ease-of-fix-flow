@@ -155,8 +155,10 @@ export const QuoteRequestDialog = ({
       }
       
       toast.success(`Quote requests sent to ${selectedContractors.length} contractor(s)`);
-      onSubmitQuote(0, ''); // Just to trigger the parent's callback
+      
+      // FIXED: Close dialog immediately without triggering parent callback that causes refresh loop
       onOpenChange(false);
+      
     } catch (error) {
       console.error("Error requesting quotes:", error);
       toast.error("Failed to request quotes");
