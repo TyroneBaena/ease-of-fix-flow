@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -34,6 +33,7 @@ import ContractorProfile from '@/pages/contractor/ContractorProfile';
 import ContractorSchedule from '@/pages/contractor/ContractorSchedule';
 import ContractorSettings from '@/pages/contractor/ContractorSettings';
 import ContractorNotifications from '@/pages/ContractorNotifications';
+import QuoteSubmission from './pages/contractor/QuoteSubmission';
 
 const queryClient = new QueryClient();
 
@@ -151,6 +151,8 @@ function App() {
                         <ContractorNotifications />
                       </ProtectedRoute>
                     } />
+                    
+                    <Route path="/contractor/quote-submission/:id" element={<QuoteSubmission />} />
                     
                     {/* 404 route */}
                     <Route path="*" element={<NotFound />} />

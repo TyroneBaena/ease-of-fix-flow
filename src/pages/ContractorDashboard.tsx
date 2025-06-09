@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
-import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { ContractorProvider } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useContractorDashboard } from '@/hooks/useContractorDashboard';
@@ -28,9 +27,6 @@ const ContractorDashboard = () => {
     contractorId,
     refreshData
   } = useContractorDashboard();
-  
-  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
-  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
 
   // Strict authentication check with immediate redirect
   useEffect(() => {
@@ -64,8 +60,8 @@ const ContractorDashboard = () => {
   
   const handleSelectRequest = (request: MaintenanceRequest) => {
     console.log('ContractorDashboard - Request selected:', request);
-    setSelectedRequest(request);
-    setQuoteDialogOpen(true);
+    // Navigate to the quote submission page instead of opening a dialog
+    navigate(`/contractor/quote-submission/${request.id}`);
   };
 
   const {
@@ -138,16 +134,7 @@ const ContractorDashboard = () => {
       )}
       
       <ContractorProvider>
-        <RequestQuoteDialog 
-          open={quoteDialogOpen}
-          onOpenChange={setQuoteDialogOpen}
-          request={selectedRequest}
-          onQuoteSubmitted={() => {
-            setQuoteDialogOpen(false);
-            setSelectedRequest(null);
-            refreshData();
-          }}
-        />
+        {/* Removed the RequestQuoteDialog since we're now using a separate page */}
       </ContractorProvider>
     </div>
   );
