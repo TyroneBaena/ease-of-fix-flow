@@ -5,6 +5,7 @@ import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { QuoteForm } from '@/components/contractor/quote-dialog/QuoteForm';
 import { ContractorQuoteHistory } from '@/components/contractor/quote-submission/ContractorQuoteHistory';
+import { QuoteStatusCard } from '@/components/contractor/quote-submission/QuoteStatusCard';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -22,10 +23,17 @@ const QuoteSubmission = () => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
   
   const { request, loading } = useRequestDetailData(id);
   const { quotes, loading: quotesLoading, refreshQuotes } = useContractorQuoteHistory(id);
   const { submitQuote } = useContractorContext();
+
+  // Get the latest submitted quote (not 'requested' status)
+  const latestSubmittedQuote = quotes.find(quote => quote.status !== 'requested');
+  
+  // Determine if we should show the form or status
+  const shouldShowForm = showQuoteForm || !latestSubmittedQuote;
 
   const handleBack = () => {
     navigate('/contractor-dashboard');
@@ -48,6 +56,7 @@ const QuoteSubmission = () => {
       // Clear the form
       setAmount('');
       setDescription('');
+      setShowQuoteForm(false);
       
       // Refresh the quote history to show the new quote
       await refreshQuotes();
@@ -61,6 +70,15 @@ const QuoteSubmission = () => {
 
   const handleCancel = () => {
     navigate('/contractor-dashboard');
+  };
+
+  const handleResubmit = () => {
+    // Pre-fill the form with the latest quote data if available
+    if (latestSubmittedQuote) {
+      setAmount(latestSubmittedQuote.amount.toString());
+      setDescription(latestSubmittedQuote.description || '');
+    }
+    setShowQuoteForm(true);
   };
 
   if (loading) {
@@ -87,9 +105,14 @@ const QuoteSubmission = () => {
             Back to Dashboard
           </Button>
           
-          <h1 className="text-3xl font-bold text-gray-900">Submit Quote</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {shouldShowForm ? 'Submit Quote' : 'Quote Status'}
+          </h1>
           <p className="text-gray-600 mt-2">
-            Review the request details and submit your quote
+            {shouldShowForm 
+              ? 'Review the request details and submit your quote'
+              : 'Your quote submission status and details'
+            }
           </p>
         </div>
 
@@ -105,19 +128,31 @@ const QuoteSubmission = () => {
             />
           </div>
           
-          {/* Quote Form - Takes up 1/3 of the space */}
+          {/* Quote Form or Status - Takes up 1/3 of the space */}
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-8">
-              <h2 className="text-xl font-semibold mb-4">Submit Your Quote</h2>
-              <QuoteForm
-                amount={amount}
-                description={description}
-                onAmountChange={setAmount}
-                onDescriptionChange={setDescription}
-                onSubmit={handleSubmit}
-                onCancel={handleCancel}
-                isSubmitting={isSubmitting}
-              />
+              {shouldShowForm ? (
+                <>
+                  <h2 className="text-xl font-semibold mb-4">
+                    {latestSubmittedQuote ? 'Resubmit Quote' : 'Submit Your Quote'}
+                  </h2>
+                  <QuoteForm
+                    amount={amount}
+                    description={description}
+                    onAmountChange={setAmount}
+                    onDescriptionChange={setDescription}
+                    onSubmit={handleSubmit}
+                    onCancel={handleCancel}
+                    isSubmitting={isSubmitting}
+                  />
+                </>
+              ) : (
+                <QuoteStatusCard
+                  quote={latestSubmittedQuote}
+                  onResubmit={handleResubmit}
+                  onBack={handleCancel}
+                />
+              )}
             </Card>
           </div>
         </div>
