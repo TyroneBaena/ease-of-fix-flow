@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
-import { ContractorProvider } from '@/contexts/contractor';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useContractorDashboard } from '@/hooks/useContractorDashboard';
 import { DashboardErrorState } from '@/components/contractor/dashboard/DashboardErrorState';
@@ -132,10 +131,6 @@ const ContractorDashboard = () => {
           />
         </main>
       )}
-      
-      <ContractorProvider>
-        {/* Removed the RequestQuoteDialog since we're now using a separate page */}
-      </ContractorProvider>
     </div>
   );
 };
