@@ -11,6 +11,34 @@ export interface IncludeInfo {
   urgency: boolean;
 }
 
+// Helper function to create quote logs
+const createQuoteLog = async (
+  quoteId: string,
+  contractorId: string,
+  action: 'created' | 'updated' | 'resubmitted',
+  oldAmount?: number,
+  newAmount?: number,
+  oldDescription?: string,
+  newDescription?: string
+) => {
+  const { error } = await supabase
+    .from('quote_logs')
+    .insert({
+      quote_id: quoteId,
+      contractor_id: contractorId,
+      action,
+      old_amount: oldAmount,
+      new_amount: newAmount,
+      old_description: oldDescription,
+      new_description: newDescription
+    });
+
+  if (error) {
+    console.error('Error creating quote log:', error);
+    // Don't throw here - logging failure shouldn't fail the main operation
+  }
+};
+
 // Update the requestQuote function to properly persist data to the database
 export const requestQuote = async (
   requestId: string,
@@ -63,7 +91,7 @@ export const requestQuote = async (
   }
 };
 
-// Add the submitQuoteForJob function here
+// Add the submitQuoteForJob function here with logging
 export const submitQuoteForJob = async (
   requestId: string, 
   amount: number, 
@@ -85,7 +113,7 @@ export const submitQuoteForJob = async (
     // Check if a quote request already exists for this contractor and request
     const { data: existingQuote, error: checkError } = await supabase
       .from('quotes')
-      .select('id, status')
+      .select('id, status, amount, description')
       .eq('request_id', requestId)
       .eq('contractor_id', contractorData.id)
       .single();
@@ -95,6 +123,11 @@ export const submitQuoteForJob = async (
     }
 
     if (existingQuote) {
+      // Store old values for logging
+      const oldAmount = existingQuote.amount;
+      const oldDescription = existingQuote.description;
+      const isResubmission = existingQuote.status === 'pending' || existingQuote.status === 'rejected';
+      
       // Update the existing quote with the actual amount and description
       const { error: updateError } = await supabase
         .from('quotes')
@@ -107,9 +140,21 @@ export const submitQuoteForJob = async (
         .eq('id', existingQuote.id);
 
       if (updateError) throw new Error(`Failed to update quote: ${updateError.message}`);
+
+      // Create quote log for the update/resubmission
+      const action = isResubmission ? 'resubmitted' : 'updated';
+      await createQuoteLog(
+        existingQuote.id,
+        contractorData.id,
+        action,
+        oldAmount,
+        amount,
+        oldDescription,
+        description
+      );
     } else {
       // Create a new quote if none exists
-      const { error: insertError } = await supabase
+      const { data: newQuote, error: insertError } = await supabase
         .from('quotes')
         .insert({
           request_id: requestId,
@@ -117,9 +162,24 @@ export const submitQuoteForJob = async (
           amount,
           description,
           status: 'pending'
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw new Error(`Failed to submit quote: ${insertError.message}`);
+
+      // Create quote log for the new quote
+      if (newQuote) {
+        await createQuoteLog(
+          newQuote.id,
+          contractorData.id,
+          'created',
+          undefined,
+          amount,
+          undefined,
+          description
+        );
+      }
     }
     
     console.log("Quote submitted successfully");

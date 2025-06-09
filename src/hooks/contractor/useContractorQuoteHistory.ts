@@ -12,8 +12,20 @@ interface Quote {
   createdAt: string;
 }
 
+interface QuoteLog {
+  id: string;
+  quoteId: string;
+  action: 'created' | 'updated' | 'resubmitted';
+  oldAmount?: number;
+  newAmount: number;
+  oldDescription?: string;
+  newDescription?: string;
+  createdAt: string;
+}
+
 export const useContractorQuoteHistory = (requestId: string | undefined) => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quoteLogs, setQuoteLogs] = useState<QuoteLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +72,7 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
           return;
         }
 
-        // Map the data to our interface
+        // Map the quotes data to our interface
         const mappedQuotes: Quote[] = (quotesData || []).map(quote => ({
           id: quote.id,
           amount: quote.amount,
@@ -69,6 +81,30 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
           submittedAt: quote.submitted_at,
           createdAt: quote.created_at
         }));
+
+        // Fetch quote logs for all quotes
+        if (quotesData && quotesData.length > 0) {
+          const quoteIds = quotesData.map(q => q.id);
+          const { data: logsData, error: logsError } = await supabase
+            .from('quote_logs')
+            .select('*')
+            .in('quote_id', quoteIds)
+            .order('created_at', { ascending: false });
+
+          if (!logsError && logsData) {
+            const mappedLogs: QuoteLog[] = logsData.map(log => ({
+              id: log.id,
+              quoteId: log.quote_id,
+              action: log.action as 'created' | 'updated' | 'resubmitted',
+              oldAmount: log.old_amount || undefined,
+              newAmount: log.new_amount,
+              oldDescription: log.old_description || undefined,
+              newDescription: log.new_description || undefined,
+              createdAt: log.created_at
+            }));
+            setQuoteLogs(mappedLogs);
+          }
+        }
 
         console.log('Fetched contractor quotes:', mappedQuotes);
         setQuotes(mappedQuotes);
@@ -113,6 +149,30 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
         }));
         
         setQuotes(mappedQuotes);
+
+        // Refresh quote logs as well
+        if (quotesData.length > 0) {
+          const quoteIds = quotesData.map(q => q.id);
+          const { data: logsData, error: logsError } = await supabase
+            .from('quote_logs')
+            .select('*')
+            .in('quote_id', quoteIds)
+            .order('created_at', { ascending: false });
+
+          if (!logsError && logsData) {
+            const mappedLogs: QuoteLog[] = logsData.map(log => ({
+              id: log.id,
+              quoteId: log.quote_id,
+              action: log.action as 'created' | 'updated' | 'resubmitted',
+              oldAmount: log.old_amount || undefined,
+              newAmount: log.new_amount,
+              oldDescription: log.old_description || undefined,
+              newDescription: log.new_description || undefined,
+              createdAt: log.created_at
+            }));
+            setQuoteLogs(mappedLogs);
+          }
+        }
       }
     } catch (error) {
       console.error('Error refreshing quotes:', error);
@@ -121,6 +181,7 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
 
   return {
     quotes,
+    quoteLogs,
     loading,
     refreshQuotes
   };

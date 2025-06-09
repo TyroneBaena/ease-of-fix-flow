@@ -26,7 +26,7 @@ const QuoteSubmission = () => {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   
   const { request, loading } = useRequestDetailData(id);
-  const { quotes, loading: quotesLoading, refreshQuotes } = useContractorQuoteHistory(id);
+  const { quotes, quoteLogs, loading: quotesLoading, refreshQuotes } = useContractorQuoteHistory(id);
   const { submitQuote } = useContractorContext();
 
   // Get the latest submitted quote (not 'requested' status)
@@ -58,7 +58,7 @@ const QuoteSubmission = () => {
       setDescription('');
       setShowQuoteForm(false);
       
-      // Refresh the quote history to show the new quote
+      // Refresh the quote history to show the new quote and logs
       await refreshQuotes();
     } catch (error) {
       console.error('Error submitting quote:', error);
@@ -121,9 +121,10 @@ const QuoteSubmission = () => {
           <div className="lg:col-span-2 space-y-6">
             <RequestInfo request={request} />
             
-            {/* Quote History Section */}
+            {/* Quote History Section with detailed logs */}
             <ContractorQuoteHistory 
               quotes={quotes} 
+              quoteLogs={quoteLogs}
               loading={quotesLoading}
             />
           </div>

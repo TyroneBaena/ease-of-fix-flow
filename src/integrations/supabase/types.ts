@@ -311,6 +311,57 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_logs: {
+        Row: {
+          action: string
+          contractor_id: string
+          created_at: string
+          id: string
+          new_amount: number
+          new_description: string | null
+          old_amount: number | null
+          old_description: string | null
+          quote_id: string
+        }
+        Insert: {
+          action: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          new_amount: number
+          new_description?: string | null
+          old_amount?: number | null
+          old_description?: string | null
+          quote_id: string
+        }
+        Update: {
+          action?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          new_amount?: number
+          new_description?: string | null
+          old_amount?: number | null
+          old_description?: string | null
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_logs_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_logs_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotes: {
         Row: {
           amount: number
