@@ -72,15 +72,18 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
           return;
         }
 
-        // Map the quotes data to our interface
+        // Map the quotes data to our interface with proper timestamp handling
         const mappedQuotes: Quote[] = (quotesData || []).map(quote => ({
           id: quote.id,
           amount: quote.amount,
           description: quote.description || undefined,
           status: quote.status as 'requested' | 'pending' | 'approved' | 'rejected',
-          submittedAt: quote.submitted_at,
+          submittedAt: quote.submitted_at || quote.created_at, // Use submitted_at, fallback to created_at
           createdAt: quote.created_at
         }));
+
+        console.log('Raw quotes data from DB:', quotesData);
+        console.log('Mapped quotes with timestamps:', mappedQuotes);
 
         // Fetch quote logs for all quotes
         if (quotesData && quotesData.length > 0) {
@@ -92,6 +95,8 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
             .order('created_at', { ascending: false });
 
           if (!logsError && logsData) {
+            console.log('Raw logs data from DB:', logsData);
+            
             const mappedLogs: QuoteLog[] = logsData.map(log => ({
               id: log.id,
               quoteId: log.quote_id,
@@ -102,11 +107,12 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
               newDescription: log.new_description || undefined,
               createdAt: log.created_at
             }));
+            
+            console.log('Mapped logs with timestamps:', mappedLogs);
             setQuoteLogs(mappedLogs);
           }
         }
 
-        console.log('Fetched contractor quotes:', mappedQuotes);
         setQuotes(mappedQuotes);
       } catch (error) {
         console.error('Error in fetchContractorQuotes:', error);
@@ -144,7 +150,7 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
           amount: quote.amount,
           description: quote.description || undefined,
           status: quote.status as 'requested' | 'pending' | 'approved' | 'rejected',
-          submittedAt: quote.submitted_at,
+          submittedAt: quote.submitted_at || quote.created_at, // Use submitted_at, fallback to created_at
           createdAt: quote.created_at
         }));
         

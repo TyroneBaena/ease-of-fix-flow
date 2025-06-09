@@ -88,12 +88,12 @@ export const ContractorQuoteHistory = ({ quotes, quoteLogs = [], loading }: Cont
       timestamp: string;
     }> = [];
 
-    // Add quotes to timeline
+    // Add quotes to timeline - use submittedAt for proper timeline ordering
     quotes.forEach(quote => {
       timeline.push({
         type: 'quote',
         data: quote,
-        timestamp: quote.submittedAt
+        timestamp: quote.submittedAt // Use submittedAt consistently
       });
     });
 
@@ -107,7 +107,37 @@ export const ContractorQuoteHistory = ({ quotes, quoteLogs = [], loading }: Cont
     });
 
     // Sort by timestamp descending (newest first)
-    return timeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const sortedTimeline = timeline.sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Debug logging to help identify timestamp issues
+    console.log('Timeline items with timestamps:', sortedTimeline.map(item => ({
+      type: item.type,
+      id: item.data.id,
+      timestamp: item.timestamp,
+      parsedDate: new Date(item.timestamp),
+      isValidDate: !isNaN(new Date(item.timestamp).getTime())
+    })));
+
+    return sortedTimeline;
+  };
+
+  // Helper function to safely format timestamp
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp:', timestamp);
+        return 'Invalid date';
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      console.error('Error formatting timestamp:', timestamp, error);
+      return 'Invalid date';
+    }
   };
 
   if (loading) {
@@ -145,56 +175,60 @@ export const ContractorQuoteHistory = ({ quotes, quoteLogs = [], loading }: Cont
     <Card className="p-6">
       <h3 className="font-semibold mb-4">Your Quote History</h3>
       <div className="space-y-4">
-        {timeline.map((item, index) => (
-          <div key={`${item.type}-${item.data.id}-${index}`} className="border-l-4 border-blue-200 pl-4 py-3 bg-gray-50 rounded-r">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {item.type === 'quote' ? (
-                  <Clock className="h-4 w-4 text-gray-500" />
-                ) : (
-                  getActionIcon((item.data as QuoteLog).action)
-                )}
-                <span className="text-sm font-medium">
-                  {item.type === 'quote' 
-                    ? getActionTextForQuote(item.data as Quote)
-                    : getActionText((item.data as QuoteLog).action, item.data as QuoteLog)
-                  }
-                </span>
-                {item.type === 'quote' && (
-                  <Badge className={getStatusColor((item.data as Quote).status)}>
-                    {(item.data as Quote).status}
-                  </Badge>
-                )}
-              </div>
-              <span className="text-xs text-gray-500">
-                {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
-              </span>
-            </div>
-            
-            {item.type === 'quote' && (item.data as Quote).status !== 'requested' && (
-              <div className="ml-6 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                  <span className="font-medium">Amount: ${(item.data as Quote).amount.toFixed(2)}</span>
+        {timeline.map((item, index) => {
+          const formattedTime = formatTimestamp(item.timestamp);
+          
+          return (
+            <div key={`${item.type}-${item.data.id}-${index}`} className="border-l-4 border-blue-200 pl-4 py-3 bg-gray-50 rounded-r">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {item.type === 'quote' ? (
+                    <Clock className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    getActionIcon((item.data as QuoteLog).action)
+                  )}
+                  <span className="text-sm font-medium">
+                    {item.type === 'quote' 
+                      ? getActionTextForQuote(item.data as Quote)
+                      : getActionText((item.data as QuoteLog).action, item.data as QuoteLog)
+                    }
+                  </span>
+                  {item.type === 'quote' && (
+                    <Badge className={getStatusColor((item.data as Quote).status)}>
+                      {(item.data as Quote).status}
+                    </Badge>
+                  )}
                 </div>
-                
-                {(item.data as Quote).description && (
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Description: </span>
-                    {(item.data as Quote).description}
+                <span className="text-xs text-gray-500" title={`Raw timestamp: ${item.timestamp}`}>
+                  {formattedTime}
+                </span>
+              </div>
+              
+              {item.type === 'quote' && (item.data as Quote).status !== 'requested' && (
+                <div className="ml-6 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <span className="font-medium">Amount: ${(item.data as Quote).amount.toFixed(2)}</span>
                   </div>
-                )}
-              </div>
-            )}
+                  
+                  {(item.data as Quote).description && (
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">Description: </span>
+                      {(item.data as Quote).description}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {item.type === 'log' && (item.data as QuoteLog).newDescription && (
-              <div className="ml-6 text-sm text-gray-600">
-                <span className="font-medium">Details: </span>
-                {(item.data as QuoteLog).newDescription}
-              </div>
-            )}
-          </div>
-        ))}
+              {item.type === 'log' && (item.data as QuoteLog).newDescription && (
+                <div className="ml-6 text-sm text-gray-600">
+                  <span className="font-medium">Details: </span>
+                  {(item.data as QuoteLog).newDescription}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
