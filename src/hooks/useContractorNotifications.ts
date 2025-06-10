@@ -78,7 +78,7 @@ export const useContractorNotifications = () => {
         const mockNotifications: NotificationClient[] = [];
         
         if (requestsData && requestsData.length > 0) {
-          // Create notifications for existing requests
+          // Create notifications for existing requests - use contractor-specific routes
           requestsData.forEach((request, index) => {
             if (index === 0) {
               mockNotifications.push({
@@ -99,7 +99,7 @@ export const useContractorNotifications = () => {
                 isRead: false,
                 createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
                 type: 'info',
-                link: `/requests/${request.id}`,
+                link: `/contractor-jobs/${request.id}`,
                 user_id: currentUser.id
               });
             } else if (index === 2) {
@@ -110,14 +110,14 @@ export const useContractorNotifications = () => {
                 isRead: true,
                 createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
                 type: 'success',
-                link: `/requests/${request.id}`,
+                link: `/contractor-jobs/${request.id}`,
                 user_id: currentUser.id
               });
             }
           });
         }
         
-        // Add some general notifications
+        // Add some general notifications with safe contractor routes
         mockNotifications.push({
           id: crypto.randomUUID(),
           title: 'Schedule Update',
@@ -248,6 +248,7 @@ export const useContractorNotifications = () => {
     }
   };
   
+  // Safe navigation with contractor route validation
   const handleNotificationClick = (notification: NotificationClient) => {
     console.log('Notification clicked:', notification);
     
@@ -255,9 +256,33 @@ export const useContractorNotifications = () => {
       markAsRead(notification.id);
     }
     
+    // Only navigate if we have a valid contractor link
     if (notification.link) {
-      console.log(`Navigating to: ${notification.link}`);
-      navigate(notification.link);
+      // Validate that the link is a contractor route
+      const validContractorRoutes = [
+        '/contractor-dashboard',
+        '/contractor-jobs',
+        '/contractor-schedule',
+        '/contractor-profile',
+        '/contractor-settings',
+        '/contractor-notifications',
+        '/contractor/quote-submission'
+      ];
+      
+      const isValidRoute = validContractorRoutes.some(route => 
+        notification.link!.startsWith(route)
+      );
+      
+      if (isValidRoute) {
+        console.log(`Navigating to valid contractor route: ${notification.link}`);
+        navigate(notification.link);
+      } else {
+        console.log(`Invalid contractor route detected: ${notification.link}, staying on current page`);
+        toast.info('Notification details updated');
+      }
+    } else {
+      console.log('No link provided for notification, marking as read only');
+      toast.info('Notification marked as read');
     }
   };
 
