@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, Settings, Bell } from 'lucide-react';
+import { Calendar, User, Bell } from 'lucide-react';
 
 export const QuickActionsCard: React.FC = () => {
   const navigate = useNavigate();
@@ -35,14 +35,6 @@ export const QuickActionsCard: React.FC = () => {
         >
           <Bell className="mr-2 h-4 w-4" />
           View Notifications
-        </Button>
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-          onClick={() => navigate('/contractor-settings')}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
         </Button>
       </div>
     </Card>
