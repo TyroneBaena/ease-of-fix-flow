@@ -67,49 +67,67 @@ export const useContractorNotifications = () => {
         setUnreadCount(fetchedData.filter(n => !n.is_read).length);
       } else {
         console.log('No notifications found, creating mock contractor notifications');
-        // Mock contractor-specific notifications
-        const mockNotifications: NotificationClient[] = [
-          {
-            id: crypto.randomUUID(),
-            title: 'New Job Assignment',
-            message: 'You have been assigned a new maintenance job at Property A',
-            isRead: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-            type: 'info',
-            link: '/contractor-jobs',
-            user_id: currentUser.id
-          },
-          {
-            id: crypto.randomUUID(),
-            title: 'Quote Request',
-            message: 'A new quote has been requested for plumbing work',
-            isRead: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-            type: 'warning',
-            link: '/contractor-jobs',
-            user_id: currentUser.id
-          },
-          {
-            id: crypto.randomUUID(),
-            title: 'Job Completed',
-            message: 'Payment has been processed for completed job #12345',
-            isRead: true,
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-            type: 'success',
-            link: '/contractor-jobs',
-            user_id: currentUser.id
-          },
-          {
-            id: crypto.randomUUID(),
-            title: 'Schedule Update',
-            message: 'Your schedule for tomorrow has been updated',
-            isRead: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-            type: 'info',
-            link: '/contractor-schedule',
-            user_id: currentUser.id
-          }
-        ];
+        
+        // Get some maintenance requests to create realistic notifications
+        const { data: requestsData } = await supabase
+          .from('maintenance_requests')
+          .select('id, title, status')
+          .limit(5);
+        
+        // Mock contractor-specific notifications with proper request links
+        const mockNotifications: NotificationClient[] = [];
+        
+        if (requestsData && requestsData.length > 0) {
+          // Create notifications for existing requests
+          requestsData.forEach((request, index) => {
+            if (index === 0) {
+              mockNotifications.push({
+                id: crypto.randomUUID(),
+                title: 'New Quote Request',
+                message: `Quote requested for: ${request.title}`,
+                isRead: false,
+                createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+                type: 'warning',
+                link: `/contractor/quote-submission/${request.id}`,
+                user_id: currentUser.id
+              });
+            } else if (index === 1) {
+              mockNotifications.push({
+                id: crypto.randomUUID(),
+                title: 'Job Assignment',
+                message: `You have been assigned to: ${request.title}`,
+                isRead: false,
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+                type: 'info',
+                link: `/requests/${request.id}`,
+                user_id: currentUser.id
+              });
+            } else if (index === 2) {
+              mockNotifications.push({
+                id: crypto.randomUUID(),
+                title: 'Quote Approved',
+                message: `Your quote for "${request.title}" has been approved`,
+                isRead: true,
+                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+                type: 'success',
+                link: `/requests/${request.id}`,
+                user_id: currentUser.id
+              });
+            }
+          });
+        }
+        
+        // Add some general notifications
+        mockNotifications.push({
+          id: crypto.randomUUID(),
+          title: 'Schedule Update',
+          message: 'Your schedule for tomorrow has been updated',
+          isRead: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+          type: 'info',
+          link: '/contractor-schedule',
+          user_id: currentUser.id
+        });
 
         setNotifications(mockNotifications);
         setUnreadCount(mockNotifications.filter(n => !n.isRead).length);

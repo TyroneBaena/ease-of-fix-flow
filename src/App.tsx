@@ -152,7 +152,11 @@ function App() {
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="/contractor/quote-submission/:id" element={<QuoteSubmission />} />
+                    <Route path="/contractor/quote-submission/:id" element={
+                      <ProtectedRoute>
+                        <QuoteSubmission />
+                      </ProtectedRoute>
+                    } />
                     
                     {/* 404 route */}
                     <Route path="*" element={<NotFound />} />
