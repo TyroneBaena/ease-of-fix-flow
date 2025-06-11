@@ -129,7 +129,7 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`/request/${request.id}`, '_blank');
+                        window.open(`/requests/${request.id}`, '_blank');
                       }}
                     >
                       <Eye className="h-4 w-4" />
