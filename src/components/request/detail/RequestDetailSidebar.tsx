@@ -60,6 +60,14 @@ export const RequestDetailSidebar = ({
 
   return (
     <div className="space-y-6">
+      
+      {(request.contractorId || request.completionPercentage > 0) && (
+        <JobProgressCard
+          request={request}
+          isContractor={isContractor}
+        />
+      )}
+
       <ContractorAssignment 
         requestId={request.id}
         isAssigned={!!request.contractorId}
@@ -81,13 +89,6 @@ export const RequestDetailSidebar = ({
         requestId={request.id}
         onStatusChange={onRefreshData}
       />
-      
-      {(request.contractorId || request.completionPercentage > 0) && (
-        <JobProgressCard
-          request={request}
-          isContractor={isContractor}
-        />
-      )}
       
       {false && isContractor && request.status !== 'completed' && (
         <Button 
