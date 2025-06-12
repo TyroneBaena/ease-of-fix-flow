@@ -22,7 +22,6 @@ const mapToClientNotification = (dbNotification: {
     message: dbNotification.message,
     isRead: dbNotification.is_read,
     createdAt: dbNotification.created_at,
-    // Cast the type to ensure it matches our expected values
     type: dbNotification.type as 'info' | 'success' | 'warning' | 'error',
     link: dbNotification.link,
     user_id: dbNotification.user_id
@@ -30,24 +29,15 @@ const mapToClientNotification = (dbNotification: {
 };
 
 export const useNotifications = () => {
-  const { currentUser, updateUser } = useUserContext();
+  const { currentUser } = useUserContext();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
   
-  // Refs to prevent unnecessary updates
-  const lastUpdateTimeRef = useRef<number>(0);
-  const pendingUpdateRef = useRef<boolean>(false);
-  const unreadCountRef = useRef<number | null>(null);
-  const lastFetchedUserIdRef = useRef<string | null>(null);
-  
   // Fetch notifications when component mounts
   useEffect(() => {
-    // Only fetch if we have a user and haven't initialized yet
     if (currentUser?.id && !hasInitialized) {
-      // Track the current user ID to prevent refetches if user changes
-      lastFetchedUserIdRef.current = currentUser.id;
       fetchNotifications();
       setHasInitialized(true);
     }
@@ -61,6 +51,7 @@ export const useNotifications = () => {
     
     try {
       setLoading(true);
+      console.log('Fetching notifications for user:', currentUser.id);
       
       // Fetch notifications from Supabase
       const { data: fetchedData, error } = await supabase
@@ -75,19 +66,11 @@ export const useNotifications = () => {
       
       // If we have real data from database, use it
       if (fetchedData && fetchedData.length > 0) {
-        // Convert to client notification format
+        console.log('Found notifications in database:', fetchedData.length);
         const clientNotifications = fetchedData.map(mapToClientNotification);
         setNotifications(clientNotifications);
-        
-        // Update the unread count in our ref (but don't update user context yet)
-        const unreadCount = fetchedData.filter(n => !n.is_read).length;
-        unreadCountRef.current = unreadCount;
-        
-        // Only update user context if the count has changed and we haven't recently updated
-        if (currentUser.unreadNotifications !== unreadCount) {
-          scheduleUserUpdate();
-        }
       } else {
+        console.log('No notifications found, creating mock notifications');
         // Fallback to mock data if no notifications in database yet
         const mockNotifications: NotificationClient[] = [
           {
@@ -134,9 +117,8 @@ export const useNotifications = () => {
 
         setNotifications(mockNotifications);
         
-        // Setup initial notifications in the database
+        // Store mock notifications in database for future use
         for (const notification of mockNotifications) {
-          // Convert to database format (camelCase to snake_case)
           await supabase.from('notifications').upsert({
             id: notification.id,
             title: notification.title,
@@ -148,17 +130,6 @@ export const useNotifications = () => {
             user_id: notification.user_id
           });
         }
-        
-        // Update the unread count in our ref
-        const unreadCount = mockNotifications.filter(n => !n.isRead).length;
-        unreadCountRef.current = unreadCount;
-        
-        // Schedule an update only if needed
-        if (currentUser && 
-            (currentUser.unreadNotifications === undefined || 
-             currentUser.unreadNotifications !== unreadCount)) {
-          scheduleUserUpdate();
-        }
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -168,41 +139,6 @@ export const useNotifications = () => {
     }
   }, [currentUser]);
   
-  // Controlled and throttled user context update
-  const scheduleUserUpdate = useCallback(() => {
-    // Skip if already pending or no current user
-    if (pendingUpdateRef.current || !currentUser || unreadCountRef.current === null) {
-      return;
-    }
-    
-    const now = Date.now();
-    
-    // Only update once per 10 seconds maximum
-    if (now - lastUpdateTimeRef.current < 10000) {
-      // If update was too recent, schedule one for later and don't proceed
-      if (!pendingUpdateRef.current) {
-        pendingUpdateRef.current = true;
-        setTimeout(() => {
-          pendingUpdateRef.current = false;
-          scheduleUserUpdate();
-        }, 10000 - (now - lastUpdateTimeRef.current));
-      }
-      return;
-    }
-    
-    // If the unread count hasn't changed, don't update
-    if (currentUser.unreadNotifications === unreadCountRef.current) {
-      return;
-    }
-    
-    // Update user context
-    lastUpdateTimeRef.current = now;
-    updateUser({
-      ...currentUser,
-      unreadNotifications: unreadCountRef.current
-    });
-  }, [currentUser, updateUser]);
-  
   const markAllAsRead = async () => {
     try {
       setMarkingAllRead(true);
@@ -211,14 +147,13 @@ export const useNotifications = () => {
         throw new Error('User not authenticated');
       }
       
-      // Don't proceed if there are no unread notifications
       const unreadNotifications = notifications.filter(n => !n.isRead);
       if (unreadNotifications.length === 0) {
         setMarkingAllRead(false);
         return;
       }
       
-      // Update local state
+      // Update local state first
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => ({
           ...notification,
@@ -238,12 +173,6 @@ export const useNotifications = () => {
         throw error;
       }
       
-      // Update unread count ref
-      unreadCountRef.current = 0;
-      
-      // Schedule update of user context
-      scheduleUserUpdate();
-      
       toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error marking notifications as read:', error);
@@ -259,20 +188,12 @@ export const useNotifications = () => {
         throw new Error('User not authenticated');
       }
       
-      // Check if the notification is already read
       const notification = notifications.find(n => n.id === notificationId);
       if (!notification || notification.isRead) {
-        return; // Already read, no need to update
-      }
-      
-      // Validate UUID format before sending to Supabase
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(notificationId)) {
-        console.error('Invalid UUID format:', notificationId);
-        toast.error('Invalid notification reference');
         return;
       }
       
-      // Update local state
+      // Update local state first
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => 
           notification.id === notificationId
@@ -291,15 +212,6 @@ export const useNotifications = () => {
       if (error) {
         throw error;
       }
-      
-      // Update unread count ref
-      const newUnreadCount = notifications.filter(n => !n.isRead && n.id !== notificationId).length;
-      unreadCountRef.current = newUnreadCount;
-      
-      // Schedule update of user context if needed
-      if (currentUser.unreadNotifications !== newUnreadCount) {
-        scheduleUserUpdate();
-      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to update notification');
@@ -307,14 +219,15 @@ export const useNotifications = () => {
   };
   
   const handleNotificationClick = (notification: NotificationClient) => {
+    console.log('Notification clicked:', notification);
+    
     if (!notification.isRead) {
       markAsRead(notification.id);
     }
     
-    // In a real app, navigate to the linked page if available
+    // Simple navigation logging without actual navigation for now
     if (notification.link) {
       console.log(`Would navigate to: ${notification.link}`);
-      // navigate(notification.link);
     }
   };
 
