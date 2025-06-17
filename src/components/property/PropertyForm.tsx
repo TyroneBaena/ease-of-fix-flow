@@ -21,6 +21,7 @@ interface PropertyFormProps {
     practiceLeaderPhone: string;
     renewalDate: string;
     rentAmount: number;
+    rentPeriod: 'week' | 'month';
   };
 }
 
@@ -30,6 +31,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
     form, 
     managers, 
     handleChange, 
+    handleRentPeriodChange,
     handlePracticeLeaderChange, 
     handleSubmit 
   } = usePropertyForm({ existingProperty, onClose });
@@ -57,7 +59,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
         <RentalFields
           renewalDate={form.renewalDate}
           rentAmount={form.rentAmount}
+          rentPeriod={form.rentPeriod}
           onChange={handleChange}
+          onRentPeriodChange={handleRentPeriodChange}
         />
       </div>
       

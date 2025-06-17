@@ -14,10 +14,30 @@ interface PropertyInfoProps {
     practiceLeaderPhone?: string;
     renewalDate?: string;
     rentAmount: number;
+    rentPeriod?: 'week' | 'month';
   };
 }
 
 export const PropertyInfo: React.FC<PropertyInfoProps> = ({ property }) => {
+  const formatRentDisplay = () => {
+    const period = property.rentPeriod || 'month';
+    const amount = property.rentAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    
+    // Calculate alternative period amount
+    let alternativeAmount = '';
+    if (property.rentAmount > 0) {
+      if (period === 'week') {
+        const monthlyAmount = (property.rentAmount * 52 / 12);
+        alternativeAmount = ` (${monthlyAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}/month)`;
+      } else {
+        const weeklyAmount = (property.rentAmount * 12 / 52);
+        alternativeAmount = ` (${weeklyAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}/week)`;
+      }
+    }
+
+    return `${amount} per ${period}${alternativeAmount}`;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -70,11 +90,13 @@ export const PropertyInfo: React.FC<PropertyInfoProps> = ({ property }) => {
                     Renewal Date: {property.renewalDate ? new Date(property.renewalDate).toLocaleDateString() : 'Not specified'}
                   </span>
                 </div>
-                <div className="flex items-center">
-                  <DollarSign className="h-4 w-4 mr-2 text-gray-500" />
-                  <span>
-                    Rent Amount: {property.rentAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                  </span>
+                <div className="flex items-start">
+                  <DollarSign className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">
+                      Rent: {formatRentDisplay()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

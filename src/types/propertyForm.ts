@@ -15,6 +15,7 @@ export interface UsePropertyFormProps {
     practiceLeaderPhone: string;
     renewalDate: string;
     rentAmount: number;
+    rentPeriod: 'week' | 'month';
   };
   onClose: () => void;
 }
@@ -33,6 +34,8 @@ export interface BasicInfoFieldProps extends PropertyFormFieldProps {
 export interface RentalFieldsProps extends PropertyFormFieldProps {
   renewalDate: string;
   rentAmount: number;
+  rentPeriod: 'week' | 'month';
+  onRentPeriodChange: (value: 'week' | 'month') => void;
 }
 
 export interface PracticeLeaderFieldsProps extends PropertyFormFieldProps {

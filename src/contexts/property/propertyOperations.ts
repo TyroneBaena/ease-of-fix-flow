@@ -31,6 +31,7 @@ export const fetchProperties = async (): Promise<Property[]> => {
     practiceLeaderPhone: prop.practice_leader_phone || '',
     renewalDate: prop.renewal_date ? new Date(prop.renewal_date).toISOString() : '',
     rentAmount: Number(prop.rent_amount) || 0,
+    rentPeriod: (prop.rent_period as 'week' | 'month') || 'month',
     createdAt: prop.created_at
   }));
 
@@ -49,6 +50,7 @@ export const mapPropertyToSupabase = (property: Omit<Property, 'id' | 'createdAt
     practice_leader_phone: property.practiceLeaderPhone,
     renewal_date: property.renewalDate || null,
     rent_amount: property.rentAmount,
+    rent_period: property.rentPeriod,
     user_id: userId
   };
 };

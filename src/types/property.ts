@@ -10,6 +10,7 @@ export interface Property {
   practiceLeaderPhone: string;
   renewalDate: string;
   rentAmount: number;
+  rentPeriod: 'week' | 'month';
   createdAt: string;
 }
 

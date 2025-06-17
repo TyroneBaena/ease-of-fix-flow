@@ -21,6 +21,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     practiceLeaderPhone: existingProperty?.practiceLeaderPhone || '',
     renewalDate: existingProperty?.renewalDate ? new Date(existingProperty.renewalDate).toISOString().split('T')[0] : '',
     rentAmount: existingProperty?.rentAmount || 0,
+    rentPeriod: existingProperty?.rentPeriod || 'month',
   });
 
   useEffect(() => {
@@ -33,6 +34,13 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     setForm(prev => ({
       ...prev,
       [name]: name === 'rentAmount' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleRentPeriodChange = (value: 'week' | 'month') => {
+    setForm(prev => ({
+      ...prev,
+      rentPeriod: value
     }));
   };
 
@@ -78,6 +86,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     form,
     managers,
     handleChange,
+    handleRentPeriodChange,
     handlePracticeLeaderChange,
     handleSubmit,
   };
