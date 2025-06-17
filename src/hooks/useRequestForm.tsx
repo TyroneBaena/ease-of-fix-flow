@@ -11,6 +11,8 @@ interface FormState {
   location: string;
   reportDate: string;
   submittedBy: string;
+  category: string;
+  priority: string;
 }
 
 export const useRequestForm = () => {
@@ -24,6 +26,8 @@ export const useRequestForm = () => {
     location: '',
     reportDate: '',
     submittedBy: '',
+    category: '',
+    priority: ''
   });
 
   const [files, setFiles] = useState<File[]>([]);

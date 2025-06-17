@@ -5,6 +5,7 @@ import { Form } from "@/components/ui/form";
 import { RequestFormProperty } from "./RequestFormProperty";
 import { RequestFormAttachments } from "./RequestFormAttachments";
 import { RequestFormActions } from "./RequestFormActions";
+import { CategorySelectionField } from "./CategorySelectionField";
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
@@ -65,7 +66,9 @@ export const RequestForm = () => {
       explanation,
       location,
       reportDate,
-      submittedBy
+      submittedBy,
+      category,
+      priority
     } = formState;
     
     // Get the selected property to use its name as the site
@@ -75,9 +78,9 @@ export const RequestForm = () => {
     console.log('RequestForm - Selected property:', selectedProperty);
     console.log('RequestForm - Site name:', site);
     
-    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix) {
+    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !category || !priority) {
       console.log('RequestForm - Validation failed - missing required fields');
-      toast.error("Please fill in all required fields");
+      toast.error("Please fill in all required fields including category and priority");
       return;
     }
     
@@ -127,6 +130,9 @@ export const RequestForm = () => {
 
       const requestData = {
         title: issueNature, // Use issueNature as title which is required
+        description: explanation, // Map explanation to description
+        category, // Use the selected category
+        priority, // Use the selected priority
         isParticipantRelated: isParticipantRelated || false,
         participantName: isParticipantRelated ? participantName : 'N/A',
         attemptedFix,
@@ -168,6 +174,13 @@ export const RequestForm = () => {
         value={formState.propertyId}
         onChange={(value) => updateFormState('propertyId', value)}
         properties={properties}
+      />
+      
+      <CategorySelectionField
+        category={formState.category || ''}
+        priority={formState.priority || ''}
+        onCategoryChange={(value) => updateFormState('category', value)}
+        onPriorityChange={(value) => updateFormState('priority', value)}
       />
       
       <ParticipantRelatedField
