@@ -1,32 +1,21 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Notification, NotificationClient } from '@/types/notification';
+import { useState, useEffect, useCallback } from 'react';
+import { NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-
-// Convert database notification to client notification (snake_case to camelCase)
-const mapToClientNotification = (dbNotification: {
-  id: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-  type: string;
-  link?: string;
-  user_id: string;
-}): NotificationClient => {
-  return {
-    id: dbNotification.id,
-    title: dbNotification.title,
-    message: dbNotification.message,
-    isRead: dbNotification.is_read,
-    createdAt: dbNotification.created_at,
-    type: dbNotification.type as 'info' | 'success' | 'warning' | 'error',
-    link: dbNotification.link,
-    user_id: dbNotification.user_id
-  };
-};
+import { 
+  mapToClientNotification, 
+  validateAppRoute 
+} from './notifications/notificationUtils';
+import { 
+  generateMockNotifications 
+} from './notifications/mockNotificationGenerator';
+import { 
+  fetchNotifications, 
+  markNotificationsAsRead, 
+  markSingleNotificationAsRead,
+  storeNotifications
+} from './notifications/notificationOperations';
 
 export const useNotifications = () => {
   const { currentUser } = useUserContext();
@@ -38,12 +27,12 @@ export const useNotifications = () => {
   // Fetch notifications when component mounts
   useEffect(() => {
     if (currentUser?.id && !hasInitialized) {
-      fetchNotifications();
+      fetchNotificationsData();
       setHasInitialized(true);
     }
   }, [currentUser?.id, hasInitialized]);
   
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotificationsData = useCallback(async () => {
     if (!currentUser) {
       setLoading(false);
       return;
@@ -51,85 +40,21 @@ export const useNotifications = () => {
     
     try {
       setLoading(true);
-      console.log('Fetching notifications for user:', currentUser.id);
       
-      // Fetch notifications from Supabase
-      const { data: fetchedData, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
+      const fetchedData = await fetchNotifications(currentUser.id);
         
-      if (error) {
-        throw error;
-      }
-      
       // If we have real data from database, use it
       if (fetchedData && fetchedData.length > 0) {
         console.log('Found notifications in database:', fetchedData.length);
         const clientNotifications = fetchedData.map(mapToClientNotification);
         setNotifications(clientNotifications);
       } else {
-        console.log('No notifications found, creating mock notifications');
         // Fallback to mock data if no notifications in database yet
-        const mockNotifications: NotificationClient[] = [
-          {
-            id: crypto.randomUUID(),
-            title: 'New maintenance request',
-            message: `A new maintenance request has been submitted for ${currentUser.name}'s property`,
-            isRead: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-            type: 'info',
-            link: '/requests/123',
-            user_id: currentUser.id
-          },
-          {
-            id: crypto.randomUUID(),
-            title: 'Request approved',
-            message: `Your maintenance request for ${currentUser.name}'s property has been approved`,
-            isRead: true,
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-            type: 'success',
-            link: '/requests/456',
-            user_id: currentUser.id
-          },
-          {
-            id: crypto.randomUUID(),
-            title: 'Urgent: Contractor needed',
-            message: 'An urgent request requires your attention',
-            isRead: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-            type: 'warning',
-            link: '/requests/789',
-            user_id: currentUser.id
-          },
-          {
-            id: crypto.randomUUID(),
-            title: 'Request rejected',
-            message: `The quote for ${currentUser.name}'s property was rejected`,
-            isRead: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-            type: 'error',
-            link: '/requests/101',
-            user_id: currentUser.id
-          }
-        ];
-
+        const mockNotifications = generateMockNotifications(currentUser.id, currentUser.name);
         setNotifications(mockNotifications);
         
         // Store mock notifications in database for future use
-        for (const notification of mockNotifications) {
-          await supabase.from('notifications').upsert({
-            id: notification.id,
-            title: notification.title,
-            message: notification.message,
-            is_read: notification.isRead,
-            created_at: notification.createdAt,
-            type: notification.type,
-            link: notification.link,
-            user_id: notification.user_id
-          });
-        }
+        await storeNotifications(mockNotifications);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -163,15 +88,7 @@ export const useNotifications = () => {
       
       // Update in database
       const notificationIds = unreadNotifications.map(n => n.id);
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .in('id', notificationIds)
-        .eq('user_id', currentUser.id);
-      
-      if (error) {
-        throw error;
-      }
+      await markNotificationsAsRead(notificationIds, currentUser.id);
       
       toast.success('All notifications marked as read');
     } catch (error) {
@@ -203,15 +120,7 @@ export const useNotifications = () => {
       );
       
       // Update in database
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
-        .eq('user_id', currentUser.id);
-      
-      if (error) {
-        throw error;
-      }
+      await markSingleNotificationAsRead(notificationId, currentUser.id);
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to update notification');
@@ -227,7 +136,11 @@ export const useNotifications = () => {
     
     // Simple navigation logging without actual navigation for now
     if (notification.link) {
-      console.log(`Would navigate to: ${notification.link}`);
+      if (validateAppRoute(notification.link)) {
+        console.log(`Would navigate to valid route: ${notification.link}`);
+      } else {
+        console.log(`Invalid route detected: ${notification.link}, staying on current page`);
+      }
     }
   };
 
