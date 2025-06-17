@@ -1,8 +1,104 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { Contractor } from '@/types/contractor';
 
 // Remove the fetchContractors function - it's now in contractorFetch.ts
+
+// Helper function to create notification with property details for assignment
+const createAssignmentNotificationWithPropertyDetails = async (
+  contractorId: string,
+  requestId: string
+) => {
+  try {
+    // Get contractor details
+    const { data: contractor, error: contractorError } = await supabase
+      .from('contractors')
+      .select('user_id, company_name')
+      .eq('id', contractorId)
+      .single();
+    
+    if (contractorError) {
+      console.error("Error fetching contractor:", contractorError);
+      return false;
+    }
+    
+    if (!contractor?.user_id) {
+      console.error("Missing user_id for contractor:", contractorId);
+      return false;
+    }
+
+    // Fetch property details for the maintenance request
+    const { data: request, error: requestError } = await supabase
+      .from('maintenance_requests')
+      .select('property_id, site, title, description')
+      .eq('id', requestId)
+      .single();
+
+    if (requestError || !request?.property_id) {
+      console.log('No property_id found for request:', requestId);
+      // Create basic notification without property details
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          title: 'Job Assignment',
+          message: `You have been assigned to maintenance job #${requestId.substring(0, 8)}`,
+          type: 'info',
+          user_id: contractor.user_id,
+          link: `/contractor/jobs/${requestId}`
+        });
+      
+      return !notificationError;
+    }
+
+    // Fetch property details
+    const { data: property, error: propertyError } = await supabase
+      .from('properties')
+      .select('address, practice_leader, practice_leader_email, practice_leader_phone, contact_number, name')
+      .eq('id', request.property_id)
+      .single();
+
+    // Create detailed message with property information
+    let message = `You have been assigned to maintenance job #${requestId.substring(0, 8)}`;
+    
+    if (!propertyError && property) {
+      message += `\n\nProperty: ${property.name || ''}`;
+      message += `\nAddress: ${property.address || ''}`;
+      message += `\nPractice Leader: ${property.practice_leader || ''}`;
+      if (property.practice_leader_phone) {
+        message += `\nPractice Leader Phone: ${property.practice_leader_phone}`;
+      }
+      if (property.practice_leader_email) {
+        message += `\nPractice Leader Email: ${property.practice_leader_email}`;
+      }
+      if (property.contact_number) {
+        message += `\nSite Contact: ${property.contact_number}`;
+      }
+    }
+    
+    // Create notification in the database
+    const { error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        title: 'Job Assignment with Property Details',
+        message: message,
+        type: 'info',
+        user_id: contractor.user_id,
+        link: `/contractor/jobs/${requestId}`
+      });
+        
+    if (notificationError) {
+      console.error("Error creating assignment notification:", notificationError);
+      return false;
+    }
+    
+    console.log(`Assignment notification with property details created for contractor ${contractor.company_name}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to create assignment notification with property details:", error);
+    return false;
+  }
+};
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
   const { error } = await supabase
@@ -15,10 +111,15 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
     .eq('id', requestId);
 
   if (error) throw error;
+
+  // Create notification with property details for the assigned contractor
+  await createAssignmentNotificationWithPropertyDetails(contractorId, requestId);
 };
 
 export const changeContractorAssignment = async (requestId: string, contractorId: string) => {
-  return assignContractorToRequest(requestId, contractorId);
+  const result = await assignContractorToRequest(requestId, contractorId);
+  // The notification is already handled in assignContractorToRequest
+  return result;
 };
 
 export const requestQuoteForJob = async (requestId: string, contractorId: string) => {
@@ -63,4 +164,7 @@ export const approveQuoteForJob = async (quoteId: string) => {
 
   if (quoteUpdate.error) throw quoteUpdate.error;
   if (requestUpdate.error) throw requestUpdate.error;
+
+  // Create notification with property details for the contractor whose quote was approved
+  await createAssignmentNotificationWithPropertyDetails(quote.contractor_id, quote.request_id);
 };
