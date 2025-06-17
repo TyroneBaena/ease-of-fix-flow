@@ -60,10 +60,10 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
 
   // Initialize autocomplete when Google Maps is loaded
   useEffect(() => {
-    if (!isGoogleMapsLoaded || !inputRef.current || isManualMode) return;
+    if (!isGoogleMapsLoaded || !inputRef.current || isManualMode || !window.google) return;
 
     try {
-      autocompleteRef.current = new google.maps.places.Autocomplete(
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
         inputRef.current,
         {
           types: ['address'],
@@ -86,8 +86,8 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
     }
 
     return () => {
-      if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      if (autocompleteRef.current && window.google) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
   }, [isGoogleMapsLoaded, isManualMode, onChange]);
@@ -101,8 +101,8 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
     if (isManualMode && autocompleteRef.current) {
       // Re-initialize autocomplete when switching back from manual mode
       setTimeout(() => {
-        if (inputRef.current && isGoogleMapsLoaded) {
-          autocompleteRef.current = new google.maps.places.Autocomplete(
+        if (inputRef.current && isGoogleMapsLoaded && window.google) {
+          autocompleteRef.current = new window.google.maps.places.Autocomplete(
             inputRef.current,
             {
               types: ['address'],
