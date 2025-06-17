@@ -5,7 +5,7 @@ export interface MaintenanceRequest {
   description?: string;
   status: 'pending' | 'in-progress' | 'completed' | 'open';
   location: string; 
-  priority?: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high' | 'critical';
   site: string;  
   submittedBy: string;  
   quote?: {
