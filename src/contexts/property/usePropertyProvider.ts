@@ -60,6 +60,7 @@ export const usePropertyProvider = (): PropertyContextType => {
         practice_leader_phone: property.practiceLeaderPhone,
         renewal_date: property.renewalDate || null,
         rent_amount: property.rentAmount,
+        rent_period: property.rentPeriod,
         user_id: currentUser.id
       };
 
@@ -86,6 +87,7 @@ export const usePropertyProvider = (): PropertyContextType => {
         practiceLeaderPhone: data.practice_leader_phone || '',
         renewalDate: data.renewal_date ? new Date(data.renewal_date).toISOString() : '',
         rentAmount: Number(data.rent_amount) || 0,
+        rentPeriod: (data.rent_period as 'week' | 'month') || 'month',
         createdAt: data.created_at
       };
 
@@ -119,6 +121,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       if ('practiceLeaderPhone' in propertyUpdate) propertyToUpdate.practice_leader_phone = propertyUpdate.practiceLeaderPhone;
       if ('renewalDate' in propertyUpdate) propertyToUpdate.renewal_date = propertyUpdate.renewalDate || null;
       if ('rentAmount' in propertyUpdate) propertyToUpdate.rent_amount = propertyUpdate.rentAmount;
+      if ('rentPeriod' in propertyUpdate) propertyToUpdate.rent_period = propertyUpdate.rentPeriod;
 
       const { error } = await supabase
         .from('properties')

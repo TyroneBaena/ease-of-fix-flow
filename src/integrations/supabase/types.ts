@@ -279,6 +279,7 @@ export type Database = {
           practice_leader_phone: string | null
           renewal_date: string | null
           rent_amount: number | null
+          rent_period: string | null
           user_id: string
         }
         Insert: {
@@ -293,6 +294,7 @@ export type Database = {
           practice_leader_phone?: string | null
           renewal_date?: string | null
           rent_amount?: number | null
+          rent_period?: string | null
           user_id: string
         }
         Update: {
@@ -307,6 +309,7 @@ export type Database = {
           practice_leader_phone?: string | null
           renewal_date?: string | null
           rent_amount?: number | null
+          rent_period?: string | null
           user_id?: string
         }
         Relationships: []
