@@ -1,7 +1,9 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BasicInfoFieldProps } from '@/types/propertyForm';
+import { GoogleMapsAddressInput } from '@/components/maps/GoogleMapsAddressInput';
 
 export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
   name,
@@ -10,6 +12,28 @@ export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
   email,
   onChange
 }) => {
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
+
+  useEffect(() => {
+    // Load API key from localStorage
+    const savedApiKey = localStorage.getItem('googleMapsApiKey');
+    if (savedApiKey) {
+      setGoogleMapsApiKey(savedApiKey);
+    }
+  }, []);
+
+  const handleAddressChange = (newAddress: string) => {
+    // Create a synthetic event to maintain compatibility with existing onChange handler
+    const syntheticEvent = {
+      target: {
+        name: 'address',
+        value: newAddress
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onChange(syntheticEvent);
+  };
+
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -25,13 +49,13 @@ export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="address">Address*</Label>
-          <Input 
-            id="address" 
-            name="address"
-            value={address} 
-            onChange={onChange} 
-            required 
+          <GoogleMapsAddressInput
+            value={address}
+            onChange={handleAddressChange}
+            label="Address"
+            placeholder="Enter address or search with Google Maps"
+            required
+            apiKey={googleMapsApiKey}
           />
         </div>
       </div>
