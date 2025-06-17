@@ -12,7 +12,7 @@ interface FormState {
   reportDate: string;
   submittedBy: string;
   category: string;
-  priority: string;
+  priority: 'low' | 'medium' | 'high' | 'critical' | '';
 }
 
 export const useRequestForm = () => {
