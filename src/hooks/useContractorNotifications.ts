@@ -3,31 +3,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-
-// Convert database notification to client notification (snake_case to camelCase)
-const mapToClientNotification = (dbNotification: {
-  id: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-  type: string;
-  link?: string;
-  user_id: string;
-}): NotificationClient => {
-  return {
-    id: dbNotification.id,
-    title: dbNotification.title,
-    message: dbNotification.message,
-    isRead: dbNotification.is_read,
-    createdAt: dbNotification.created_at,
-    type: dbNotification.type as 'info' | 'success' | 'warning' | 'error',
-    link: dbNotification.link,
-    user_id: dbNotification.user_id
-  };
-};
+import { 
+  mapToClientNotification, 
+  validateContractorRoute 
+} from './contractor/notificationUtils';
+import { 
+  generateMockContractorNotifications, 
+  storeMockNotifications 
+} from './contractor/mockNotificationGenerator';
+import { 
+  fetchContractorNotifications, 
+  markNotificationsAsRead, 
+  markSingleNotificationAsRead 
+} from './contractor/notificationOperations';
 
 export const useContractorNotifications = () => {
   const { currentUser } = useUserContext();
@@ -46,19 +35,8 @@ export const useContractorNotifications = () => {
     
     try {
       setLoading(true);
-      console.log('Fetching contractor notifications for user:', currentUser.id);
       
-      // Fetch contractor-specific notifications from Supabase
-      const { data: fetchedData, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        throw error;
-      }
+      const fetchedData = await fetchContractorNotifications(currentUser.id);
       
       if (fetchedData && fetchedData.length > 0) {
         console.log('Found notifications in database:', fetchedData.length);
@@ -66,89 +44,12 @@ export const useContractorNotifications = () => {
         setNotifications(clientNotifications);
         setUnreadCount(fetchedData.filter(n => !n.is_read).length);
       } else {
-        console.log('No notifications found, creating mock contractor notifications');
-        
-        // Get some maintenance requests to create realistic notifications
-        const { data: requestsData } = await supabase
-          .from('maintenance_requests')
-          .select('id, title, status')
-          .limit(5);
-        
-        // Mock contractor-specific notifications with proper request links
-        const mockNotifications: NotificationClient[] = [];
-        
-        if (requestsData && requestsData.length > 0) {
-          // Create notifications for existing requests - use contractor-specific routes
-          requestsData.forEach((request, index) => {
-            if (index === 0) {
-              mockNotifications.push({
-                id: crypto.randomUUID(),
-                title: 'New Quote Request',
-                message: `Quote requested for: ${request.title}`,
-                isRead: false,
-                createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-                type: 'warning',
-                link: `/contractor/quote-submission/${request.id}`,
-                user_id: currentUser.id
-              });
-            } else if (index === 1) {
-              mockNotifications.push({
-                id: crypto.randomUUID(),
-                title: 'Job Assignment',
-                message: `You have been assigned to: ${request.title}`,
-                isRead: false,
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-                type: 'info',
-                link: `/contractor-jobs/${request.id}`,
-                user_id: currentUser.id
-              });
-            } else if (index === 2) {
-              mockNotifications.push({
-                id: crypto.randomUUID(),
-                title: 'Quote Approved',
-                message: `Your quote for "${request.title}" has been approved`,
-                isRead: true,
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-                type: 'success',
-                link: `/contractor-jobs/${request.id}`,
-                user_id: currentUser.id
-              });
-            }
-          });
-        }
-        
-        // Add some general notifications with safe contractor routes
-        mockNotifications.push({
-          id: crypto.randomUUID(),
-          title: 'Schedule Update',
-          message: 'Your schedule for tomorrow has been updated',
-          isRead: false,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-          type: 'info',
-          link: '/contractor-schedule',
-          user_id: currentUser.id
-        });
-
+        const mockNotifications = await generateMockContractorNotifications(currentUser.id);
         setNotifications(mockNotifications);
         setUnreadCount(mockNotifications.filter(n => !n.isRead).length);
         
         // Store mock notifications in database for future use
-        for (const notification of mockNotifications) {
-          const { error } = await supabase.from('notifications').upsert({
-            id: notification.id,
-            title: notification.title,
-            message: notification.message,
-            is_read: notification.isRead,
-            created_at: notification.createdAt,
-            type: notification.type,
-            link: notification.link,
-            user_id: notification.user_id
-          });
-          
-          if (error) {
-            console.error('Error storing mock notification:', error);
-          }
-        }
+        await storeMockNotifications(mockNotifications);
       }
     } catch (error) {
       console.error('Error fetching contractor notifications:', error);
@@ -191,15 +92,7 @@ export const useContractorNotifications = () => {
       
       // Update in database
       const notificationIds = unreadNotifications.map(n => n.id);
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .in('id', notificationIds)
-        .eq('user_id', currentUser.id);
-      
-      if (error) {
-        throw error;
-      }
+      await markNotificationsAsRead(notificationIds, currentUser.id);
       
       toast.success('All notifications marked as read');
     } catch (error) {
@@ -233,15 +126,7 @@ export const useContractorNotifications = () => {
       setUnreadCount(prev => Math.max(0, prev - 1));
       
       // Update in database
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
-        .eq('user_id', currentUser.id);
-      
-      if (error) {
-        throw error;
-      }
+      await markSingleNotificationAsRead(notificationId, currentUser.id);
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to update notification');
@@ -258,22 +143,7 @@ export const useContractorNotifications = () => {
     
     // Only navigate if we have a valid contractor link
     if (notification.link) {
-      // Validate that the link is a contractor route
-      const validContractorRoutes = [
-        '/contractor-dashboard',
-        '/contractor-jobs',
-        '/contractor-schedule',
-        '/contractor-profile',
-        '/contractor-settings',
-        '/contractor-notifications',
-        '/contractor/quote-submission'
-      ];
-      
-      const isValidRoute = validContractorRoutes.some(route => 
-        notification.link!.startsWith(route)
-      );
-      
-      if (isValidRoute) {
+      if (validateContractorRoute(notification.link)) {
         console.log(`Navigating to valid contractor route: ${notification.link}`);
         navigate(notification.link);
       } else {
