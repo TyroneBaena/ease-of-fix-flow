@@ -42,15 +42,32 @@ const QuoteSubmission = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!request?.id || !amount || !description) {
-      toast.error('Please fill in all required fields');
+    // Validate mandatory fields
+    if (!amount || amount.trim() === '') {
+      toast.error('Quote amount is required');
+      return;
+    }
+    
+    if (!description || description.trim() === '') {
+      toast.error('Quote description is required');
+      return;
+    }
+    
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      toast.error('Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (!request?.id) {
+      toast.error('Request information is missing');
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      await submitQuote(request.id, parseFloat(amount), description);
+      await submitQuote(request.id, numericAmount, description.trim());
       toast.success('Quote submitted successfully');
       
       // Clear the form
