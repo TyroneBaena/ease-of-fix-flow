@@ -1,14 +1,6 @@
 
-import React, { useState } from 'react';
-import { Building, MapPin, User, Phone, Copy, Check } from 'lucide-react';
-import { toast } from '@/lib/toast';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Phone, Mail, User, MapPin, Building } from 'lucide-react';
 
 interface ContactInformationProps {
   site?: string;
@@ -17,71 +9,104 @@ interface ContactInformationProps {
   contactNumber?: string;
   practiceLeader?: string;
   practiceLeaderPhone?: string;
+  practiceLeaderEmail?: string;
 }
 
-export const ContactInformation: React.FC<ContactInformationProps> = ({
+export const ContactInformation = ({
   site,
   address,
   submittedBy,
   contactNumber,
   practiceLeader,
   practiceLeaderPhone,
-}) => {
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  const copyToClipboard = (text: string, fieldName: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    toast.success(`${fieldName} copied to clipboard`);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const renderField = (icon: React.ReactNode, label: string, value?: string, copyEnabled = true) => (
-    <div className="flex items-start gap-2">
-      {icon}
-      <div className="flex-grow">
-        <p className="text-sm font-medium">{label}</p>
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-gray-600 break-words">{value || 'N/A'}</p>
-          {copyEnabled && value && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 hover:bg-gray-100"
-                    onClick={() => copyToClipboard(value, label)}
-                  >
-                    {copiedField === label ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4 text-gray-500" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Click to copy {label.toLowerCase()}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+  practiceLeaderEmail
+}: ContactInformationProps) => {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-gray-900">Site Details</h3>
+      
+      {/* Prominent site details section */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+          <Building className="h-4 w-4 mr-2" />
+          Property Information
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {site && (
+            <div className="flex items-start space-x-2">
+              <Building className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-blue-900">Site:</span>
+                <p className="text-sm text-blue-800">{site}</p>
+              </div>
+            </div>
+          )}
+          
+          {address && (
+            <div className="flex items-start space-x-2">
+              <MapPin className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-blue-900">Address:</span>
+                <p className="text-sm text-blue-800">{address}</p>
+              </div>
+            </div>
+          )}
+          
+          {contactNumber && (
+            <div className="flex items-start space-x-2">
+              <Phone className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-blue-900">Site Phone:</span>
+                <p className="text-sm text-blue-800">{contactNumber}</p>
+              </div>
+            </div>
+          )}
+          
+          {practiceLeader && (
+            <div className="flex items-start space-x-2">
+              <User className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-blue-900">Practice Leader:</span>
+                <p className="text-sm text-blue-800">{practiceLeader}</p>
+              </div>
+            </div>
+          )}
+          
+          {practiceLeaderPhone && (
+            <div className="flex items-start space-x-2">
+              <Phone className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-blue-900">Practice Leader Phone:</span>
+                <p className="text-sm text-blue-800">{practiceLeaderPhone}</p>
+              </div>
+            </div>
+          )}
+          
+          {practiceLeaderEmail && (
+            <div className="flex items-start space-x-2">
+              <Mail className="h-4 w-4 text-blue-600 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-sm font-medium text-blue-900">Practice Leader Email:</span>
+                <p className="text-sm text-blue-800">{practiceLeaderEmail}</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-4">
-      <h3 className="font-semibold">Contact Information</h3>
-      <div className="space-y-3">
-        {renderField(<Building className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />, "Site", site)}
-        {renderField(<MapPin className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />, "Address", address)}
-        {renderField(<User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />, "Submitted By", submittedBy)}
-        {renderField(<Phone className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />, "Contact Number", contactNumber)}
-        {renderField(<User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />, "Practice Leader", practiceLeader)}
-        {renderField(<Phone className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />, "Practice Leader Phone", practiceLeaderPhone)}
-      </div>
+      
+      {/* Additional contact information */}
+      {submittedBy && (
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-gray-600" />
+            <div>
+              <span className="text-sm font-medium text-gray-700">Submitted by:</span>
+              <p className="text-sm text-gray-600">{submittedBy}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

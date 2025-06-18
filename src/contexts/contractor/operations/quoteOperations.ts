@@ -1,4 +1,3 @@
-
 // Make sure this import exists at the top of the file
 import { supabase } from '@/lib/supabase';
 
@@ -114,12 +113,14 @@ const createContractorNotificationWithPropertyDetails = async (
       throw new Error("Contractor user_id not found");
     }
     
-    // Create detailed message with property information
+    // Create detailed message with ALL property information automatically included
     let message = `You have a new quote request for maintenance job #${requestId.substring(0, 8)}`;
     
     if (propertyDetails) {
-      message += `\n\nProperty: ${propertyDetails.name}`;
+      message += `\n\n--- SITE DETAILS ---`;
+      message += `\nProperty: ${propertyDetails.name}`;
       message += `\nAddress: ${propertyDetails.address}`;
+      message += `\nSite Phone: ${propertyDetails.contactNumber}`;
       message += `\nPractice Leader: ${propertyDetails.practiceLeader}`;
       if (propertyDetails.practiceLeaderPhone) {
         message += `\nPractice Leader Phone: ${propertyDetails.practiceLeaderPhone}`;
@@ -127,16 +128,13 @@ const createContractorNotificationWithPropertyDetails = async (
       if (propertyDetails.practiceLeaderEmail) {
         message += `\nPractice Leader Email: ${propertyDetails.practiceLeaderEmail}`;
       }
-      if (propertyDetails.contactNumber) {
-        message += `\nSite Contact: ${propertyDetails.contactNumber}`;
-      }
     }
     
     // Create notification in the database
     const { error: notificationError } = await supabase
       .from('notifications')
       .insert({
-        title: 'New Quote Request with Property Details',
+        title: 'New Quote Request - Site Details Included',
         message: message,
         type: 'info',
         user_id: contractor.user_id,
@@ -148,7 +146,7 @@ const createContractorNotificationWithPropertyDetails = async (
       throw new Error(`Failed to create notification: ${notificationError.message}`);
     }
     
-    console.log(`Notification with property details created for contractor ${contractor.company_name}`);
+    console.log(`Notification with full site details created for contractor ${contractor.company_name}`);
     return true;
   } catch (error) {
     console.error("Failed to create notification with property details:", error);
@@ -215,7 +213,7 @@ const notifyRejectedContractors = async (
   }
 };
 
-// Update the requestQuote function to check for existing quotes and update them instead of creating duplicates
+// Update the requestQuote function to automatically include full site details
 export const requestQuote = async (
   requestId: string,
   contractorId: string,
@@ -227,9 +225,9 @@ export const requestQuote = async (
   console.log("Notes:", notes);
 
   try {
-    // Fetch property details first
+    // Fetch property details first - this is now ALWAYS included automatically
     const propertyDetails = await fetchPropertyDetails(requestId);
-    console.log("Fetched property details:", propertyDetails);
+    console.log("Fetched property details for automatic inclusion:", propertyDetails);
 
     // Check if a quote already exists for this contractor and request
     const { data: existingQuote, error: checkError } = await supabase
@@ -244,12 +242,15 @@ export const requestQuote = async (
       throw new Error(`Failed to check existing quote: ${checkError.message}`);
     }
 
-    // Create enhanced notes that include property details if available
+    // Create enhanced notes that AUTOMATICALLY include ALL site details
     let enhancedNotes = notes || 'Quote requested';
-    if (propertyDetails && includeInfo.contactDetails) {
-      enhancedNotes += `\n\nProperty Details:`;
-      enhancedNotes += `\nProperty: ${propertyDetails.name}`;
-      enhancedNotes += `\nAddress: ${propertyDetails.address}`;
+    
+    // ALWAYS include property details regardless of includeInfo settings
+    if (propertyDetails) {
+      enhancedNotes += `\n\n=== SITE DETAILS (AUTOMATICALLY INCLUDED) ===`;
+      enhancedNotes += `\nProperty Name: ${propertyDetails.name}`;
+      enhancedNotes += `\nProperty Address: ${propertyDetails.address}`;
+      enhancedNotes += `\nSite Phone Number: ${propertyDetails.contactNumber}`;
       enhancedNotes += `\nPractice Leader: ${propertyDetails.practiceLeader}`;
       if (propertyDetails.practiceLeaderPhone) {
         enhancedNotes += `\nPractice Leader Phone: ${propertyDetails.practiceLeaderPhone}`;
@@ -257,14 +258,12 @@ export const requestQuote = async (
       if (propertyDetails.practiceLeaderEmail) {
         enhancedNotes += `\nPractice Leader Email: ${propertyDetails.practiceLeaderEmail}`;
       }
-      if (propertyDetails.contactNumber) {
-        enhancedNotes += `\nSite Contact: ${propertyDetails.contactNumber}`;
-      }
+      enhancedNotes += `\n===========================================`;
     }
 
     if (existingQuote) {
       // Update the existing quote instead of creating a new one
-      console.log(`Updating existing quote ${existingQuote.id} for contractor ${contractorId}`);
+      console.log(`Updating existing quote ${existingQuote.id} for contractor ${contractorId} with full site details`);
       
       const { error: updateError } = await supabase
         .from('quotes')
@@ -291,10 +290,10 @@ export const requestQuote = async (
         enhancedNotes
       );
 
-      console.log(`Quote successfully re-requested for job ${requestId} from contractor ${contractorId}`);
+      console.log(`Quote successfully re-requested for job ${requestId} from contractor ${contractorId} with full site details`);
     } else {
       // Create a new quote record if none exists
-      console.log(`Creating new quote for contractor ${contractorId}`);
+      console.log(`Creating new quote for contractor ${contractorId} with full site details`);
       
       const { data: newQuote, error: quoteError } = await supabase
         .from('quotes')
@@ -327,7 +326,7 @@ export const requestQuote = async (
         );
       }
 
-      console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
+      console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId} with full site details`);
     }
 
     // Mark the request as having quotes requested (only if not already marked)
@@ -344,7 +343,7 @@ export const requestQuote = async (
       // Don't throw here as the main operation succeeded
     }
     
-    // Create notification with property details
+    // Create notification with full site details
     await createContractorNotificationWithPropertyDetails(contractorId, requestId, propertyDetails);
     
     return true; // Return success indicator
@@ -553,8 +552,10 @@ export const approveQuoteForJob = async (quoteId: string) => {
       let assignmentMessage = `Congratulations! Your quote for maintenance job #${quote.request_id.substring(0, 8)} has been approved and you have been assigned to this job.`;
       
       if (propertyDetails) {
-        assignmentMessage += `\n\nProperty: ${propertyDetails.name}`;
+        assignmentMessage += `\n\n--- SITE DETAILS ---`;
+        assignmentMessage += `\nProperty: ${propertyDetails.name}`;
         assignmentMessage += `\nAddress: ${propertyDetails.address}`;
+        assignmentMessage += `\nSite Phone: ${propertyDetails.contactNumber}`;
         assignmentMessage += `\nPractice Leader: ${propertyDetails.practiceLeader}`;
         if (propertyDetails.practiceLeaderPhone) {
           assignmentMessage += `\nPractice Leader Phone: ${propertyDetails.practiceLeaderPhone}`;
@@ -562,15 +563,12 @@ export const approveQuoteForJob = async (quoteId: string) => {
         if (propertyDetails.practiceLeaderEmail) {
           assignmentMessage += `\nPractice Leader Email: ${propertyDetails.practiceLeaderEmail}`;
         }
-        if (propertyDetails.contactNumber) {
-          assignmentMessage += `\nSite Contact: ${propertyDetails.contactNumber}`;
-        }
       }
       
       const { error: assignmentNotificationError } = await supabase
         .from('notifications')
         .insert({
-          title: 'Quote Approved - Job Assigned',
+          title: 'Quote Approved - Job Assigned with Site Details',
           message: assignmentMessage,
           type: 'success',
           user_id: approvedContractor.user_id,
@@ -580,7 +578,7 @@ export const approveQuoteForJob = async (quoteId: string) => {
       if (assignmentNotificationError) {
         console.error('Error creating assignment notification:', assignmentNotificationError);
       } else {
-        console.log(`Assignment notification created for contractor ${approvedContractor.company_name}`);
+        console.log(`Assignment notification with site details created for contractor ${approvedContractor.company_name}`);
       }
     }
 

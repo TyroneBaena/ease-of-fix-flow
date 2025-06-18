@@ -41,18 +41,18 @@ export const useQuoteRequestSubmission = () => {
     
     try {
       console.log("QuoteRequestSubmission - Submitting quote requests for contractors:", selectedContractors);
-      console.log("Quote request will include property details automatically");
+      console.log("Site details (property address, site phone, practice leader info) will be automatically included with ALL quote requests");
       
       // Process each contractor request sequentially to avoid race conditions
       for (const contractorId of selectedContractors) {
         try {
-          console.log(`Processing quote request for contractor: ${contractorId}`);
+          console.log(`Processing quote request for contractor: ${contractorId} with automatic site details inclusion`);
           
-          // Request the quote with property details automatically included
+          // Request the quote with site details automatically included
           await requestQuote(requestDetails.id!, contractorId, includeInfo, notes);
           
           successfulRequests++;
-          console.log(`Successfully processed quote request with property details for contractor: ${contractorId}`);
+          console.log(`Successfully processed quote request with automatic site details for contractor: ${contractorId}`);
         } catch (contractorError: any) {
           console.error(`Error processing contractor ${contractorId}:`, contractorError);
           failedRequests++;
@@ -62,7 +62,7 @@ export const useQuoteRequestSubmission = () => {
       
       // Show appropriate success/error messages
       if (successfulRequests > 0 && failedRequests === 0) {
-        toast.success(`Quote requests with property details sent to ${successfulRequests} contractor(s)`);
+        toast.success(`Quote requests with site details sent to ${successfulRequests} contractor(s)`);
         onSuccess();
       } else if (successfulRequests > 0 && failedRequests > 0) {
         toast.success(`Quote requests sent to ${successfulRequests} contractor(s). ${failedRequests} failed.`);
