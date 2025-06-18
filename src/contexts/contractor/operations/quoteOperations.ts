@@ -66,7 +66,7 @@ const fetchPropertyDetails = async (requestId: string): Promise<PropertyDetails 
 const createQuoteLog = async (
   quoteId: string,
   contractorId: string,
-  action: 'created' | 'updated' | 'resubmitted',
+  action: 'created' | 'updated' | 'resubmitted' | 'quote_requested',
   oldAmount?: number,
   newAmount?: number,
   oldDescription?: string,
@@ -156,7 +156,7 @@ const createContractorNotificationWithPropertyDetails = async (
   }
 };
 
-// Update the requestQuote function to properly persist data to the database and include property details
+// Update the requestQuote function to check for existing quotes and update them instead of creating duplicates
 export const requestQuote = async (
   requestId: string,
   contractorId: string,
@@ -172,18 +172,17 @@ export const requestQuote = async (
     const propertyDetails = await fetchPropertyDetails(requestId);
     console.log("Fetched property details:", propertyDetails);
 
-    // First mark the request as having quotes requested
-    const { error: requestError } = await supabase
-      .from('maintenance_requests')
-      .update({
-        quote_requested: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', requestId);
+    // Check if a quote already exists for this contractor and request
+    const { data: existingQuote, error: checkError } = await supabase
+      .from('quotes')
+      .select('id, status, description')
+      .eq('request_id', requestId)
+      .eq('contractor_id', contractorId)
+      .single();
 
-    if (requestError) {
-      console.error("Error updating maintenance request:", requestError);
-      throw new Error(`Failed to update maintenance request: ${requestError.message}`);
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error("Error checking existing quote:", checkError);
+      throw new Error(`Failed to check existing quote: ${checkError.message}`);
     }
 
     // Create enhanced notes that include property details if available
@@ -204,28 +203,91 @@ export const requestQuote = async (
       }
     }
 
-    // Create a new record in the quotes table with status 'requested'
-    // Use a minimal amount (1) as placeholder since the actual quote will be submitted later
-    const { error: quoteError } = await supabase
-      .from('quotes')
-      .insert({
-        request_id: requestId,
-        contractor_id: contractorId,
-        status: 'requested', // Initial status is 'requested', will be updated to 'pending' when submitted
-        amount: 1, // Placeholder amount - actual quote will be submitted later
-        submitted_at: new Date().toISOString(),
-        description: enhancedNotes
-      });
+    if (existingQuote) {
+      // Update the existing quote instead of creating a new one
+      console.log(`Updating existing quote ${existingQuote.id} for contractor ${contractorId}`);
+      
+      const { error: updateError } = await supabase
+        .from('quotes')
+        .update({
+          status: 'requested',
+          description: enhancedNotes,
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', existingQuote.id);
 
-    if (quoteError) {
-      console.error("Error creating quote record:", quoteError);
-      throw new Error(`Failed to create quote record: ${quoteError.message}`);
+      if (updateError) {
+        console.error("Error updating existing quote:", updateError);
+        throw new Error(`Failed to update existing quote: ${updateError.message}`);
+      }
+
+      // Create quote log for the re-request
+      await createQuoteLog(
+        existingQuote.id,
+        contractorId,
+        'quote_requested',
+        undefined,
+        1, // Keep the placeholder amount
+        existingQuote.description,
+        enhancedNotes
+      );
+
+      console.log(`Quote successfully re-requested for job ${requestId} from contractor ${contractorId}`);
+    } else {
+      // Create a new quote record if none exists
+      console.log(`Creating new quote for contractor ${contractorId}`);
+      
+      const { data: newQuote, error: quoteError } = await supabase
+        .from('quotes')
+        .insert({
+          request_id: requestId,
+          contractor_id: contractorId,
+          status: 'requested',
+          amount: 1, // Placeholder amount
+          submitted_at: new Date().toISOString(),
+          description: enhancedNotes
+        })
+        .select('id')
+        .single();
+
+      if (quoteError) {
+        console.error("Error creating quote record:", quoteError);
+        throw new Error(`Failed to create quote record: ${quoteError.message}`);
+      }
+
+      // Create quote log for the new quote request
+      if (newQuote) {
+        await createQuoteLog(
+          newQuote.id,
+          contractorId,
+          'quote_requested',
+          undefined,
+          1,
+          undefined,
+          enhancedNotes
+        );
+      }
+
+      console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
+    }
+
+    // Mark the request as having quotes requested (only if not already marked)
+    const { error: requestError } = await supabase
+      .from('maintenance_requests')
+      .update({
+        quote_requested: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', requestId);
+
+    if (requestError) {
+      console.error("Error updating maintenance request:", requestError);
+      // Don't throw here as the main operation succeeded
     }
     
     // Create notification with property details
     await createContractorNotificationWithPropertyDetails(contractorId, requestId, propertyDetails);
     
-    console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId} with property details`);
     return true; // Return success indicator
   } catch (error) {
     console.error("Error in requestQuote:", error);
