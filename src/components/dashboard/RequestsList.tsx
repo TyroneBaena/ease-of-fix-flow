@@ -2,10 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatDistanceToNow } from 'date-fns';
-import { Eye, User, Clock } from 'lucide-react';
+import { User, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface RequestsListProps {
   allRequests: MaintenanceRequest[];
@@ -14,6 +14,8 @@ interface RequestsListProps {
 }
 
 const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: RequestsListProps) => {
+  const navigate = useNavigate();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -45,6 +47,13 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10);
 
+  const handleRequestClick = (request: MaintenanceRequest) => {
+    // Use in-app routing instead of opening new tabs
+    navigate(`/requests/${request.id}`);
+    // Also trigger the onRequestSelect if provided for sidebar functionality
+    onRequestSelect?.(request);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -69,7 +78,7 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                 className={`p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${
                   selectedRequest?.id === request.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                 }`}
-                onClick={() => onRequestSelect?.(request)}
+                onClick={() => handleRequestClick(request)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -121,19 +130,6 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                         </div>
                       </div>
                     )}
-                  </div>
-                  
-                  <div className="ml-4 flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(`/requests/${request.id}`, '_blank');
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </div>
