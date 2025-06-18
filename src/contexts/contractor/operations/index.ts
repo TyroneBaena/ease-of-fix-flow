@@ -8,13 +8,14 @@ export * from './contractorFetch';
 // but NOT fetchContractors since it's already exported from contractorFetch
 export {
   assignContractorToRequest,
-  changeContractorAssignment,
-  approveQuoteForJob
+  changeContractorAssignment
 } from './contractorOperations';
 
+// Export the enhanced approveQuoteForJob from quoteOperations
 export {
   requestQuote as requestQuoteForJob,
-  submitQuoteForJob
+  submitQuoteForJob,
+  approveQuoteForJob
 } from './quoteOperations';
 
 export {

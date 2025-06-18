@@ -66,7 +66,7 @@ const fetchPropertyDetails = async (requestId: string): Promise<PropertyDetails 
 const createQuoteLog = async (
   quoteId: string,
   contractorId: string,
-  action: 'created' | 'updated' | 'resubmitted' | 'quote_requested',
+  action: 'created' | 'updated' | 'resubmitted' | 'quote_requested' | 'rejected',
   oldAmount?: number,
   newAmount?: number,
   oldDescription?: string,
@@ -153,6 +153,65 @@ const createContractorNotificationWithPropertyDetails = async (
   } catch (error) {
     console.error("Failed to create notification with property details:", error);
     return false;
+  }
+};
+
+// Helper function to notify contractors when their quotes are rejected
+const notifyRejectedContractors = async (
+  rejectedQuotes: Array<{ id: string; contractor_id: string }>,
+  requestId: string,
+  propertyDetails: PropertyDetails | null
+) => {
+  console.log(`Notifying ${rejectedQuotes.length} contractors that their quotes were not accepted`);
+  
+  for (const quote of rejectedQuotes) {
+    try {
+      // Get contractor details
+      const { data: contractor, error: contractorError } = await supabase
+        .from('contractors')
+        .select('user_id, company_name')
+        .eq('id', quote.contractor_id)
+        .single();
+      
+      if (contractorError || !contractor?.user_id) {
+        console.error(`Error fetching contractor ${quote.contractor_id}:`, contractorError);
+        continue;
+      }
+      
+      // Create rejection notification message
+      let message = `Your quote for maintenance job #${requestId.substring(0, 8)} was not accepted. Thank you for your interest.`;
+      
+      if (propertyDetails) {
+        message += `\n\nProperty: ${propertyDetails.name}`;
+        message += `\nAddress: ${propertyDetails.address}`;
+      }
+      
+      // Create notification in the database
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          title: 'Quote Not Accepted',
+          message: message,
+          type: 'info',
+          user_id: contractor.user_id,
+          link: `/contractor/jobs/${requestId}`
+        });
+          
+      if (notificationError) {
+        console.error(`Error creating rejection notification for contractor ${contractor.company_name}:`, notificationError);
+      } else {
+        console.log(`Rejection notification created for contractor ${contractor.company_name}`);
+      }
+      
+      // Create quote log for rejection
+      await createQuoteLog(
+        quote.id,
+        quote.contractor_id,
+        'rejected'
+      );
+    } catch (error) {
+      console.error(`Failed to notify contractor ${quote.contractor_id}:`, error);
+    }
   }
 };
 
@@ -390,6 +449,145 @@ export const submitQuoteForJob = async (
     return true;
   } catch (error) {
     console.error("Error in submitQuoteForJob:", error);
+    throw error;
+  }
+};
+
+// Enhanced approveQuoteForJob function with assignment confirmation
+export const approveQuoteForJob = async (quoteId: string) => {
+  try {
+    console.log(`Approving quote ${quoteId} and handling assignment confirmation`);
+    
+    // Get the quote details first
+    const { data: quote, error: quoteError } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('id', quoteId)
+      .single();
+
+    if (quoteError) {
+      console.error('Error fetching quote:', quoteError);
+      throw new Error(`Failed to fetch quote: ${quoteError.message}`);
+    }
+
+    if (!quote) {
+      throw new Error('Quote not found');
+    }
+
+    // Fetch property details for notifications
+    const propertyDetails = await fetchPropertyDetails(quote.request_id);
+
+    // Get all other pending quotes for the same request (excluding the approved one)
+    const { data: otherQuotes, error: otherQuotesError } = await supabase
+      .from('quotes')
+      .select('id, contractor_id')
+      .eq('request_id', quote.request_id)
+      .eq('status', 'pending')
+      .neq('id', quoteId);
+
+    if (otherQuotesError) {
+      console.error('Error fetching other quotes:', otherQuotesError);
+      throw new Error(`Failed to fetch other quotes: ${otherQuotesError.message}`);
+    }
+
+    // Approve the selected quote
+    const { error: approveError } = await supabase
+      .from('quotes')
+      .update({
+        status: 'approved',
+        approved_at: new Date().toISOString()
+      })
+      .eq('id', quoteId);
+
+    if (approveError) {
+      console.error('Error approving quote:', approveError);
+      throw new Error(`Failed to approve quote: ${approveError.message}`);
+    }
+
+    // Reject all other pending quotes for this request
+    if (otherQuotes && otherQuotes.length > 0) {
+      console.log(`Rejecting ${otherQuotes.length} other pending quotes`);
+      
+      const { error: rejectError } = await supabase
+        .from('quotes')
+        .update({
+          status: 'rejected',
+          updated_at: new Date().toISOString()
+        })
+        .in('id', otherQuotes.map(q => q.id));
+
+      if (rejectError) {
+        console.error('Error rejecting other quotes:', rejectError);
+        // Don't throw here - the main approval succeeded
+      } else {
+        // Notify rejected contractors
+        await notifyRejectedContractors(otherQuotes, quote.request_id, propertyDetails);
+      }
+    }
+
+    // Update the maintenance request with assignment details
+    const { error: updateRequestError } = await supabase
+      .from('maintenance_requests')
+      .update({
+        contractor_id: quote.contractor_id,
+        quoted_amount: quote.amount,
+        status: 'in-progress',
+        assigned_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', quote.request_id);
+
+    if (updateRequestError) {
+      console.error('Error updating maintenance request:', updateRequestError);
+      throw new Error(`Failed to update maintenance request: ${updateRequestError.message}`);
+    }
+
+    // Create assignment notification for the approved contractor
+    const { data: approvedContractor, error: contractorError } = await supabase
+      .from('contractors')
+      .select('user_id, company_name')
+      .eq('id', quote.contractor_id)
+      .single();
+    
+    if (!contractorError && approvedContractor?.user_id) {
+      let assignmentMessage = `Congratulations! Your quote for maintenance job #${quote.request_id.substring(0, 8)} has been approved and you have been assigned to this job.`;
+      
+      if (propertyDetails) {
+        assignmentMessage += `\n\nProperty: ${propertyDetails.name}`;
+        assignmentMessage += `\nAddress: ${propertyDetails.address}`;
+        assignmentMessage += `\nPractice Leader: ${propertyDetails.practiceLeader}`;
+        if (propertyDetails.practiceLeaderPhone) {
+          assignmentMessage += `\nPractice Leader Phone: ${propertyDetails.practiceLeaderPhone}`;
+        }
+        if (propertyDetails.practiceLeaderEmail) {
+          assignmentMessage += `\nPractice Leader Email: ${propertyDetails.practiceLeaderEmail}`;
+        }
+        if (propertyDetails.contactNumber) {
+          assignmentMessage += `\nSite Contact: ${propertyDetails.contactNumber}`;
+        }
+      }
+      
+      const { error: assignmentNotificationError } = await supabase
+        .from('notifications')
+        .insert({
+          title: 'Quote Approved - Job Assigned',
+          message: assignmentMessage,
+          type: 'success',
+          user_id: approvedContractor.user_id,
+          link: `/contractor/jobs/${quote.request_id}`
+        });
+        
+      if (assignmentNotificationError) {
+        console.error('Error creating assignment notification:', assignmentNotificationError);
+      } else {
+        console.log(`Assignment notification created for contractor ${approvedContractor.company_name}`);
+      }
+    }
+
+    console.log(`Quote ${quoteId} approved successfully with assignment confirmation`);
+    return true;
+  } catch (error) {
+    console.error('Error in approveQuoteForJob:', error);
     throw error;
   }
 };
