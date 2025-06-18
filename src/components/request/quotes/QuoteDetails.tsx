@@ -23,10 +23,13 @@ export const QuoteDetails = ({ amount, description, status, submittedAt }: Quote
 
   return (
     <div className="space-y-2 border-t pt-3">
-      <div className="flex items-center">
-        <DollarSign className="h-4 w-4 mr-1" />
-        <span className="font-medium">${amount}</span>
-      </div>
+      {/* Only show amount if status is not 'requested' */}
+      {status !== 'requested' && (
+        <div className="flex items-center">
+          <DollarSign className="h-4 w-4 mr-1" />
+          <span className="font-medium">${amount}</span>
+        </div>
+      )}
       {description && (
         <p className="text-sm text-muted-foreground">{description}</p>
       )}
