@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useContractorContext } from '@/contexts/contractor';
+import { supabase } from '@/integrations/supabase/client';
 
 interface IncludeInfo {
   description: boolean;
@@ -10,7 +11,7 @@ interface IncludeInfo {
   urgency: boolean;
 }
 
-export const useQuoteRequestDialog = (open: boolean) => {
+export const useQuoteRequestDialog = (open: boolean, requestId?: string) => {
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
   const [includeInfo, setIncludeInfo] = useState<IncludeInfo>({
     description: true,
@@ -20,14 +21,48 @@ export const useQuoteRequestDialog = (open: boolean) => {
     urgency: true
   });
   const [notes, setNotes] = useState('');
+  const [isLoadingPreviousSelection, setIsLoadingPreviousSelection] = useState(false);
   const { contractors, loading, loadContractors } = useContractorContext();
 
-  // Load contractors when dialog opens
+  // Function to load previously selected contractors for this request
+  const loadPreviousSelection = async (requestId: string) => {
+    if (!requestId) return;
+    
+    setIsLoadingPreviousSelection(true);
+    
+    try {
+      console.log("QuoteRequestDialog - Loading previous contractor selection for request:", requestId);
+      
+      // Get all quotes for this request to see which contractors were previously selected
+      const { data: quotes, error } = await supabase
+        .from('quotes')
+        .select('contractor_id')
+        .eq('request_id', requestId);
+
+      if (error) {
+        console.error("Error loading previous contractor selection:", error);
+        return;
+      }
+
+      if (quotes && quotes.length > 0) {
+        const previouslySelectedContractors = quotes.map(quote => quote.contractor_id);
+        console.log("QuoteRequestDialog - Previously selected contractors:", previouslySelectedContractors);
+        setSelectedContractors(previouslySelectedContractors);
+      }
+    } catch (error) {
+      console.error("Error in loadPreviousSelection:", error);
+    } finally {
+      setIsLoadingPreviousSelection(false);
+    }
+  };
+
+  // Load contractors and previous selection when dialog opens
   useEffect(() => {
     if (open) {
       console.log("QuoteRequestDialog - Dialog opened, loading contractors");
       loadContractors();
-      setSelectedContractors([]);
+      
+      // Reset form state
       setIncludeInfo({
         description: true,
         location: true,
@@ -36,8 +71,15 @@ export const useQuoteRequestDialog = (open: boolean) => {
         urgency: true
       });
       setNotes('');
+      
+      // Load previous selection if requestId is provided
+      if (requestId) {
+        loadPreviousSelection(requestId);
+      } else {
+        setSelectedContractors([]);
+      }
     }
-  }, [open, loadContractors]);
+  }, [open, requestId, loadContractors]);
 
   // Debug logging for contractors
   useEffect(() => {
@@ -65,7 +107,7 @@ export const useQuoteRequestDialog = (open: boolean) => {
     includeInfo,
     notes,
     contractors,
-    loading,
+    loading: loading || isLoadingPreviousSelection,
     setNotes,
     handleContractorSelection,
     handleInfoToggle

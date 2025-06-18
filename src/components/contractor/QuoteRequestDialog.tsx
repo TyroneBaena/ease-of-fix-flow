@@ -39,7 +39,7 @@ export const QuoteRequestDialog = ({
     setNotes,
     handleContractorSelection,
     handleInfoToggle
-  } = useQuoteRequestDialog(open);
+  } = useQuoteRequestDialog(open, requestDetails?.id);
 
   const { isSubmitting, submitQuoteRequests } = useQuoteRequestSubmission();
 
@@ -70,6 +70,11 @@ export const QuoteRequestDialog = ({
           <DialogTitle>Request Quotes</DialogTitle>
           <DialogDescription>
             Send quote requests to contractors for this maintenance request
+            {selectedContractors.length > 0 && (
+              <span className="block mt-1 text-sm text-blue-600">
+                Previously selected contractors are pre-selected
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
