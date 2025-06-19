@@ -19,25 +19,38 @@ interface PropertyRequestsProps {
   propertyId: string;
 }
 
-// Helper function to format date safely
+// Helper function to format date safely with debugging
 const formatDate = (dateValue: string | undefined): string => {
-  if (!dateValue || dateValue === '') {
+  console.log('formatDate called with:', dateValue);
+  
+  if (!dateValue || dateValue === '' || dateValue === 'undefined' || dateValue === 'null') {
+    console.log('formatDate: returning N/A for empty/invalid value');
     return 'N/A';
   }
   
   try {
     const date = new Date(dateValue);
+    console.log('formatDate: created date object:', date);
+    
     if (isNaN(date.getTime())) {
+      console.log('formatDate: date is invalid, returning N/A');
       return 'N/A';
     }
-    return date.toLocaleDateString();
+    
+    const formatted = date.toLocaleDateString();
+    console.log('formatDate: formatted date:', formatted);
+    return formatted;
   } catch (error) {
+    console.log('formatDate: error occurred:', error);
     return 'N/A';
   }
 };
 
 export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, propertyId }) => {
   const navigate = useNavigate();
+
+  // Debug: log the requests to see what data we're working with
+  console.log('PropertyRequests: requests data:', requests);
 
   return (
     <Card className="mt-6">
@@ -74,40 +87,45 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {requests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell className="font-medium">{request.issueNature || request.title}</TableCell>
-                  <TableCell>{request.site || request.category || 'N/A'}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
-                      (request.priority === 'high') ? 'bg-red-100 text-red-800' : 
-                      (request.priority === 'medium') ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {request.priority || 'Medium'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
-                      request.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                      request.status === 'in_progress' || request.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {request.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{formatDate(request.reportDate || request.createdAt)}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/requests/${request.id}`)}
-                    >
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {requests.map((request) => {
+                // Debug: log each request's date fields
+                console.log(`Request ${request.id} - reportDate:`, request.reportDate, 'createdAt:', request.createdAt);
+                
+                return (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">{request.issueNature || request.title}</TableCell>
+                    <TableCell>{request.site || request.category || 'N/A'}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
+                        (request.priority === 'high') ? 'bg-red-100 text-red-800' : 
+                        (request.priority === 'medium') ? 'bg-yellow-100 text-yellow-800' : 
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {request.priority || 'Medium'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
+                        request.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                        request.status === 'in_progress' || request.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {request.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>{formatDate(request.reportDate || request.createdAt)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/requests/${request.id}`)}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
