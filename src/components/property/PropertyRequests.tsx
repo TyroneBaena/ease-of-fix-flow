@@ -29,7 +29,27 @@ const formatDate = (dateValue: string | undefined): string => {
   }
   
   try {
-    const date = new Date(dateValue);
+    let date: Date;
+    
+    // Check if it's in DD/MM/YYYY format
+    if (dateValue.includes('/') && dateValue.split('/').length === 3) {
+      const parts = dateValue.split('/');
+      if (parts.length === 3) {
+        const day = parts[0];
+        const month = parts[1];
+        const year = parts[2];
+        
+        // Create date in ISO format (YYYY-MM-DD) which JavaScript can parse reliably
+        const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        console.log('formatDate: converted to ISO format:', isoDateString);
+        date = new Date(isoDateString);
+      } else {
+        date = new Date(dateValue);
+      }
+    } else {
+      date = new Date(dateValue);
+    }
+    
     console.log('formatDate: created date object:', date);
     
     if (isNaN(date.getTime())) {
