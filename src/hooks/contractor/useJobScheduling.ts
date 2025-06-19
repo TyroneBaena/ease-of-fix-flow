@@ -31,21 +31,14 @@ export const useJobScheduling = () => {
         notes: date.notes
       }));
 
-      // Insert into job_schedules table using a raw query to avoid TypeScript issues
-      const { error: scheduleError } = await supabase.rpc('', {}).then(() => 
-        supabase.from('job_schedules' as any).insert({
-          request_id: requestId,
-          contractor_id: contractorData.id,
-          scheduled_dates: scheduledDatesWithIds
-        })
-      ).catch(async () => {
-        // Fallback: direct insert using the any type cast
-        return await (supabase as any).from('job_schedules').insert({
+      // Insert into job_schedules table
+      const { error: scheduleError } = await supabase
+        .from('job_schedules')
+        .insert({
           request_id: requestId,
           contractor_id: contractorData.id,
           scheduled_dates: scheduledDatesWithIds
         });
-      });
 
       if (scheduleError) {
         throw scheduleError;
@@ -74,8 +67,7 @@ export const useJobScheduling = () => {
 
   const getJobSchedules = useCallback(async (contractorId?: string) => {
     try {
-      // Use any type cast to avoid TypeScript issues with the new table
-      const baseQuery = (supabase as any)
+      let query = supabase
         .from('job_schedules')
         .select(`
           *,
@@ -88,7 +80,9 @@ export const useJobScheduling = () => {
           )
         `);
 
-      const query = contractorId ? baseQuery.eq('contractor_id', contractorId) : baseQuery;
+      if (contractorId) {
+        query = query.eq('contractor_id', contractorId);
+      }
       
       const { data, error } = await query;
 
