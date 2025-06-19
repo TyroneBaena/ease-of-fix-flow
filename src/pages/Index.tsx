@@ -62,13 +62,9 @@ const Index = () => {
             </div>
             <div className="hidden md:block md:w-1/2">
               <div className="relative h-64 w-full">
-                <img 
-                  src="https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-                  alt="Technology and maintenance equipment"
-                  className="absolute inset-0 w-full h-full object-cover rounded-lg shadow-lg"
-                />
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg transform rotate-3"></div>
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg -rotate-2"></div>
+                <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-lg shadow-lg"></div>
               </div>
             </div>
           </div>
