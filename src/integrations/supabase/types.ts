@@ -89,6 +89,48 @@ export type Database = {
         }
         Relationships: []
       }
+      job_schedules: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          id: string
+          request_id: string
+          scheduled_dates: Json
+          updated_at: string
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          id?: string
+          request_id: string
+          scheduled_dates?: Json
+          updated_at?: string
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+          scheduled_dates?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_schedules_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_schedules_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_requests: {
         Row: {
           assigned_at: string | null

@@ -33,9 +33,23 @@ export const ScheduledTimelineView: React.FC = () => {
     setLoading(true);
     try {
       const jobs = await getJobSchedules();
-      setScheduledJobs(jobs as ScheduledJob[]);
+      // Filter and cast the data to ensure it matches the expected structure
+      const validJobs = jobs.filter((job: any) => 
+        job.scheduled_dates && 
+        job.maintenance_requests &&
+        Array.isArray(job.scheduled_dates)
+      ).map((job: any) => ({
+        id: job.id,
+        request_id: job.request_id,
+        contractor_id: job.contractor_id,
+        scheduled_dates: job.scheduled_dates,
+        maintenance_requests: job.maintenance_requests
+      }));
+      
+      setScheduledJobs(validJobs);
     } catch (error) {
       console.error('Error fetching scheduled jobs:', error);
+      setScheduledJobs([]);
     } finally {
       setLoading(false);
     }
@@ -54,11 +68,13 @@ export const ScheduledTimelineView: React.FC = () => {
     const jobs: Array<{ job: ScheduledJob; schedule: ScheduledDate }> = [];
     
     scheduledJobs.forEach(job => {
-      job.scheduled_dates.forEach(schedule => {
-        if (schedule.date === dateString) {
-          jobs.push({ job, schedule });
-        }
-      });
+      if (job.scheduled_dates && Array.isArray(job.scheduled_dates)) {
+        job.scheduled_dates.forEach(schedule => {
+          if (schedule.date === dateString) {
+            jobs.push({ job, schedule });
+          }
+        });
+      }
     });
     
     return jobs.sort((a, b) => a.schedule.startTime.localeCompare(b.schedule.startTime));
@@ -157,8 +173,8 @@ export const ScheduledTimelineView: React.FC = () => {
                           key={`${job.id}-${schedule.id}`}
                           className="bg-white border rounded p-2 text-xs space-y-1"
                         >
-                          <div className="font-medium truncate" title={job.maintenance_requests.title}>
-                            {job.maintenance_requests.title}
+                          <div className="font-medium truncate" title={job.maintenance_requests?.title || 'Untitled Job'}>
+                            {job.maintenance_requests?.title || 'Untitled Job'}
                           </div>
                           
                           <div className="flex items-center gap-1 text-gray-600">
@@ -168,7 +184,7 @@ export const ScheduledTimelineView: React.FC = () => {
                           
                           <div className="flex items-center gap-1 text-gray-600 truncate">
                             <MapPin className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">{job.maintenance_requests.location}</span>
+                            <span className="truncate">{job.maintenance_requests?.location || 'No location'}</span>
                           </div>
                           
                           <div className="flex gap-1">
@@ -180,9 +196,9 @@ export const ScheduledTimelineView: React.FC = () => {
                             </Badge>
                             <Badge 
                               variant="outline" 
-                              className={`text-xs ${getPriorityColor(job.maintenance_requests.priority)}`}
+                              className={`text-xs ${getPriorityColor(job.maintenance_requests?.priority || 'medium')}`}
                             >
-                              {job.maintenance_requests.priority}
+                              {job.maintenance_requests?.priority || 'medium'}
                             </Badge>
                           </div>
                           
