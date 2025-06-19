@@ -89,6 +89,66 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          final_cost: number
+          gst_amount: number
+          id: string
+          invoice_file_name: string
+          invoice_file_url: string
+          invoice_number: string
+          request_id: string
+          total_amount_with_gst: number
+          updated_at: string
+          uploaded_at: string
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          final_cost: number
+          gst_amount: number
+          id?: string
+          invoice_file_name: string
+          invoice_file_url: string
+          invoice_number: string
+          request_id: string
+          total_amount_with_gst: number
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          final_cost?: number
+          gst_amount?: number
+          id?: string
+          invoice_file_name?: string
+          invoice_file_url?: string
+          invoice_number?: string
+          request_id?: string
+          total_amount_with_gst?: number
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_schedules: {
         Row: {
           contractor_id: string
@@ -147,6 +207,7 @@ export type Database = {
           explanation: string | null
           history: Json | null
           id: string
+          invoice_id: string | null
           is_participant_related: boolean | null
           issue_nature: string | null
           location: string
@@ -179,6 +240,7 @@ export type Database = {
           explanation?: string | null
           history?: Json | null
           id?: string
+          invoice_id?: string | null
           is_participant_related?: boolean | null
           issue_nature?: string | null
           location: string
@@ -211,6 +273,7 @@ export type Database = {
           explanation?: string | null
           history?: Json | null
           id?: string
+          invoice_id?: string | null
           is_participant_related?: boolean | null
           issue_nature?: string | null
           location?: string
@@ -234,6 +297,13 @@ export type Database = {
             columns: ["contractor_id"]
             isOneToOne: false
             referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {

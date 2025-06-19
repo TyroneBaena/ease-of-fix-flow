@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { ContractorProvider } from '@/contexts/contractor';
@@ -14,12 +14,44 @@ import { AttachmentsCard } from '@/components/contractor/job-detail/AttachmentsC
 import { ProgressCard } from '@/components/contractor/job-detail/ProgressCard';
 import { ContactCard } from '@/components/contractor/job-detail/ContactCard';
 import { ScheduleJobCard } from '@/components/contractor/job-detail/ScheduleJobCard';
+import { InvoiceCard } from '@/components/contractor/job-detail/InvoiceCard';
 import { CommentSection } from '@/components/request/CommentSection';
+import { supabase } from '@/lib/supabase';
 
 const ContractorJobDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { job, loading, error } = useJobDetail(id);
   const [progressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [invoice, setInvoice] = useState(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+  
+  // Fetch invoice data if job is completed and has invoice_id
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      if (!job?.invoice_id) return;
+      
+      setLoadingInvoice(true);
+      try {
+        const { data, error } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('id', job.invoice_id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching invoice:', error);
+        } else {
+          setInvoice(data);
+        }
+      } catch (error) {
+        console.error('Error fetching invoice:', error);
+      } finally {
+        setLoadingInvoice(false);
+      }
+    };
+
+    fetchInvoice();
+  }, [job?.invoice_id]);
   
   if (loading) {
     return (
@@ -43,7 +75,8 @@ const ContractorJobDetail = () => {
     practiceLeader: job.practiceLeader,
     practiceLeaderEmail: job.practiceLeaderEmail,
     practiceLeaderPhone: job.practiceLeaderPhone,
-    address: job.address
+    address: job.address,
+    invoiceId: job.invoice_id
   });
 
   return (
@@ -62,18 +95,21 @@ const ContractorJobDetail = () => {
             <JobDetailsCard job={job} />
             <IssueDetailsCard job={job} />
             <AttachmentsCard attachments={job.attachments} />
+            {invoice && !loadingInvoice && <InvoiceCard invoice={invoice} />}
             <CommentSection requestId={job.id} />
           </div>
           
           {/* Sidebar - right side */}
           <div className="space-y-8">
-            <ScheduleJobCard 
-              request={job} 
-              onScheduled={() => {
-                // Refresh job details after scheduling
-                window.location.reload();
-              }} 
-            />
+            {job.status !== 'completed' && (
+              <ScheduleJobCard 
+                request={job} 
+                onScheduled={() => {
+                  // Refresh job details after scheduling
+                  window.location.reload();
+                }} 
+              />
+            )}
             <ProgressCard request={job} />
             <ContactCard 
               practiceLeader={job.practiceLeader || ''}

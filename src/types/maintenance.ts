@@ -44,6 +44,8 @@ export interface MaintenanceRequest {
   quoteRequested?: boolean;
   quotedAmount?: number;
   quotes?: any[];
+  // Invoice functionality
+  invoice_id?: string;
   // User ID field (required)
   userId: string;
   // For backward compatibility

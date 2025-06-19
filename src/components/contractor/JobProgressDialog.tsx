@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -14,9 +15,10 @@ import {
   Slider
 } from '@/components/ui/slider';
 import { useContractorContext } from '@/contexts/contractor';
-import { Check, Upload } from 'lucide-react';
+import { Check, Upload, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { InvoiceUploadDialog } from './InvoiceUploadDialog';
 
 interface JobProgressDialogProps {
   open: boolean;
@@ -37,10 +39,17 @@ export const JobProgressDialog = ({
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const { updateJobProgress } = useContractorContext();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If progress is 100%, show invoice upload dialog instead
+    if (progress === 100) {
+      setShowInvoiceDialog(true);
+      return;
+    }
     
     setUploading(true);
     try {
@@ -82,81 +91,111 @@ export const JobProgressDialog = ({
       setUploading(false);
     }
   };
+
+  const handleInvoiceUploaded = () => {
+    // Close both dialogs and refresh data
+    setShowInvoiceDialog(false);
+    onOpenChange(false);
+    if (onProgressUpdate) onProgressUpdate();
+  };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Update Job Progress</DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="progress">Completion Percentage: {progress}%</Label>
-            <Slider
-              id="progress"
-              defaultValue={[progress]}
-              max={100}
-              step={5}
-              onValueChange={(values) => setProgress(values[0])}
-              className="my-4"
-            />
-            {progress === 100 && (
-              <p className="text-sm text-green-500">
-                <Check className="inline-block h-4 w-4 mr-1" />
-                This will mark the job as complete
-              </p>
-            )}
-          </div>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Update Job Progress</DialogTitle>
+          </DialogHeader>
           
-          <div className="space-y-2">
-            <Label htmlFor="notes">Progress Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Describe the progress you've made on this job..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="photos">Upload Photos (Optional)</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="photos"
-                type="file"
-                multiple
-                accept="image/*"
-                className="flex-1"
-                onChange={(e) => setSelectedFiles(e.target.files)}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="progress">Completion Percentage: {progress}%</Label>
+              <Slider
+                id="progress"
+                defaultValue={[progress]}
+                max={100}
+                step={5}
+                onValueChange={(values) => setProgress(values[0])}
+                className="my-4"
               />
-              <Upload className="h-4 w-4 text-gray-500" />
+              {progress === 100 && (
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">Job Completion Required</p>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    To mark this job as 100% complete, you'll need to upload an invoice with the final cost including GST.
+                  </p>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Upload photos showing your work progress
-            </p>
-          </div>
-          
-          <DialogFooter className="pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={uploading}
-              className="mr-2"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={uploading}
-            >
-              {uploading ? 'Updating...' : 'Update Progress'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Progress Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Describe the progress you've made on this job..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+            
+            {progress < 100 && (
+              <div className="space-y-2">
+                <Label htmlFor="photos">Upload Photos (Optional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="photos"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="flex-1"
+                    onChange={(e) => setSelectedFiles(e.target.files)}
+                  />
+                  <Upload className="h-4 w-4 text-gray-500" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload photos showing your work progress
+                </p>
+              </div>
+            )}
+            
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={uploading}
+                className="mr-2"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={uploading}
+              >
+                {progress === 100 ? (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Upload Invoice & Complete
+                  </>
+                ) : (
+                  uploading ? 'Updating...' : 'Update Progress'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <InvoiceUploadDialog
+        open={showInvoiceDialog}
+        onOpenChange={setShowInvoiceDialog}
+        requestId={requestId}
+        onInvoiceUploaded={handleInvoiceUploaded}
+      />
+    </>
   );
 };
