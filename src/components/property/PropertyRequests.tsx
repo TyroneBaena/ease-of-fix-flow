@@ -19,6 +19,23 @@ interface PropertyRequestsProps {
   propertyId: string;
 }
 
+// Helper function to format date safely
+const formatDate = (dateValue: string | undefined): string => {
+  if (!dateValue || dateValue === '') {
+    return 'N/A';
+  }
+  
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) {
+      return 'N/A';
+    }
+    return date.toLocaleDateString();
+  } catch (error) {
+    return 'N/A';
+  }
+};
+
 export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, propertyId }) => {
   const navigate = useNavigate();
 
@@ -79,7 +96,7 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
                       {request.status}
                     </span>
                   </TableCell>
-                  <TableCell>{new Date(request.reportDate || request.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatDate(request.reportDate || request.createdAt)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
