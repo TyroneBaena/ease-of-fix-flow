@@ -13,6 +13,7 @@ import { IssueDetailsCard } from '@/components/contractor/job-detail/IssueDetail
 import { AttachmentsCard } from '@/components/contractor/job-detail/AttachmentsCard';
 import { ProgressCard } from '@/components/contractor/job-detail/ProgressCard';
 import { ContactCard } from '@/components/contractor/job-detail/ContactCard';
+import { ScheduleJobCard } from '@/components/contractor/job-detail/ScheduleJobCard';
 import { CommentSection } from '@/components/request/CommentSection';
 
 const ContractorJobDetail = () => {
@@ -66,6 +67,13 @@ const ContractorJobDetail = () => {
           
           {/* Sidebar - right side */}
           <div className="space-y-8">
+            <ScheduleJobCard 
+              request={job} 
+              onScheduled={() => {
+                // Refresh job details after scheduling
+                window.location.reload();
+              }} 
+            />
             <ProgressCard request={job} />
             <ContactCard 
               practiceLeader={job.practiceLeader || ''}
