@@ -31,13 +31,13 @@ export const useJobScheduling = () => {
         notes: date.notes
       }));
 
-      // Insert into job_schedules table
+      // Insert into job_schedules table - cast to Json for Supabase compatibility
       const { error: scheduleError } = await supabase
         .from('job_schedules')
         .insert({
           request_id: requestId,
           contractor_id: contractorData.id,
-          scheduled_dates: scheduledDatesWithIds
+          scheduled_dates: scheduledDatesWithIds as any // Cast to avoid TypeScript Json type issues
         });
 
       if (scheduleError) {
