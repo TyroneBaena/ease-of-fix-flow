@@ -82,7 +82,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
               <SelectValue placeholder="Property: All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">All Properties</SelectItem>
               {categories.map(category => (
                 <SelectItem key={category} value={category}>
                   {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -147,7 +147,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
         
         {categoryFilter !== 'all' && (
           <Badge variant="outline" className="bg-gray-100">
-            Category: {categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
+            Property: {categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
             <Button 
               variant="ghost" 
               size="sm" 
