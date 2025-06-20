@@ -1,18 +1,10 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RequestCard from '@/components/RequestCard';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { Property } from '@/types/property';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { 
   Pagination, 
   PaginationContent, 
@@ -22,7 +14,6 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
-import { usePropertyContext } from '@/contexts/property/PropertyContext';
 
 interface RequestListProps {
   requests: MaintenanceRequest[];
@@ -31,27 +22,15 @@ interface RequestListProps {
 
 const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => {
   const navigate = useNavigate();
-  const { properties } = usePropertyContext();
   const [currentPage, setCurrentPage] = useState(1);
-  const [propertyFilter, setPropertyFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const itemsPerPage = 5;
   
-  let filteredRequests = [...requests];
-  
-  if (propertyFilter !== 'all') {
-    filteredRequests = filteredRequests.filter(req => req.propertyId === propertyFilter);
-  }
-  
-  if (statusFilter !== 'all') {
-    filteredRequests = filteredRequests.filter(req => req.status === statusFilter);
-  }
-
-  const totalItems = filteredRequests.length;
+  // Use the already filtered requests from parent component
+  const totalItems = requests.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedRequests = requests.slice(startIndex, startIndex + itemsPerPage);
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -97,38 +76,13 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
     return pages;
   };
   
+  // Reset pagination when requests change (due to filtering)
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [requests.length]);
+  
   return (
     <div className="space-y-6">
-      {requests.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-            <SelectTrigger className="w-full sm:w-[250px]">
-              <SelectValue placeholder="Filter by property" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Properties</SelectItem>
-              {properties.map(property => (
-                <SelectItem key={property.id} value={property.id}>
-                  {property.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      
       <div className="space-y-4">
         {totalItems > 0 ? (
           paginatedRequests.map(request => (
