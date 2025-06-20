@@ -12,6 +12,9 @@ import { PropertyInfo } from '@/components/property/PropertyInfo';
 import { PropertyRequests } from '@/components/property/PropertyRequests';
 import { PropertyQuickActions } from '@/components/property/PropertyQuickActions';
 import { PropertyQrDialog } from '@/components/property/PropertyQrDialog';
+import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
+import { BudgetManagement } from '@/components/property/BudgetManagement';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog,
   DialogContent, 
@@ -82,22 +85,40 @@ const PropertyDetail = () => {
           dialogOpen={dialogOpen}
         />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <PropertyInfo property={property} />
-            {id && <PropertyRequests requests={requests as any} propertyId={id} />}
-          </div>
+        <Tabs defaultValue="overview" className="mt-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="budget">Budget Management</TabsTrigger>
+            <TabsTrigger value="requests">Maintenance Requests</TabsTrigger>
+          </TabsList>
           
-          <div>
-            {id && (
-              <PropertyQuickActions
-                propertyId={id}
-                onOpenQrDialog={() => setQrDialogOpen(true)}
-                onOpenEditDialog={() => setDialogOpen(true)}
-              />
-            )}
-          </div>
-        </div>
+          <TabsContent value="overview" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <PropertyInfo property={property} />
+              </div>
+              
+              <div className="space-y-6">
+                {id && <MaintenanceSpendCard propertyId={id} />}
+                {id && (
+                  <PropertyQuickActions
+                    propertyId={id}
+                    onOpenQrDialog={() => setQrDialogOpen(true)}
+                    onOpenEditDialog={() => setDialogOpen(true)}
+                  />
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="budget" className="mt-6">
+            {id && <BudgetManagement propertyId={id} />}
+          </TabsContent>
+          
+          <TabsContent value="requests" className="mt-6">
+            {id && <PropertyRequests requests={requests as any} propertyId={id} />}
+          </TabsContent>
+        </Tabs>
       </main>
       
       {id && (

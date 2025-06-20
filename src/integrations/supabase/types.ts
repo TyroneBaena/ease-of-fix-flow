@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      budget_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           created_at: string
@@ -197,6 +221,7 @@ export type Database = {
           assigned_to: string | null
           attachments: Json | null
           attempted_fix: string | null
+          budget_category_id: string | null
           category: string
           completion_percentage: number | null
           completion_photos: Json | null
@@ -230,6 +255,7 @@ export type Database = {
           assigned_to?: string | null
           attachments?: Json | null
           attempted_fix?: string | null
+          budget_category_id?: string | null
           category: string
           completion_percentage?: number | null
           completion_photos?: Json | null
@@ -263,6 +289,7 @@ export type Database = {
           assigned_to?: string | null
           attachments?: Json | null
           attempted_fix?: string | null
+          budget_category_id?: string | null
           category?: string
           completion_percentage?: number | null
           completion_photos?: Json | null
@@ -292,6 +319,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_budget_category_id_fkey"
+            columns: ["budget_category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maintenance_requests_contractor_id_fkey"
             columns: ["contractor_id"]
@@ -425,6 +459,51 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      property_budgets: {
+        Row: {
+          budget_category_id: string
+          budgeted_amount: number
+          created_at: string
+          financial_year: number
+          id: string
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          budget_category_id: string
+          budgeted_amount?: number
+          created_at?: string
+          financial_year: number
+          id?: string
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          budget_category_id?: string
+          budgeted_amount?: number
+          created_at?: string
+          financial_year?: number
+          id?: string
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_budgets_budget_category_id_fkey"
+            columns: ["budget_category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_budgets_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quote_logs: {
         Row: {
@@ -569,9 +648,20 @@ export type Database = {
         Args: { contractor_uuid: string }
         Returns: string
       }
+      get_current_financial_year: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_property_maintenance_spend: {
+        Args: { p_property_id: string; p_financial_year?: number }
+        Returns: {
+          total_spend: number
+          category_spend: Json
+        }[]
       }
       get_user_role_for_maintenance: {
         Args: Record<PropertyKey, never>

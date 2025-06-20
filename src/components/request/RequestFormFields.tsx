@@ -25,6 +25,7 @@ interface FormState {
   submittedBy: string;
   category: string;
   priority: 'low' | 'medium' | 'high' | 'critical' | '';
+  budgetCategoryId: string; // Add budget category ID
 }
 
 interface RequestFormFieldsProps {
@@ -57,9 +58,9 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
       />
       
       <CategorySelectionField
-        category={formState.category || ''}
+        category={formState.budgetCategoryId || ''}
         priority={formState.priority || ''}
-        onCategoryChange={(value) => updateFormState('category', value)}
+        onCategoryChange={(value) => updateFormState('budgetCategoryId', value)}
         onPriorityChange={(value) => updateFormState('priority', value)}
       />
       

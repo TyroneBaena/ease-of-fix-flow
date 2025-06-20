@@ -1,13 +1,15 @@
 
-import React from 'react';
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useState, useEffect } from 'react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { BudgetCategory } from '@/types/budget';
 
 interface CategorySelectionFieldProps {
   category: string;
-  priority: string;
+  priority: 'low' | 'medium' | 'high' | 'critical' | '';
   onCategoryChange: (value: string) => void;
-  onPriorityChange: (value: string) => void;
+  onPriorityChange: (value: 'low' | 'medium' | 'high' | 'critical') => void;
 }
 
 export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
@@ -16,38 +18,49 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
   onCategoryChange,
   onPriorityChange
 }) => {
-  const categories = [
-    { value: 'electrical', label: 'Electrical' },
-    { value: 'plumbing', label: 'Plumbing' },
-    { value: 'hvac', label: 'HVAC' },
-    { value: 'structural', label: 'Structural' },
-    { value: 'cleaning', label: 'Cleaning' },
-    { value: 'landscaping', label: 'Landscaping' },
-    { value: 'security', label: 'Security' },
-    { value: 'technology', label: 'Technology/IT' },
-    { value: 'furniture', label: 'Furniture/Equipment' },
-    { value: 'other', label: 'Other' }
-  ];
+  const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
 
-  const priorities = [
-    { value: 'low', label: 'Low', description: 'Can be scheduled within 1-2 weeks' },
-    { value: 'medium', label: 'Medium', description: 'Should be addressed within a few days' },
-    { value: 'high', label: 'High', description: 'Needs attention within 24 hours' },
-    { value: 'critical', label: 'Critical', description: 'Urgent - requires immediate attention' }
-  ];
+  useEffect(() => {
+    fetchBudgetCategories();
+  }, []);
+
+  const fetchBudgetCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('budget_categories')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching budget categories:', error);
+        // Fallback to default categories
+        setBudgetCategories([
+          { id: 'general', name: 'General', description: null, created_at: '', updated_at: '' }
+        ]);
+      } else {
+        setBudgetCategories(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching budget categories:', err);
+      // Fallback to default categories
+      setBudgetCategories([
+        { id: 'general', name: 'General', description: null, created_at: '', updated_at: '' }
+      ]);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="category">Category*</Label>
+        <Label htmlFor="category">Budget Category *</Label>
         <Select value={category} onValueChange={onCategoryChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
+            {budgetCategories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -55,20 +68,16 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="priority">Priority/Urgency*</Label>
+        <Label htmlFor="priority">Priority *</Label>
         <Select value={priority} onValueChange={onPriorityChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Select priority level" />
+            <SelectValue placeholder="Select priority" />
           </SelectTrigger>
           <SelectContent>
-            {priorities.map((prio) => (
-              <SelectItem key={prio.value} value={prio.value}>
-                <div className="flex flex-col">
-                  <span className="font-medium">{prio.label}</span>
-                  <span className="text-xs text-gray-500">{prio.description}</span>
-                </div>
-              </SelectItem>
-            ))}
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="critical">Critical</SelectItem>
           </SelectContent>
         </Select>
       </div>
