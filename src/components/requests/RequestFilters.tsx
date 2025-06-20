@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowDown, ArrowUp } from 'lucide-react';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, ArrowDown, ArrowUp, Calendar as CalendarIcon, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from "@/lib/utils";
 
 interface RequestFiltersProps {
   searchTerm: string;
@@ -18,6 +22,8 @@ interface RequestFiltersProps {
   sortDirection: string;
   setSortDirection: (direction: string) => void;
   categories: string[];
+  dateRange?: { from: Date | undefined; to: Date | undefined };
+  setDateRange?: (range: { from: Date | undefined; to: Date | undefined }) => void;
 }
 
 const RequestFilters: React.FC<RequestFiltersProps> = ({
@@ -31,7 +37,9 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
   setSortField,
   sortDirection,
   setSortDirection,
-  categories
+  categories,
+  dateRange,
+  setDateRange
 }) => {
   const toggleSortDirection = () => {
     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -43,6 +51,12 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
     } else {
       setSortField(field);
       setSortDirection('desc');
+    }
+  };
+
+  const clearDateRange = () => {
+    if (setDateRange) {
+      setDateRange({ from: undefined, to: undefined });
     }
   };
 
@@ -68,14 +82,16 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="open">Open</SelectItem>
               <SelectItem value="in-progress">In Progress</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
-        {/* Category Filter */}
+        {/* Property Filter */}
         <div className="w-full lg:w-48">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger>
@@ -91,6 +107,48 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Date Range Filter */}
+        {setDateRange && (
+          <div className="w-full lg:w-64">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange?.from && !dateRange?.to && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
         
         {/* Sort Options */}
         <div className="w-full lg:w-48">
@@ -126,21 +184,21 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
               className="h-4 w-4 ml-2 p-0" 
               onClick={() => setSearchTerm('')}
             >
-              ×
+              <X className="h-3 w-3" />
             </Button>
           </Badge>
         )}
         
         {statusFilter !== 'all' && (
           <Badge variant="outline" className="bg-gray-100">
-            Status: {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+            Status: {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1).replace('-', ' ')}
             <Button 
               variant="ghost" 
               size="sm" 
               className="h-4 w-4 ml-2 p-0" 
               onClick={() => setStatusFilter('all')}
             >
-              ×
+              <X className="h-3 w-3" />
             </Button>
           </Badge>
         )}
@@ -154,7 +212,24 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
               className="h-4 w-4 ml-2 p-0" 
               onClick={() => setCategoryFilter('all')}
             >
-              ×
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        )}
+
+        {dateRange?.from && setDateRange && (
+          <Badge variant="outline" className="bg-gray-100">
+            Date: {dateRange.to ? 
+              `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}` : 
+              format(dateRange.from, "MMM d")
+            }
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-4 w-4 ml-2 p-0" 
+              onClick={clearDateRange}
+            >
+              <X className="h-3 w-3" />
             </Button>
           </Badge>
         )}

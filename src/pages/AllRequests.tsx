@@ -7,6 +7,7 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import RequestsHeader from '@/components/requests/RequestsHeader';
 import RequestFilters from '@/components/requests/RequestFilters';
 import RequestList from '@/components/requests/RequestList';
+import { isWithinInterval, parseISO } from 'date-fns';
 
 const AllRequests = () => {
   const { properties } = usePropertyContext();
@@ -16,6 +17,10 @@ const AllRequests = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ 
+    from: undefined, 
+    to: undefined 
+  });
   const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
 
   // Log what we're working with
@@ -56,6 +61,27 @@ const AllRequests = () => {
         (request.site?.toLowerCase() === category)
       );
     }
+
+    // Date range filtering
+    if (dateRange.from || dateRange.to) {
+      result = result.filter(request => {
+        if (!request.created_at) return false;
+        
+        const requestDate = typeof request.created_at === 'string' 
+          ? parseISO(request.created_at) 
+          : new Date(request.created_at);
+        
+        if (dateRange.from && dateRange.to) {
+          return isWithinInterval(requestDate, { start: dateRange.from, end: dateRange.to });
+        } else if (dateRange.from) {
+          return requestDate >= dateRange.from;
+        } else if (dateRange.to) {
+          return requestDate <= dateRange.to;
+        }
+        
+        return true;
+      });
+    }
     
     console.log('Sorting requests by:', sortField, sortDirection);
     result.sort((a, b) => {
@@ -74,7 +100,7 @@ const AllRequests = () => {
     
     console.log('Filtered requests count:', result.length);
     setFilteredRequests(result);
-  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, requests]);
+  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, dateRange, requests]);
 
   // Get unique categories from requests
   const categories = Array.from(
@@ -89,7 +115,7 @@ const AllRequests = () => {
   const getEmptyMessage = () => {
     if (loading) return "Loading requests...";
     if (requests.length === 0) return "No maintenance requests found. Submit a new request to get started.";
-    if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all') {
+    if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || dateRange.from || dateRange.to) {
       return "No requests match your filters. Try adjusting your search criteria.";
     }
     return "No maintenance requests found";
@@ -117,6 +143,8 @@ const AllRequests = () => {
           sortDirection={sortDirection}
           setSortDirection={setSortDirection}
           categories={categories}
+          dateRange={dateRange}
+          setDateRange={setDateRange}
         />
         
         <div className="mb-4 text-sm text-gray-600">
