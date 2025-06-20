@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
@@ -62,14 +61,14 @@ const AllRequests = () => {
       );
     }
 
-    // Date range filtering
+    // Date range filtering - using createdAt instead of created_at
     if (dateRange.from || dateRange.to) {
       result = result.filter(request => {
-        if (!request.created_at) return false;
+        if (!request.createdAt) return false;
         
-        const requestDate = typeof request.created_at === 'string' 
-          ? parseISO(request.created_at) 
-          : new Date(request.created_at);
+        const requestDate = typeof request.createdAt === 'string' 
+          ? parseISO(request.createdAt) 
+          : new Date(request.createdAt);
         
         if (dateRange.from && dateRange.to) {
           return isWithinInterval(requestDate, { start: dateRange.from, end: dateRange.to });
