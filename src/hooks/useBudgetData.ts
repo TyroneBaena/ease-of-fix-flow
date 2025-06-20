@@ -56,7 +56,26 @@ export const useBudgetData = (propertyId: string) => {
         });
 
       if (spendError) throw spendError;
-      setMaintenanceSpend(spendData[0] || { total_spend: 0, category_spend: {} });
+      
+      // Type the response properly and handle the Json to Record conversion
+      const rawSpendData = spendData?.[0];
+      if (rawSpendData) {
+        const categorySpend = rawSpendData.category_spend as Record<string, unknown>;
+        // Convert the category_spend values to numbers
+        const typedCategorySpend: Record<string, number> = {};
+        if (categorySpend && typeof categorySpend === 'object') {
+          Object.entries(categorySpend).forEach(([key, value]) => {
+            typedCategorySpend[key] = typeof value === 'number' ? value : 0;
+          });
+        }
+        
+        setMaintenanceSpend({
+          total_spend: Number(rawSpendData.total_spend) || 0,
+          category_spend: typedCategorySpend
+        });
+      } else {
+        setMaintenanceSpend({ total_spend: 0, category_spend: {} });
+      }
 
     } catch (error) {
       console.error('Error fetching budget data:', error);

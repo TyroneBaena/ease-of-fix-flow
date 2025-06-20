@@ -13,6 +13,7 @@ interface FormState {
   submittedBy: string;
   category: string;
   priority: 'low' | 'medium' | 'high' | 'critical' | '';
+  budgetCategoryId: string; // Add the missing property
 }
 
 export const useRequestForm = () => {
@@ -27,7 +28,8 @@ export const useRequestForm = () => {
     reportDate: '',
     submittedBy: '',
     category: '',
-    priority: ''
+    priority: '',
+    budgetCategoryId: '' // Initialize the missing property
   });
 
   const [files, setFiles] = useState<File[]>([]);
