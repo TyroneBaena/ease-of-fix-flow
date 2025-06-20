@@ -79,7 +79,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
         <div className="w-full lg:w-48">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Category: All" />
+              <SelectValue placeholder="Property: All" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
