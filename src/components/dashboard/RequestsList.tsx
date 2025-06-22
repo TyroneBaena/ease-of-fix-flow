@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +74,7 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
             {recentRequests.map((request) => (
               <div 
                 key={request.id} 
-                className={`p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${
+                className={`p-4 border rounded-lg transition-colors cursor-pointer ${
                   selectedRequest?.id === request.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                 }`}
                 onClick={() => handleRequestClick(request)}
