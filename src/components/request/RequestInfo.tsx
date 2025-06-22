@@ -21,6 +21,7 @@ interface RequestInfoProps {
     status: string;
     createdAt: string;
     assignedTo?: string;
+    contractorId?: string;
     attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
 }
@@ -51,6 +52,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         site={request.site}
         submittedBy={request.submittedBy}
         assignedTo={request.assignedTo}
+        contractorId={request.contractorId}
       />
       
       <RequestIssueDetails 
