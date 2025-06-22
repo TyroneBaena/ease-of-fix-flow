@@ -17,7 +17,7 @@ export const RequestHeader = ({ id, status, createdAt, issueNature }: RequestHea
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
       <div>
         <div className="flex items-center mb-2">
-          <Badge className={`${getStatusColor(status)} mr-3`}>
+          <Badge className={`${getStatusColor(status)} hover:${getStatusColor(status).split(' ').find(c => c.startsWith('bg-'))} mr-3`}>
             {getStatusDisplay(status)}
           </Badge>
           <p className="text-sm text-gray-500 flex items-center">
