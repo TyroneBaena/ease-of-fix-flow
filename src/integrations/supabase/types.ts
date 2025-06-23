@@ -636,6 +636,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_comment_notifications: {
+        Args: {
+          request_id_param: string
+          comment_text: string
+          commenter_name: string
+        }
+        Returns: undefined
+      }
       create_tenant_schema: {
         Args: { new_user_id: string; schema_prefix?: string }
         Returns: string

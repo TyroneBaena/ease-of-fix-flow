@@ -1,34 +1,64 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { notificationService } from '@/services/notificationService';
 import { 
   mapToClientNotification, 
-  validateContractorRoute 
-} from './contractor/notificationUtils';
+  validateAppRoute 
+} from './notifications/notificationUtils';
 import { 
-  generateMockContractorNotifications, 
-  storeMockNotifications 
-} from './contractor/mockNotificationGenerator';
+  generateMockNotifications 
+} from './notifications/mockNotificationGenerator';
 import { 
-  fetchContractorNotifications, 
+  fetchNotifications, 
   markNotificationsAsRead, 
-  markSingleNotificationAsRead 
-} from './contractor/notificationOperations';
+  markSingleNotificationAsRead,
+  storeNotifications
+} from './notifications/notificationOperations';
 
 export const useContractorNotifications = () => {
   const { currentUser } = useUserContext();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [hasInitialized, setHasInitialized] = useState(false);
   
-  // Fetch contractor-specific notifications
-  const fetchNotifications = useCallback(async () => {
-    if (!currentUser || currentUser.role !== 'contractor') {
+  // Only proceed if user is a contractor
+  const isContractor = currentUser?.role === 'contractor';
+  
+  // Handle new notification from real-time subscription
+  const handleNewNotification = useCallback((newNotification: NotificationClient) => {
+    console.log('Contractor received new notification:', newNotification);
+    setNotifications(prev => [newNotification, ...prev]);
+  }, []);
+
+  // Set up real-time subscription for contractors
+  useEffect(() => {
+    if (currentUser?.id && isContractor) {
+      console.log('Setting up contractor notification subscription for user:', currentUser.id);
+      notificationService.subscribeToUserNotifications(
+        currentUser.id, 
+        handleNewNotification
+      );
+
+      return () => {
+        console.log('Cleaning up contractor notification subscription');
+        notificationService.unsubscribeFromUserNotifications(currentUser.id);
+      };
+    }
+  }, [currentUser?.id, isContractor, handleNewNotification]);
+  
+  // Fetch notifications when component mounts
+  useEffect(() => {
+    if (currentUser?.id && isContractor && !hasInitialized) {
+      fetchNotificationsData();
+      setHasInitialized(true);
+    }
+  }, [currentUser?.id, isContractor, hasInitialized]);
+  
+  const fetchNotificationsData = useCallback(async () => {
+    if (!currentUser || !isContractor) {
       setLoading(false);
       return;
     }
@@ -36,20 +66,20 @@ export const useContractorNotifications = () => {
     try {
       setLoading(true);
       
-      const fetchedData = await fetchContractorNotifications(currentUser.id);
-      
+      const fetchedData = await fetchNotifications(currentUser.id);
+        
+      // If we have real data from database, use it
       if (fetchedData && fetchedData.length > 0) {
-        console.log('Found notifications in database:', fetchedData.length);
+        console.log('Found contractor notifications in database:', fetchedData.length);
         const clientNotifications = fetchedData.map(mapToClientNotification);
         setNotifications(clientNotifications);
-        setUnreadCount(fetchedData.filter(n => !n.is_read).length);
       } else {
-        const mockNotifications = await generateMockContractorNotifications(currentUser.id);
+        // Fallback to mock data if no notifications in database yet
+        const mockNotifications = generateMockNotifications(currentUser.id, currentUser.name);
         setNotifications(mockNotifications);
-        setUnreadCount(mockNotifications.filter(n => !n.isRead).length);
         
         // Store mock notifications in database for future use
-        await storeMockNotifications(mockNotifications);
+        await storeNotifications(mockNotifications);
       }
     } catch (error) {
       console.error('Error fetching contractor notifications:', error);
@@ -57,15 +87,8 @@ export const useContractorNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
-  
-  // Fetch notifications when component mounts
-  useEffect(() => {
-    if (currentUser?.role === 'contractor') {
-      fetchNotifications();
-    }
-  }, [currentUser, fetchNotifications]);
-  
+  }, [currentUser, isContractor]);
+
   const markAllAsRead = async () => {
     try {
       setMarkingAllRead(true);
@@ -80,15 +103,13 @@ export const useContractorNotifications = () => {
         return;
       }
       
-      // Update local state
+      // Update local state first
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => ({
           ...notification,
           isRead: true
         }))
       );
-      
-      setUnreadCount(0);
       
       // Update in database
       const notificationIds = unreadNotifications.map(n => n.id);
@@ -114,7 +135,7 @@ export const useContractorNotifications = () => {
         return;
       }
       
-      // Update local state
+      // Update local state first
       setNotifications(prevNotifications => 
         prevNotifications.map(notification => 
           notification.id === notificationId
@@ -122,8 +143,6 @@ export const useContractorNotifications = () => {
             : notification
         )
       );
-      
-      setUnreadCount(prev => Math.max(0, prev - 1));
       
       // Update in database
       await markSingleNotificationAsRead(notificationId, currentUser.id);
@@ -133,28 +152,25 @@ export const useContractorNotifications = () => {
     }
   };
   
-  // Safe navigation with contractor route validation
   const handleNotificationClick = (notification: NotificationClient) => {
-    console.log('Notification clicked:', notification);
+    console.log('Contractor notification clicked:', notification);
     
     if (!notification.isRead) {
       markAsRead(notification.id);
     }
     
-    // Only navigate if we have a valid contractor link
+    // Simple navigation logging without actual navigation for now
     if (notification.link) {
-      if (validateContractorRoute(notification.link)) {
-        console.log(`Navigating to valid contractor route: ${notification.link}`);
-        navigate(notification.link);
+      if (validateAppRoute(notification.link)) {
+        console.log(`Would navigate to valid route: ${notification.link}`);
       } else {
-        console.log(`Invalid contractor route detected: ${notification.link}, staying on current page`);
-        toast.info('Notification details updated');
+        console.log(`Invalid route detected: ${notification.link}, staying on current page`);
       }
-    } else {
-      console.log('No link provided for notification, marking as read only');
-      toast.info('Notification marked as read');
     }
   };
+
+  // Calculate unread count
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return {
     loading,
@@ -165,3 +181,5 @@ export const useContractorNotifications = () => {
     handleNotificationClick
   };
 };
+
+export default useContractorNotifications;

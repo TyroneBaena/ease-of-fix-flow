@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from 'sonner';
+import { notificationService } from '@/services/notificationService';
 import { 
   mapToClientNotification, 
   validateAppRoute 
@@ -23,6 +24,28 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  
+  // Handle new notification from real-time subscription
+  const handleNewNotification = useCallback((newNotification: NotificationClient) => {
+    console.log('Adding new notification to state:', newNotification);
+    setNotifications(prev => [newNotification, ...prev]);
+  }, []);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (currentUser?.id) {
+      console.log('Setting up real-time notification subscription for user:', currentUser.id);
+      notificationService.subscribeToUserNotifications(
+        currentUser.id, 
+        handleNewNotification
+      );
+
+      return () => {
+        console.log('Cleaning up notification subscription');
+        notificationService.unsubscribeFromUserNotifications(currentUser.id);
+      };
+    }
+  }, [currentUser?.id, handleNewNotification]);
   
   // Fetch notifications when component mounts
   useEffect(() => {

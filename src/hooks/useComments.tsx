@@ -99,6 +99,8 @@ export function useComments(requestId: string) {
     }
     
     try {
+      console.log('Adding comment:', { requestId, text, user: currentUser.name });
+      
       const newComment = {
         user_id: currentUser.id,
         request_id: requestId,
@@ -119,7 +121,8 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      console.log('Added comment:', data);
+      console.log('Comment added successfully:', data);
+      console.log('Database trigger should now create notifications for relevant users');
       
       // Optimistically update the UI
       const formattedComment: Comment = {
