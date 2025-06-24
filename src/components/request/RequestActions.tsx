@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCcw, Edit } from 'lucide-react';
 import { useContractorContext } from '@/contexts/contractor/ContractorContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { toast } from '@/lib/toast';
@@ -11,9 +11,15 @@ interface RequestActionsProps {
   status: string;
   requestId: string;
   onStatusChange?: () => void;
+  onEditRequest?: () => void; // New prop for edit functionality
 }
 
-export const RequestActions = ({ status, requestId, onStatusChange }: RequestActionsProps) => {
+export const RequestActions = ({ 
+  status, 
+  requestId, 
+  onStatusChange, 
+  onEditRequest 
+}: RequestActionsProps) => {
   const { updateJobProgress } = useContractorContext();
   const { currentUser, isAdmin } = useUserContext();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -146,6 +152,18 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       <h2 className="font-semibold mb-4">Actions</h2>
       
       <div className="space-y-3">
+        {/* Edit Button - Only show for admins and managers */}
+        {onEditRequest && (
+          <Button 
+            className="w-full justify-start bg-blue-500 hover:bg-blue-600"
+            onClick={onEditRequest}
+            disabled={isProcessing}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Request
+          </Button>
+        )}
+        
         <Button 
           className="w-full justify-start bg-green-500 hover:bg-green-600"
           onClick={handleCompleteRequest}

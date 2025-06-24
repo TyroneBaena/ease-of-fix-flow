@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
 import { RequestActions } from '@/components/request/RequestActions';
 import { QuotesList } from '@/components/request/QuotesList';
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
+import { EditRequestDialog } from '@/components/request/EditRequestDialog';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
 
@@ -26,9 +27,21 @@ export const RequestDetailSidebar = ({
   onRefreshData 
 }: RequestDetailSidebarProps) => {
   const { currentUser, isAdmin } = useUserContext();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Check if user can access contractor features (admins only, not managers)
   const canAccessContractorFeatures = isAdmin;
+  
+  // Check if user can edit requests (admins and managers)
+  const canEditRequests = isAdmin || currentUser?.role === 'manager';
+
+  const handleEditRequest = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleRequestUpdated = () => {
+    onRefreshData();
+  };
 
   return (
     <div className="space-y-6">
@@ -37,6 +50,7 @@ export const RequestDetailSidebar = ({
         status={request.status} 
         requestId={request.id}
         onStatusChange={onRefreshData}
+        onEditRequest={canEditRequests ? handleEditRequest : undefined}
       />
       
       {/* Contractor Assignment - Only for admins */}
@@ -73,6 +87,16 @@ export const RequestDetailSidebar = ({
             Submit Quote
           </button>
         </div>
+      )}
+      
+      {/* Edit Request Dialog */}
+      {canEditRequests && (
+        <EditRequestDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          request={request}
+          onRequestUpdated={handleRequestUpdated}
+        />
       )}
     </div>
   );
