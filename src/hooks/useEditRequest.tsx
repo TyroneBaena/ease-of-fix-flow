@@ -20,6 +20,43 @@ interface EditRequestData {
   budgetCategoryId?: string;
 }
 
+// Transform database response to MaintenanceRequest type
+const transformDbToMaintenanceRequest = (dbData: any): MaintenanceRequest => {
+  return {
+    id: dbData.id,
+    title: dbData.title,
+    description: dbData.description,
+    status: dbData.status,
+    location: dbData.location,
+    priority: dbData.priority,
+    site: dbData.site || '',
+    submittedBy: dbData.submitted_by || '',
+    category: dbData.category,
+    createdAt: dbData.created_at,
+    updatedAt: dbData.updated_at,
+    isParticipantRelated: dbData.is_participant_related || false,
+    participantName: dbData.participant_name || '',
+    attemptedFix: dbData.attempted_fix || '',
+    issueNature: dbData.issue_nature || '',
+    explanation: dbData.explanation || '',
+    reportDate: dbData.report_date || '',
+    userId: dbData.user_id,
+    propertyId: dbData.property_id,
+    contractorId: dbData.contractor_id,
+    assignedAt: dbData.assigned_at,
+    completionPercentage: dbData.completion_percentage,
+    completionPhotos: dbData.completion_photos,
+    progressNotes: dbData.progress_notes,
+    quoteRequested: dbData.quote_requested,
+    quotedAmount: dbData.quoted_amount,
+    attachments: dbData.attachments,
+    history: dbData.history,
+    dueDate: dbData.due_date,
+    assignedTo: dbData.assigned_to,
+    invoice_id: dbData.invoice_id
+  };
+};
+
 export const useEditRequest = () => {
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -65,7 +102,9 @@ export const useEditRequest = () => {
       
       console.log('useEditRequest - Update successful:', data);
       toast.success('Request updated successfully');
-      return data;
+      
+      // Transform the database response to match MaintenanceRequest type
+      return transformDbToMaintenanceRequest(data);
       
     } catch (error) {
       console.error('useEditRequest - Error updating request:', error);
