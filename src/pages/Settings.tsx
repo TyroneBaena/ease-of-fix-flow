@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '@/components/Navbar';
@@ -92,6 +93,7 @@ const Settings = () => {
         <Tabs defaultValue={isAdmin ? "users" : "account"}>
           <TabsList className="mb-4">
             {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
+            {/* Only show contractor management to admins, not managers */}
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -105,6 +107,7 @@ const Settings = () => {
             </TabsContent>
           )}
           
+          {/* Contractor management is restricted to admins only */}
           {isAdmin && (
             <TabsContent value="contractors">
               <Card className="p-6">

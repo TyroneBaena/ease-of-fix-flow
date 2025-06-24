@@ -54,7 +54,7 @@ const MaintenanceReport = () => {
     };
   }, [properties, propertiesLoading]);
 
-  // Fetch actual maintenance requests from the database
+  // Fetch actual maintenance requests from the database with proper access control
   useEffect(() => {
     if (stableLoadingState || !currentUser) {
       return;
@@ -67,16 +67,21 @@ const MaintenanceReport = () => {
       try {
         console.log("Fetching maintenance requests from the database");
         
-        // Build the query based on user role
+        // Build the query based on user role with enhanced access control
         let query = supabase
           .from('maintenance_requests')
           .select('*')
           .order('created_at', { ascending: false });
         
-        // If not admin, filter by assigned properties
-        if (!isAdmin && currentUser?.assignedProperties?.length > 0) {
+        // Apply strict property-based filtering for managers
+        if (currentUser.role === 'manager' && currentUser.assignedProperties?.length > 0) {
+          // Managers can only see requests for their assigned properties
           query = query.in('property_id', currentUser.assignedProperties);
+        } else if (!isAdmin) {
+          // Non-admin, non-manager users can only see their own requests
+          query = query.eq('user_id', currentUser.id);
         }
+        // Admins can see all requests (no additional filtering)
         
         const { data, error } = await query;
         
@@ -163,6 +168,7 @@ const MaintenanceReport = () => {
     );
   }
   
+  // Filter accessible properties based on user role
   const accessibleProperties = isAdmin
     ? properties 
     : properties.filter(prop => 
@@ -212,7 +218,11 @@ const MaintenanceReport = () => {
       
       {maintenanceRequests.length === 0 && (
         <div className="py-8 text-center">
-          <p className="text-gray-500">No maintenance requests found in the database.</p>
+          <p className="text-gray-500">
+            {currentUser?.role === 'manager' 
+              ? "No maintenance requests found for your assigned properties."
+              : "No maintenance requests found in the database."}
+          </p>
         </div>
       )}
     </div>

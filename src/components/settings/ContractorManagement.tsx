@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useContractorManagement } from './contractor-management/hooks/useContractorManagement';
 import ContractorManagementHeader from './contractor-management/ContractorManagementHeader';
@@ -38,6 +37,20 @@ const ContractorManagement = () => {
     fetchContractors,
     selectedContractorForDeletion
   } = useContractorManagement();
+  
+  // Block managers from accessing contractor management
+  if (!isAdmin && currentUser?.role === 'manager') {
+    return (
+      <div className="p-4">
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Access Restricted</AlertTitle>
+          <AlertDescription>
+            Managers do not have access to contractor management. This functionality is restricted to administrators only.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   
   // If not admin, show access denied message
   if (!isAdmin) {

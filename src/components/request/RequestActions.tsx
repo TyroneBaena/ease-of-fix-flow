@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
 import { useContractorContext } from '@/contexts/contractor/ContractorContext';
+import { useUserContext } from '@/contexts/UserContext';
 import { toast } from '@/lib/toast';
 
 interface RequestActionsProps {
@@ -14,6 +15,7 @@ interface RequestActionsProps {
 
 export const RequestActions = ({ status, requestId, onStatusChange }: RequestActionsProps) => {
   const { updateJobProgress } = useContractorContext();
+  const { currentUser, isAdmin } = useUserContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionType, setActionType] = useState<'none' | 'complete' | 'reopen' | 'cancel'>('none');
   const [lastActionTime, setLastActionTime] = useState(0);
@@ -28,6 +30,9 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
       }
     };
   }, []);
+
+  // Check if current user can perform actions (admin or manager)
+  const canPerformActions = isAdmin || currentUser?.role === 'manager';
 
   // Enhanced debounced action handler with timeout management
   const performStatusUpdate = useCallback(async (
@@ -102,34 +107,39 @@ export const RequestActions = ({ status, requestId, onStatusChange }: RequestAct
     if (status === 'completed') {
       performStatusUpdate(
         50, 
-        "Request reopened by admin/manager",
+        `Request reopened by ${currentUser?.role || 'user'}`,
         "Request reopened successfully",
         'reopen'
       );
     } else {
       performStatusUpdate(
         100, 
-        "Request marked as complete by admin/manager",
+        `Request marked as complete by ${currentUser?.role || 'user'}`,
         "Request marked as complete",
         'complete'
       );
     }
-  }, [status, performStatusUpdate]);
+  }, [status, performStatusUpdate, currentUser?.role]);
 
-  // Handler for cancel action
+  // Handler for cancel action - available to both admins and managers
   const handleCancelRequest = useCallback(() => {
     performStatusUpdate(
       0, 
-      "Request cancelled by admin/manager",
+      `Request cancelled by ${currentUser?.role || 'user'}`,
       "Request cancelled successfully",
       'cancel'
     );
-  }, [performStatusUpdate]);
+  }, [performStatusUpdate, currentUser?.role]);
 
   // Determine if a specific button should be disabled
   const isButtonDisabled = (action: 'reopen' | 'complete' | 'cancel') => {
     return isProcessing || (actionType !== 'none' && actionType !== action);
   };
+
+  // Don't show actions if user doesn't have permission
+  if (!canPerformActions) {
+    return null;
+  }
 
   return (
     <Card className="p-6">

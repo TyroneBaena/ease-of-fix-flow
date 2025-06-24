@@ -1,102 +1,76 @@
-import React, { useCallback, useRef } from 'react';
-import { Button } from "@/components/ui/button";
-import { ContractorAssignment } from '@/components/request/ContractorAssignment';
+
+import React from 'react';
+import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
+import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
 import { RequestActions } from '@/components/request/RequestActions';
 import { QuotesList } from '@/components/request/QuotesList';
-import { JobProgressCard } from '@/components/contractor/JobProgressCard';
+import { ContractorAssignment } from '@/components/request/ContractorAssignment';
 import { MaintenanceRequest } from '@/types/maintenance';
+import { useUserContext } from '@/contexts/UserContext';
 
 interface RequestDetailSidebarProps {
   request: MaintenanceRequest;
   quotes: any[];
   isContractor: boolean;
   onOpenQuoteDialog: () => void;
-  onOpenRequestQuoteDialog: () => void;  // New prop for requesting quotes
-  onRefreshData?: () => void;
+  onOpenRequestQuoteDialog: () => void;
+  onRefreshData: () => void;
 }
 
-export const RequestDetailSidebar = ({
-  request,
-  quotes,
-  isContractor,
-  onOpenQuoteDialog,
-  onOpenRequestQuoteDialog,  // New prop
-  onRefreshData
+export const RequestDetailSidebar = ({ 
+  request, 
+  quotes, 
+  isContractor, 
+  onOpenQuoteDialog, 
+  onOpenRequestQuoteDialog, 
+  onRefreshData 
 }: RequestDetailSidebarProps) => {
-  // Use a ref to track if refresh has been called already
-  const hasRefreshedRef = useRef(false);
-  const buttonClickTimeRef = useRef(0);
-  
-  // Single-execution refresh handler
-  const handleContractorAssigned = useCallback(() => {
-    console.log("RequestDetailSidebar - Contractor assigned/changed, checking if refresh allowed");
-    
-    // Only allow refresh once per component lifecycle
-    if (hasRefreshedRef.current) {
-      console.log("RequestDetailSidebar - Already refreshed once, preventing additional refreshes");
-      return;
-    }
-    
-    // Mark as refreshed
-    hasRefreshedRef.current = true;
-    
-    // Only call refresh if provided
-    if (onRefreshData) {
-      console.log("RequestDetailSidebar - Executing ONE-TIME refresh");
-      onRefreshData();
-    }
-  }, [onRefreshData]);
+  const { currentUser, isAdmin } = useUserContext();
 
-  // Add debouncing for button click 
-  const handleSubmitQuoteClick = () => {
-    const now = Date.now();
-    // Prevent multiple rapid clicks (1 second cooldown)
-    if (now - buttonClickTimeRef.current < 1000) {
-      return;
-    }
-    buttonClickTimeRef.current = now;
-    onOpenQuoteDialog();
-  };
+  // Check if user can access contractor features (admins only, not managers)
+  const canAccessContractorFeatures = isAdmin;
 
   return (
     <div className="space-y-6">
-      
-      {(request.contractorId || request.completionPercentage > 0) && (
-        <JobProgressCard
-          request={request}
-          isContractor={isContractor}
-        />
-      )}
-
-      <ContractorAssignment 
-        requestId={request.id}
-        isAssigned={!!request.contractorId}
-        currentContractorId={request.contractorId}
-        onOpenQuoteDialog={onOpenRequestQuoteDialog}  // Changed to use the request quote dialog
-        onContractorAssigned={handleContractorAssigned}
-      />
-      
-      {quotes && quotes.length > 0 && (
-        <QuotesList 
-          quotes={quotes} 
-          requestId={request.id}
-          onDataChange={onRefreshData}
-        />
-      )}
-      
+      {/* Request Actions - Available to both admins and managers */}
       <RequestActions 
         status={request.status} 
         requestId={request.id}
         onStatusChange={onRefreshData}
       />
       
-      {false && isContractor && request.status !== 'completed' && (
-        <Button 
-          onClick={handleSubmitQuoteClick}
-          className="w-full"
-        >
-          Submit Quote
-        </Button>
+      {/* Contractor Assignment - Only for admins */}
+      {canAccessContractorFeatures && (
+        <ContractorAssignment 
+          request={request}
+          onAssignmentChange={onRefreshData}
+        />
+      )}
+      
+      {/* Quotes List - Only for admins */}
+      {canAccessContractorFeatures && (
+        <QuotesList 
+          quotes={quotes}
+          requestId={request.id}
+          onQuoteUpdate={onRefreshData}
+          onRequestQuote={onOpenRequestQuoteDialog}
+        />
+      )}
+      
+      {/* Contractor Quote Submission - Only for contractors */}
+      {isContractor && (
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h3 className="font-medium text-blue-900 mb-2">Submit Quote</h3>
+          <p className="text-sm text-blue-700 mb-3">
+            Provide your quote for this maintenance request.
+          </p>
+          <button 
+            onClick={onOpenQuoteDialog}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+          >
+            Submit Quote
+          </button>
+        </div>
       )}
     </div>
   );
