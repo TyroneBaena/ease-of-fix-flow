@@ -42,8 +42,11 @@ export const RequestDetailSidebar = ({
       {/* Contractor Assignment - Only for admins */}
       {canAccessContractorFeatures && (
         <ContractorAssignment 
-          request={request}
-          onAssignmentChange={onRefreshData}
+          requestId={request.id}
+          isAssigned={!!request.contractorId}
+          currentContractorId={request.contractorId}
+          onOpenQuoteDialog={onOpenRequestQuoteDialog}
+          onContractorAssigned={onRefreshData}
         />
       )}
       
@@ -52,8 +55,7 @@ export const RequestDetailSidebar = ({
         <QuotesList 
           quotes={quotes}
           requestId={request.id}
-          onQuoteUpdate={onRefreshData}
-          onRequestQuote={onOpenRequestQuoteDialog}
+          onDataChange={onRefreshData}
         />
       )}
       
