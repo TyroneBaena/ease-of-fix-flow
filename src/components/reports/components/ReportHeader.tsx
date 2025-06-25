@@ -11,12 +11,19 @@ interface ReportHeaderProps {
   filteredRequests: MaintenanceRequest[];
   getPropertyName: (propertyId: string) => string;
   onRefresh?: () => void;
+  // Add filter information for export filename
+  currentFilters?: {
+    propertyFilter: string;
+    statusFilter: string;
+    searchTerm: string;
+  };
 }
 
 const ReportHeader: React.FC<ReportHeaderProps> = ({ 
   filteredRequests, 
   getPropertyName,
-  onRefresh
+  onRefresh,
+  currentFilters
 }) => {
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
@@ -40,36 +47,86 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Maintenance Requests');
     
-    // Generate file name with date
-    const fileName = `maintenance-requests-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    // Generate more descriptive file name based on applied filters
+    let fileName = 'maintenance-requests';
+    
+    if (currentFilters) {
+      if (currentFilters.propertyFilter !== 'all') {
+        fileName += `-${getPropertyName(currentFilters.propertyFilter).replace(/\s+/g, '-').toLowerCase()}`;
+      }
+      if (currentFilters.statusFilter !== 'all') {
+        fileName += `-${currentFilters.statusFilter}`;
+      }
+      if (currentFilters.searchTerm) {
+        fileName += `-search`;
+      }
+    }
+    
+    fileName += `-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     
     // Write and download
     XLSX.writeFile(workbook, fileName);
   };
 
+  // Generate filter summary for display
+  const getFilterSummary = () => {
+    if (!currentFilters) return '';
+    
+    const filters = [];
+    if (currentFilters.propertyFilter !== 'all') {
+      filters.push(`Property: ${getPropertyName(currentFilters.propertyFilter)}`);
+    }
+    if (currentFilters.statusFilter !== 'all') {
+      filters.push(`Status: ${currentFilters.statusFilter}`);
+    }
+    if (currentFilters.searchTerm) {
+      filters.push(`Search: "${currentFilters.searchTerm}"`);
+    }
+    
+    return filters.length > 0 ? ` (${filters.join(', ')})` : '';
+  };
+
   return (
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-xl font-semibold">Maintenance Requests Report</h2>
-      <div className="flex gap-2">
-        {onRefresh && (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">Maintenance Requests Report</h2>
+          {currentFilters && getFilterSummary() && (
+            <p className="text-sm text-gray-600 mt-1">
+              Filtered results{getFilterSummary()}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {onRefresh && (
+            <Button 
+              variant="outline" 
+              onClick={onRefresh} 
+              className="flex items-center"
+              title="Refresh data"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
           <Button 
-            variant="outline" 
-            onClick={onRefresh} 
+            onClick={downloadExcel} 
             className="flex items-center"
-            title="Refresh data"
+            disabled={filteredRequests.length === 0}
+            title={`Export ${filteredRequests.length} filtered results to Excel`}
           >
-            <RefreshCw className="h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
+            Export Filtered ({filteredRequests.length})
           </Button>
-        )}
-        <Button 
-          onClick={downloadExcel} 
-          className="flex items-center"
-          disabled={filteredRequests.length === 0}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Download Excel
-        </Button>
+        </div>
       </div>
+      
+      {filteredRequests.length === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+          <p className="text-sm text-yellow-800">
+            No data matches the current filters. Adjust your filters to see results.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

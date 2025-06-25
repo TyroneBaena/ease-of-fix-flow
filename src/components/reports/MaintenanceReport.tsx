@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property';
 import { useUserContext } from '@/contexts/UserContext';
@@ -188,11 +187,19 @@ const MaintenanceReport = () => {
     return properties.find(p => p.id === propertyId)?.name || 'Unknown Property';
   };
   
+  // Prepare current filter state for export
+  const currentFilters = {
+    propertyFilter,
+    statusFilter,
+    searchTerm
+  };
+  
   return (
     <div>
       <ReportHeader 
         filteredRequests={filteredRequests}
         getPropertyName={getPropertyName}
+        currentFilters={currentFilters}
       />
       
       <ReportFilters
