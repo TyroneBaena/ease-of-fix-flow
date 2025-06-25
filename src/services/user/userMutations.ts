@@ -8,6 +8,7 @@ export async function updateUserProfile(user: User): Promise<void> {
     .update({
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       assigned_properties: user.role === 'manager' ? user.assignedProperties : [],
       updated_at: new Date().toISOString()

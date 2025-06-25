@@ -15,6 +15,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  phone?: string; // Added phone field
   profilePicture?: string;
   assignedProperties?: string[]; // Array of property IDs for managers
   createdAt: string;

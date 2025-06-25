@@ -23,6 +23,7 @@ interface AccountSettingsProps {
 const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
   const { updateUser, resetPassword } = useUserContext();
   const [name, setName] = useState(user.name);
+  const [phone, setPhone] = useState(user.phone || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isResetSubmitting, setIsResetSubmitting] = useState(false);
@@ -38,10 +39,11 @@ const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
     setIsSubmitting(true);
     
     try {
-      // Create updated user object with new name
+      // Create updated user object with new name and phone
       const updatedUser = {
         ...user,
-        name: name.trim()
+        name: name.trim(),
+        phone: phone.trim() || undefined
       };
       
       await updateUser(updatedUser);
@@ -98,6 +100,18 @@ const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
             placeholder="Your full name"
             required
           />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input 
+            id="phone" 
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Your phone number"
+          />
+          <p className="text-sm text-gray-500">Optional - for contact purposes</p>
         </div>
         
         <div className="space-y-2">
