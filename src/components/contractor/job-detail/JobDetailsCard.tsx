@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -13,28 +14,28 @@ export const JobDetailsCard = ({ job }: JobDetailsCardProps) => {
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'low':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Low Priority</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">Low Priority</Badge>;
       case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Medium Priority</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">Medium Priority</Badge>;
       case 'high':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">High Priority</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">High Priority</Badge>;
       default:
-        return <Badge variant="outline">{priority}</Badge>;
+        return <Badge variant="outline" className="hover:bg-transparent">{priority}</Badge>;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">Pending</Badge>;
       case 'in-progress':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">In Progress</Badge>;
       case 'completed':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">Completed</Badge>;
       case 'open':
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Open</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100">Open</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="hover:bg-transparent">{status}</Badge>;
     }
   };
 
