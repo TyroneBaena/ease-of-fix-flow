@@ -215,6 +215,54 @@ export type Database = {
           },
         ]
       }
+      job_scheduling_history: {
+        Row: {
+          action: string
+          contractor_id: string
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          request_id: string
+          scheduled_dates: Json
+        }
+        Insert: {
+          action: string
+          contractor_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          request_id: string
+          scheduled_dates?: Json
+        }
+        Update: {
+          action?: string
+          contractor_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+          scheduled_dates?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_scheduling_history_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_scheduling_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_requests: {
         Row: {
           assigned_at: string | null
