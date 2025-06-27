@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 interface SchedulingHistoryItem {
   id: string;
@@ -12,6 +13,30 @@ interface SchedulingHistoryItem {
   created_by: string;
   created_at: string;
 }
+
+// Helper function to convert Json to array
+const convertJsonToArray = (jsonData: Json): any[] => {
+  if (Array.isArray(jsonData)) {
+    return jsonData;
+  }
+  if (jsonData === null || jsonData === undefined) {
+    return [];
+  }
+  // If it's a string, try to parse it
+  if (typeof jsonData === 'string') {
+    try {
+      const parsed = JSON.parse(jsonData);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  // If it's an object, wrap it in an array
+  if (typeof jsonData === 'object') {
+    return [jsonData];
+  }
+  return [];
+};
 
 export const useSchedulingHistory = (requestId: string | null) => {
   const [history, setHistory] = useState<SchedulingHistoryItem[]>([]);
@@ -33,7 +58,13 @@ export const useSchedulingHistory = (requestId: string | null) => {
         return;
       }
 
-      setHistory(data || []);
+      // Convert the data to match our interface
+      const convertedHistory: SchedulingHistoryItem[] = (data || []).map(item => ({
+        ...item,
+        scheduled_dates: convertJsonToArray(item.scheduled_dates)
+      }));
+
+      setHistory(convertedHistory);
     } catch (error) {
       console.error('Error fetching scheduling history:', error);
     } finally {
