@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
