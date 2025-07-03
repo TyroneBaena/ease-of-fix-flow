@@ -40,7 +40,7 @@ export const QuoteDetails = ({ amount, description, status, submittedAt }: Quote
         >
           {status}
         </Badge>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-white">
           {status === 'requested' ? 'Requested ' : 'Submitted '}
           {formatDistanceToNow(new Date(submittedAt), { addSuffix: true })}
         </span>
