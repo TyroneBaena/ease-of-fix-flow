@@ -31,7 +31,7 @@ export const QuoteDetails = ({ amount, description, status, submittedAt }: Quote
         </div>
       )}
       {description && (
-        <p className="text-sm text-white">{description}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       )}
       <div className="flex items-center gap-2">
         <Badge 
