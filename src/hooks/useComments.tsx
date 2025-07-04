@@ -93,21 +93,30 @@ export function useComments(requestId: string) {
 
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
-    if (!requestId || !currentUser) {
+    if (!requestId || !currentUser?.id) {
       toast.error('You must be logged in to add comments');
       return false;
     }
     
     try {
-      console.log('Adding comment:', { requestId, text, user: currentUser.name });
+      console.log('Adding comment with user data:', { 
+        userId: currentUser.id, 
+        requestId, 
+        text, 
+        userName: currentUser.name,
+        userRole: currentUser.role 
+      });
       
+      // Ensure we're passing the user_id as a proper UUID string
       const newComment = {
-        user_id: currentUser.id,
+        user_id: currentUser.id, // Make sure this is a string UUID
         request_id: requestId,
         text: text,
         user_name: currentUser.name || currentUser.email || 'Anonymous',
         user_role: currentUser.role || 'User'
       };
+      
+      console.log('Comment data being inserted:', newComment);
       
       const { data, error } = await supabase
         .from('comments')
@@ -117,6 +126,8 @@ export function useComments(requestId: string) {
       
       if (error) {
         console.error('Error adding comment:', error);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
         toast.error('Failed to add comment');
         return false;
       }
@@ -129,7 +140,7 @@ export function useComments(requestId: string) {
         id: data.id,
         user: data.user_name,
         role: data.user_role,
-        avatar: '/placeholder.svg',
+        avatar: '',
         text: data.text,
         timestamp: 'Just now'
       };
