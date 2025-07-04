@@ -93,30 +93,44 @@ export function useComments(requestId: string) {
 
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
-    if (!requestId || !currentUser?.id) {
+    if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
+      return false;
+    }
+    
+    // Extract user ID properly - ensure it's a string
+    const userId = typeof currentUser.id === 'string' ? currentUser.id : String(currentUser.id);
+    
+    console.log('Current user object:', currentUser);
+    console.log('Extracted user ID:', userId);
+    console.log('User ID type:', typeof userId);
+    
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      console.error('Invalid user ID:', userId);
+      toast.error('Invalid user session. Please refresh and try again.');
       return false;
     }
     
     try {
       console.log('Adding comment with user data:', { 
-        userId: currentUser.id, 
+        userId, 
         requestId, 
         text, 
         userName: currentUser.name,
         userRole: currentUser.role 
       });
       
-      // Ensure we're passing the user_id as a proper UUID string
+      // Create comment data with properly formatted user_id
       const newComment = {
-        user_id: currentUser.id, // Make sure this is a string UUID
+        user_id: userId,
         request_id: requestId,
-        text: text,
+        text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
         user_role: currentUser.role || 'User'
       };
       
       console.log('Comment data being inserted:', newComment);
+      console.log('user_id type in newComment:', typeof newComment.user_id);
       
       const { data, error } = await supabase
         .from('comments')
@@ -128,6 +142,7 @@ export function useComments(requestId: string) {
         console.error('Error adding comment:', error);
         console.error('Error details:', error.details);
         console.error('Error hint:', error.hint);
+        console.error('Error code:', error.code);
         toast.error('Failed to add comment');
         return false;
       }
