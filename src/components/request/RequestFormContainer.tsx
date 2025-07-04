@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useRequestForm } from "@/hooks/useRequestForm";
@@ -54,9 +55,8 @@ export const RequestFormContainer = () => {
       location,
       reportDate,
       submittedBy,
-      category,
       priority,
-      budgetCategoryId // Include the budgetCategoryId
+      budgetCategoryId
     } = formState;
     
     // Get the selected property to use its name as the site
@@ -66,7 +66,8 @@ export const RequestFormContainer = () => {
     console.log('RequestForm - Selected property:', selectedProperty);
     console.log('RequestForm - Site name:', site);
     
-    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !category || !priority || !budgetCategoryId) {
+    // Fix validation to check the correct fields
+    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !priority || !budgetCategoryId) {
       console.log('RequestForm - Validation failed - missing required fields');
       toast.error("Please fill in all required fields including category and priority");
       return;
@@ -119,7 +120,7 @@ export const RequestFormContainer = () => {
       const requestData = {
         title: issueNature, // Use issueNature as title which is required
         description: explanation, // Map explanation to description
-        category, // Use the selected category
+        category: budgetCategoryId, // Use the selected budget category ID as category
         priority, // Use the selected priority
         budget_category_id: budgetCategoryId, // Add budget category ID
         isParticipantRelated: isParticipantRelated || false,
