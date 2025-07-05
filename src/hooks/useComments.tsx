@@ -91,40 +91,29 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Debug function to check user permissions
-  const debugUserPermissions = useCallback(async () => {
-    if (!currentUser) {
-      console.log('No current user found');
-      return;
+  // Helper function to extract the actual user ID string
+  const extractUserId = useCallback(async (): Promise<string | null> => {
+    try {
+      // First, try to get the user ID directly from Supabase auth
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Error getting auth user:', error);
+        return null;
+      }
+      
+      if (user?.id) {
+        console.log('Using auth user ID:', user.id);
+        return user.id;
+      }
+      
+      console.error('No authenticated user found');
+      return null;
+    } catch (error) {
+      console.error('Error extracting user ID:', error);
+      return null;
     }
-
-    console.log('=== DEBUGGING USER PERMISSIONS ===');
-    console.log('Current user:', currentUser);
-    console.log('Auth UID:', (await supabase.auth.getUser()).data.user?.id);
-    
-    // Check if user is in contractors table
-    const { data: contractorData, error: contractorError } = await supabase
-      .from('contractors')
-      .select('*')
-      .eq('user_id', currentUser.id);
-    
-    console.log('Contractor check:', { contractorData, contractorError });
-    
-    // Check maintenance request details
-    const { data: requestData, error: requestError } = await supabase
-      .from('maintenance_requests')
-      .select('*')
-      .eq('id', requestId);
-    
-    console.log('Request data:', { requestData, requestError });
-    
-    // Check user role from auth
-    const { data: userData } = await supabase.auth.getUser();
-    console.log('Auth user metadata:', userData.user?.user_metadata);
-    console.log('Auth user app metadata:', userData.user?.app_metadata);
-    
-    console.log('=== END DEBUG ===');
-  }, [currentUser, requestId]);
+  }, []);
 
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
@@ -133,15 +122,19 @@ export function useComments(requestId: string) {
       return false;
     }
     
-    // Run debug check before attempting to add comment
-    await debugUserPermissions();
+    // Get the actual user ID from Supabase auth
+    const userId = await extractUserId();
+    if (!userId) {
+      toast.error('Authentication error. Please log in again.');
+      return false;
+    }
     
     try {
-      console.log('Adding comment for user:', currentUser);
-      console.log('User ID being used:', currentUser.id);
+      console.log('Adding comment for user ID:', userId);
+      console.log('Current user context:', currentUser);
       
       const newComment = {
-        user_id: currentUser.id,
+        user_id: userId,
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -188,7 +181,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser, debugUserPermissions]);
+  }, [requestId, currentUser, extractUserId]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
