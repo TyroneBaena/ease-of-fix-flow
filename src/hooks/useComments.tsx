@@ -91,38 +91,40 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Helper function to extract proper user ID string
-  const getUserId = (user: any): string | null => {
-    if (!user) return null;
-    
-    // If id is already a string, return it
-    if (typeof user.id === 'string') {
-      return user.id;
+  // Debug function to check user permissions
+  const debugUserPermissions = useCallback(async () => {
+    if (!currentUser) {
+      console.log('No current user found');
+      return;
     }
+
+    console.log('=== DEBUGGING USER PERMISSIONS ===');
+    console.log('Current user:', currentUser);
+    console.log('Auth UID:', (await supabase.auth.getUser()).data.user?.id);
     
-    // If id is an object with value property, extract it
-    if (user.id && typeof user.id === 'object' && user.id.value) {
-      return String(user.id.value);
-    }
+    // Check if user is in contractors table
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('*')
+      .eq('user_id', currentUser.id);
     
-    // If user has a direct UUID property
-    if (user.uuid) {
-      return String(user.uuid);
-    }
+    console.log('Contractor check:', { contractorData, contractorError });
     
-    // Last resort - try to extract from string representation
-    if (user.id) {
-      const idStr = String(user.id);
-      // Check if it's a UUID pattern
-      const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-      const match = idStr.match(uuidPattern);
-      if (match) {
-        return match[0];
-      }
-    }
+    // Check maintenance request details
+    const { data: requestData, error: requestError } = await supabase
+      .from('maintenance_requests')
+      .select('*')
+      .eq('id', requestId);
     
-    return null;
-  };
+    console.log('Request data:', { requestData, requestError });
+    
+    // Check user role from auth
+    const { data: userData } = await supabase.auth.getUser();
+    console.log('Auth user metadata:', userData.user?.user_metadata);
+    console.log('Auth user app metadata:', userData.user?.app_metadata);
+    
+    console.log('=== END DEBUG ===');
+  }, [currentUser, requestId]);
 
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
@@ -131,19 +133,15 @@ export function useComments(requestId: string) {
       return false;
     }
     
-    const userId = getUserId(currentUser);
-    if (!userId) {
-      console.error('Could not extract valid user ID from:', currentUser);
-      toast.error('Invalid user session. Please log in again.');
-      return false;
-    }
+    // Run debug check before attempting to add comment
+    await debugUserPermissions();
     
     try {
       console.log('Adding comment for user:', currentUser);
-      console.log('Extracted user ID:', userId);
+      console.log('User ID being used:', currentUser.id);
       
       const newComment = {
-        user_id: userId,
+        user_id: currentUser.id,
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -160,12 +158,17 @@ export function useComments(requestId: string) {
       
       if (error) {
         console.error('Error adding comment:', error);
-        toast.error('Failed to add comment');
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        toast.error(`Failed to add comment: ${error.message}`);
         return false;
       }
       
       console.log('Comment added successfully:', data);
-      console.log('Database trigger should now create notifications for relevant users');
       
       // Optimistically update the UI
       const formattedComment: Comment = {
@@ -185,7 +188,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser]);
+  }, [requestId, currentUser, debugUserPermissions]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
