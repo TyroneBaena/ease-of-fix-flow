@@ -91,19 +91,59 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
+  // Helper function to extract proper user ID string
+  const getUserId = (user: any): string | null => {
+    if (!user) return null;
+    
+    // If id is already a string, return it
+    if (typeof user.id === 'string') {
+      return user.id;
+    }
+    
+    // If id is an object with value property, extract it
+    if (user.id && typeof user.id === 'object' && user.id.value) {
+      return String(user.id.value);
+    }
+    
+    // If user has a direct UUID property
+    if (user.uuid) {
+      return String(user.uuid);
+    }
+    
+    // Last resort - try to extract from string representation
+    if (user.id) {
+      const idStr = String(user.id);
+      // Check if it's a UUID pattern
+      const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const match = idStr.match(uuidPattern);
+      if (match) {
+        return match[0];
+      }
+    }
+    
+    return null;
+  };
+
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
-    if (!requestId || !currentUser?.id) {
+    if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
+      return false;
+    }
+    
+    const userId = getUserId(currentUser);
+    if (!userId) {
+      console.error('Could not extract valid user ID from:', currentUser);
+      toast.error('Invalid user session. Please log in again.');
       return false;
     }
     
     try {
       console.log('Adding comment for user:', currentUser);
-      console.log('Current user ID:', currentUser.id);
+      console.log('Extracted user ID:', userId);
       
       const newComment = {
-        user_id: currentUser.id,
+        user_id: userId,
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
