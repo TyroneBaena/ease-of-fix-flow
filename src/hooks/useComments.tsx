@@ -99,10 +99,24 @@ export function useComments(requestId: string) {
     }
     
     try {
-      console.log('Adding comment for user:', currentUser.id);
+      console.log('Adding comment for user:', currentUser);
+      console.log('Current user ID type:', typeof currentUser.id);
+      console.log('Current user ID value:', currentUser.id);
+      
+      // Ensure we have a proper string user ID
+      let userId: string;
+      if (typeof currentUser.id === 'string') {
+        userId = currentUser.id;
+      } else if (currentUser.id && typeof currentUser.id === 'object' && 'value' in currentUser.id) {
+        userId = String(currentUser.id.value);
+      } else {
+        console.error('Invalid user ID format:', currentUser.id);
+        toast.error('Invalid user session. Please log in again.');
+        return false;
+      }
       
       const newComment = {
-        user_id: currentUser.id,
+        user_id: userId,
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
