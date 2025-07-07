@@ -91,7 +91,7 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Add a new comment using direct table insert with proper UUID handling
+  // Add a new comment - simplified approach with proper UUID handling
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
@@ -99,7 +99,7 @@ export function useComments(requestId: string) {
     }
     
     try {
-      // Get the current authenticated user directly from Supabase
+      // Get the current authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user?.id) {
@@ -108,22 +108,16 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      console.log('Authenticated user:', user);
-      console.log('User ID type:', typeof user.id);
-      console.log('User ID value:', user.id);
-      console.log('Current user context:', currentUser);
-      
-      // Ensure user.id is treated as a string and validate it's a proper UUID
-      const userId = String(user.id);
-      console.log('Processed user ID:', userId);
+      console.log('Adding comment for user:', user.id);
       console.log('Request ID:', requestId);
+      console.log('User context:', currentUser);
       
-      // Insert directly into the comments table with explicit type casting
+      // Insert directly into the comments table - the database now expects UUIDs
       const { data, error } = await supabase
         .from('comments')
         .insert({
-          user_id: userId,
-          request_id: requestId,
+          user_id: user.id, // This is already a UUID from Supabase auth
+          request_id: requestId, // This should also be a UUID
           text: text.trim(),
           user_name: currentUser.name || currentUser.email || 'Anonymous',
           user_role: currentUser.role || 'User'
