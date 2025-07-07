@@ -17,7 +17,8 @@ export const QuoteDetails = ({ amount, description, status, submittedAt }: Quote
       case 'approved': return 'bg-green-500 hover:bg-green-600 text-white';
       case 'rejected': return 'bg-red-500 hover:bg-red-600 text-white';
       case 'requested': return 'bg-blue-500 hover:bg-blue-600 text-white';
-      default: return 'text-white';
+      case 'pending': return 'bg-blue-500 hover:bg-blue-600 text-white';
+      default: return '';
     }
   };
 

@@ -150,7 +150,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
             <TableCell>
               {filterQuoteRequests ? (
                 // For quote requests, show quote amount if submitted, otherwise "Not quoted"
-                request.quote && typeof request.quote !== 'string' && request.quote.amount
+                request.quote && typeof request.quote !== 'string' && request.quote.amount && request.quote.amount > 1
                   ? `$${request.quote.amount}`
                   : request.quotedAmount 
                     ? `$${request.quotedAmount}`

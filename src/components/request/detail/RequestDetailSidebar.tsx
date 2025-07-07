@@ -74,7 +74,7 @@ export const RequestDetailSidebar = ({
       )}
       
       {/* Contractor Quote Submission - Only for contractors */}
-      {isContractor && (
+      {!isAdmin && isContractor && (
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="font-medium text-blue-900 mb-2">Submit Quote</h3>
           <p className="text-sm text-blue-700 mb-3">
