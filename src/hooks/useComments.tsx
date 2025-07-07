@@ -120,7 +120,7 @@ export function useComments(requestId: string) {
         p_user_role: currentUser.role || 'User'
       });
       
-      // Use the RPC function to handle UUID casting properly
+      // Use the RPC function with proper UUID parameters
       const { data, error } = await supabase.rpc('insert_comment', {
         p_user_id: user.id,
         p_request_id: requestId,
