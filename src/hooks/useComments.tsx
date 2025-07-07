@@ -108,40 +108,27 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      // Ensure we have a proper UUID string
-      const userIdString = String(user.id).trim();
-      
       console.log('Authenticated user:', user);
       console.log('User ID from auth:', user.id);
-      console.log('User ID as string:', userIdString);
-      console.log('User ID type:', typeof userIdString);
       console.log('Current user context:', currentUser);
       
-      // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(userIdString)) {
-        console.error('Invalid UUID format:', userIdString);
-        toast.error('Invalid user ID format. Please log in again.');
-        return false;
-      }
-      
       const newComment = {
-        user_id: userIdString, // Explicitly use string
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
         user_role: currentUser.role || 'User'
       };
       
-      console.log('Comment data being inserted:', newComment);
-      console.log('user_id type in comment:', typeof newComment.user_id);
-      console.log('user_id value:', newComment.user_id);
+      console.log('Comment data being inserted (without user_id):', newComment);
       
-      const { data, error } = await supabase
-        .from('comments')
-        .insert(newComment)
-        .select()
-        .single();
+      // Use a raw SQL query to properly cast the UUID
+      const { data, error } = await supabase.rpc('insert_comment', {
+        p_user_id: user.id,
+        p_request_id: requestId,
+        p_text: text.trim(),
+        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
+        p_user_role: currentUser.role || 'User'
+      });
       
       if (error) {
         console.error('Error adding comment:', error);
@@ -155,19 +142,10 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      console.log('Comment added successfully:', data);
+      console.log('Comment added successfully via RPC:', data);
       
-      // Optimistically update the UI
-      const formattedComment: Comment = {
-        id: data.id,
-        user: data.user_name,
-        role: data.user_role,
-        avatar: '',
-        text: data.text,
-        timestamp: 'Just now'
-      };
-      
-      setComments(prev => [formattedComment, ...prev]);
+      // Refresh comments to get the new one
+      await fetchComments();
       toast.success('Comment added');
       return true;
     } catch (error) {
@@ -175,7 +153,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser]);
+  }, [requestId, currentUser, fetchComments]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
