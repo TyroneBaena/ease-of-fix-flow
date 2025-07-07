@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUserContext } from '@/contexts/UserContext';
@@ -112,16 +111,10 @@ export function useComments(requestId: string) {
       console.log('Authenticated user:', user);
       console.log('Raw user ID:', user.id);
       console.log('User ID type:', typeof user.id);
-      
-      // Extract the user ID - handle both string and object cases
-      const userId = typeof user.id === 'string' ? user.id : user.id.toString();
-      
-      console.log('Processed user ID:', userId);
-      console.log('Processed user ID type:', typeof userId);
       console.log('Current user context:', currentUser);
       
       console.log('Calling insert_comment function with:', {
-        p_user_id: userId,
+        p_user_id: user.id,
         p_request_id: requestId,
         p_text: text.trim(),
         p_user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -130,7 +123,7 @@ export function useComments(requestId: string) {
       
       // Use the RPC function with proper parameters
       const { data, error } = await supabase.rpc('insert_comment', {
-        p_user_id: userId,
+        p_user_id: user.id,
         p_request_id: requestId,
         p_text: text.trim(),
         p_user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -174,4 +167,3 @@ export function useComments(requestId: string) {
     refreshComments: fetchComments
   };
 }
-
