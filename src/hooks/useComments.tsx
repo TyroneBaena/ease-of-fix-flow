@@ -110,10 +110,26 @@ export function useComments(requestId: string) {
       
       console.log('Authenticated user:', user);
       console.log('User ID from auth:', user.id);
+      console.log('User ID type:', typeof user.id);
       console.log('Current user context:', currentUser);
       
+      // Ensure we have a string UUID - extract it properly
+      let userIdString: string;
+      if (typeof user.id === 'string') {
+        userIdString = user.id;
+      } else if (user.id && typeof user.id === 'object' && 'toString' in user.id) {
+        userIdString = user.id.toString();
+      } else {
+        console.error('Unable to extract user ID as string:', user.id);
+        toast.error('Unable to identify user');
+        return false;
+      }
+      
+      console.log('Final user ID string:', userIdString);
+      console.log('Final user ID string type:', typeof userIdString);
+      
       console.log('Calling insert_comment function with:', {
-        p_user_id: user.id,
+        p_user_id: userIdString,
         p_request_id: requestId,
         p_text: text.trim(),
         p_user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -122,7 +138,7 @@ export function useComments(requestId: string) {
       
       // Use the RPC function with proper UUID parameters
       const { data, error } = await supabase.rpc('insert_comment', {
-        p_user_id: user.id,
+        p_user_id: userIdString,
         p_request_id: requestId,
         p_text: text.trim(),
         p_user_name: currentUser.name || currentUser.email || 'Anonymous',
