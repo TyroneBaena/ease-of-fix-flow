@@ -91,7 +91,7 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Add a new comment - simplified approach with proper UUID handling
+  // Add a new comment with explicit UUID casting
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
@@ -112,18 +112,14 @@ export function useComments(requestId: string) {
       console.log('Request ID:', requestId);
       console.log('User context:', currentUser);
       
-      // Insert directly into the comments table - the database now expects UUIDs
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
-          user_id: user.id, // This is already a UUID from Supabase auth
-          request_id: requestId, // This should also be a UUID
-          text: text.trim(),
-          user_name: currentUser.name || currentUser.email || 'Anonymous',
-          user_role: currentUser.role || 'User'
-        })
-        .select()
-        .single();
+      // Use rpc to call a database function for safer UUID handling
+      const { data, error } = await supabase.rpc('add_new_comment', {
+        p_user_id: user.id,
+        p_request_id: requestId,
+        p_text: text.trim(),
+        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
+        p_user_role: currentUser.role || 'User'
+      });
       
       if (error) {
         console.error('Error adding comment:', error);
