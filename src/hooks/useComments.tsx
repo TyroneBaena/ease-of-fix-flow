@@ -102,19 +102,31 @@ export function useComments(requestId: string) {
       // Get the current authenticated user directly from Supabase
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError || !user) {
+      if (authError || !user || !user.id) {
         console.error('Auth error:', authError);
         toast.error('Authentication error. Please log in again.');
         return false;
       }
       
+      // Ensure we have a proper UUID string
+      const userIdString = String(user.id).trim();
+      
       console.log('Authenticated user:', user);
       console.log('User ID from auth:', user.id);
-      console.log('User ID type:', typeof user.id);
+      console.log('User ID as string:', userIdString);
+      console.log('User ID type:', typeof userIdString);
       console.log('Current user context:', currentUser);
       
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userIdString)) {
+        console.error('Invalid UUID format:', userIdString);
+        toast.error('Invalid user ID format. Please log in again.');
+        return false;
+      }
+      
       const newComment = {
-        user_id: user.id, // Use the UUID directly from Supabase auth
+        user_id: userIdString, // Explicitly use string
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -123,6 +135,7 @@ export function useComments(requestId: string) {
       
       console.log('Comment data being inserted:', newComment);
       console.log('user_id type in comment:', typeof newComment.user_id);
+      console.log('user_id value:', newComment.user_id);
       
       const { data, error } = await supabase
         .from('comments')
