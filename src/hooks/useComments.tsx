@@ -112,7 +112,7 @@ export function useComments(requestId: string) {
       console.log('User ID:', user.id);
       console.log('Current user context:', currentUser);
       
-      console.log('Calling insert_comment function with:', {
+      console.log('Calling add_new_comment function with:', {
         p_user_id: user.id,
         p_request_id: requestId,
         p_text: text.trim(),
@@ -120,8 +120,8 @@ export function useComments(requestId: string) {
         p_user_role: currentUser.role || 'User'
       });
       
-      // Use the RPC function with string parameters
-      const { data, error } = await supabase.rpc('insert_comment', {
+      // Use the new RPC function with string parameters
+      const { data, error } = await supabase.rpc('add_new_comment', {
         p_user_id: user.id,
         p_request_id: requestId,
         p_text: text.trim(),

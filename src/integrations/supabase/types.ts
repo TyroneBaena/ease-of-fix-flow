@@ -692,6 +692,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_new_comment: {
+        Args: {
+          p_user_id: string
+          p_request_id: string
+          p_text: string
+          p_user_name: string
+          p_user_role: string
+        }
+        Returns: string
+      }
       create_comment_notifications: {
         Args: {
           request_id_param: string
@@ -733,16 +743,6 @@ export type Database = {
       }
       get_user_schema: {
         Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      insert_comment: {
-        Args: {
-          p_user_id: string
-          p_request_id: string
-          p_text: string
-          p_user_name: string
-          p_user_role: string
-        }
         Returns: string
       }
       is_admin: {
