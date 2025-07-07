@@ -91,7 +91,7 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Add a new comment using direct table insert instead of RPC
+  // Add a new comment using direct table insert with proper UUID handling
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
@@ -109,14 +109,20 @@ export function useComments(requestId: string) {
       }
       
       console.log('Authenticated user:', user);
-      console.log('User ID:', user.id);
+      console.log('User ID type:', typeof user.id);
+      console.log('User ID value:', user.id);
       console.log('Current user context:', currentUser);
       
-      // Insert directly into the comments table instead of using RPC
+      // Ensure user.id is treated as a string and validate it's a proper UUID
+      const userId = String(user.id);
+      console.log('Processed user ID:', userId);
+      console.log('Request ID:', requestId);
+      
+      // Insert directly into the comments table with explicit type casting
       const { data, error } = await supabase
         .from('comments')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           request_id: requestId,
           text: text.trim(),
           user_name: currentUser.name || currentUser.email || 'Anonymous',
