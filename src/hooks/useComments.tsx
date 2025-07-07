@@ -113,17 +113,8 @@ export function useComments(requestId: string) {
       console.log('User ID type:', typeof user.id);
       console.log('Current user context:', currentUser);
       
-      // Ensure we have a string UUID - extract it properly
-      let userIdString: string;
-      if (typeof user.id === 'string') {
-        userIdString = user.id;
-      } else if (user.id && typeof user.id === 'object' && 'toString' in user.id) {
-        userIdString = user.id.toString();
-      } else {
-        console.error('Unable to extract user ID as string:', user.id);
-        toast.error('Unable to identify user');
-        return false;
-      }
+      // Supabase auth user.id is always a string, so we can use it directly
+      const userIdString = String(user.id);
       
       console.log('Final user ID string:', userIdString);
       console.log('Final user ID string type:', typeof userIdString);
