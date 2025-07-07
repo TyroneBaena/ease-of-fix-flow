@@ -91,35 +91,63 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Add a new comment with explicit UUID casting
+  // Helper function to extract the actual user ID string
+  const extractUserId = useCallback(async (): Promise<string | null> => {
+    try {
+      // First, try to get the user ID directly from Supabase auth
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Error getting auth user:', error);
+        return null;
+      }
+      
+      if (user?.id) {
+        console.log('Using auth user ID:', user.id);
+        return user.id;
+      }
+      
+      console.error('No authenticated user found');
+      return null;
+    } catch (error) {
+      console.error('Error extracting user ID:', error);
+      return null;
+    }
+  }, []);
+
+  // Add a new comment
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
       return false;
     }
     
+    // Get the actual user ID from Supabase auth
+    const userId = await extractUserId();
+    if (!userId) {
+      toast.error('Authentication error. Please log in again.');
+      return false;
+    }
+    
     try {
-      // Get the current authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Adding comment for user ID:', userId);
+      console.log('Current user context:', currentUser);
       
-      if (authError || !user?.id) {
-        console.error('Auth error:', authError);
-        toast.error('Authentication error. Please log in again.');
-        return false;
-      }
+      const newComment = {
+        user_id: userId,
+        request_id: requestId,
+        text: text.trim(),
+        user_name: currentUser.name || currentUser.email || 'Anonymous',
+        user_role: currentUser.role || 'User'
+      };
       
-      console.log('Adding comment for user:', user.id);
-      console.log('Request ID:', requestId);
-      console.log('User context:', currentUser);
+      console.log('Comment data being inserted:', newComment);
       
-      // Use rpc to call a database function for safer UUID handling
-      const { data, error } = await supabase.rpc('add_new_comment', {
-        p_user_id: user.id,
-        p_request_id: requestId,
-        p_text: text.trim(),
-        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
-        p_user_role: currentUser.role || 'User'
-      });
+      const { data, error } = await supabase
+        .from('comments')
+        .insert(newComment)
+        .select()
+        .single();
       
       if (error) {
         console.error('Error adding comment:', error);
@@ -135,8 +163,17 @@ export function useComments(requestId: string) {
       
       console.log('Comment added successfully:', data);
       
-      // Refresh comments to get the new one
-      await fetchComments();
+      // Optimistically update the UI
+      const formattedComment: Comment = {
+        id: data.id,
+        user: data.user_name,
+        role: data.user_role,
+        avatar: '',
+        text: data.text,
+        timestamp: 'Just now'
+      };
+      
+      setComments(prev => [formattedComment, ...prev]);
       toast.success('Comment added');
       return true;
     } catch (error) {
@@ -144,7 +181,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser, fetchComments]);
+  }, [requestId, currentUser, extractUserId]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
