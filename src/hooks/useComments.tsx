@@ -120,9 +120,8 @@ export function useComments(requestId: string) {
         p_user_role: currentUser.role || 'User'
       });
       
-      // Use the RPC function we just created to handle UUID casting properly
-      // We use 'any' to bypass TypeScript checking since the function was just created
-      const { data, error } = await (supabase as any).rpc('insert_comment', {
+      // Use the RPC function to handle UUID casting properly
+      const { data, error } = await supabase.rpc('insert_comment', {
         p_user_id: user.id,
         p_request_id: requestId,
         p_text: text.trim(),
