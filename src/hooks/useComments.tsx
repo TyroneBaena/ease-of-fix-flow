@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUserContext } from '@/contexts/UserContext';
@@ -102,34 +103,34 @@ export function useComments(requestId: string) {
       // Get the current authenticated user directly from Supabase
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError || !user || !user.id) {
+      if (authError || !user?.id) {
         console.error('Auth error:', authError);
         toast.error('Authentication error. Please log in again.');
         return false;
       }
       
       console.log('Authenticated user:', user);
-      console.log('User ID from auth:', user.id);
+      console.log('Raw user ID:', user.id);
       console.log('User ID type:', typeof user.id);
+      
+      // Extract the user ID - handle both string and object cases
+      const userId = typeof user.id === 'string' ? user.id : user.id.toString();
+      
+      console.log('Processed user ID:', userId);
+      console.log('Processed user ID type:', typeof userId);
       console.log('Current user context:', currentUser);
       
-      // Supabase auth user.id is always a string, so we can use it directly
-      const userIdString = String(user.id);
-      
-      console.log('Final user ID string:', userIdString);
-      console.log('Final user ID string type:', typeof userIdString);
-      
       console.log('Calling insert_comment function with:', {
-        p_user_id: userIdString,
+        p_user_id: userId,
         p_request_id: requestId,
         p_text: text.trim(),
         p_user_name: currentUser.name || currentUser.email || 'Anonymous',
         p_user_role: currentUser.role || 'User'
       });
       
-      // Use the RPC function with proper UUID parameters
+      // Use the RPC function with proper parameters
       const { data, error } = await supabase.rpc('insert_comment', {
-        p_user_id: userIdString,
+        p_user_id: userId,
         p_request_id: requestId,
         p_text: text.trim(),
         p_user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -173,3 +174,4 @@ export function useComments(requestId: string) {
     refreshComments: fetchComments
   };
 }
+
