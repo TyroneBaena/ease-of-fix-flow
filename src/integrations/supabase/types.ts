@@ -735,6 +735,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      insert_comment: {
+        Args: {
+          p_user_id: string
+          p_request_id: string
+          p_text: string
+          p_user_name: string
+          p_user_role: string
+        }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
