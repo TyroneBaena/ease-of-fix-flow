@@ -91,30 +91,6 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Helper function to extract the actual user ID string
-  const extractUserId = useCallback(async (): Promise<string | null> => {
-    try {
-      // First, try to get the user ID directly from Supabase auth
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error) {
-        console.error('Error getting auth user:', error);
-        return null;
-      }
-      
-      if (user?.id) {
-        console.log('Using auth user ID:', user.id);
-        return user.id;
-      }
-      
-      console.error('No authenticated user found');
-      return null;
-    } catch (error) {
-      console.error('Error extracting user ID:', error);
-      return null;
-    }
-  }, []);
-
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
@@ -122,19 +98,23 @@ export function useComments(requestId: string) {
       return false;
     }
     
-    // Get the actual user ID from Supabase auth
-    const userId = await extractUserId();
-    if (!userId) {
-      toast.error('Authentication error. Please log in again.');
-      return false;
-    }
-    
     try {
-      console.log('Adding comment for user ID:', userId);
+      // Get the current authenticated user directly from Supabase
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Auth error:', authError);
+        toast.error('Authentication error. Please log in again.');
+        return false;
+      }
+      
+      console.log('Authenticated user:', user);
+      console.log('User ID from auth:', user.id);
+      console.log('User ID type:', typeof user.id);
       console.log('Current user context:', currentUser);
       
       const newComment = {
-        user_id: userId,
+        user_id: user.id, // Use the UUID directly from Supabase auth
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
@@ -142,6 +122,7 @@ export function useComments(requestId: string) {
       };
       
       console.log('Comment data being inserted:', newComment);
+      console.log('user_id type in comment:', typeof newComment.user_id);
       
       const { data, error } = await supabase
         .from('comments')
@@ -181,7 +162,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser, extractUserId]);
+  }, [requestId, currentUser]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
