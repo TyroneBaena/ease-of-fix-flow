@@ -91,7 +91,7 @@ export function useComments(requestId: string) {
     }
   }, [requestId, formatComments]);
 
-  // Add a new comment
+  // Add a new comment using direct table insert instead of RPC
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
       toast.error('You must be logged in to add comments');
@@ -112,22 +112,18 @@ export function useComments(requestId: string) {
       console.log('User ID:', user.id);
       console.log('Current user context:', currentUser);
       
-      console.log('Calling add_new_comment function with:', {
-        p_user_id: user.id,
-        p_request_id: requestId,
-        p_text: text.trim(),
-        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
-        p_user_role: currentUser.role || 'User'
-      });
-      
-      // Use the new RPC function with string parameters
-      const { data, error } = await supabase.rpc('add_new_comment', {
-        p_user_id: user.id,
-        p_request_id: requestId,
-        p_text: text.trim(),
-        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
-        p_user_role: currentUser.role || 'User'
-      });
+      // Insert directly into the comments table instead of using RPC
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          user_id: user.id,
+          request_id: requestId,
+          text: text.trim(),
+          user_name: currentUser.name || currentUser.email || 'Anonymous',
+          user_role: currentUser.role || 'User'
+        })
+        .select()
+        .single();
       
       if (error) {
         console.error('Error adding comment:', error);
@@ -141,7 +137,7 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      console.log('Comment added successfully via RPC:', data);
+      console.log('Comment added successfully:', data);
       
       // Refresh comments to get the new one
       await fetchComments();
