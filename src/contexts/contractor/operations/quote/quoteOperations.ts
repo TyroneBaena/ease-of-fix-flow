@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { IncludeInfo, PropertyDetails } from '../types/quoteTypes';
 import { fetchPropertyDetails } from '../helpers/quoteHelpers';
@@ -9,7 +8,7 @@ import {
   createAssignmentNotification 
 } from '../notifications/quoteNotifications';
 
-// Update the requestQuote function to automatically include full site details
+// Update the requestQuote function to keep quote description simple
 export const requestQuote = async (
   requestId: string,
   contractorId: string,
@@ -21,9 +20,9 @@ export const requestQuote = async (
   console.log("Notes:", notes);
 
   try {
-    // Fetch property details first - this is now ALWAYS included automatically
+    // Fetch property details for notifications (not for quote description)
     const propertyDetails = await fetchPropertyDetails(requestId);
-    console.log("Fetched property details for automatic inclusion:", propertyDetails);
+    console.log("Fetched property details for notifications:", propertyDetails);
 
     // Check if a quote already exists for this contractor and request
     const { data: existingQuote, error: checkError } = await supabase
@@ -38,34 +37,18 @@ export const requestQuote = async (
       throw new Error(`Failed to check existing quote: ${checkError.message}`);
     }
 
-    // Create enhanced notes that AUTOMATICALLY include ALL site details
-    let enhancedNotes = notes || 'Quote requested';
-    
-    // ALWAYS include property details regardless of includeInfo settings
-    if (propertyDetails) {
-      enhancedNotes += `\n\n=== SITE DETAILS (AUTOMATICALLY INCLUDED) ===`;
-      enhancedNotes += `\nProperty Name: ${propertyDetails.name}`;
-      enhancedNotes += `\nProperty Address: ${propertyDetails.address}`;
-      enhancedNotes += `\nSite Phone Number: ${propertyDetails.contactNumber}`;
-      enhancedNotes += `\nPractice Leader: ${propertyDetails.practiceLeader}`;
-      if (propertyDetails.practiceLeaderPhone) {
-        enhancedNotes += `\nPractice Leader Phone: ${propertyDetails.practiceLeaderPhone}`;
-      }
-      if (propertyDetails.practiceLeaderEmail) {
-        enhancedNotes += `\nPractice Leader Email: ${propertyDetails.practiceLeaderEmail}`;
-      }
-      enhancedNotes += `\n===========================================`;
-    }
+    // Keep the quote description simple - just use the notes provided
+    const quoteDescription = notes || 'Quote requested';
 
     if (existingQuote) {
       // Update the existing quote instead of creating a new one
-      console.log(`Updating existing quote ${existingQuote.id} for contractor ${contractorId} with full site details`);
+      console.log(`Updating existing quote ${existingQuote.id} for contractor ${contractorId}`);
       
       const { error: updateError } = await supabase
         .from('quotes')
         .update({
           status: 'requested',
-          description: enhancedNotes,
+          description: quoteDescription,
           submitted_at: new Date().toISOString()
         })
         .eq('id', existingQuote.id);
@@ -83,13 +66,13 @@ export const requestQuote = async (
         undefined,
         1, // Keep the placeholder amount
         existingQuote.description,
-        enhancedNotes
+        quoteDescription
       );
 
-      console.log(`Quote successfully re-requested for job ${requestId} from contractor ${contractorId} with full site details`);
+      console.log(`Quote successfully re-requested for job ${requestId} from contractor ${contractorId}`);
     } else {
       // Create a new quote record if none exists
-      console.log(`Creating new quote for contractor ${contractorId} with full site details`);
+      console.log(`Creating new quote for contractor ${contractorId}`);
       
       const { data: newQuote, error: quoteError } = await supabase
         .from('quotes')
@@ -99,7 +82,7 @@ export const requestQuote = async (
           status: 'requested',
           amount: 1, // Placeholder amount
           submitted_at: new Date().toISOString(),
-          description: enhancedNotes
+          description: quoteDescription
         })
         .select('id')
         .single();
@@ -118,11 +101,11 @@ export const requestQuote = async (
           undefined,
           1,
           undefined,
-          enhancedNotes
+          quoteDescription
         );
       }
 
-      console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId} with full site details`);
+      console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
     }
 
     // Mark the request as having quotes requested (only if not already marked)
@@ -139,7 +122,7 @@ export const requestQuote = async (
       // Don't throw here as the main operation succeeded
     }
     
-    // Create notification with full site details
+    // Create notification with full site details (separate from quote description)
     await createContractorNotificationWithPropertyDetails(contractorId, requestId, propertyDetails);
     
     return true; // Return success indicator
