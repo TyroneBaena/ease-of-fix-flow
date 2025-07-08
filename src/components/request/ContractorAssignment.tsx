@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { useContractorContext } from '@/contexts/contractor';
 import {
@@ -27,6 +29,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   onOpenQuoteDialog,
   onContractorAssigned
 }) => {
+  const navigate = useNavigate();
   const { contractors, loading, assignContractor, changeAssignment, error, loadContractors } = useContractorContext();
   const [selectedContractor, setSelectedContractor] = useState<string>('');
   const [isAssigning, setIsAssigning] = useState(false);
@@ -128,6 +131,11 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     }
   }, [selectedContractor, isAssigning, assignmentComplete, isReassignment, changeAssignment, requestId, assignContractor, onContractorAssigned]);
 
+  // Handle navigation to quote request page
+  const handleRequestQuote = () => {
+    navigate(`/request/${requestId}/quote-request`);
+  };
+
   // Display even if assigned when in reassignment mode
   if (isAssigned && !isReassignment) {
     console.log("ContractorAssignment - Component hidden because isAssigned is true and not in reassignment mode");
@@ -190,7 +198,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           {!isReassignment && !assignmentComplete && (
             <Button 
               variant="outline"
-              onClick={onOpenQuoteDialog}
+              onClick={handleRequestQuote}
               className="w-full flex items-center justify-center"
               disabled={isAssigning}
             >
