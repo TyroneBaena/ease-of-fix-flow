@@ -4,6 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -46,7 +47,7 @@ export const QuoteRequestDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!requestDetails) return;
 
     await submitQuoteRequests(
@@ -71,14 +72,6 @@ export const QuoteRequestDialog = ({
           <DialogTitle>Request Quotes</DialogTitle>
           <DialogDescription>
             Send quote requests to contractors for this maintenance request.
-            <span className="block mt-2 text-sm text-blue-600 font-medium">
-              ✓ Site details (property address, site phone, practice leader info) are automatically included with every quote request
-            </span>
-            {selectedContractors.length > 0 && (
-              <span className="block mt-1 text-sm text-amber-600">
-                Previously selected contractors are pre-selected
-              </span>
-            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -118,6 +111,7 @@ export const QuoteRequestDialog = ({
                   {isSubmitting ? "Sending..." : "Send Quote Requests"}
                 </Button>
               </div>
+
             </form>
           </ScrollArea>
         </div>
