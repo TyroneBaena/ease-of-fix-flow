@@ -65,7 +65,7 @@ export const QuoteRequestDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Request Quotes</DialogTitle>
           <DialogDescription>

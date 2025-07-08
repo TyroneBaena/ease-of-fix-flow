@@ -40,34 +40,34 @@ export type Database = {
       }
       comments: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
-          request_id: string
-          text: string
-          updated_at: string
+          request_id: string | null
+          text: string | null
+          updated_at: string | null
           user_id: string
-          user_name: string
-          user_role: string
+          user_name: string | null
+          user_role: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          request_id: string
-          text: string
-          updated_at?: string
-          user_id: string
-          user_name: string
-          user_role: string
+          request_id?: string | null
+          text?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_name?: string | null
+          user_role?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          request_id?: string
-          text?: string
-          updated_at?: string
+          request_id?: string | null
+          text?: string | null
+          updated_at?: string | null
           user_id?: string
-          user_name?: string
-          user_role?: string
+          user_name?: string | null
+          user_role?: string | null
         }
         Relationships: [
           {
@@ -692,6 +692,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_new_comment: {
+        Args: {
+          p_user_id: string
+          p_request_id: string
+          p_text: string
+          p_user_name: string
+          p_user_role: string
+        }
+        Returns: string
+      }
       create_comment_notifications: {
         Args: {
           request_id_param: string
