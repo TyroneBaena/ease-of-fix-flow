@@ -1,6 +1,6 @@
 
 import { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UserProvider } from '@/contexts/UserContext';
 import { PropertyProvider } from '@/contexts/property';
@@ -44,12 +44,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Component to handle redirect with parameter
-const RequestsRedirect = () => {
-  const { id } = useParams();
-  return <Navigate to={`/request/${id}`} replace />;
-};
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -81,12 +75,6 @@ function App() {
                         <AllRequests />
                       </ProtectedRoute>
                     } 
-                  />
-                  
-                  {/* Add redirect for plural requests to singular request */}
-                  <Route 
-                    path="/requests/:id" 
-                    element={<RequestsRedirect />}
                   />
                   
                   <Route 
