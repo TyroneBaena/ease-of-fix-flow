@@ -66,8 +66,8 @@ export const QuoteRequestDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="sm:max-w-[700px] h-[90vh] max-h-[90vh] p-0 flex flex-col">
+        <DialogHeader className="flex-shrink-0 p-6 pb-0">
           <DialogTitle>Request Quotes</DialogTitle>
           <DialogDescription>
             Send quote requests to contractors for this maintenance request.
@@ -82,43 +82,45 @@ export const QuoteRequestDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <ContractorSelection
-              contractors={contractors}
-              selectedContractors={selectedContractors}
-              onContractorSelection={handleContractorSelection}
-              loading={loading}
-            />
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full px-6">
+            <form onSubmit={handleSubmit} className="space-y-6 py-4">
+              <ContractorSelection
+                contractors={contractors}
+                selectedContractors={selectedContractors}
+                onContractorSelection={handleContractorSelection}
+                loading={loading}
+              />
 
-            <IncludeInfoSection
-              includeInfo={includeInfo}
-              onInfoToggle={handleInfoToggle}
-            />
+              <IncludeInfoSection
+                includeInfo={includeInfo}
+                onInfoToggle={handleInfoToggle}
+              />
 
-            <AdditionalNotes
-              value={notes}
-              onChange={setNotes}
-            />
+              <AdditionalNotes
+                value={notes}
+                onChange={setNotes}
+              />
 
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || selectedContractors.length === 0}
-              >
-                {isSubmitting ? "Sending..." : "Send Quote Requests"}
-              </Button>
-            </div>
-          </form>
-        </ScrollArea>
+              <div className="flex justify-end space-x-2 pt-4 pb-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || selectedContractors.length === 0}
+                >
+                  {isSubmitting ? "Sending..." : "Send Quote Requests"}
+                </Button>
+              </div>
+            </form>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
