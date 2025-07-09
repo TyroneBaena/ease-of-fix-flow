@@ -25,7 +25,7 @@ interface FormState {
   submittedBy: string;
   category: string;
   priority: 'low' | 'medium' | 'high' | 'critical' | '';
-  budgetCategoryId: string; // Add budget category ID
+  budgetCategoryId: string;
 }
 
 interface RequestFormFieldsProps {
@@ -37,6 +37,7 @@ interface RequestFormFieldsProps {
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   removeFile: (index: number) => void;
   isUploading: boolean;
+  showPhotoError?: boolean;
 }
 
 export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
@@ -47,7 +48,8 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
   previewUrls,
   handleFileChange,
   removeFile,
-  isUploading
+  isUploading,
+  showPhotoError = false
 }) => {
   return (
     <>
@@ -86,6 +88,7 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
         onFileChange={handleFileChange}
         onRemoveFile={removeFile}
         isUploading={isUploading}
+        showError={showPhotoError}
       />
       
       <IssueNatureField

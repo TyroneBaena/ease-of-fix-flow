@@ -13,7 +13,7 @@ interface FormState {
   submittedBy: string;
   category: string;
   priority: 'low' | 'medium' | 'high' | 'critical' | '';
-  budgetCategoryId: string; // Add the missing property
+  budgetCategoryId: string;
 }
 
 export const useRequestForm = () => {
@@ -29,7 +29,7 @@ export const useRequestForm = () => {
     submittedBy: '',
     category: '',
     priority: '',
-    budgetCategoryId: '' // Initialize the missing property
+    budgetCategoryId: ''
   });
 
   const [files, setFiles] = useState<File[]>([]);
@@ -95,6 +95,11 @@ export const useRequestForm = () => {
     console.log('useRequestForm - Preview URLs after removal:', newPreviewUrls);
   };
 
+  // Add validation function for photos
+  const validatePhotos = () => {
+    return files.length > 0;
+  };
+
   return {
     formState,
     updateFormState,
@@ -103,6 +108,7 @@ export const useRequestForm = () => {
     handleFileChange,
     removeFile,
     isSubmitting,
-    setIsSubmitting
+    setIsSubmitting,
+    validatePhotos
   };
 };

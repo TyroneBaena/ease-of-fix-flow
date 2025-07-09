@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -18,6 +18,7 @@ export const RequestFormContainer = () => {
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
   const { uploadFiles, isUploading } = useFileUpload();
+  const [showPhotoError, setShowPhotoError] = useState(false);
   
   const { 
     formState, 
@@ -27,7 +28,8 @@ export const RequestFormContainer = () => {
     handleFileChange, 
     removeFile,
     isSubmitting,
-    setIsSubmitting
+    setIsSubmitting,
+    validatePhotos
   } = useRequestForm();
   
   useEffect(() => {
@@ -44,6 +46,17 @@ export const RequestFormContainer = () => {
     console.log('RequestForm - Form state:', formState);
     console.log('RequestForm - Files to upload:', files);
     console.log('RequestForm - Current user:', currentUser);
+    
+    // Validate photos first
+    if (!validatePhotos()) {
+      console.log('RequestForm - Photo validation failed');
+      setShowPhotoError(true);
+      toast.error("Please upload at least one photo before submitting the request");
+      return;
+    }
+    
+    // Reset photo error if validation passes
+    setShowPhotoError(false);
     
     const {
       propertyId,
@@ -118,11 +131,11 @@ export const RequestFormContainer = () => {
       console.log('RequestForm - Final attachments value before database save:', attachments);
 
       const requestData = {
-        title: issueNature, // Use issueNature as title which is required
-        description: explanation, // Map explanation to description
-        category: budgetCategoryId, // Use the selected budget category ID as category
-        priority, // Use the selected priority
-        budget_category_id: budgetCategoryId, // Add budget category ID
+        title: issueNature,
+        description: explanation,
+        category: budgetCategoryId,
+        priority,
+        budget_category_id: budgetCategoryId,
         isParticipantRelated: isParticipantRelated || false,
         participantName: isParticipantRelated ? participantName : 'N/A',
         attemptedFix,
@@ -130,11 +143,11 @@ export const RequestFormContainer = () => {
         explanation,
         location,
         reportDate,
-        site, // Use the property name as the site
+        site,
         submittedBy,
         propertyId,
-        userId: currentUser.id, // Add the userId field
-        user_id: currentUser.id, // For backward compatibility
+        userId: currentUser.id,
+        user_id: currentUser.id,
         attachments: attachments
       };
 
@@ -169,6 +182,7 @@ export const RequestFormContainer = () => {
         handleFileChange={handleFileChange}
         removeFile={removeFile}
         isUploading={isUploading}
+        showPhotoError={showPhotoError}
       />
       
       <RequestFormActions 

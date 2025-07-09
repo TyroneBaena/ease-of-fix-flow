@@ -13,6 +13,7 @@ interface RequestFormAttachmentsProps {
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
   isUploading?: boolean;
+  showError?: boolean;
 }
 
 export const RequestFormAttachments = ({
@@ -20,7 +21,8 @@ export const RequestFormAttachments = ({
   previewUrls,
   onFileChange,
   onRemoveFile,
-  isUploading = false
+  isUploading = false,
+  showError = false
 }: RequestFormAttachmentsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,12 +37,21 @@ export const RequestFormAttachments = ({
       <CardContent className="pt-6">
         <FormItem>
           <div className="space-y-4">
-            <Label className="text-base font-semibold">
-              Photo(s) of the concern/issue/damage and Filled-out Hazard Report Form (if applicable)
-            </Label>
+            <div className="flex items-center gap-1">
+              <Label className="text-base font-semibold">
+                Photo(s) of the concern/issue/damage and Filled-out Hazard Report Form (if applicable)
+              </Label>
+              <span className="text-red-500 text-sm">*</span>
+            </div>
             <p className="text-sm text-gray-500 mb-2">
-              Up to 10 images allowed
+              At least 1 photo is required. Up to 10 images allowed.
             </p>
+            
+            {showError && files.length === 0 && (
+              <p className="text-red-500 text-sm">
+                Please upload at least one photo before submitting the request.
+              </p>
+            )}
             
             <div className="flex items-center">
               <Button 
