@@ -39,9 +39,8 @@ export const RequestFormAttachments = ({
           <div className="space-y-4">
             <div className="flex items-center gap-1">
               <Label className="text-base font-semibold">
-                Photo(s) of the concern/issue/damage and Filled-out Hazard Report Form (if applicable)
+                Photo(s) of the concern/issue/damage and Filled-out Hazard Report Form (if applicable) *
               </Label>
-              <span className="text-red-500 text-sm">*</span>
             </div>
             <p className="text-sm text-gray-500 mb-2">
               At least 1 photo is required. Up to 10 images allowed.
