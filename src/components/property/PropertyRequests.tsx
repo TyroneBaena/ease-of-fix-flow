@@ -13,58 +13,12 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { ClipboardList } from 'lucide-react';
+import { formatTimestamp } from '@/components/request/detail/utils/dateUtils';
 
 interface PropertyRequestsProps {
   requests: MaintenanceRequest[];
   propertyId: string;
 }
-
-// Helper function to format date safely with debugging
-const formatDate = (dateValue: string | undefined): string => {
-  console.log('formatDate called with:', dateValue);
-  
-  if (!dateValue || dateValue === '' || dateValue === 'undefined' || dateValue === 'null') {
-    console.log('formatDate: returning N/A for empty/invalid value');
-    return 'N/A';
-  }
-  
-  try {
-    let date: Date;
-    
-    // Check if it's in DD/MM/YYYY format
-    if (dateValue.includes('/') && dateValue.split('/').length === 3) {
-      const parts = dateValue.split('/');
-      if (parts.length === 3) {
-        const day = parts[0];
-        const month = parts[1];
-        const year = parts[2];
-        
-        // Create date in ISO format (YYYY-MM-DD) which JavaScript can parse reliably
-        const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        console.log('formatDate: converted to ISO format:', isoDateString);
-        date = new Date(isoDateString);
-      } else {
-        date = new Date(dateValue);
-      }
-    } else {
-      date = new Date(dateValue);
-    }
-    
-    console.log('formatDate: created date object:', date);
-    
-    if (isNaN(date.getTime())) {
-      console.log('formatDate: date is invalid, returning N/A');
-      return 'N/A';
-    }
-    
-    const formatted = date.toLocaleDateString();
-    console.log('formatDate: formatted date:', formatted);
-    return formatted;
-  } catch (error) {
-    console.log('formatDate: error occurred:', error);
-    return 'N/A';
-  }
-};
 
 export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, propertyId }) => {
   const navigate = useNavigate();
@@ -133,7 +87,7 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
                         {request.status}
                       </span>
                     </TableCell>
-                    <TableCell>{formatDate(request.reportDate || request.createdAt)}</TableCell>
+                    <TableCell>{formatTimestamp(request.reportDate || request.createdAt)}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
