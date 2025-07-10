@@ -761,6 +761,15 @@ export type Database = {
         Args: { meta: Json }
         Returns: string[]
       }
+      send_comment_email_notification: {
+        Args: {
+          p_request_id: string
+          p_comment_text: string
+          p_commenter_name: string
+          p_commenter_role: string
+        }
+        Returns: undefined
+      }
       use_tenant_schema: {
         Args: { operation: string }
         Returns: undefined

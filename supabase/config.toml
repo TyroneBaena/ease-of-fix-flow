@@ -1,9 +1,23 @@
 
 project_id = "ltjlswzrdgtoddyqmydo"
 
-[functions]
-[functions.invite-contractor]
-verify_jwt = true
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://ltjlswzrdgtoddyqmydo.supabase.co"]
+jwt_expiry = 3600
+
+[database]
+password = "your-super-secret-and-long-postgres-password"
 
 [functions.send-invite]
-verify_jwt = true
+verify_jwt = false
+
+[functions.invite-contractor]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.send-comment-notification]
+verify_jwt = false
