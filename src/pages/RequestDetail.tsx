@@ -4,10 +4,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
+import { RequestHistory } from '@/components/request/RequestHistory';
 import { ContractorProvider } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
 import { useRequestDetailData } from '@/hooks/useRequestDetailData';
+import { useComments } from '@/hooks/useComments';
 import { RequestDetailHeader } from '@/components/request/detail/RequestDetailHeader';
 import { RequestDetailSidebar } from '@/components/request/detail/RequestDetailSidebar';
 import { RequestDetailLoading } from '@/components/request/detail/RequestDetailLoading';
@@ -29,6 +31,9 @@ const RequestDetail = () => {
     refreshAfterQuoteSubmission,
     isRefreshing 
   } = useRequestDetailData(id);
+
+  // Get comments for the activity timeline
+  const { comments } = useComments(id || '');
   
   // Navigation handler
   const handleNavigateBack = useCallback(() => navigate('/requests'), [navigate]);
@@ -52,6 +57,11 @@ const RequestDetail = () => {
           <div className="md:col-span-2 space-y-8">
             <RequestInfo request={request} />
             <CommentSection requestId={id || ''} />
+            <RequestHistory 
+              request={request} 
+              comments={comments}
+              history={request.history} 
+            />
           </div>
           
           <ContractorProvider>

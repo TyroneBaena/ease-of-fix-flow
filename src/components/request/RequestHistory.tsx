@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { Card } from "@/components/ui/card";
+import { ActivityTimeline } from './ActivityTimeline';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 interface HistoryEvent {
   action: string;
@@ -9,9 +11,23 @@ interface HistoryEvent {
 
 interface RequestHistoryProps {
   history?: HistoryEvent[] | null;
+  request?: MaintenanceRequest;
+  comments?: Array<{
+    id: string;
+    user: string;
+    role: string;
+    text: string;
+    timestamp: string;
+  }>;
 }
 
-export const RequestHistory = ({ history = [] }: RequestHistoryProps) => {
+export const RequestHistory = ({ history = [], request, comments = [] }: RequestHistoryProps) => {
+  // If we have request data, use the new ActivityTimeline
+  if (request) {
+    return <ActivityTimeline request={request} comments={comments} />;
+  }
+
+  // Fallback to the original history display for backward compatibility
   if (!history || history.length === 0) {
     return (
       <Card className="p-6">
