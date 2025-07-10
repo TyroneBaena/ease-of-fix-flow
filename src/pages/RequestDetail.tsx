@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
 import { RequestHistory } from '@/components/request/RequestHistory';
+import { ActivityTimeline } from '@/components/request/ActivityTimeline';
 import { ContractorProvider } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
@@ -56,6 +57,10 @@ const RequestDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
             <RequestInfo request={request} />
+            <ActivityTimeline 
+              request={request} 
+              comments={comments}
+            />
             <CommentSection requestId={id || ''} />
             <RequestHistory 
               request={request} 
