@@ -16,6 +16,7 @@ import { ContactCard } from '@/components/contractor/job-detail/ContactCard';
 import { ScheduleJobCard } from '@/components/contractor/job-detail/ScheduleJobCard';
 import { InvoiceCard } from '@/components/contractor/job-detail/InvoiceCard';
 import { CommentSection } from '@/components/request/CommentSection';
+import { ActivityTimeline } from '@/components/request/ActivityTimeline';
 import { supabase } from '@/lib/supabase';
 
 const ContractorJobDetail = () => {
@@ -96,6 +97,7 @@ const ContractorJobDetail = () => {
             <IssueDetailsCard job={job} />
             <AttachmentsCard attachments={job.attachments} />
             {invoice && !loadingInvoice && <InvoiceCard invoice={invoice} />}
+            <ActivityTimeline request={job} />
             <CommentSection requestId={job.id} />
           </div>
           
