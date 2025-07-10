@@ -34,7 +34,7 @@ export const ReportDateField = ({ value, onChange }: ReportDateFieldProps) => {
               Date of Report/Request
             </Label>
             <p className="text-sm text-gray-500">
-              Format: dd/MM/yyyy
+              Format: DD/MM/YYYY
             </p>
             <Input
               value={value}

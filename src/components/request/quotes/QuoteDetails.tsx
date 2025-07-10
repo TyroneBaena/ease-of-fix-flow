@@ -22,6 +22,19 @@ export const QuoteDetails = ({ amount, description, status, submittedAt }: Quote
     }
   };
 
+  const formatSubmittedDate = () => {
+    try {
+      const date = new Date(submittedAt);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric'
+      });
+    } catch {
+      return formatDistanceToNow(new Date(submittedAt), { addSuffix: true });
+    }
+  };
+
   return (
     <div className="space-y-2 border-t pt-3">
       {/* Only show amount if status is not 'requested' */}
@@ -43,7 +56,7 @@ export const QuoteDetails = ({ amount, description, status, submittedAt }: Quote
         </Badge>
         <span className="text-xs text-white">
           {status === 'requested' ? 'Requested ' : 'Submitted '}
-          {formatDistanceToNow(new Date(submittedAt), { addSuffix: true })}
+          {formatSubmittedDate()}
         </span>
       </div>
     </div>

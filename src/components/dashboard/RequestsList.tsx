@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,19 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
     onRequestSelect?.(request);
   };
 
+  const formatCreatedDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -102,7 +116,7 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                        {formatCreatedDate(request.createdAt)}
                       </span>
                       
                       <span>{request.location}</span>

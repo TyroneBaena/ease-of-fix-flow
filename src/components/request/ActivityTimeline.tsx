@@ -107,13 +107,13 @@ export const ActivityTimeline = ({ request, comments = [] }: ActivityTimelinePro
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) {
-      return `Today at ${date.toLocaleTimeString('en-US', { 
+      return `Today at ${date.toLocaleTimeString('en-GB', { 
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
       })}`;
     } else if (diffDays === 1) {
-      return `Yesterday at ${date.toLocaleTimeString('en-US', { 
+      return `Yesterday at ${date.toLocaleTimeString('en-GB', { 
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
@@ -121,9 +121,9 @@ export const ActivityTimeline = ({ request, comments = [] }: ActivityTimelinePro
     } else if (diffDays < 7) {
       return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
+      return date.toLocaleDateString('en-GB', {
         day: 'numeric',
+        month: 'short',
         year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
       });
     }

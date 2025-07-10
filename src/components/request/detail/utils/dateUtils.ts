@@ -1,7 +1,7 @@
 
 import { format } from 'date-fns';
 
-// Format the timestamp string to a more readable format
+// Format the timestamp string to a more readable format using DD/MM/YYYY
 export const formatTimestamp = (timestamp: string): string => {
   try {
     // Try to parse the date - if it's already a valid date string
@@ -11,8 +11,8 @@ export const formatTimestamp = (timestamp: string): string => {
       return timestamp;
     }
     
-    // Format as "May 6, 2025 at 3:45 PM"
-    return format(date, "MMM d, yyyy 'at' h:mm a");
+    // Format as "6 May 2025 at 3:45 PM" with DD/MM/YYYY in mind
+    return format(date, "d MMM yyyy 'at' h:mm a");
   } catch (error) {
     // If any parsing error occurs, return the original string
     return timestamp;

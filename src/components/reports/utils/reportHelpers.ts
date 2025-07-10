@@ -74,11 +74,11 @@ export function getStatusClass(status?: string): string {
   }
 }
 
-// Add date formatting utility function
+// Add date formatting utility function using DD/MM/YYYY format
 export function formatDate(dateString?: string): string {
   if (!dateString) return 'N/A';
   try {
-    return format(new Date(dateString), 'MMM d, yyyy');
+    return format(new Date(dateString), 'dd/MM/yyyy');
   } catch (error) {
     console.error('Error formatting date:', error);
     return dateString;

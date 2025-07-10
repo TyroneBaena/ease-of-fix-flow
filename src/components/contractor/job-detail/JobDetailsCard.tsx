@@ -42,7 +42,7 @@ export const JobDetailsCard = ({ job }: JobDetailsCardProps) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      return new Date(dateString).toLocaleDateString('en-GB', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
