@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Clock, User, Settings, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
+import { formatTimestamp } from './detail/utils/dateUtils';
 
 interface ActivityTimelineProps {
   request: MaintenanceRequest;
@@ -99,35 +100,6 @@ export const ActivityTimeline = ({ request, comments = [] }: ActivityTimelinePro
   };
 
   const timelineItems = generateTimelineItems();
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return `Today at ${date.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      })}`;
-    } else if (diffDays === 1) {
-      return `Yesterday at ${date.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      })}`;
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      });
-    }
-  };
 
   const getInitials = (name: string): string => {
     if (!name) return '?';
