@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
-import { RequestHistory } from '@/components/request/RequestHistory';
+// import { RequestHistory } from '@/components/request/RequestHistory';
 import { ActivityTimeline } from '@/components/request/ActivityTimeline';
 import { ContractorProvider } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
@@ -62,11 +62,11 @@ const RequestDetail = () => {
               comments={comments}
             />
             <CommentSection requestId={id || ''} />
-            <RequestHistory 
+            {/* <RequestHistory 
               request={request} 
               comments={comments}
               history={request.history} 
-            />
+            /> */}
           </div>
           
           <ContractorProvider>
