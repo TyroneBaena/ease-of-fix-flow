@@ -6,6 +6,7 @@ import { RequestActions } from '@/components/request/RequestActions';
 import { QuotesList } from '@/components/request/QuotesList';
 import { ContractorAssignment } from '@/components/request/ContractorAssignment';
 import { EditRequestDialog } from '@/components/request/EditRequestDialog';
+import { JobProgressCard } from '@/components/contractor/JobProgressCard';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
 
@@ -45,6 +46,15 @@ export const RequestDetailSidebar = ({
 
   return (
     <div className="space-y-6">
+      {/* Job Progress Card - Show for all users if there's progress or assigned contractor */}
+      {(request.completionPercentage > 0 || request.contractorId || request.assignedTo) && (
+        <JobProgressCard 
+          request={request} 
+          isContractor={isContractor}
+          onProgressUpdate={onRefreshData}
+        />
+      )}
+      
       {/* Request Actions - Available to both admins and managers */}
       <RequestActions 
         status={request.status} 

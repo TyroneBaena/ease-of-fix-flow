@@ -83,7 +83,13 @@ export const JobProgressDialog = ({
       
       toast.success('Progress updated successfully');
       onOpenChange(false);
-      if (onProgressUpdate) onProgressUpdate();
+      
+      // Trigger refresh in parent component
+      if (onProgressUpdate) {
+        setTimeout(() => {
+          onProgressUpdate();
+        }, 500);
+      }
     } catch (error) {
       console.error('Error updating progress:', error);
       toast.error('Failed to update progress');
@@ -96,7 +102,13 @@ export const JobProgressDialog = ({
     // Close both dialogs and refresh data
     setShowInvoiceDialog(false);
     onOpenChange(false);
-    if (onProgressUpdate) onProgressUpdate();
+    
+    // Trigger refresh in parent component
+    if (onProgressUpdate) {
+      setTimeout(() => {
+        onProgressUpdate();
+      }, 500);
+    }
   };
   
   return (

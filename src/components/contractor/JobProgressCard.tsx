@@ -11,11 +11,22 @@ import { formatTimestamp } from '@/components/request/detail/utils/dateUtils';
 interface JobProgressCardProps {
   request: MaintenanceRequest;
   isContractor: boolean;
+  onProgressUpdate?: () => void;
 }
 
-export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps) => {
+export const JobProgressCard = ({ request, isContractor, onProgressUpdate }: JobProgressCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const progress = request.completionPercentage || 0;
+  
+  const handleProgressUpdate = () => {
+    if (onProgressUpdate) {
+      onProgressUpdate();
+    }
+    // Force a small delay to ensure the UI updates
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
   
   const renderProgressNotes = () => {
     if (!request.progressNotes || request.progressNotes.length === 0) {
@@ -136,6 +147,7 @@ export const JobProgressCard = ({ request, isContractor }: JobProgressCardProps)
         onOpenChange={setDialogOpen}
         requestId={request.id}
         currentProgress={progress}
+        onProgressUpdate={handleProgressUpdate}
       />
     </>
   );
