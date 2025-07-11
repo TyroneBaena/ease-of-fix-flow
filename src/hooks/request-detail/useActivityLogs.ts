@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface ActivityLog {
   id: string;
@@ -9,7 +10,7 @@ export interface ActivityLog {
   description: string;
   actor_name: string | null;
   actor_role: string | null;
-  metadata: Record<string, any> | null;
+  metadata: Json | null;
   created_at: string;
 }
 

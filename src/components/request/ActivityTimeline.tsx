@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Clock, User, Settings, CheckCircle, AlertCircle, MessageSquare, FileText, DollarSign } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatTimestamp } from './detail/utils/dateUtils';
+import type { Json } from '@/integrations/supabase/types';
 
 interface ActivityLog {
   id: string;
@@ -13,7 +14,7 @@ interface ActivityLog {
   description: string;
   actor_name: string | null;
   actor_role: string | null;
-  metadata: Record<string, any> | null;
+  metadata: Json | null;
   created_at: string;
 }
 
