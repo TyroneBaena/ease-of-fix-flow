@@ -28,6 +28,7 @@ const RequestDetail = () => {
     loading, 
     quotes, 
     isContractor, 
+    activityLogs,
     refreshData, 
     refreshAfterQuoteSubmission,
     isRefreshing 
@@ -60,6 +61,7 @@ const RequestDetail = () => {
             <ActivityTimeline 
               request={request} 
               comments={comments}
+              activityLogs={activityLogs}
             />
             <CommentSection requestId={id || ''} />
             {/* <RequestHistory 

@@ -5,6 +5,7 @@ import { useMaintenanceRequestData } from './request-detail/useMaintenanceReques
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
 import { useContractorStatus } from './request-detail/useContractorStatus';
 import { useRequestCommentsSubscription } from './request-detail/useRequestCommentsSubscription';
+import { useActivityLogs } from './request-detail/useActivityLogs';
 import { toast } from 'sonner';
 
 /**
@@ -23,6 +24,7 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   
   const quotes = useRequestQuotes(requestId, refreshCounter);
   const isContractor = useContractorStatus(currentUser?.id);
+  const { activityLogs, loading: activityLoading } = useActivityLogs(requestId, refreshCounter);
   
   // Listen for comments but don't auto-refresh on every comment
   useRequestCommentsSubscription(requestId, () => {
@@ -70,6 +72,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
     loading,
     quotes,
     isContractor,
+    activityLogs,
+    activityLoading,
     refreshData,
     refreshAfterQuoteSubmission,
     isRefreshing

@@ -2,9 +2,20 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, User, Settings, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
+import { Clock, User, Settings, CheckCircle, AlertCircle, MessageSquare, FileText, DollarSign } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatTimestamp } from './detail/utils/dateUtils';
+
+interface ActivityLog {
+  id: string;
+  request_id: string;
+  action_type: string;
+  description: string;
+  actor_name: string | null;
+  actor_role: string | null;
+  metadata: Record<string, any> | null;
+  created_at: string;
+}
 
 interface ActivityTimelineProps {
   request: MaintenanceRequest;
@@ -15,14 +26,15 @@ interface ActivityTimelineProps {
     text: string;
     timestamp: string;
   }>;
+  activityLogs?: ActivityLog[];
 }
 
-export const ActivityTimeline = ({ request, comments = [] }: ActivityTimelineProps) => {
-  // Generate timeline items from request history and comments
+export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: ActivityTimelineProps) => {
+  // Generate timeline items from request history, comments, and activity logs
   const generateTimelineItems = () => {
     const items: Array<{
       id: string;
-      type: 'status' | 'assignment' | 'comment' | 'creation' | 'update';
+      type: 'status' | 'assignment' | 'comment' | 'creation' | 'update' | 'quote' | 'activity';
       title: string;
       description: string;
       timestamp: string;
@@ -56,17 +68,66 @@ export const ActivityTimeline = ({ request, comments = [] }: ActivityTimelinePro
       });
     }
 
-    // Add contractor assignment if exists
-    if (request.contractorId && request.assignedAt) {
+    // Add activity logs
+    activityLogs.forEach((log) => {
+      let icon = <Settings className="h-4 w-4 text-gray-500" />;
+      let title = 'Activity';
+      
+      // Set specific icons and titles based on action type
+      switch (log.action_type) {
+        case 'quote_requested':
+        case 'quote_re_requested':
+          icon = <FileText className="h-4 w-4 text-blue-500" />;
+          title = 'Quote Requested';
+          break;
+        case 'quote_submitted':
+        case 'quote_resubmitted':
+        case 'quote_updated':
+          icon = <DollarSign className="h-4 w-4 text-green-500" />;
+          title = 'Quote Submitted';
+          break;
+        case 'quote_approved':
+          icon = <CheckCircle className="h-4 w-4 text-green-600" />;
+          title = 'Quote Approved';
+          break;
+        case 'contractor_assigned':
+          icon = <User className="h-4 w-4 text-green-500" />;
+          title = 'Contractor Assigned';
+          break;
+        default:
+          title = 'Activity Update';
+      }
+
       items.push({
-        id: `assignment-${request.contractorId}`,
-        type: 'assignment',
-        title: 'Contractor Assigned',
-        description: `Request assigned to contractor`,
-        timestamp: request.assignedAt,
-        user: 'System',
-        icon: <User className="h-4 w-4 text-green-500" />
+        id: `activity-${log.id}`,
+        type: 'activity',
+        title,
+        description: log.description,
+        timestamp: log.created_at,
+        user: log.actor_name || 'System',
+        icon
       });
+    });
+
+    // Add contractor assignment if exists (legacy support)
+    if (request.contractorId && request.assignedAt) {
+      // Check if we already have this from activity logs
+      const hasAssignmentLog = activityLogs.some(log => 
+        log.action_type === 'contractor_assigned' && 
+        new Date(log.created_at).getTime() === new Date(request.assignedAt!).getTime()
+      );
+      
+      if (!hasAssignmentLog) {
+        items.push({
+          id: `assignment-${request.contractorId}`,
+          type: 'assignment',
+          title: 'Contractor Assigned',
+          description: `Request assigned to contractor`,
+          timestamp: request.assignedAt,
+          user: 'System',
+          icon: <User className="h-4 w-4 text-green-500" />
+        });
+      }
     }
 
     // Add completion event if completed
@@ -122,6 +183,9 @@ export const ActivityTimeline = ({ request, comments = [] }: ActivityTimelinePro
         return 'border-purple-200 bg-purple-50';
       case 'comment':
         return 'border-orange-200 bg-orange-50';
+      case 'quote':
+      case 'activity':
+        return 'border-emerald-200 bg-emerald-50';
       default:
         return 'border-gray-200 bg-gray-50';
     }

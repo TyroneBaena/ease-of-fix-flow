@@ -1,7 +1,9 @@
+
 import { supabase } from '@/lib/supabase';
 import { IncludeInfo, PropertyDetails } from '../types/quoteTypes';
 import { fetchPropertyDetails } from '../helpers/quoteHelpers';
 import { createQuoteLog } from '../logging/quoteLogging';
+import { logActivity } from '../helpers/activityHelpers';
 import { 
   createContractorNotificationWithPropertyDetails, 
   notifyRejectedContractors,
@@ -23,6 +25,17 @@ export const requestQuote = async (
     // Fetch property details for notifications (not for quote description)
     const propertyDetails = await fetchPropertyDetails(requestId);
     console.log("Fetched property details for notifications:", propertyDetails);
+
+    // Get contractor details for activity logging
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('company_name, contact_name')
+      .eq('id', contractorId)
+      .single();
+
+    if (contractorError) {
+      console.error("Error fetching contractor details:", contractorError);
+    }
 
     // Check if a quote already exists for this contractor and request
     const { data: existingQuote, error: checkError } = await supabase
@@ -69,6 +82,20 @@ export const requestQuote = async (
         quoteDescription
       );
 
+      // Log activity for quote re-request
+      await logActivity({
+        requestId,
+        actionType: 'quote_re_requested',
+        description: `Quote re-requested from ${contractorData?.company_name || 'contractor'}`,
+        actorName: 'System',
+        actorRole: 'system',
+        metadata: {
+          contractorId,
+          contractorName: contractorData?.company_name,
+          notes: notes || null
+        }
+      });
+
       console.log(`Quote successfully re-requested for job ${requestId} from contractor ${contractorId}`);
     } else {
       // Create a new quote record if none exists
@@ -104,6 +131,20 @@ export const requestQuote = async (
           quoteDescription
         );
       }
+
+      // Log activity for new quote request
+      await logActivity({
+        requestId,
+        actionType: 'quote_requested',
+        description: `Quote requested from ${contractorData?.company_name || 'contractor'}`,
+        actorName: 'System',
+        actorRole: 'system',
+        metadata: {
+          contractorId,
+          contractorName: contractorData?.company_name,
+          notes: notes || null
+        }
+      });
 
       console.log(`Quote successfully requested for job ${requestId} from contractor ${contractorId}`);
     }
@@ -141,7 +182,7 @@ export const submitQuoteForJob = async (
   try {
     const { data: contractorData, error: contractorError } = await supabase
       .from('contractors')
-      .select('id')
+      .select('id, company_name, contact_name')
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
       .single();
 
@@ -193,6 +234,22 @@ export const submitQuoteForJob = async (
         oldDescription,
         description
       );
+
+      // Log activity for quote submission/resubmission
+      await logActivity({
+        requestId,
+        actionType: isResubmission ? 'quote_resubmitted' : 'quote_updated',
+        description: `Quote ${isResubmission ? 'resubmitted' : 'updated'} by ${contractorData.company_name} for $${amount}`,
+        actorName: contractorData.contact_name || contractorData.company_name,
+        actorRole: 'contractor',
+        metadata: {
+          contractorId: contractorData.id,
+          contractorName: contractorData.company_name,
+          amount,
+          description,
+          oldAmount: isResubmission ? oldAmount : null
+        }
+      });
     } else {
       // Create a new quote if none exists
       const { data: newQuote, error: insertError } = await supabase
@@ -221,6 +278,21 @@ export const submitQuoteForJob = async (
           description
         );
       }
+
+      // Log activity for new quote submission
+      await logActivity({
+        requestId,
+        actionType: 'quote_submitted',
+        description: `Quote submitted by ${contractorData.company_name} for $${amount}`,
+        actorName: contractorData.contact_name || contractorData.company_name,
+        actorRole: 'contractor',
+        metadata: {
+          contractorId: contractorData.id,
+          contractorName: contractorData.company_name,
+          amount,
+          description
+        }
+      });
     }
     
     console.log("Quote submitted successfully");
@@ -239,7 +311,7 @@ export const approveQuoteForJob = async (quoteId: string) => {
     // Get the quote details first
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
-      .select('*')
+      .select('*, contractor:contractors(*)')
       .eq('id', quoteId)
       .single();
 
@@ -281,6 +353,21 @@ export const approveQuoteForJob = async (quoteId: string) => {
       console.error('Error approving quote:', approveError);
       throw new Error(`Failed to approve quote: ${approveError.message}`);
     }
+
+    // Log activity for quote approval
+    await logActivity({
+      requestId: quote.request_id,
+      actionType: 'quote_approved',
+      description: `Quote approved for ${quote.contractor?.company_name || 'contractor'} - $${quote.amount}`,
+      actorName: 'System',
+      actorRole: 'system',
+      metadata: {
+        contractorId: quote.contractor_id,
+        contractorName: quote.contractor?.company_name,
+        amount: quote.amount,
+        quoteId
+      }
+    });
 
     // Reject all other pending quotes for this request
     if (otherQuotes && otherQuotes.length > 0) {
@@ -327,6 +414,20 @@ export const approveQuoteForJob = async (quoteId: string) => {
       console.error('Error updating maintenance request:', updateRequestError);
       throw new Error(`Failed to update maintenance request: ${updateRequestError.message}`);
     }
+
+    // Log activity for contractor assignment
+    await logActivity({
+      requestId: quote.request_id,
+      actionType: 'contractor_assigned',
+      description: `Contractor assigned: ${quote.contractor?.company_name || 'contractor'}`,
+      actorName: 'System',
+      actorRole: 'system',
+      metadata: {
+        contractorId: quote.contractor_id,
+        contractorName: quote.contractor?.company_name,
+        quotedAmount: quote.amount
+      }
+    });
 
     // Create assignment notification for the approved contractor
     await createAssignmentNotification(quote.contractor_id, quote.request_id, propertyDetails);
