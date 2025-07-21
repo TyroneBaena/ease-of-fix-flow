@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, User, Settings, CheckCircle, AlertCircle, MessageSquare, FileText, DollarSign } from 'lucide-react';
+import { Clock, User, Settings, CheckCircle, AlertCircle, FileText, DollarSign } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatTimestamp } from './detail/utils/dateUtils';
 import type { Json } from '@/integrations/supabase/types';
@@ -31,11 +31,11 @@ interface ActivityTimelineProps {
 }
 
 export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: ActivityTimelineProps) => {
-  // Generate timeline items from request history, comments, and activity logs
+  // Generate timeline items from request history and activity logs (excluding comments)
   const generateTimelineItems = () => {
     const items: Array<{
       id: string;
-      type: 'status' | 'assignment' | 'comment' | 'creation' | 'update' | 'quote' | 'activity';
+      type: 'status' | 'assignment' | 'creation' | 'update' | 'activity';
       title: string;
       description: string;
       timestamp: string;
@@ -144,18 +144,8 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
       });
     }
 
-    // Add comments
-    comments.forEach((comment) => {
-      items.push({
-        id: `comment-${comment.id}`,
-        type: 'comment',
-        title: 'Comment Added',
-        description: comment.text.length > 100 ? `${comment.text.substring(0, 100)}...` : comment.text,
-        timestamp: comment.timestamp,
-        user: comment.user,
-        icon: <MessageSquare className="h-4 w-4 text-blue-500" />
-      });
-    });
+    // Note: Comments are intentionally excluded from the timeline
+    // They are handled separately in the CommentSection component
 
     // Sort by timestamp (newest first)
     return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -182,9 +172,6 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
         return 'border-green-200 bg-green-50';
       case 'status':
         return 'border-purple-200 bg-purple-50';
-      case 'comment':
-        return 'border-orange-200 bg-orange-50';
-      case 'quote':
       case 'activity':
         return 'border-emerald-200 bg-emerald-50';
       default:
