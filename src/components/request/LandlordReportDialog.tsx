@@ -1,11 +1,13 @@
 
-import React, { useRef } from 'react';
+
+import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { MaintenanceRequest } from '@/types/maintenance';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { supabase } from '@/lib/supabase';
 
 interface LandlordReportDialogProps {
   open: boolean;
@@ -15,11 +17,30 @@ interface LandlordReportDialogProps {
 
 export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open, onOpenChange, request }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [property, setProperty] = useState<{ name: string; address: string; practice_leader?: string; practice_leader_email?: string; practice_leader_phone?: string } | null>(null);
+
+  useEffect(() => {
+    const loadProperty = async () => {
+      try {
+        const propertyId = (request as any).propertyId || (request as any).property_id;
+        if (!propertyId) return;
+        const { data, error } = await supabase
+          .from('properties')
+          .select('name, address, practice_leader, practice_leader_email, practice_leader_phone')
+          .eq('id', propertyId)
+          .single();
+        if (!error) setProperty(data as any);
+      } catch (e) {
+        console.warn('Failed to load property for report', e);
+      }
+    };
+    if (open) loadProperty();
+  }, [open, request]);
 
   const handleDownload = async () => {
     if (!contentRef.current) return;
 
-    const canvas = await html2canvas(contentRef.current, { scale: 2, backgroundColor: '#ffffff' });
+    const canvas = await html2canvas(contentRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
     const imgData = canvas.toDataURL('image/png');
 
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -41,7 +62,7 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
       remainingHeight -= pageHeight;
     }
 
-    pdf.save(`landlord-report-${request.id}.pdf`);
+    pdf.save(`request-report-${request.id}.pdf`);
   };
 
   const attachments = Array.isArray(request.attachments) ? request.attachments : [];
@@ -50,9 +71,9 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Landlord Report Preview</DialogTitle>
+          <DialogTitle>Request Report Preview</DialogTitle>
           <DialogDescription>
-            Review the report. You can download it as a PDF.
+            Review the report tailored to this request. You can download it as a PDF.
           </DialogDescription>
         </DialogHeader>
 
@@ -60,6 +81,8 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-2">Request Summary</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div><span className="font-medium">Request ID:</span> {request.id}</div>
+              <div><span className="font-medium">Created:</span> {request.createdAt}</div>
               <div><span className="font-medium">Title:</span> {request.title}</div>
               <div><span className="font-medium">Status:</span> {request.status}</div>
               <div><span className="font-medium">Priority:</span> {request.priority}</div>
@@ -75,6 +98,19 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
               )}
             </div>
           </Card>
+
+          {property && (
+            <Card className="p-4">
+              <h3 className="text-lg font-semibold mb-2">Property</h3>
+              <div className="text-sm space-y-1">
+                <div><span className="font-medium">Name:</span> {property.name}</div>
+                <div><span className="font-medium">Address:</span> {property.address}</div>
+                {property.practice_leader && (<div><span className="font-medium">Practice Leader:</span> {property.practice_leader}</div>)}
+                {property.practice_leader_email && (<div><span className="font-medium">Email:</span> {property.practice_leader_email}</div>)}
+                {property.practice_leader_phone && (<div><span className="font-medium">Phone:</span> {property.practice_leader_phone}</div>)}
+              </div>
+            </Card>
+          )}
 
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-2">Issue Details</h3>
@@ -102,9 +138,10 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
                   <div key={idx} className="border rounded overflow-hidden">
                     <img
                       src={(att as any).url}
-                      alt={`Maintenance photo ${idx + 1}`}
+                      alt={`Request ${request.id} photo ${idx + 1}`}
                       className="w-full h-40 object-cover"
                       loading="lazy"
+                      crossOrigin="anonymous"
                     />
                   </div>
                 ))}

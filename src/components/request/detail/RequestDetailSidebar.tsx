@@ -81,9 +81,16 @@ export const RequestDetailSidebar = ({
         />
       )}
 
-      {!isLandlordAssigned ? (
+      {/* Always show Landlord Report export */}
+      <Card className="p-6">
+        <h3 className="font-semibold mb-2">Landlord Report</h3>
+        <p className="text-sm text-muted-foreground mb-3">Export a report with request details and photos for the landlord.</p>
+        <Button className="w-full" onClick={() => setReportDialogOpen(true)}>Export Landlord Report</Button>
+      </Card>
+
+      {/* Contractor Assignment and Quotes - Only when not assigned to landlord */}
+      {!isLandlordAssigned && (
         <>
-          {/* Contractor Assignment - Only for admins when not assigned to landlord */}
           {canAccessContractorFeatures && (
             <ContractorAssignment 
               requestId={request.id}
@@ -94,7 +101,6 @@ export const RequestDetailSidebar = ({
             />
           )}
 
-          {/* Quotes List - Only for admins when not assigned to landlord */}
           {canAccessContractorFeatures && (
             <QuotesList 
               quotes={quotes}
@@ -103,12 +109,6 @@ export const RequestDetailSidebar = ({
             />
           )}
         </>
-      ) : (
-        <Card className="p-6">
-          <h3 className="font-semibold mb-2">Landlord Report</h3>
-          <p className="text-sm text-slate-600 mb-3">Export a report with request details and photos for the landlord.</p>
-          <Button className="w-full" onClick={() => setReportDialogOpen(true)}>Export Landlord Report</Button>
-        </Card>
       )}
       
       {/* Contractor Quote Submission - Only for contractors */}
