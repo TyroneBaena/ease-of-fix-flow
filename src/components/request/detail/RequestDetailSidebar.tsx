@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
 import { QuoteRequestDialog } from '@/components/contractor/QuoteRequestDialog';
@@ -9,6 +10,10 @@ import { EditRequestDialog } from '@/components/request/EditRequestDialog';
 import { JobProgressCard } from '@/components/contractor/JobProgressCard';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UserContext';
+import { LandlordAssignmentCard } from '@/components/request/LandlordAssignmentCard';
+import { LandlordReportDialog } from '@/components/request/LandlordReportDialog';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface RequestDetailSidebarProps {
   request: MaintenanceRequest;
@@ -44,6 +49,9 @@ export const RequestDetailSidebar = ({
     onRefreshData();
   };
 
+  const isLandlordAssigned = (request as any).assigned_to_landlord ?? (request as any).assignedToLandlord ?? false;
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       {/* Job Progress Card - Show for all users if there's progress or assigned contractor */}
@@ -63,24 +71,44 @@ export const RequestDetailSidebar = ({
         onEditRequest={canEditRequests ? handleEditRequest : undefined}
       />
       
-      {/* Contractor Assignment - Only for admins */}
-      {canAccessContractorFeatures && (
-        <ContractorAssignment 
+      {/* Landlord Assignment - Admins and Managers can assign */}
+      {canEditRequests && (
+        <LandlordAssignmentCard
           requestId={request.id}
-          isAssigned={!!request.contractorId}
-          currentContractorId={request.contractorId}
-          onOpenQuoteDialog={onOpenRequestQuoteDialog}
-          onContractorAssigned={onRefreshData}
+          assignedToLandlord={isLandlordAssigned}
+          landlordNotes={(request as any).landlord_notes}
+          onAssigned={onRefreshData}
         />
       )}
-      
-      {/* Quotes List - Only for admins */}
-      {canAccessContractorFeatures && (
-        <QuotesList 
-          quotes={quotes}
-          requestId={request.id}
-          onDataChange={onRefreshData}
-        />
+
+      {!isLandlordAssigned ? (
+        <>
+          {/* Contractor Assignment - Only for admins when not assigned to landlord */}
+          {canAccessContractorFeatures && (
+            <ContractorAssignment 
+              requestId={request.id}
+              isAssigned={!!request.contractorId}
+              currentContractorId={request.contractorId}
+              onOpenQuoteDialog={onOpenRequestQuoteDialog}
+              onContractorAssigned={onRefreshData}
+            />
+          )}
+
+          {/* Quotes List - Only for admins when not assigned to landlord */}
+          {canAccessContractorFeatures && (
+            <QuotesList 
+              quotes={quotes}
+              requestId={request.id}
+              onDataChange={onRefreshData}
+            />
+          )}
+        </>
+      ) : (
+        <Card className="p-6">
+          <h3 className="font-semibold mb-2">Landlord Report</h3>
+          <p className="text-sm text-slate-600 mb-3">Export a report with request details and photos for the landlord.</p>
+          <Button className="w-full" onClick={() => setReportDialogOpen(true)}>Export Landlord Report</Button>
+        </Card>
       )}
       
       {/* Contractor Quote Submission - Only for contractors */}
@@ -108,6 +136,14 @@ export const RequestDetailSidebar = ({
           onRequestUpdated={handleRequestUpdated}
         />
       )}
+
+      {/* Landlord Report Dialog */}
+      <LandlordReportDialog
+        open={reportDialogOpen}
+        onOpenChange={setReportDialogOpen}
+        request={request}
+      />
     </div>
   );
 };
+

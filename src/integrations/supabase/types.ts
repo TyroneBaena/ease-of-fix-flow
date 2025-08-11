@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
@@ -313,6 +313,7 @@ export type Database = {
         Row: {
           assigned_at: string | null
           assigned_to: string | null
+          assigned_to_landlord: boolean | null
           attachments: Json | null
           attempted_fix: string | null
           budget_category_id: string | null
@@ -329,6 +330,9 @@ export type Database = {
           invoice_id: string | null
           is_participant_related: boolean | null
           issue_nature: string | null
+          landlord_assigned_at: string | null
+          landlord_assigned_by: string | null
+          landlord_notes: string | null
           location: string
           participant_name: string | null
           priority: string
@@ -347,6 +351,7 @@ export type Database = {
         Insert: {
           assigned_at?: string | null
           assigned_to?: string | null
+          assigned_to_landlord?: boolean | null
           attachments?: Json | null
           attempted_fix?: string | null
           budget_category_id?: string | null
@@ -363,6 +368,9 @@ export type Database = {
           invoice_id?: string | null
           is_participant_related?: boolean | null
           issue_nature?: string | null
+          landlord_assigned_at?: string | null
+          landlord_assigned_by?: string | null
+          landlord_notes?: string | null
           location: string
           participant_name?: string | null
           priority: string
@@ -381,6 +389,7 @@ export type Database = {
         Update: {
           assigned_at?: string | null
           assigned_to?: string | null
+          assigned_to_landlord?: boolean | null
           attachments?: Json | null
           attempted_fix?: string | null
           budget_category_id?: string | null
@@ -397,6 +406,9 @@ export type Database = {
           invoice_id?: string | null
           is_participant_related?: boolean | null
           issue_nature?: string | null
+          landlord_assigned_at?: string | null
+          landlord_assigned_by?: string | null
+          landlord_notes?: string | null
           location?: string
           participant_name?: string | null
           priority?: string

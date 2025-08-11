@@ -46,6 +46,11 @@ export interface MaintenanceRequest {
   quotes?: any[];
   // Invoice functionality
   invoice_id?: string;
+  // Landlord assignment fields
+  assigned_to_landlord?: boolean;
+  landlord_assigned_at?: string | null;
+  landlord_assigned_by?: string | null;
+  landlord_notes?: string | null;
   // User ID field (required)
   userId: string;
   // For backward compatibility
