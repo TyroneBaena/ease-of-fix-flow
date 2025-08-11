@@ -13,7 +13,7 @@ interface LandlordReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: MaintenanceRequest;
-  options: { summary: boolean; property: boolean; issue: boolean; photos: boolean };
+  options: { summary: boolean; property: boolean; issue: boolean; photos: boolean; practiceLeader?: boolean };
 }
 
 export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open, onOpenChange, request, options }) => {
@@ -109,9 +109,9 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
               <div className="text-sm space-y-1">
                 <div><span className="font-medium">Name:</span> {property.name}</div>
                 <div><span className="font-medium">Address:</span> {property.address}</div>
-                {property.practice_leader && (<div><span className="font-medium">Practice Leader:</span> {property.practice_leader}</div>)}
-                {property.practice_leader_email && (<div><span className="font-medium">Email:</span> {property.practice_leader_email}</div>)}
-                {property.practice_leader_phone && (<div><span className="font-medium">Phone:</span> {property.practice_leader_phone}</div>)}
+                {options.practiceLeader && property.practice_leader && (<div><span className="font-medium">Practice Leader:</span> {property.practice_leader}</div>)}
+                {options.practiceLeader && property.practice_leader_email && (<div><span className="font-medium">Email:</span> {property.practice_leader_email}</div>)}
+                {options.practiceLeader && property.practice_leader_phone && (<div><span className="font-medium">Phone:</span> {property.practice_leader_phone}</div>)}
               </div>
             </Card>
           )}

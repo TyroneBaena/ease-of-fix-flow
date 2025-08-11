@@ -54,6 +54,7 @@ export const RequestDetailSidebar = ({
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeProperty, setIncludeProperty] = useState(true);
+  const [includePracticeLeader, setIncludePracticeLeader] = useState(false);
   const [includeIssue, setIncludeIssue] = useState(true);
   const [includePhotos, setIncludePhotos] = useState(true);
 
@@ -100,6 +101,10 @@ export const RequestDetailSidebar = ({
           <label className="flex items-center gap-2">
             <Checkbox checked={includeProperty} onCheckedChange={(v) => setIncludeProperty(!!v)} />
             <span>Property Details</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox checked={includePracticeLeader} onCheckedChange={(v) => setIncludePracticeLeader(!!v)} />
+            <span>Practice Leader Details</span>
           </label>
           <label className="flex items-center gap-2">
             <Checkbox checked={includeIssue} onCheckedChange={(v) => setIncludeIssue(!!v)} />
@@ -167,7 +172,7 @@ export const RequestDetailSidebar = ({
         open={reportDialogOpen}
         onOpenChange={setReportDialogOpen}
         request={request}
-        options={{ summary: includeSummary, property: includeProperty, issue: includeIssue, photos: includePhotos }}
+        options={{ summary: includeSummary, property: includeProperty, issue: includeIssue, photos: includePhotos, practiceLeader: includePracticeLeader }}
       />
     </div>
   );
