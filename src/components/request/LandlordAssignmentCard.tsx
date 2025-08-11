@@ -64,18 +64,51 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
     }
   };
 
+  const handleUnassign = async () => {
+    if (!currentUser) {
+      toast.error('You must be logged in');
+      return;
+    }
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('maintenance_requests')
+        .update({
+          assigned_to_landlord: false,
+          // keep landlord_notes as historical; leave timestamps null
+          landlord_assigned_at: null,
+          landlord_assigned_by: null,
+        })
+        .eq('id', requestId);
+      if (error) throw error;
+
+      await logActivity({
+        requestId,
+        actionType: 'landlord_unassigned',
+        description: 'Request unassigned from landlord',
+        actorName: currentUser.name,
+        actorRole: currentUser.role,
+      });
+
+      toast.success('Unassigned from landlord');
+      onAssigned?.();
+    } catch (e) {
+      console.error('Unassign landlord failed', e);
+      toast.error('Failed to unassign landlord');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card className="p-6">
       <h3 className="font-semibold mb-3">Landlord Assignment</h3>
       {assignedToLandlord ? (
-        <div className="text-sm">
-          <p className="mb-2">This request is currently assigned to the landlord.</p>
-          {landlordNotes && (
-            <div className="bg-muted p-3 rounded text-muted-foreground">
-              <div className="font-medium mb-1">Notes</div>
-              <div className="whitespace-pre-wrap">{landlordNotes}</div>
-            </div>
-          )}
+        <div className="space-y-3 text-sm">
+          <p>This request is currently assigned to the landlord.</p>
+          <Button variant="outline" className="w-full" onClick={handleUnassign} disabled={loading}>
+            {loading ? 'Unassigning...' : 'Unassign Landlord'}
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">

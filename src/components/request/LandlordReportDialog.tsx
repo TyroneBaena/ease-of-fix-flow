@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { MaintenanceRequest } from '@/types/maintenance';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -18,6 +20,10 @@ interface LandlordReportDialogProps {
 export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open, onOpenChange, request }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [property, setProperty] = useState<{ name: string; address: string; practice_leader?: string; practice_leader_email?: string; practice_leader_phone?: string } | null>(null);
+  const [includeSummary, setIncludeSummary] = useState(true);
+  const [includeProperty, setIncludeProperty] = useState(true);
+  const [includeIssue, setIncludeIssue] = useState(true);
+  const [includePhotos, setIncludePhotos] = useState(true);
 
   useEffect(() => {
     const loadProperty = async () => {
@@ -77,7 +83,31 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
           </DialogDescription>
         </DialogHeader>
 
+        {/* Report options (not included in PDF) */}
+        <Card className="p-4 mb-4">
+          <h3 className="text-lg font-semibold mb-2">Include in report</h3>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label className="flex items-center gap-2">
+              <Checkbox checked={includeSummary} onCheckedChange={(v) => setIncludeSummary(!!v)} />
+              <span>Request Summary</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <Checkbox checked={includeProperty} onCheckedChange={(v) => setIncludeProperty(!!v)} />
+              <span>Property Details</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <Checkbox checked={includeIssue} onCheckedChange={(v) => setIncludeIssue(!!v)} />
+              <span>Issue Details</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <Checkbox checked={includePhotos} onCheckedChange={(v) => setIncludePhotos(!!v)} />
+              <span>Photos</span>
+            </label>
+          </div>
+        </Card>
+
         <div ref={contentRef} className="space-y-4">
+          {includeSummary && (
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-2">Request Summary</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -98,8 +128,9 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
               )}
             </div>
           </Card>
+          )}
 
-          {property && (
+          {property && includeProperty && (
             <Card className="p-4">
               <h3 className="text-lg font-semibold mb-2">Property</h3>
               <div className="text-sm space-y-1">
@@ -112,6 +143,7 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
             </Card>
           )}
 
+          {includeIssue && (
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-2">Issue Details</h3>
             <div className="space-y-2 text-sm">
@@ -129,8 +161,9 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
               )}
             </div>
           </Card>
+          )}
 
-          {attachments.length > 0 && (
+          {includePhotos && attachments.length > 0 && (
             <Card className="p-4">
               <h3 className="text-lg font-semibold mb-3">Photos</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
