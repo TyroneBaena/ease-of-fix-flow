@@ -71,7 +71,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
         <div className="text-sm">
           <p className="mb-2">This request is currently assigned to the landlord.</p>
           {landlordNotes && (
-            <div className="bg-slate-50 p-3 rounded text-slate-700">
+            <div className="bg-muted p-3 rounded text-muted-foreground">
               <div className="font-medium mb-1">Notes</div>
               <div className="whitespace-pre-wrap">{landlordNotes}</div>
             </div>

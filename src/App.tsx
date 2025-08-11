@@ -3,10 +3,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
-import { UserProvider } from '@/contexts/UserContext';
-import { PropertyProvider } from '@/contexts/property';
-import { MaintenanceRequestProvider } from '@/contexts/maintenance';
-import { ContractorProvider } from '@/contexts/contractor';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Import all pages
@@ -41,135 +37,127 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <PropertyProvider>
-          <MaintenanceRequestProvider>
-            <ContractorProvider>
-              <Router>
-                <div className="App">
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/setup-password" element={<SetupPassword />} />
-                    
-                    {/* Protected routes */}
-                    <Route path="/dashboard" element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/requests" element={
-                      <ProtectedRoute>
-                        <AllRequests />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/new-request" element={
-                      <ProtectedRoute>
-                        <NewRequest />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/requests/:id" element={
-                      <ProtectedRoute>
-                        <RequestDetail />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/properties" element={
-                      <ProtectedRoute>
-                        <Properties />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/properties/:id" element={
-                      <ProtectedRoute>
-                        <PropertyDetail />
-                      </ProtectedRoute>
-                    } />
-                    
-                    {/* Settings route - allow managers but restrict contractor access */}
-                    <Route path="/settings" element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/reports" element={
-                      <ProtectedRoute>
-                        <Reports />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/notifications" element={
-                      <ProtectedRoute>
-                        <Notifications />
-                      </ProtectedRoute>
-                    } />
-                    
-                    {/* Contractor routes */}
-                    <Route path="/contractor-dashboard" element={
-                      <ProtectedRoute>
-                        <ContractorDashboard />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor-jobs" element={
-                      <ProtectedRoute>
-                        <ContractorJobs />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor-jobs/:id" element={
-                      <ProtectedRoute>
-                        <ContractorJobDetail />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor-profile" element={
-                      <ProtectedRoute>
-                        <ContractorProfile />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor-schedule" element={
-                      <ProtectedRoute>
-                        <ContractorSchedule />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor-settings" element={
-                      <ProtectedRoute>
-                        <ContractorSettings />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor-notifications" element={
-                      <ProtectedRoute>
-                        <ContractorNotifications />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/contractor/quote-submission/:id" element={
-                      <ProtectedRoute>
-                        <QuoteSubmission />
-                      </ProtectedRoute>
-                    } />
-                    
-                    {/* 404 route */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </div>
-                <Toaster />
-              </Router>
-            </ContractorProvider>
-          </MaintenanceRequestProvider>
-        </PropertyProvider>
-      </UserProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/setup-password" element={<SetupPassword />} />
+            
+            {/* Protected routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/requests" element={
+              <ProtectedRoute>
+                <AllRequests />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/new-request" element={
+              <ProtectedRoute>
+                <NewRequest />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/requests/:id" element={
+              <ProtectedRoute>
+                <RequestDetail />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/properties" element={
+              <ProtectedRoute>
+                <Properties />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/properties/:id" element={
+              <ProtectedRoute>
+                <PropertyDetail />
+              </ProtectedRoute>
+            } />
+            
+            {/* Settings route - allow managers but restrict contractor access */}
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/reports" element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } />
+            
+            {/* Contractor routes */}
+            <Route path="/contractor-dashboard" element={
+              <ProtectedRoute>
+                <ContractorDashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor-jobs" element={
+              <ProtectedRoute>
+                <ContractorJobs />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor-jobs/:id" element={
+              <ProtectedRoute>
+                <ContractorJobDetail />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor-profile" element={
+              <ProtectedRoute>
+                <ContractorProfile />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor-schedule" element={
+              <ProtectedRoute>
+                <ContractorSchedule />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor-settings" element={
+              <ProtectedRoute>
+                <ContractorSettings />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor-notifications" element={
+              <ProtectedRoute>
+                <ContractorNotifications />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contractor/quote-submission/:id" element={
+              <ProtectedRoute>
+                <QuoteSubmission />
+              </ProtectedRoute>
+            } />
+            
+            {/* 404 route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <Toaster />
+      </Router>
     </QueryClientProvider>
   );
 }

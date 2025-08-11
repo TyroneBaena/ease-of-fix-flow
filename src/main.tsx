@@ -4,13 +4,15 @@ import './index.css'
 import { UserProvider } from './contexts/UserContext'
 import { MaintenanceRequestProvider } from './contexts/maintenance'
 import { PropertyProvider } from './contexts/property/PropertyContext'
-import Signup from './pages/Signup';
+import { ContractorProvider } from './contexts/contractor'
 
 createRoot(document.getElementById("root")!).render(
   <UserProvider>
     <MaintenanceRequestProvider>
       <PropertyProvider>
-        <App />
+        <ContractorProvider>
+          <App />
+        </ContractorProvider>
       </PropertyProvider>
     </MaintenanceRequestProvider>
   </UserProvider>
