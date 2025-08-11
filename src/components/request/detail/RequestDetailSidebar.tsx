@@ -14,6 +14,7 @@ import { LandlordAssignmentCard } from '@/components/request/LandlordAssignmentC
 import { LandlordReportDialog } from '@/components/request/LandlordReportDialog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface RequestDetailSidebarProps {
   request: MaintenanceRequest;
@@ -51,6 +52,10 @@ export const RequestDetailSidebar = ({
 
   const isLandlordAssigned = (request as any).assigned_to_landlord ?? (request as any).assignedToLandlord ?? false;
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [includeSummary, setIncludeSummary] = useState(true);
+  const [includeProperty, setIncludeProperty] = useState(true);
+  const [includeIssue, setIncludeIssue] = useState(true);
+  const [includePhotos, setIncludePhotos] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -81,10 +86,30 @@ export const RequestDetailSidebar = ({
         />
       )}
 
-      {/* Always show Landlord Report export */}
-      <Card className="p-6">
-        <h3 className="font-semibold mb-2">Landlord Report</h3>
-        <p className="text-sm text-muted-foreground mb-3">Export a report with request details and photos for the landlord.</p>
+      {/* Always show Landlord Report export with options */}
+      <Card className="p-6 space-y-3">
+        <div>
+          <h3 className="font-semibold mb-1">Landlord Report</h3>
+          <p className="text-sm text-muted-foreground">Choose what to include, then export a tailored report.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <Checkbox checked={includeSummary} onCheckedChange={(v) => setIncludeSummary(!!v)} />
+            <span>Request Summary</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox checked={includeProperty} onCheckedChange={(v) => setIncludeProperty(!!v)} />
+            <span>Property Details</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox checked={includeIssue} onCheckedChange={(v) => setIncludeIssue(!!v)} />
+            <span>Issue Details</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox checked={includePhotos} onCheckedChange={(v) => setIncludePhotos(!!v)} />
+            <span>Photos</span>
+          </label>
+        </div>
         <Button className="w-full" onClick={() => setReportDialogOpen(true)}>Export Landlord Report</Button>
       </Card>
 
@@ -142,6 +167,7 @@ export const RequestDetailSidebar = ({
         open={reportDialogOpen}
         onOpenChange={setReportDialogOpen}
         request={request}
+        options={{ summary: includeSummary, property: includeProperty, issue: includeIssue, photos: includePhotos }}
       />
     </div>
   );

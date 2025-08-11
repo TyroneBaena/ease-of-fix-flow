@@ -135,6 +135,11 @@ export function formatRequestData(data: any): MaintenanceRequest {
     quoteRequested: data.quote_requested,
     quotedAmount: data.quoted_amount,
     progressNotes: data.progress_notes,
+    // Landlord assignment
+    assigned_to_landlord: data.assigned_to_landlord ?? false,
+    landlord_assigned_at: data.landlord_assigned_at || null,
+    landlord_assigned_by: data.landlord_assigned_by || null,
+    landlord_notes: data.landlord_notes || null,
     userId: data.user_id || 'unknown-user'
   };
 
