@@ -12,6 +12,7 @@ export interface Property {
   rentAmount: number;
   rentPeriod: 'week' | 'month';
   createdAt: string;
+  landlordId?: string; // references public.landlords.id
 }
 
 export interface MaintenanceRequest {

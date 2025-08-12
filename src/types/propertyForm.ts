@@ -16,6 +16,7 @@ export interface UsePropertyFormProps {
     renewalDate: string;
     rentAmount: number;
     rentPeriod: 'week' | 'month';
+    landlordId?: string;
   };
   onClose: () => void;
 }

@@ -22,6 +22,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     renewalDate: existingProperty?.renewalDate ? new Date(existingProperty.renewalDate).toISOString().split('T')[0] : '',
     rentAmount: existingProperty?.rentAmount || 0,
     rentPeriod: existingProperty?.rentPeriod || 'month',
+    landlordId: existingProperty?.landlordId,
   });
 
   useEffect(() => {
@@ -56,6 +57,9 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     }
   };
 
+  const handleLandlordChange = (landlordId: string | null) => {
+    setForm(prev => ({ ...prev, landlordId: landlordId || undefined }));
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -88,6 +92,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     handleChange,
     handleRentPeriodChange,
     handlePracticeLeaderChange,
+    handleLandlordChange,
     handleSubmit,
   };
 };
