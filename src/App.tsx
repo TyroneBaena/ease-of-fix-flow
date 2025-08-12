@@ -32,6 +32,10 @@ import ContractorSettings from '@/pages/contractor/ContractorSettings';
 import ContractorNotifications from '@/pages/ContractorNotifications';
 import QuoteSubmission from './pages/contractor/QuoteSubmission';
 
+// New pages
+import Pricing from '@/pages/Pricing';
+import Billing from '@/pages/Billing';
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -42,6 +46,7 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -149,6 +154,13 @@ function App() {
             <Route path="/contractor/quote-submission/:id" element={
               <ProtectedRoute>
                 <QuoteSubmission />
+              </ProtectedRoute>
+            } />
+
+            {/* Billing (protected) */}
+            <Route path="/billing" element={
+              <ProtectedRoute>
+                <Billing />
               </ProtectedRoute>
             } />
             
