@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User, CreditCard } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +71,14 @@ export const UserMenu = () => {
             <span>Settings</span>
           </DropdownMenuItem>
         )}
+        
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => navigate('/billing')}
+        >
+          <CreditCard className="mr-2 h-4 w-4" />
+          <span>Billing</span>
+        </DropdownMenuItem>
         
         <DropdownMenuItem 
           className="cursor-pointer"
