@@ -159,6 +159,50 @@ export type Database = {
         }
         Relationships: []
       }
+      email_relay_keys: {
+        Row: {
+          actor_type: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          recipient_email: string
+          request_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          actor_type: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          recipient_email: string
+          request_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          actor_type?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          recipient_email?: string
+          request_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_relay_keys_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           contractor_id: string
