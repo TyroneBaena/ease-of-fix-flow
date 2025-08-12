@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BasicInfoFields } from './form/BasicInfoFields';
 import { PracticeLeaderFields } from './form/PracticeLeaderFields';
 import { RentalFields } from './form/RentalFields';
+import { LandlordFields } from './form/LandlordFields';
 import { GoogleMapsSettings } from '@/components/maps/GoogleMapsSettings';
 import { usePropertyForm } from '@/hooks/usePropertyForm';
 import { Property } from '@/types/property';
@@ -24,6 +25,7 @@ interface PropertyFormProps {
     renewalDate: string;
     rentAmount: number;
     rentPeriod: 'week' | 'month';
+    landlordId?: string;
   };
 }
 
@@ -36,6 +38,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
     handleChange, 
     handleRentPeriodChange,
     handlePracticeLeaderChange, 
+    handleLandlordChange,
     handleSubmit 
   } = usePropertyForm({ existingProperty, onClose });
 
@@ -64,6 +67,11 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
               practiceLeaderPhone={form.practiceLeaderPhone}
               onPracticeLeaderChange={handlePracticeLeaderChange}
               onChange={handleChange}
+            />
+
+            <LandlordFields
+              landlordId={form.landlordId}
+              onChange={handleLandlordChange}
             />
             
             <RentalFields

@@ -61,7 +61,8 @@ export const usePropertyProvider = (): PropertyContextType => {
         renewal_date: property.renewalDate || null,
         rent_amount: property.rentAmount,
         rent_period: property.rentPeriod,
-        user_id: currentUser.id
+        user_id: currentUser.id,
+        landlord_id: property.landlordId ?? null,
       };
 
       const { data, error } = await supabase
@@ -76,19 +77,21 @@ export const usePropertyProvider = (): PropertyContextType => {
         return;
       }
 
+      const d: any = data;
       const newProperty: Property = {
-        id: data.id,
-        name: data.name,
-        address: data.address,
-        contactNumber: data.contact_number,
-        email: data.email,
-        practiceLeader: data.practice_leader,
-        practiceLeaderEmail: data.practice_leader_email || '',
-        practiceLeaderPhone: data.practice_leader_phone || '',
-        renewalDate: data.renewal_date ? new Date(data.renewal_date).toISOString() : '',
-        rentAmount: Number(data.rent_amount) || 0,
-        rentPeriod: (data.rent_period as 'week' | 'month') || 'month',
-        createdAt: data.created_at
+        id: d.id,
+        name: d.name,
+        address: d.address,
+        contactNumber: d.contact_number,
+        email: d.email,
+        practiceLeader: d.practice_leader,
+        practiceLeaderEmail: d.practice_leader_email || '',
+        practiceLeaderPhone: d.practice_leader_phone || '',
+        renewalDate: d.renewal_date ? new Date(d.renewal_date).toISOString() : '',
+        rentAmount: Number(d.rent_amount) || 0,
+        rentPeriod: (d.rent_period as 'week' | 'month') || 'month',
+        createdAt: d.created_at,
+        landlordId: d.landlord_id || undefined,
       };
 
       setProperties(prev => [...prev, newProperty]);
@@ -122,6 +125,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       if ('renewalDate' in propertyUpdate) propertyToUpdate.renewal_date = propertyUpdate.renewalDate || null;
       if ('rentAmount' in propertyUpdate) propertyToUpdate.rent_amount = propertyUpdate.rentAmount;
       if ('rentPeriod' in propertyUpdate) propertyToUpdate.rent_period = propertyUpdate.rentPeriod;
+      if ('landlordId' in propertyUpdate) propertyToUpdate.landlord_id = propertyUpdate.landlordId ?? null;
 
       const { error } = await supabase
         .from('properties')

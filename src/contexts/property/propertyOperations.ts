@@ -20,7 +20,8 @@ export const fetchProperties = async (): Promise<Property[]> => {
   console.log('Properties fetched successfully:', data?.length || 0);
 
   // Format properties to match our Property type
-  const formattedProperties: Property[] = data.map(prop => ({
+  const rows = (data as any[]);
+  const formattedProperties: Property[] = rows.map((prop: any) => ({
     id: prop.id,
     name: prop.name,
     address: prop.address,
@@ -32,7 +33,8 @@ export const fetchProperties = async (): Promise<Property[]> => {
     renewalDate: prop.renewal_date ? new Date(prop.renewal_date).toISOString() : '',
     rentAmount: Number(prop.rent_amount) || 0,
     rentPeriod: (prop.rent_period as 'week' | 'month') || 'month',
-    createdAt: prop.created_at
+    createdAt: prop.created_at,
+    landlordId: prop.landlord_id || undefined,
   }));
 
   return formattedProperties;
@@ -51,6 +53,7 @@ export const mapPropertyToSupabase = (property: Omit<Property, 'id' | 'createdAt
     renewal_date: property.renewalDate || null,
     rent_amount: property.rentAmount,
     rent_period: property.rentPeriod,
-    user_id: userId
+    user_id: userId,
+    landlord_id: property.landlordId ?? null,
   };
 };
