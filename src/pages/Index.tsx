@@ -9,7 +9,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Supported Accommodation Property Management | MaintenanceHub';
+    document.title = 'Supported Accommodation Property Management | HousingHub';
     const metaDesc = 'All-in-one maintenance platform built for supported accommodation providers. Try free for 30 days.';
     let descTag = document.querySelector('meta[name="description"]');
     if (!descTag) {
@@ -31,7 +31,7 @@ const Index = () => {
     const ld = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'MaintenanceHub',
+      name: 'HousingHub',
       applicationCategory: 'BusinessApplication',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: '30-day free trial' },
       description: metaDesc
@@ -59,7 +59,7 @@ const Index = () => {
         },
         {
           '@type': 'Question',
-          name: 'Is MaintenanceHub secure for supported accommodation data?',
+          name: 'Is HousingHub secure for supported accommodation data?',
           acceptedAnswer: { '@type': 'Answer', text: 'Yes. Role-based access control, RLS policies and encrypted storage are used to protect your data.' }
         },
         {
@@ -92,7 +92,7 @@ const Index = () => {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="text-2xl font-bold text-gray-900">MaintenanceHub</div>
+            <div className="text-2xl font-bold text-gray-900">HousingHub</div>
             <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
@@ -123,7 +123,7 @@ const Index = () => {
             <div className="md:w-1/2">
               <h1 className="text-4xl font-bold mb-4">Built for Supported Accommodation Property Management</h1>
               <p className="text-xl mb-8">
-                Streamline maintenance, compliance, and contractor workflows—try MaintenanceHub free for 30 days.
+                Streamline maintenance, compliance, and contractor workflows—try HousingHub free for 30 days.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button onClick={() => navigate('/signup')} className="bg-white text-blue-600 hover:bg-gray-100">
@@ -156,7 +156,7 @@ const Index = () => {
       <section id="features" className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
-            Why Supported Accommodation Providers Choose MaintenanceHub
+            Why Supported Accommodation Providers Choose HousingHub
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard 
@@ -293,7 +293,7 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">What providers say</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <TestimonialCard
-              quote="MaintenanceHub lets our support staff raise issues quickly and our contractors know exactly what to do."
+              quote="HousingHub lets our support staff raise issues quickly and our contractors know exactly what to do."
               author="Operations Lead, Supported Living Provider"
               rating={5}
             />
@@ -353,7 +353,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-lg font-semibold mb-4">MaintenanceHub</h3>
+              <h3 className="text-lg font-semibold mb-4">HousingHub</h3>
               <p className="text-gray-300">
                 Simplifying maintenance management for facilities of all sizes.
               </p>
@@ -375,7 +375,7 @@ const Index = () => {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
-            <p>&copy; 2025 MaintenanceHub. All rights reserved.</p>
+            <p>&copy; 2025 HousingHub. All rights reserved.</p>
           </div>
         </div>
       </footer>

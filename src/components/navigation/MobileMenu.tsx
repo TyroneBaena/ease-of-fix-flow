@@ -76,9 +76,9 @@ export const MobileMenu = () => {
           <SheetTitle>
             <div className="flex items-center">
               <div className="h-8 w-8 rounded-md bg-blue-500 flex items-center justify-center mr-3">
-                <span className="text-white font-bold">M</span>
+                <span className="text-white font-bold">H</span>
               </div>
-              <span className="text-xl font-bold">MaintenanceHub</span>
+              <span className="text-xl font-bold">HousingHub</span>
             </div>
           </SheetTitle>
         </SheetHeader>

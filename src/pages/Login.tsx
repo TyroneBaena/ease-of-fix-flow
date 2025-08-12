@@ -117,10 +117,10 @@ const Login = () => {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <div className="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center">
-              <span className="text-white text-2xl font-bold">M</span>
+              <span className="text-white text-2xl font-bold">H</span>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Sign in to MaintenanceHub</CardTitle>
+          <CardTitle className="text-2xl font-bold">Sign in to HousingHub</CardTitle>
           <p className="text-sm text-gray-500">
             Enter your email and password to access your account
           </p>
