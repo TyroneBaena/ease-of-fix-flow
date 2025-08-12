@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { Wrench, ClipboardList, BarChart3, UserCircle } from 'lucide-react';
@@ -7,13 +7,53 @@ import { Wrench, ClipboardList, BarChart3, UserCircle } from 'lucide-react';
 const Index = () => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = 'Supported Accommodation Property Management | MaintenanceHub';
+    const metaDesc = 'All-in-one maintenance platform built for supported accommodation providers. Try free for 30 days.';
+    let descTag = document.querySelector('meta[name="description"]');
+    if (!descTag) {
+      descTag = document.createElement('meta');
+      descTag.setAttribute('name', 'description');
+      document.head.appendChild(descTag);
+    }
+    descTag.setAttribute('content', metaDesc);
+
+    const canonicalUrl = window.location.origin + '/';
+    let linkCanonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!linkCanonical) {
+      linkCanonical = document.createElement('link');
+      linkCanonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(linkCanonical);
+    }
+    linkCanonical.setAttribute('href', canonicalUrl);
+
+    const ld = {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'MaintenanceHub',
+      applicationCategory: 'BusinessApplication',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: '30-day free trial' },
+      description: metaDesc
+    } as const;
+    let ldScript = document.getElementById('ld-product');
+    if (ldScript) {
+      ldScript.textContent = JSON.stringify(ld);
+    } else {
+      const s = document.createElement('script');
+      s.type = 'application/ld+json';
+      s.id = 'ld-product';
+      s.text = JSON.stringify(ld);
+      document.head.appendChild(s);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">MaintenanceHub</h1>
+            <div className="text-2xl font-bold text-gray-900">MaintenanceHub</div>
             <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
@@ -36,27 +76,29 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="py-12 bg-gradient-to-br from-blue-500 to-teal-400 text-white">
+      <main>
+        {/* Hero Section */}
+        <section className="py-12 bg-gradient-to-br from-blue-500 to-teal-400 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="md:flex md:items-center md:justify-between">
             <div className="md:w-1/2">
-              <h2 className="text-4xl font-bold mb-4">Simplify Your Maintenance Operations</h2>
+              <h1 className="text-4xl font-bold mb-4">Built for Supported Accommodation Property Management</h1>
               <p className="text-xl mb-8">
-                Track, manage, and resolve maintenance requests efficiently with our comprehensive platform.
+                Streamline maintenance, compliance, and contractor workflows—try MaintenanceHub free for 30 days.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button 
-                  onClick={() => navigate('/new-request')}
-                  className="bg-white text-blue-600 hover:bg-gray-100"
-                >
-                  Submit New Request
+                <Button onClick={() => navigate('/signup')} className="bg-white text-blue-600 hover:bg-gray-100">
+                  Start free 30-day trial
                 </Button>
                 <Button 
-                  onClick={() => navigate('/dashboard')}
-                  className="bg-white text-blue-600 hover:bg-gray-100"
+                  variant="outline"
+                  onClick={() => {
+                    const el = document.getElementById('features');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="border-white text-white hover:bg-white/10"
                 >
-                  View Dashboard
+                  See features
                 </Button>
               </div>
             </div>
@@ -72,10 +114,10 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-16">
+      <section id="features" className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
-            Why Choose MaintenanceHub?
+            Why Supported Accommodation Providers Choose MaintenanceHub
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard 
@@ -100,30 +142,31 @@ const Index = () => {
       {/* CTA Section */}
       <section className="py-16 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-gray-900">Ready to Get Started?</h2>
+          <h2 className="text-3xl font-bold mb-4 text-gray-900">Start your 30-day free trial</h2>
           <p className="text-xl mb-8 text-gray-600">
-            Join thousands of facilities using MaintenanceHub to streamline their maintenance operations.
+            App built specifically for Supported Accommodation providers.
           </p>
           <div className="flex justify-center gap-4">
             <Button 
-              onClick={() => navigate('/new-request')}
+              onClick={() => navigate('/signup')}
               size="lg"
               className="bg-blue-500 hover:bg-blue-600"
             >
-              Submit a Request
+              Get started free
             </Button>
             <Button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/login')}
               variant="outline"
               size="lg"
               className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
             >
-              Explore Dashboard
+              Sign in
             </Button>
           </div>
         </div>
       </section>
 
+      </main>
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -137,11 +180,9 @@ const Index = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2">
-                <li><a href="/new-request" className="text-gray-300 hover:text-white">New Request</a></li>
-                <li><a href="/dashboard" className="text-gray-300 hover:text-white">Dashboard</a></li>
-                <li><a href="/analytics" className="text-gray-300 hover:text-white">Analytics</a></li>
-                <li><a href="/signup" className="text-gray-300 hover:text-white">Create Account</a></li>
-                <li><a href="/login" className="text-gray-300 hover:text-white">Login</a></li>
+                <li><a href="#features" className="text-gray-300 hover:text-white">Features</a></li>
+                <li><a href="/signup" className="text-gray-300 hover:text-white">Start free trial</a></li>
+                <li><a href="/login" className="text-gray-300 hover:text-white">Sign in</a></li>
               </ul>
             </div>
             <div>
