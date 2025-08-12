@@ -395,7 +395,7 @@ const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, titl
   );
 };
 
-const TestimonialCard = ({ quote, author, rating = 5 }: { quote: string; author: string; rating?: number }) => {
+function TestimonialCard({ quote, author, rating = 5 }: { quote: string; author: string; rating?: number }) {
   return (
     <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg hover-scale">
       <div className="flex items-center gap-1 mb-3" aria-label={`${rating} out of 5 stars`}>
@@ -407,6 +407,6 @@ const TestimonialCard = ({ quote, author, rating = 5 }: { quote: string; author:
       <div className="text-gray-900 font-medium">{author}</div>
     </div>
   );
-};
+}
 
 export default Index;
