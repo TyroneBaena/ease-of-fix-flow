@@ -135,7 +135,7 @@ const Index = () => {
                     const el = document.getElementById('features');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="border-white text-white hover:bg-white/10"
+                  className="bg-transparent border-white text-white hover:bg-white/10"
                 >
                   See features
                 </Button>
@@ -231,7 +231,7 @@ const Index = () => {
                   <div className="text-gray-600">Uptime target</div>
                 </div>
                 <div className="p-4 rounded-md bg-gray-50">
-                  <div className="text-2xl font-bold text-gray-900">EU/UK</div>
+                  <div className="text-2xl font-bold text-gray-900">Australia</div>
                   <div className="text-gray-600">Data residency</div>
                 </div>
                 <div className="p-4 rounded-md bg-gray-50">
@@ -253,13 +253,13 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900">Simple pricing</h2>
-            <p className="text-gray-600">Start free for 30 days. No credit card required.</p>
+            <p className="text-gray-600">Start free for 30 days. Pricing in AUD, billed per property.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="border rounded-lg p-6 bg-gray-50 hover-scale">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">Starter</h3>
-                <span className="text-gray-900 text-2xl font-bold">£49<span className="text-base font-normal text-gray-600">/mo</span></span>
+                <span className="text-gray-900 text-2xl font-bold">A$49<span className="text-base font-normal text-gray-600">/property/mo</span></span>
               </div>
               <ul className="space-y-2 text-gray-700 mb-6">
                 <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Up to 5 properties</li>
@@ -271,7 +271,7 @@ const Index = () => {
             <div className="border rounded-lg p-6 bg-white shadow hover-scale">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">Pro</h3>
-                <span className="text-gray-900 text-2xl font-bold">£99<span className="text-base font-normal text-gray-600">/mo</span></span>
+                <span className="text-gray-900 text-2xl font-bold">A$99<span className="text-base font-normal text-gray-600">/property/mo</span></span>
               </div>
               <ul className="space-y-2 text-gray-700 mb-6">
                 <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Unlimited properties</li>
