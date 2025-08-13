@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ const Login = () => {
   const location = useLocation();
 
   // Effect to check if user is already logged in and redirect
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (currentUser) {
       console.log("User is already logged in, redirecting to appropriate dashboard");
       const redirectPath = getRedirectPathByRole(currentUser.role);
