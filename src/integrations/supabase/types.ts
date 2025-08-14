@@ -353,6 +353,39 @@ export type Database = {
           },
         ]
       }
+      landlords: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          office_address: string | null
+          phone: string | null
+          postal_address: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          office_address?: string | null
+          phone?: string | null
+          postal_address?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          office_address?: string | null
+          phone?: string | null
+          postal_address?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       maintenance_requests: {
         Row: {
           assigned_at: string | null
@@ -572,6 +605,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          landlord_id: string | null
           name: string
           practice_leader: string
           practice_leader_email: string | null
@@ -587,6 +621,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          landlord_id?: string | null
           name: string
           practice_leader: string
           practice_leader_email?: string | null
@@ -602,6 +637,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          landlord_id?: string | null
           name?: string
           practice_leader?: string
           practice_leader_email?: string | null
@@ -611,7 +647,15 @@ export type Database = {
           rent_period?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "properties_landlord_id_fkey"
+            columns: ["landlord_id"]
+            isOneToOne: false
+            referencedRelation: "landlords"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_budgets: {
         Row: {
