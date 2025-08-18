@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { MaintenanceRequest } from '@/types/property';
 import { 
   Table, 
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { ClipboardList, X } from 'lucide-react';
+import { ClipboardList, X, Search } from 'lucide-react';
 import { formatTimestamp } from '@/components/request/detail/utils/dateUtils';
 
 interface PropertyRequestsProps {
@@ -29,6 +30,7 @@ interface PropertyRequestsProps {
 
 export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, propertyId }) => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -37,18 +39,25 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
     return requests.filter(request => {
       const priorityMatch = priorityFilter === 'all' || request.priority === priorityFilter;
       const statusMatch = statusFilter === 'all' || request.status === statusFilter;
-      return priorityMatch && statusMatch;
+      
+      // Search functionality - search in issue nature and site
+      const searchMatch = searchTerm === '' || 
+        (request.issueNature || request.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (request.site || request.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return priorityMatch && statusMatch && searchMatch;
     });
-  }, [requests, priorityFilter, statusFilter]);
+  }, [requests, priorityFilter, statusFilter, searchTerm]);
 
   // Clear all filters
   const clearFilters = () => {
+    setSearchTerm('');
     setPriorityFilter('all');
     setStatusFilter('all');
   };
 
   // Check if any filters are active
-  const hasActiveFilters = priorityFilter !== 'all' || statusFilter !== 'all';
+  const hasActiveFilters = searchTerm !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
 
   // Debug: log the requests to see what data we're working with
   console.log('PropertyRequests: requests data:', requests);
@@ -70,6 +79,17 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-3">
+                {/* Search input */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search requests..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                
                 <div className="w-full sm:w-40">
                   <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                     <SelectTrigger>
@@ -116,6 +136,17 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
             {/* Active filters display */}
             {hasActiveFilters && (
               <div className="flex flex-wrap gap-2 mt-3">
+                {searchTerm !== '' && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-secondary text-secondary-foreground">
+                    Search: "{searchTerm}"
+                    <button 
+                      onClick={() => setSearchTerm('')}
+                      className="ml-1 hover:bg-secondary-foreground/10 rounded p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
                 {priorityFilter !== 'all' && (
                   <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-secondary text-secondary-foreground">
                     Priority: {priorityFilter}
