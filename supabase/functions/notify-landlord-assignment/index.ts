@@ -19,6 +19,8 @@ const log = (step: string, details?: unknown) => {
 };
 
 serve(async (req) => {
+  log("Function called", { method: req.method, url: req.url });
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -27,6 +29,13 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
   const inboundReplyBase = Deno.env.get("INBOUND_REPLY_ADDRESS") ?? "";
+
+  log("Environment check", { 
+    hasResendKey: !!resendApiKey, 
+    hasInboundReply: !!inboundReplyBase,
+    resendKeyLength: resendApiKey.length,
+    inboundReplyAddress: inboundReplyBase
+  });
 
   if (!resendApiKey || !inboundReplyBase) {
     return new Response(JSON.stringify({ error: "Missing RESEND_API_KEY or INBOUND_REPLY_ADDRESS" }), {
