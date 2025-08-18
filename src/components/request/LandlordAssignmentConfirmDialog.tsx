@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Mail, FileText, MapPin, User, Calendar } from 'lucide-react';
 
@@ -19,7 +20,8 @@ interface LandlordAssignmentConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: MaintenanceRequest | null;
-  onConfirm: (notes: string) => Promise<void>;
+  property?: any;
+  onConfirm: (notes: string, landlordEmail: string) => Promise<void>;
   loading?: boolean;
 }
 
@@ -27,19 +29,35 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
   open,
   onOpenChange,
   request,
+  property,
   onConfirm,
   loading = false,
 }) => {
   const [notes, setNotes] = useState('');
+  const [landlordEmail, setLandlordEmail] = useState('');
+
+  // Set default email when dialog opens
+  React.useEffect(() => {
+    if (open && property) {
+      const defaultEmail = property.practice_leader_email || property.email || '';
+      setLandlordEmail(defaultEmail);
+    }
+  }, [open, property]);
 
   const handleConfirm = async () => {
-    await onConfirm(notes);
+    if (!landlordEmail.trim()) {
+      alert('Please enter a landlord email address');
+      return;
+    }
+    await onConfirm(notes, landlordEmail);
     setNotes('');
+    setLandlordEmail('');
     onOpenChange(false);
   };
 
   const handleCancel = () => {
     setNotes('');
+    setLandlordEmail('');
     onOpenChange(false);
   };
 
@@ -128,6 +146,24 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
             </CardContent>
           </Card>
 
+          {/* Landlord Email Section */}
+          <div className="space-y-2">
+            <Label htmlFor="landlord-email">Landlord Email Address <span className="text-destructive">*</span></Label>
+            <Input
+              id="landlord-email"
+              type="email"
+              placeholder="Enter landlord's email address"
+              value={landlordEmail}
+              onChange={(e) => setLandlordEmail(e.target.value)}
+              required
+            />
+            {property?.practice_leader_email || property?.email ? (
+              <p className="text-xs text-muted-foreground">
+                Default email from property: {property.practice_leader_email || property.email}
+              </p>
+            ) : null}
+          </div>
+
           {/* Additional Notes Section */}
           <div className="space-y-2">
             <Label htmlFor="landlord-notes">Additional Notes for Landlord (Optional)</Label>
@@ -143,7 +179,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
           {/* Email Information */}
           <div className="bg-muted/50 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              <strong>Note:</strong> An email notification will be sent to the landlord with the above information
+              <strong>Note:</strong> An email notification will be sent to <strong>{landlordEmail || 'the specified landlord'}</strong> with the above information
               and a link to view the full request details.
             </p>
           </div>

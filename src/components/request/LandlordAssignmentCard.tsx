@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,8 +29,35 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
   const [notes, setNotes] = useState<string>(landlordNotes || '');
   const [loading, setLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [property, setProperty] = useState<any>(null);
 
-  const handleConfirmAssignment = async (assignmentNotes: string) => {
+  // Fetch property data when component mounts
+  useEffect(() => {
+    const fetchProperty = async () => {
+      if (!request.propertyId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', request.propertyId)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching property:', error);
+          return;
+        }
+        
+        setProperty(data);
+      } catch (err) {
+        console.error('Error fetching property:', err);
+      }
+    };
+
+    fetchProperty();
+  }, [request.propertyId]);
+
+  const handleConfirmAssignment = async (assignmentNotes: string, landlordEmail: string) => {
     if (!currentUser) {
       toast.error('You must be logged in');
       return;
@@ -38,6 +65,8 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
 
     try {
       setLoading(true);
+      
+      // Store the landlord email for future notifications
       const { error } = await supabase
         .from('maintenance_requests')
         .update({
@@ -53,13 +82,13 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
       await logActivity({
         requestId,
         actionType: 'landlord_assignment',
-        description: 'Request assigned to landlord',
+        description: `Request assigned to landlord (${landlordEmail})`,
         actorName: currentUser.name,
         actorRole: currentUser.role,
-        metadata: { notes: assignmentNotes },
+        metadata: { notes: assignmentNotes, landlordEmail },
       });
 
-      toast.success('Assigned to landlord');
+      toast.success('Assigned to landlord and notification sent');
       onAssigned?.();
     } catch (e) {
       console.error('Assign to landlord failed', e);
@@ -140,6 +169,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
           setShowConfirmDialog(open);
         }}
         request={request}
+        property={property}
         onConfirm={handleConfirmAssignment}
         loading={loading}
       />
