@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -871,9 +871,9 @@ export type Database = {
     Functions: {
       add_new_comment: {
         Args: {
-          p_user_id: string
           p_request_id: string
           p_text: string
+          p_user_id: string
           p_user_name: string
           p_user_role: string
         }
@@ -881,9 +881,9 @@ export type Database = {
       }
       create_comment_notifications: {
         Args: {
-          request_id_param: string
           comment_text: string
           commenter_name: string
+          request_id_param: string
         }
         Returns: undefined
       }
@@ -908,10 +908,10 @@ export type Database = {
         Returns: string
       }
       get_property_maintenance_spend: {
-        Args: { p_property_id: string; p_financial_year?: number }
+        Args: { p_financial_year?: number; p_property_id: string }
         Returns: {
-          total_spend: number
           category_spend: Json
+          total_spend: number
         }[]
       }
       get_user_role_for_maintenance: {
@@ -940,10 +940,10 @@ export type Database = {
       }
       send_comment_email_notification: {
         Args: {
-          p_request_id: string
           p_comment_text: string
           p_commenter_name: string
           p_commenter_role: string
+          p_request_id: string
         }
         Returns: undefined
       }
