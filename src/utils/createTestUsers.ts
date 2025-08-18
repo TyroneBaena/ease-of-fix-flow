@@ -1,9 +1,9 @@
-import { userService } from '@/services/userService';
+import { supabase } from '@/integrations/supabase/client';
 import { TEST_CREDENTIALS, displayTestCredentials } from './testCredentials';
 import { toast } from 'sonner';
 
 /**
- * Creates test users for development with different role types
+ * Creates test users directly using Supabase admin API
  */
 export const createTestUsers = async (): Promise<void> => {
   console.log('🚀 Creating test users...');
@@ -14,27 +14,54 @@ export const createTestUsers = async (): Promise<void> => {
     try {
       console.log(`Creating ${credential.role} user: ${credential.email}`);
       
-      const result = await userService.inviteUser(
-        credential.email,
-        credential.name,
-        credential.role,
-        credential.role === 'manager' ? [] : undefined // Empty assigned properties for managers
-      );
+      // Create user directly with Supabase admin API
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: credential.email,
+        password: credential.password,
+        email_confirm: true,
+        user_metadata: {
+          name: credential.name,
+          role: credential.role
+        }
+      });
       
-      if (result.success) {
-        results.push({
-          role: credential.role,
-          success: true,
-          message: `✅ ${credential.role} user created successfully`
-        });
-        console.log(`✅ ${credential.role} user created: ${credential.email}`);
-      } else {
+      if (authError) {
+        console.error(`Auth error for ${credential.role}:`, authError);
         results.push({
           role: credential.role,
           success: false,
-          message: `❌ Failed to create ${credential.role} user: ${result.message}`
+          message: `❌ Failed to create ${credential.role} user: ${authError.message}`
         });
-        console.error(`❌ Failed to create ${credential.role} user:`, result.message);
+        continue;
+      }
+      
+      if (authData.user) {
+        // Create profile entry
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            name: credential.name,
+            email: credential.email,
+            role: credential.role,
+            assigned_properties: credential.role === 'manager' ? [] : null
+          });
+        
+        if (profileError) {
+          console.error(`Profile error for ${credential.role}:`, profileError);
+          results.push({
+            role: credential.role,
+            success: false,
+            message: `❌ Failed to create profile for ${credential.role}: ${profileError.message}`
+          });
+        } else {
+          results.push({
+            role: credential.role,
+            success: true,
+            message: `✅ ${credential.role} user created successfully`
+          });
+          console.log(`✅ ${credential.role} user created: ${credential.email}`);
+        }
       }
     } catch (error: any) {
       results.push({
@@ -80,8 +107,13 @@ export const checkTestUsersExist = async (): Promise<{ [key: string]: boolean }>
   
   for (const credential of TEST_CREDENTIALS) {
     try {
-      const exists = await userService.checkUserExists(credential.email);
-      existingUsers[credential.role] = exists;
+      const { data: user } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', credential.email)
+        .single();
+      
+      existingUsers[credential.role] = !!user;
     } catch (error) {
       existingUsers[credential.role] = false;
     }
