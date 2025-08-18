@@ -12,6 +12,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
+import DevToolsPanel from '@/components/DevToolsPanel';
 
 const Settings = () => {
   const { currentUser, isAdmin, loading } = useUserContext();
@@ -89,6 +90,8 @@ const Settings = () => {
       <Toaster position="bottom-right" richColors />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
+        
+        <DevToolsPanel />
         
         <Tabs defaultValue={isAdmin ? "users" : "account"}>
           <TabsList className="mb-4">
