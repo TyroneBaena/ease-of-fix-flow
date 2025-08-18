@@ -79,6 +79,20 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
 
       if (error) throw error;
 
+      // Call email notification function
+      const { error: emailError } = await supabase.functions.invoke('notify-landlord-assignment', {
+        body: {
+          request_id: requestId,
+          landlord_email: landlordEmail,
+          landlord_name: 'Landlord' // Could be enhanced to get actual name
+        }
+      });
+
+      if (emailError) {
+        console.error('Email notification failed:', emailError);
+        // Don't fail the assignment if email fails
+      }
+
       await logActivity({
         requestId,
         actionType: 'landlord_assignment',
