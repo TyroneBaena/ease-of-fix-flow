@@ -131,7 +131,7 @@ export const RequestDetailSidebar = ({
             />
           )}
 
-          {canAccessContractorFeatures && (
+          {canAccessContractorFeatures && !request.contractorId && (
             <QuotesList 
               quotes={quotes}
               requestId={request.id}
