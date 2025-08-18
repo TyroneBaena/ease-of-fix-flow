@@ -7,9 +7,12 @@ import { useUserContext } from '@/contexts/UserContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { logActivity } from '@/contexts/contractor/operations/helpers/activityHelpers';
+import { LandlordAssignmentConfirmDialog } from './LandlordAssignmentConfirmDialog';
+import { MaintenanceRequest } from '@/types/maintenance';
 
 interface LandlordAssignmentCardProps {
   requestId: string;
+  request: MaintenanceRequest;
   assignedToLandlord?: boolean | null;
   landlordNotes?: string | null;
   onAssigned?: () => void;
@@ -17,6 +20,7 @@ interface LandlordAssignmentCardProps {
 
 export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
   requestId,
+  request,
   assignedToLandlord,
   landlordNotes,
   onAssigned,
@@ -24,8 +28,9 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
   const { currentUser } = useUserContext();
   const [notes, setNotes] = useState<string>(landlordNotes || '');
   const [loading, setLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  const handleAssign = async () => {
+  const handleConfirmAssignment = async (assignmentNotes: string) => {
     if (!currentUser) {
       toast.error('You must be logged in');
       return;
@@ -37,7 +42,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
         .from('maintenance_requests')
         .update({
           assigned_to_landlord: true,
-          landlord_notes: notes || null,
+          landlord_notes: assignmentNotes || null,
           landlord_assigned_at: new Date().toISOString(),
           landlord_assigned_by: currentUser.id,
         })
@@ -51,7 +56,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
         description: 'Request assigned to landlord',
         actorName: currentUser.name,
         actorRole: currentUser.role,
-        metadata: { notes },
+        metadata: { notes: assignmentNotes },
       });
 
       toast.success('Assigned to landlord');
@@ -62,6 +67,10 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAssignClick = () => {
+    setShowConfirmDialog(true);
   };
 
   const handleUnassign = async () => {
@@ -117,11 +126,19 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-          <Button className="w-full" onClick={handleAssign} disabled={loading}>
+          <Button className="w-full" onClick={handleAssignClick} disabled={loading}>
             {loading ? 'Assigning...' : 'Assign to Landlord'}
           </Button>
         </div>
       )}
+
+      <LandlordAssignmentConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        request={request}
+        onConfirm={handleConfirmAssignment}
+        loading={loading}
+      />
     </Card>
   );
 };

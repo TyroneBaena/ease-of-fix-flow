@@ -81,6 +81,7 @@ export const RequestDetailSidebar = ({
       {canEditRequests && (
         <LandlordAssignmentCard
           requestId={request.id}
+          request={request}
           assignedToLandlord={isLandlordAssigned}
           landlordNotes={(request as any).landlord_notes}
           onAssigned={onRefreshData}
