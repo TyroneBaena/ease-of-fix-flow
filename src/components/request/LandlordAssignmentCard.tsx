@@ -70,6 +70,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
   };
 
   const handleAssignClick = () => {
+    console.log('Assign button clicked, opening dialog');
     setShowConfirmDialog(true);
   };
 
@@ -134,7 +135,10 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
 
       <LandlordAssignmentConfirmDialog
         open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
+        onOpenChange={(open) => {
+          console.log('Dialog open state changing to:', open);
+          setShowConfirmDialog(open);
+        }}
         request={request}
         onConfirm={handleConfirmAssignment}
         loading={loading}
