@@ -9,7 +9,7 @@ interface MaintenanceSpendCardProps {
   propertyId: string;
 }
 
-export const MaintenanceSpendCard = ({ propertyId }: MaintenanceSpendCardProps) => {
+export const MaintenanceSpendCard = React.memo(({ propertyId }: MaintenanceSpendCardProps) => {
   const { maintenanceSpend, currentFinancialYear, loading, getBudgetAnalysis } = useBudgetData(propertyId);
 
   if (loading) {
@@ -97,4 +97,4 @@ export const MaintenanceSpendCard = ({ propertyId }: MaintenanceSpendCardProps) 
       </CardContent>
     </Card>
   );
-};
+});

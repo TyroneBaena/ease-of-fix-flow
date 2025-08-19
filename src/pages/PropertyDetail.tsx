@@ -12,7 +12,7 @@ import { PropertyInfo } from '@/components/property/PropertyInfo';
 import { PropertyRequests } from '@/components/property/PropertyRequests';
 import { PropertyQuickActions } from '@/components/property/PropertyQuickActions';
 import { PropertyQrDialog } from '@/components/property/PropertyQrDialog';
-import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
+import { LazyMaintenanceSpendCard } from '@/components/property/LazyMaintenanceSpendCard';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -99,7 +99,7 @@ const PropertyDetail = () => {
               </div>
               
               <div className="space-y-6">
-                {id && <MaintenanceSpendCard propertyId={id} />}
+                {id && <LazyMaintenanceSpendCard propertyId={id} />}
                 {id && (
                   <PropertyQuickActions
                     propertyId={id}
