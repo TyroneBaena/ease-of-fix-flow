@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -81,9 +81,9 @@ const ForgotPassword = () => {
 
             <p className="text-sm text-center text-gray-500 mt-4">
               Back to{" "}
-              <a href="/login" className="text-blue-500 hover:underline">
+              <Link to="/login" className="text-blue-500 hover:underline">
                 Login
-              </a>
+              </Link>
             </p>
           </form>
         </CardContent>

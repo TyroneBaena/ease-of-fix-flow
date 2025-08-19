@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -232,9 +232,9 @@ const SetupPassword = () => {
             
             <p className="text-sm text-center text-gray-500 mt-4">
               Already have an account?{" "}
-              <a href="/login" className="text-blue-500 hover:underline">
+              <Link to="/login" className="text-blue-500 hover:underline">
                 Sign in
-              </a>
+              </Link>
             </p>
           </form>
         </CardContent>

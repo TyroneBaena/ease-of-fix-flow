@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Wrench, ClipboardList, BarChart3, UserCircle, Shield, CheckCircle2, Star, CreditCard, Lock, Users, Clock, ArrowRight } from 'lucide-react';
 
 const Index = () => {
@@ -360,11 +360,11 @@ const Index = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li><a href="#features" className="text-gray-300 hover:text-white">Features</a></li>
-                <li><a href="/signup" className="text-gray-300 hover:text-white">Start free trial</a></li>
-                <li><a href="/login" className="text-gray-300 hover:text-white">Sign in</a></li>
-              </ul>
+               <ul className="space-y-2">
+                 <li><a href="#features" className="text-gray-300 hover:text-white">Features</a></li>
+                 <li><Link to="/signup" className="text-gray-300 hover:text-white">Start free trial</Link></li>
+                 <li><Link to="/login" className="text-gray-300 hover:text-white">Sign in</Link></li>
+               </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Contact</h3>

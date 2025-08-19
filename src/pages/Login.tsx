@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -150,9 +150,9 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <a href="/forgot-password" className="text-sm text-blue-500 hover:underline">
+                <Link to="/forgot-password" className="text-sm text-blue-500 hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <Input 
                 id="password" 
@@ -168,9 +168,9 @@ const Login = () => {
             
             <p className="text-sm text-center text-gray-500">
               Don't have an account?{" "}
-              <a href="/signup" className="text-blue-500 hover:underline">
+              <Link to="/signup" className="text-blue-500 hover:underline">
                 Sign up
-              </a>
+              </Link>
             </p>
           </form>
         </CardContent>
