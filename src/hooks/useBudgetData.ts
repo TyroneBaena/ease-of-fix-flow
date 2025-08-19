@@ -19,46 +19,48 @@ export const useBudgetData = (propertyId: string) => {
     try {
       setLoading(true);
       
-      // Fetch current financial year
+      // Fetch current financial year first since other queries depend on it
       const { data: fyData, error: fyError } = await supabase
         .rpc('get_current_financial_year');
       
       if (fyError) throw fyError;
       setCurrentFinancialYear(fyData);
 
-      // Fetch budget categories
-      const { data: categories, error: categoriesError } = await supabase
-        .from('budget_categories')
-        .select('*')
-        .order('name');
+      // Now fetch the remaining data in parallel
+      const [categoriesResult, budgetsResult, spendResult] = await Promise.all([
+        // Fetch budget categories
+        supabase
+          .from('budget_categories')
+          .select('*')
+          .order('name'),
 
-      if (categoriesError) throw categoriesError;
-      setBudgetCategories(categories);
+        // Fetch property budgets for current financial year
+        supabase
+          .from('property_budgets')
+          .select(`
+            *,
+            budget_category:budget_categories(*)
+          `)
+          .eq('property_id', propertyId)
+          .eq('financial_year', fyData),
 
-      // Fetch property budgets for current financial year
-      const { data: budgets, error: budgetsError } = await supabase
-        .from('property_budgets')
-        .select(`
-          *,
-          budget_category:budget_categories(*)
-        `)
-        .eq('property_id', propertyId)
-        .eq('financial_year', fyData);
+        // Fetch maintenance spend
+        supabase
+          .rpc('get_property_maintenance_spend', {
+            p_property_id: propertyId,
+            p_financial_year: fyData
+          })
+      ]);
 
-      if (budgetsError) throw budgetsError;
-      setPropertyBudgets(budgets);
+      if (categoriesResult.error) throw categoriesResult.error;
+      if (budgetsResult.error) throw budgetsResult.error;
+      if (spendResult.error) throw spendResult.error;
 
-      // Fetch maintenance spend
-      const { data: spendData, error: spendError } = await supabase
-        .rpc('get_property_maintenance_spend', {
-          p_property_id: propertyId,
-          p_financial_year: fyData
-        });
-
-      if (spendError) throw spendError;
+      setBudgetCategories(categoriesResult.data);
+      setPropertyBudgets(budgetsResult.data);
       
       // Type the response properly and handle the Json to Record conversion
-      const rawSpendData = spendData?.[0];
+      const rawSpendData = spendResult.data?.[0];
       if (rawSpendData) {
         const categorySpend = rawSpendData.category_spend as Record<string, unknown>;
         // Convert the category_spend values to numbers
