@@ -2,35 +2,21 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Calendar } from 'lucide-react';
-import { useBudgetData } from '@/hooks/useBudgetData';
-import { Skeleton } from '@/components/ui/skeleton';
+import { MaintenanceSpend, BudgetAnalysis } from '@/types/budget';
 
 interface MaintenanceSpendCardProps {
-  propertyId: string;
+  maintenanceSpend: MaintenanceSpend | null;
+  currentFinancialYear: number;
+  budgetAnalysis: BudgetAnalysis[];
 }
 
-export const MaintenanceSpendCard = React.memo(({ propertyId }: MaintenanceSpendCardProps) => {
-  const { maintenanceSpend, currentFinancialYear, loading, getBudgetAnalysis } = useBudgetData(propertyId);
+export const MaintenanceSpendCard = React.memo(({ 
+  maintenanceSpend, 
+  currentFinancialYear, 
+  budgetAnalysis 
+}: MaintenanceSpendCardProps) => {
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-32 mb-4" />
-          <div className="space-y-2">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-4 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const budgetAnalysis = getBudgetAnalysis();
+  // Data is already loaded by parent, no loading state needed here
   const totalBudgeted = budgetAnalysis.reduce((sum, item) => sum + item.budgeted, 0);
   const totalSpent = maintenanceSpend?.total_spend || 0;
   const overBudgetCategories = budgetAnalysis.filter(item => item.status === 'over').length;
