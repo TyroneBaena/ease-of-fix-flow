@@ -6,18 +6,10 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requireAdmin?: boolean;
-  allowManager?: boolean;
-  restrictContractorAccess?: boolean; // New prop to restrict contractor access for managers
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requireAdmin = false,
-  allowManager = false,
-  restrictContractorAccess = false
-}) => {
-  const { currentUser, loading, isAdmin } = useUserContext();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { currentUser, loading } = useUserContext();
   const [timeoutElapsed, setTimeoutElapsed] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const navigate = useNavigate();
@@ -55,20 +47,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
   
-  // Check role requirements if user is authenticated
-  if (requireAdmin && currentUser) {
-    // Allow access if user is admin or (when specified) a manager
-    if (!isAdmin && !(allowManager && currentUser.role === 'manager')) {
-      console.log("ProtectedRoute: User doesn't have required permissions, redirecting to dashboard");
-      return <Navigate to="/dashboard" replace />;
-    }
-  }
-
-  // Restrict contractor access for managers - prevents managers from accessing contractor management
-  if (restrictContractorAccess && currentUser?.role === 'manager') {
-    console.log("ProtectedRoute: Manager attempting to access contractor-restricted content, redirecting to dashboard");
-    return <Navigate to="/dashboard" replace />;
-  }
   
   // Only render children if we have a valid authenticated user
   if (currentUser) {
