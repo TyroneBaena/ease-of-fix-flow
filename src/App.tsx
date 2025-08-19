@@ -11,6 +11,7 @@ import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import ForgotPassword from '@/pages/ForgotPassword';
 import SetupPassword from '@/pages/SetupPassword';
+import EmailConfirm from '@/pages/EmailConfirm';
 import Dashboard from '@/pages/Dashboard';
 import AllRequests from '@/pages/AllRequests';
 import NewRequest from '@/pages/NewRequest';
@@ -51,6 +52,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/setup-password" element={<SetupPassword />} />
+            <Route path="/email-confirm" element={<EmailConfirm />} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
