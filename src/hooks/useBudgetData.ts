@@ -12,7 +12,11 @@ export const useBudgetData = (propertyId: string) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBudgetData();
+    if (propertyId) {
+      fetchBudgetData();
+    } else {
+      setLoading(false);
+    }
   }, [propertyId]);
 
   const fetchBudgetData = async () => {

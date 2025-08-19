@@ -35,7 +35,7 @@ const PropertyDetail = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   
-  // Load budget data at parent level to coordinate loading
+  // Only load budget data if we have a valid property ID
   const { maintenanceSpend, currentFinancialYear, loading: budgetLoading, getBudgetAnalysis } = useBudgetData(id || '');
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const PropertyDetail = () => {
   };
 
   // Show unified loading state until both property and budget data are ready
-  if (!property || budgetLoading) {
+  if (!property || (id && budgetLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
