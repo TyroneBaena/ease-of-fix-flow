@@ -22,13 +22,15 @@ import {
 } from "@/components/ui/select";
 import { ClipboardList, X, Search } from 'lucide-react';
 import { formatTimestamp } from '@/components/request/detail/utils/dateUtils';
+import { RequestEditButton } from '@/components/request/RequestEditButton';
 
 interface PropertyRequestsProps {
   requests: MaintenanceRequest[];
   propertyId: string;
+  onRequestUpdated?: () => void;
 }
 
-export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, propertyId }) => {
+export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, propertyId, onRequestUpdated }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -204,7 +206,7 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
                 <TableHead>Priority</TableHead>
                 <TableHead className="min-w-[100px]">Status</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead></TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -236,13 +238,22 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
                     </TableCell>
                     <TableCell>{formatTimestamp(request.reportDate || request.createdAt)}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/requests/${request.id}`)}
-                      >
-                        View
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/requests/${request.id}`)}
+                        >
+                          View
+                        </Button>
+                        <RequestEditButton
+                          request={request as any}
+                          onRequestUpdated={() => {
+                            console.log('PropertyRequests - Request updated, triggering refresh');
+                            onRequestUpdated?.();
+                          }}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

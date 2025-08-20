@@ -15,10 +15,11 @@ const PropertyRequestsView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getProperty, properties, loading: propertiesLoading } = usePropertyContext();
-  const { getRequestsForProperty } = useMaintenanceRequestContext();
+  const { getRequestsForProperty, refreshRequests } = useMaintenanceRequestContext();
   const [property, setProperty] = useState<Property | undefined>(undefined);
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   useEffect(() => {
     console.log('=== PropertyRequestsView Debug ===');
@@ -62,7 +63,7 @@ const PropertyRequestsView = () => {
       console.log('No ID parameter in URL');
     }
     setLoading(false);
-  }, [id, getProperty, getRequestsForProperty, navigate, properties, propertiesLoading]);
+  }, [id, getProperty, getRequestsForProperty, navigate, properties, propertiesLoading, refreshCounter]);
 
   if (loading || propertiesLoading) {
     return (
@@ -141,7 +142,14 @@ const PropertyRequestsView = () => {
         </div>
 
         {/* Main Maintenance Requests Section */}
-        <PropertyRequests requests={requests as any} propertyId={id!} />
+        <PropertyRequests 
+          requests={requests as any} 
+          propertyId={id!} 
+          onRequestUpdated={async () => {
+            await refreshRequests();
+            setRefreshCounter(prev => prev + 1);
+          }} 
+        />
       </main>
     </div>
   );
