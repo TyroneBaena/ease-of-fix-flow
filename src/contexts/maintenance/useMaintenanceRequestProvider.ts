@@ -29,22 +29,19 @@ export const useMaintenanceRequestProvider = () => {
             table: 'maintenance_requests'
           },
           async (payload) => {
-            console.log('Real-time maintenance request change detected:', payload);
+            console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
             
-            // Only refresh if the current user has access to this request
-            if (payload.new && shouldUserSeeRequest(payload.new, currentUser.id)) {
-              console.log('User has access to updated request, refreshing data');
-              await loadRequests();
-            } else if (payload.old && shouldUserSeeRequest(payload.old, currentUser.id)) {
-              console.log('User had access to deleted/updated request, refreshing data');
-              await loadRequests();
-            }
+            // Force immediate refresh on any change
+            console.log('🔄 REAL-TIME: Triggering immediate context refresh');
+            await loadRequests();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('🔌 REAL-TIME: Global maintenance subscription status:', status);
+        });
 
       return () => {
-        console.log('Unsubscribing from maintenance requests real-time channel');
+        console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
         supabase.removeChannel(channel);
       };
     } else {

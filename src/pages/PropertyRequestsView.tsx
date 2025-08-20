@@ -16,11 +16,12 @@ const PropertyRequestsView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getProperty, properties, loading: propertiesLoading } = usePropertyContext();
-  const { getRequestsForProperty, refreshRequests } = useMaintenanceRequestContext();
+  const { getRequestsForProperty, refreshRequests, requests: allRequests } = useMaintenanceRequestContext();
   const [property, setProperty] = useState<Property | undefined>(undefined);
-  const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshCounter, setRefreshCounter] = useState(0);
+  
+  // Get requests for this property directly from context (reactive to changes)
+  const requests = property ? getRequestsForProperty(property.id) : [];
 
   useEffect(() => {
     console.log('=== PropertyRequestsView Debug ===');
@@ -45,13 +46,10 @@ const PropertyRequestsView = () => {
       if (propertyData) {
         console.log('Property found:', propertyData);
         setProperty(propertyData);
-        const propertyRequests = getRequestsForProperty(id);
-        console.log('Requests for property:', propertyRequests);
-        setRequests(propertyRequests);
         
-        // Set up real-time subscription for this property's requests
+        // Set up direct real-time subscription for immediate UI updates
         const channel = supabase
-          .channel(`property-${id}-requests`)
+          .channel(`property-${id}-requests-direct`)
           .on(
             'postgres_changes',
             {
@@ -60,18 +58,25 @@ const PropertyRequestsView = () => {
               table: 'maintenance_requests',
               filter: `property_id=eq.${id}`
             },
-            (payload) => {
-              console.log('Property-specific request change detected:', payload);
-              // Refresh requests for this property
-              const updatedRequests = getRequestsForProperty(id);
-              setRequests(updatedRequests);
+            async (payload) => {
+              console.log('🔄 REAL-TIME: Property request change detected:', payload.eventType, payload);
+              
+              // Force immediate refresh of maintenance context
+              try {
+                await refreshRequests();
+                console.log('✅ REAL-TIME: Context refreshed successfully');
+              } catch (error) {
+                console.error('❌ REAL-TIME: Error refreshing context:', error);
+              }
             }
           )
-          .subscribe();
+          .subscribe((status) => {
+            console.log('🔌 REAL-TIME: Subscription status:', status);
+          });
 
         // Cleanup subscription
         return () => {
-          console.log('Unsubscribing from property-specific requests channel');
+          console.log('🔌 REAL-TIME: Unsubscribing from property-specific requests channel');
           supabase.removeChannel(channel);
         };
       } else {
@@ -90,7 +95,13 @@ const PropertyRequestsView = () => {
       console.log('No ID parameter in URL');
     }
     setLoading(false);
-  }, [id, getProperty, getRequestsForProperty, navigate, properties, propertiesLoading, refreshCounter]);
+  }, [id, getProperty, navigate, properties, propertiesLoading]);
+
+  // Add debug logging for requests changes
+  useEffect(() => {
+    console.log('🔄 PropertyRequestsView: Requests updated, count:', requests.length);
+    console.log('🔄 PropertyRequestsView: Current requests:', requests.map(r => ({ id: r.id, issueNature: r.issueNature })));
+  }, [requests, allRequests]); // React to both local requests and context changes
 
   if (loading || propertiesLoading) {
     return (

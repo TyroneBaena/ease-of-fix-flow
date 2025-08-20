@@ -63,6 +63,8 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
 
   // Debug: log the requests to see what data we're working with
   console.log('PropertyRequests: requests data:', requests);
+  console.log('PropertyRequests: requests count:', requests.length);
+  console.log('PropertyRequests: requests details:', requests.map(r => ({ id: r.id, issueNature: r.issueNature, title: r.title })));
 
   return (
     <Card className="mt-6">
