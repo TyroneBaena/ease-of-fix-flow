@@ -99,59 +99,49 @@ const PropertyRequestsView = () => {
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with property info */}
+        {/* Simple header for maintenance requests focus */}
         <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/dashboard')}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+            
+            <Button
+              onClick={() => navigate(`/new-request?propertyId=${id}`)}
+              className="flex items-center"
+            >
+              Create New Request
+            </Button>
+          </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl font-bold">
-                <Building className="h-5 w-5 mr-2" />
-                {property.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center text-muted-foreground">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <span>{property.address}</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Phone className="h-4 w-4 mr-2" />
-                  <span>{property.contactNumber}</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span>{property.email}</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Building className="h-4 w-4 mr-2" />
-                  <span>Practice Leader: {property.practiceLeader}</span>
-                </div>
+          {/* Minimal property header focused on maintenance requests */}
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center">
+                  <Building className="h-6 w-6 mr-2" />
+                  {property.name} - Maintenance Requests
+                </h1>
+                <p className="text-muted-foreground mt-1 flex items-center">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  {property.address}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-right text-sm text-muted-foreground">
+                <p>Practice Leader: {property.practiceLeader}</p>
+                <p>{property.contactNumber}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Maintenance Requests */}
+        {/* Main Maintenance Requests Section */}
         <PropertyRequests requests={requests as any} propertyId={id!} />
-        
-        {/* Quick Action Button */}
-        <div className="mt-6 text-center">
-          <Button
-            size="lg"
-            onClick={() => navigate(`/new-request?propertyId=${id}`)}
-          >
-            Create New Maintenance Request
-          </Button>
-        </div>
       </main>
     </div>
   );
