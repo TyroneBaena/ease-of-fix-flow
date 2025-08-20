@@ -18,6 +18,7 @@ import NewRequest from '@/pages/NewRequest';
 import RequestDetail from '@/pages/RequestDetail';
 import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
+import PropertyRequestsView from '@/pages/PropertyRequestsView';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
@@ -88,6 +89,12 @@ function App() {
             <Route path="/properties/:id" element={
               <ProtectedRoute>
                 <PropertyDetail />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/property-requests/:id" element={
+              <ProtectedRoute>
+                <PropertyRequestsView />
               </ProtectedRoute>
             } />
             
