@@ -1,7 +1,7 @@
 
 // QR code generation utility for property maintenance requests
 export const generateQRCodeUrl = (propertyId: string): string => {
-  // Create a URL that points directly to the property requests view
+  // Create a URL that points to the public property requests view (no auth required)
   const baseUrl = window.location.origin;
   return `${baseUrl}/property-requests/${propertyId}`;
 };
