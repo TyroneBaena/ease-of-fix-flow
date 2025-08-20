@@ -14,7 +14,7 @@ import { toast } from '@/lib/toast';
 const PropertyRequestsView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getProperty } = usePropertyContext();
+  const { getProperty, properties } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
   const [property, setProperty] = useState<Property | undefined>(undefined);
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
@@ -22,18 +22,23 @@ const PropertyRequestsView = () => {
 
   useEffect(() => {
     if (id) {
+      console.log('PropertyRequestsView: Looking for property with ID:', id);
+      console.log('PropertyRequestsView: Available properties:', properties);
+      
       const propertyData = getProperty(id);
       if (propertyData) {
+        console.log('PropertyRequestsView: Property found:', propertyData);
         setProperty(propertyData);
         setRequests(getRequestsForProperty(id));
       } else {
+        console.log('PropertyRequestsView: Property not found in context');
         toast.error('Property not found');
         navigate('/dashboard');
         return;
       }
     }
     setLoading(false);
-  }, [id, getProperty, getRequestsForProperty, navigate]);
+  }, [id, getProperty, getRequestsForProperty, navigate, properties]);
 
   if (loading) {
     return (
