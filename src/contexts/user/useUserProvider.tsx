@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { userService } from '@/services/userService';
@@ -25,7 +25,10 @@ export const useUserProvider = () => {
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
   const isAdmin = currentUser?.role === 'admin' || false;
-  const canFetchUsers = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const canFetchUsers = useMemo(() => 
+    currentUser?.role === 'admin' || currentUser?.role === 'manager', 
+    [currentUser?.role]
+  );
   const fetchInProgress = useRef(false);
 
   const fetchUsers = useCallback(async () => {
