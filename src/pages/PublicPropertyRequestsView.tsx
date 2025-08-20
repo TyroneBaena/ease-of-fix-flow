@@ -61,7 +61,7 @@ const PublicPropertyRequestsView = () => {
           .from('maintenance_requests')
           .select('*')
           .eq('property_id', id)
-          .order('createdAt', { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (requestsError) {
           console.error('Error fetching requests:', requestsError);
