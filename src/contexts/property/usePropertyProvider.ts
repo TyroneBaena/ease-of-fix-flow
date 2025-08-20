@@ -28,14 +28,16 @@ export const usePropertyProvider = (): PropertyContextType => {
     try {
       setLoading(true);
       setLoadingFailed(false);
-      console.log('PropertyContext: Fetching properties');
+      console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
       
       const formattedProperties = await fetchProperties();
       
-      console.log('PropertyContext: Properties fetched successfully', formattedProperties.length);
+      console.log('PropertyContext: Properties fetched successfully');
+      console.log('PropertyContext: Number of properties:', formattedProperties.length);
+      console.log('PropertyContext: Property details:', formattedProperties.map(p => ({ id: p.id, name: p.name })));
       setProperties(formattedProperties);
     } catch (err) {
-      console.error('Error fetching properties:', err);
+      console.error('PropertyContext: Error fetching properties:', err);
       setLoadingFailed(true);
       toast.error('Failed to load properties');
     } finally {
@@ -104,7 +106,11 @@ export const usePropertyProvider = (): PropertyContextType => {
   };
 
   const getProperty = (id: string) => {
-    return properties.find(property => property.id === id);
+    console.log('PropertyContext: getProperty called with ID:', id);
+    console.log('PropertyContext: Available properties:', properties.map(p => ({ id: p.id, name: p.name })));
+    const found = properties.find(property => property.id === id);
+    console.log('PropertyContext: Found property:', found);
+    return found;
   };
 
   const updateProperty = async (id: string, propertyUpdate: Partial<Property>) => {

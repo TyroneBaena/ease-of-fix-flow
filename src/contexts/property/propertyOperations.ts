@@ -5,22 +5,24 @@ import { toast } from '@/lib/toast';
 
 // Fetch properties from Supabase
 export const fetchProperties = async (): Promise<Property[]> => {
-  console.log('Fetching properties with clean RLS policies');
+  console.log('PropertyOperations: Starting to fetch properties with clean RLS policies');
   
   const { data, error } = await supabase
     .from('properties')
     .select('*');
 
   if (error) {
-    console.error('Error fetching properties:', error);
+    console.error('PropertyOperations: Error fetching properties:', error);
     toast.error('Failed to fetch properties');
     throw error;
   }
 
-  console.log('Properties fetched successfully:', data?.length || 0);
+  console.log('PropertyOperations: Raw data from database:', data);
+  console.log('PropertyOperations: Properties fetched successfully:', data?.length || 0);
 
   // Format properties to match our Property type
   const rows = (data as any[]);
+  console.log('PropertyOperations: Processing rows:', rows);
   const formattedProperties: Property[] = rows.map((prop: any) => ({
     id: prop.id,
     name: prop.name,
@@ -37,6 +39,7 @@ export const fetchProperties = async (): Promise<Property[]> => {
     landlordId: prop.landlord_id || undefined,
   }));
 
+  console.log('PropertyOperations: Formatted properties:', formattedProperties.map(p => ({ id: p.id, name: p.name })));
   return formattedProperties;
 };
 

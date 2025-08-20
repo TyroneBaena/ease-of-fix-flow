@@ -14,31 +14,45 @@ import { toast } from '@/lib/toast';
 const PropertyRequestsView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getProperty, properties } = usePropertyContext();
+  const { getProperty, properties, loading: propertiesLoading } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
   const [property, setProperty] = useState<Property | undefined>(undefined);
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('=== PropertyRequestsView Debug ===');
+    console.log('URL ID parameter:', id);
+    console.log('Properties loading:', propertiesLoading);
+    console.log('Properties array:', properties);
+    console.log('Properties count:', properties.length);
+    
     if (id) {
-      console.log('PropertyRequestsView: Looking for property with ID:', id);
-      console.log('PropertyRequestsView: Available properties:', properties);
+      console.log('Looking for property with ID:', id);
+      console.log('Available property IDs:', properties.map(p => ({ id: p.id, name: p.name })));
       
       const propertyData = getProperty(id);
+      console.log('getProperty result:', propertyData);
+      
       if (propertyData) {
-        console.log('PropertyRequestsView: Property found:', propertyData);
+        console.log('Property found:', propertyData);
         setProperty(propertyData);
-        setRequests(getRequestsForProperty(id));
+        const propertyRequests = getRequestsForProperty(id);
+        console.log('Requests for property:', propertyRequests);
+        setRequests(propertyRequests);
       } else {
-        console.log('PropertyRequestsView: Property not found in context');
+        console.log('Property NOT found - showing error');
+        console.log('Search failed for ID:', id);
+        console.log('In properties:', properties.map(p => p.id));
         toast.error('Property not found');
         navigate('/dashboard');
         return;
       }
+    } else {
+      console.log('No ID parameter in URL');
     }
     setLoading(false);
-  }, [id, getProperty, getRequestsForProperty, navigate, properties]);
+  }, [id, getProperty, getRequestsForProperty, navigate, properties, propertiesLoading]);
 
   if (loading) {
     return (
