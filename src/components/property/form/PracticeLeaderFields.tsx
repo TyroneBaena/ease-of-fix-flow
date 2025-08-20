@@ -48,6 +48,8 @@ export const PracticeLeaderFields: React.FC<PracticeLeaderFieldsProps> = ({
             type="email"
             value={practiceLeaderEmail} 
             onChange={onChange}
+            readOnly 
+            className="bg-gray-100"
           />
         </div>
         
