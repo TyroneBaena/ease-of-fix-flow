@@ -27,6 +27,12 @@ const PropertyRequestsView = () => {
     console.log('Properties array:', properties);
     console.log('Properties count:', properties.length);
     
+    // Don't proceed if properties are still loading
+    if (propertiesLoading) {
+      console.log('Properties still loading, waiting...');
+      return;
+    }
+    
     if (id) {
       console.log('Looking for property with ID:', id);
       console.log('Available property IDs:', properties.map(p => ({ id: p.id, name: p.name })));
@@ -44,9 +50,13 @@ const PropertyRequestsView = () => {
         console.log('Property NOT found - showing error');
         console.log('Search failed for ID:', id);
         console.log('In properties:', properties.map(p => p.id));
-        toast.error('Property not found');
-        navigate('/dashboard');
-        return;
+        
+        // Only show error if properties have finished loading and we still can't find it
+        if (!propertiesLoading && properties.length > 0) {
+          toast.error('Property not found');
+          navigate('/dashboard');
+          return;
+        }
       }
     } else {
       console.log('No ID parameter in URL');
@@ -54,7 +64,7 @@ const PropertyRequestsView = () => {
     setLoading(false);
   }, [id, getProperty, getRequestsForProperty, navigate, properties, propertiesLoading]);
 
-  if (loading) {
+  if (loading || propertiesLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
