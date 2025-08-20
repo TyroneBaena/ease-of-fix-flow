@@ -10,6 +10,7 @@ import { ArrowLeft, Building, MapPin, Phone, Mail } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Property } from '@/types/property';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const PropertyRequestsView = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,32 @@ const PropertyRequestsView = () => {
         const propertyRequests = getRequestsForProperty(id);
         console.log('Requests for property:', propertyRequests);
         setRequests(propertyRequests);
+        
+        // Set up real-time subscription for this property's requests
+        const channel = supabase
+          .channel(`property-${id}-requests`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'maintenance_requests',
+              filter: `property_id=eq.${id}`
+            },
+            (payload) => {
+              console.log('Property-specific request change detected:', payload);
+              // Refresh requests for this property
+              const updatedRequests = getRequestsForProperty(id);
+              setRequests(updatedRequests);
+            }
+          )
+          .subscribe();
+
+        // Cleanup subscription
+        return () => {
+          console.log('Unsubscribing from property-specific requests channel');
+          supabase.removeChannel(channel);
+        };
       } else {
         console.log('Property NOT found - showing error');
         console.log('Search failed for ID:', id);
@@ -145,9 +172,9 @@ const PropertyRequestsView = () => {
         <PropertyRequests 
           requests={requests as any} 
           propertyId={id!} 
-          onRequestUpdated={async () => {
-            await refreshRequests();
-            setRefreshCounter(prev => prev + 1);
+          onRequestUpdated={() => {
+            // Real-time subscription will handle the refresh automatically
+            console.log('Request updated - real-time will handle refresh');
           }} 
         />
       </main>

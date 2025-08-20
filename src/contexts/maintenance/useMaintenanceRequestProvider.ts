@@ -5,6 +5,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
 import { formatRequestData } from '@/hooks/request-detail/formatRequestData';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useMaintenanceRequestProvider = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
@@ -16,6 +17,36 @@ export const useMaintenanceRequestProvider = () => {
     console.log('useMaintenanceRequestProvider - Current user:', currentUser);
     if (currentUser) {
       loadRequests();
+      
+      // Set up real-time subscription for maintenance requests
+      const channel = supabase
+        .channel('maintenance-requests-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'maintenance_requests'
+          },
+          async (payload) => {
+            console.log('Real-time maintenance request change detected:', payload);
+            
+            // Only refresh if the current user has access to this request
+            if (payload.new && shouldUserSeeRequest(payload.new, currentUser.id)) {
+              console.log('User has access to updated request, refreshing data');
+              await loadRequests();
+            } else if (payload.old && shouldUserSeeRequest(payload.old, currentUser.id)) {
+              console.log('User had access to deleted/updated request, refreshing data');
+              await loadRequests();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('Unsubscribing from maintenance requests real-time channel');
+        supabase.removeChannel(channel);
+      };
     } else {
       console.log('No current user, skipping request loading');
       setRequests([]);
@@ -76,6 +107,18 @@ export const useMaintenanceRequestProvider = () => {
     } else {
       console.error('Failed to create new request');
     }
+  };
+
+  // Helper function to determine if user should see this request
+  const shouldUserSeeRequest = (requestData: any, userId: string) => {
+    // User owns the request
+    if (requestData.user_id === userId) return true;
+    
+    // User is assigned to property (managers)
+    // This would need to be enhanced based on your property access logic
+    
+    // For now, we'll refresh for all users since RLS will filter appropriately
+    return true;
   };
 
   return {
