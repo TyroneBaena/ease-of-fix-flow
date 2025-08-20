@@ -25,12 +25,13 @@ export const useUserProvider = () => {
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
   const isAdmin = currentUser?.role === 'admin' || false;
+  const canFetchUsers = currentUser?.role === 'admin' || currentUser?.role === 'manager';
   const fetchInProgress = useRef(false);
 
   const fetchUsers = useCallback(async () => {
-    // Prevent concurrent fetches and only allow admins
-    if (fetchInProgress.current || !isAdmin) {
-      console.log("Fetch skipped: already in progress or not admin");
+    // Prevent concurrent fetches and only allow admins and managers
+    if (fetchInProgress.current || !canFetchUsers) {
+      console.log("Fetch skipped: already in progress or not admin/manager");
       return;
     }
 
@@ -50,15 +51,15 @@ export const useUserProvider = () => {
       setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [isAdmin]);
+  }, [canFetchUsers]);
 
-  // Only fetch users when the component mounts and user is admin
+  // Only fetch users when the component mounts and user is admin or manager
   useEffect(() => {
-    if (isAdmin && !fetchInProgress.current) {
-      console.log("Auto-fetching users since user is admin");
+    if (canFetchUsers && !fetchInProgress.current) {
+      console.log("Auto-fetching users since user is admin or manager");
       fetchUsers().catch(console.error);
     }
-  }, [isAdmin, fetchUsers]);
+  }, [canFetchUsers, fetchUsers]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
@@ -75,8 +76,8 @@ export const useUserProvider = () => {
       const result = await userService.inviteUser(normalizedEmail, name, role, assignedProperties);
       console.log("Invite user result:", result);
       
-      // Only refetch users if we're admin and the invite was successful
-      if (isAdmin && result.success) {
+      // Only refetch users if we're admin/manager and the invite was successful
+      if (canFetchUsers && result.success) {
         console.log("User invite was successful, refreshing user list");
         // Force a refetch
         fetchInProgress.current = false;
