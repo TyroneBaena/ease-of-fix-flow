@@ -12,7 +12,7 @@ import { Toaster } from "sonner";
 import { tenantService } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
 import { supabase } from '@/integrations/supabase/client';
-import { createNewContractor } from '@/utils/createNewContractor';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -165,15 +165,6 @@ const Login = () => {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full" 
-              onClick={createNewContractor}
-            >
-              Create New Contractor (Dev)
             </Button>
             
             <p className="text-sm text-center text-gray-500">
