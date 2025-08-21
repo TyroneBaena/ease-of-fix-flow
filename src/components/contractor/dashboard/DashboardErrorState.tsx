@@ -44,8 +44,14 @@ export const DashboardErrorState: React.FC<DashboardErrorStateProps> = ({
           <p className="text-gray-600 mb-4">
             You need a contractor profile to access this dashboard. Please contact your administrator to set up your contractor account.
           </p>
-          <Button onClick={refreshData} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <div className="bg-gray-50 p-4 rounded-lg mb-4 text-sm text-left">
+            <strong>Debug Info:</strong><br/>
+            Error: {error}<br/>
+            Contractor ID: {contractorId || 'null'}<br/>
+            Status: Missing contractor profile in database
+          </div>
+          <Button onClick={refreshData} variant="outline" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Try Again
           </Button>
         </Card>

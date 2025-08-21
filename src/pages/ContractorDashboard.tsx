@@ -27,33 +27,34 @@ const ContractorDashboard = () => {
     refreshData
   } = useContractorDashboard();
 
-  // Strict authentication check with immediate redirect
+  // Enhanced authentication check with detailed logging
   useEffect(() => {
     console.log('ContractorDashboard - Auth check:', { 
       authLoading, 
       currentUser: !!currentUser,
-      userId: currentUser?.id 
+      userId: currentUser?.id,
+      userRole: currentUser?.role,
+      userEmail: currentUser?.email
     });
     
     if (!authLoading && !currentUser) {
-      console.log('ContractorDashboard - No authenticated user, redirecting to login immediately');
+      console.log('ContractorDashboard - No authenticated user, redirecting to login');
       navigate('/login', { replace: true });
       return;
     }
     
-    // Additional check to ensure user has contractor role (if applicable)
-    if (!authLoading && currentUser && currentUser.role !== 'contractor') {
-      console.log('ContractorDashboard - User is not a contractor, redirecting to appropriate dashboard');
-      // Redirect to appropriate dashboard based on role
-      const redirectPath = currentUser.role === 'admin' ? '/dashboard' : '/dashboard';
+    // Allow access for both contractors and admins (for testing purposes)
+    if (!authLoading && currentUser && currentUser.role && !['contractor', 'admin'].includes(currentUser.role)) {
+      console.log('ContractorDashboard - User role not authorized:', currentUser.role);
+      const redirectPath = currentUser.role === 'manager' ? '/dashboard' : '/dashboard';
       navigate(redirectPath, { replace: true });
       return;
     }
   }, [currentUser, authLoading, navigate]);
 
-  // Prevent any rendering if user is not authenticated or not a contractor
-  if (!authLoading && (!currentUser || currentUser.role !== 'contractor')) {
-    console.log('ContractorDashboard - Blocking render due to authentication/authorization failure');
+  // More lenient rendering check - allow contractors and admins
+  if (!authLoading && (!currentUser || !['contractor', 'admin'].includes(currentUser.role || ''))) {
+    console.log('ContractorDashboard - Blocking render. User role:', currentUser?.role);
     return null;
   }
   

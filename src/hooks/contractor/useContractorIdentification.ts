@@ -28,26 +28,34 @@ export const useContractorIdentification = () => {
           throw new Error('User not authenticated');
         }
         
-        // Query contractor profile with better error handling
-        const { data, error } = await supabase
+        // Query contractor profile with enhanced handling for duplicates
+        const { data, error, count } = await supabase
           .from('contractors')
-          .select('id, company_name, contact_name')
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
+          .select('id, company_name, contact_name', { count: 'exact' })
+          .eq('user_id', currentUser.id);
 
         if (error) {
           console.error('Database error fetching contractor ID:', error);
           throw error;
         }
-        
-        if (data) {
-          setContractorId(data.id);
+         
+        if (data && data.length > 0) {
+          // Handle multiple contractors by taking the first one
+          const contractor = data[0];
+          setContractorId(contractor.id);
+          
+          if (data.length > 1) {
+            console.warn(`Found ${data.length} contractor profiles for user ${currentUser.id}. Using the first one.`);
+            toast.info(`Multiple contractor profiles found. Using: ${contractor.company_name}`);
+          }
+          
           console.log('Found contractor profile:', {
-            contractorId: data.id,
-            companyName: data.company_name,
-            contactName: data.contact_name
+            contractorId: contractor.id,
+            companyName: contractor.company_name,
+            contactName: contractor.contact_name,
+            totalProfiles: data.length
           });
-          toast.success(`Welcome, ${data.contact_name}! Profile loaded successfully.`);
+          toast.success(`Welcome, ${contractor.contact_name}! Profile loaded successfully.`);
         } else {
           console.log('No contractor profile found for user:', currentUser.id);
           const errorMessage = 'No contractor profile found. Please contact your administrator to set up your contractor account.';
