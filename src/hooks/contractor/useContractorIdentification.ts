@@ -23,10 +23,15 @@ export const useContractorIdentification = () => {
         
         console.log('Fetching contractor ID for user:', currentUser.id);
         
-        // With clean RLS policies, direct table queries should work properly
+        // First verify user authentication
+        if (!currentUser.id) {
+          throw new Error('User not authenticated');
+        }
+        
+        // Query contractor profile with better error handling
         const { data, error } = await supabase
           .from('contractors')
-          .select('id')
+          .select('id, company_name, contact_name')
           .eq('user_id', currentUser.id)
           .maybeSingle();
 
@@ -37,25 +42,33 @@ export const useContractorIdentification = () => {
         
         if (data) {
           setContractorId(data.id);
-          console.log('Found contractor ID:', data.id);
-          toast.success('Contractor profile loaded successfully');
+          console.log('Found contractor profile:', {
+            contractorId: data.id,
+            companyName: data.company_name,
+            contactName: data.contact_name
+          });
+          toast.success(`Welcome, ${data.contact_name}! Profile loaded successfully.`);
         } else {
-          console.log('No contractor profile found for this user');
-          setError('No contractor profile found for this user');
-          toast.error('No contractor profile found for this account. Please contact your administrator.');
+          console.log('No contractor profile found for user:', currentUser.id);
+          const errorMessage = 'No contractor profile found. Please contact your administrator to set up your contractor account.';
+          setError(errorMessage);
+          toast.error(errorMessage);
         }
       } catch (err: any) {
         console.error('Error fetching contractor ID:', err);
         
-        if (err.code === 'PGRST116') {
-          const errorMessage = 'Access denied. Please ensure you have the correct permissions.';
-          setError(errorMessage);
-          toast.error('You do not have permission to access contractor information.');
-        } else {
-          const errorMessage = 'Could not verify contractor status';
-          setError(errorMessage);
-          toast.error('Error loading contractor information. Please try refreshing the page.');
+        let errorMessage = 'Unable to load contractor profile';
+        
+        if (err.code === 'PGRST116' || err.code === '42501') {
+          errorMessage = 'Access denied. Please ensure you have contractor permissions.';
+        } else if (err.message === 'User not authenticated') {
+          errorMessage = 'Authentication required. Please log in again.';
+        } else if (err.code === 'NETWORK_ERROR') {
+          errorMessage = 'Network error. Please check your connection and try again.';
         }
+        
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }

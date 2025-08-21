@@ -934,6 +934,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_contractor_access: {
+        Args: { user_id_param: string }
+        Returns: string
+      }
       meta_to_array: {
         Args: { meta: Json }
         Returns: string[]
