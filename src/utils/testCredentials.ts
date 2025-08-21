@@ -34,6 +34,13 @@ export const TEST_CREDENTIALS: TestCredentials[] = [
     name: 'Contractor User',
     role: 'contractor',
     description: 'Contractor access - can view assigned jobs, submit quotes, and update progress'
+  },
+  {
+    email: 'newcontractor@test.com',
+    password: 'Test123!@#',
+    name: 'New Contractor',
+    role: 'contractor',
+    description: 'Fresh contractor account for testing'
   }
 ];
 
