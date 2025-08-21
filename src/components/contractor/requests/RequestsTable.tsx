@@ -33,14 +33,12 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
         return isLegacy;
       })
     : requests.filter(request => {
-        // For job lists: only show records that have proper job status and quotes
+        // For job lists: show all jobs that are in-progress or completed status
+        // This includes assigned jobs regardless of quote status
         const isJob = request.status === 'in-progress' || request.status === 'completed';
-        const hasQuote = request.quotedAmount || 
-                        (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-        const isApprovedJob = request.quote && typeof request.quote !== 'string' && request.quote.status === 'approved';
         
-        console.log(`RequestsTable - Job ${request.id}: isJob = ${isJob}, hasQuote = ${hasQuote}, isApprovedJob = ${isApprovedJob}`);
-        return isJob && (hasQuote || isApprovedJob);
+        console.log(`RequestsTable - Job ${request.id}: isJob = ${isJob}, status = ${request.status}`);
+        return isJob;
       });
   
   console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
