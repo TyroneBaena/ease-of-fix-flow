@@ -29,11 +29,25 @@ export const TEST_CREDENTIALS: TestCredentials[] = [
     description: 'Property management access - can manage assigned properties and requests'
   },
   {
-    email: 'contractor@test.com',
+    email: 'plumber@test.com',
     password: 'Test123!@#', 
-    name: 'Contractor User',
+    name: 'Mike Johnson',
     role: 'contractor',
-    description: 'Contractor access - can view assigned jobs, submit quotes, and update progress'
+    description: 'Plumbing Contractor - specializes in plumbing and water damage repairs'
+  },
+  {
+    email: 'electrician@test.com',
+    password: 'Test123!@#', 
+    name: 'Sarah Wilson',
+    role: 'contractor',
+    description: 'Electrical Contractor - specializes in electrical and HVAC systems'
+  },
+  {
+    email: 'handyman@test.com',
+    password: 'Test123!@#', 
+    name: 'David Brown',
+    role: 'contractor',
+    description: 'General Contractor - handles carpentry, painting, and general maintenance'
   }
 ];
 
