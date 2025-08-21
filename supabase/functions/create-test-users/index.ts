@@ -27,12 +27,77 @@ const TEST_CREDENTIALS: TestCredential[] = [
     role: 'manager'
   },
   {
-    email: 'contractor@test.com',
+    email: 'plumber@test.com',
     password: 'Test123!@#', 
-    name: 'Contractor User',
+    name: 'Mike Johnson',
+    role: 'contractor'
+  },
+  {
+    email: 'electrician@test.com',
+    password: 'Test123!@#', 
+    name: 'Sarah Wilson',
+    role: 'contractor'
+  },
+  {
+    email: 'handyman@test.com',
+    password: 'Test123!@#', 
+    name: 'David Brown',
     role: 'contractor'
   }
 ];
+
+// Helper functions to get contractor-specific data
+function getContractorCompany(email: string): string {
+  switch (email) {
+    case 'plumber@test.com':
+      return 'Johnson Plumbing Services';
+    case 'electrician@test.com':
+      return 'Wilson Electrical & HVAC';
+    case 'handyman@test.com':
+      return 'Brown General Contracting';
+    default:
+      return 'Test Contractor Company';
+  }
+}
+
+function getContractorPhone(email: string): string {
+  switch (email) {
+    case 'plumber@test.com':
+      return '+1 (555) 123-4567';
+    case 'electrician@test.com':
+      return '+1 (555) 234-5678';
+    case 'handyman@test.com':
+      return '+1 (555) 345-6789';
+    default:
+      return '+1 (555) 000-0000';
+  }
+}
+
+function getContractorAddress(email: string): string {
+  switch (email) {
+    case 'plumber@test.com':
+      return '123 Plumber St, Water City, WC 12345';
+    case 'electrician@test.com':
+      return '456 Electric Ave, Power Town, PT 23456';
+    case 'handyman@test.com':
+      return '789 Repair Rd, Fix City, FC 34567';
+    default:
+      return '123 Test St, Test City, TC 12345';
+  }
+}
+
+function getContractorSpecialties(email: string): string[] {
+  switch (email) {
+    case 'plumber@test.com':
+      return ['Plumbing', 'Water Damage', 'Pipe Repair'];
+    case 'electrician@test.com':
+      return ['Electrical', 'HVAC', 'Lighting'];
+    case 'handyman@test.com':
+      return ['Carpentry', 'Painting', 'General Maintenance'];
+    default:
+      return ['General'];
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -98,12 +163,45 @@ serve(async (req) => {
               message: `Failed to create profile for ${credential.role}: ${profileError.message}`
             });
           } else {
-            results.push({
-              role: credential.role,
-              success: true,
-              message: `${credential.role} user created successfully`
-            });
-            console.log(`✅ ${credential.role} user created: ${credential.email}`);
+            // If this is a contractor, also create contractor record
+            if (credential.role === 'contractor') {
+              const contractorData = {
+                user_id: authData.user.id,
+                company_name: getContractorCompany(credential.email),
+                contact_name: credential.name,
+                email: credential.email,
+                phone: getContractorPhone(credential.email),
+                address: getContractorAddress(credential.email),
+                specialties: getContractorSpecialties(credential.email)
+              };
+
+              const { error: contractorError } = await supabaseClient
+                .from('contractors')
+                .insert(contractorData);
+
+              if (contractorError) {
+                console.error(`Contractor error for ${credential.role}:`, contractorError);
+                results.push({
+                  role: credential.role,
+                  success: false,
+                  message: `Failed to create contractor record for ${credential.role}: ${contractorError.message}`
+                });
+              } else {
+                results.push({
+                  role: credential.role,
+                  success: true,
+                  message: `${credential.role} user and contractor record created successfully`
+                });
+                console.log(`✅ ${credential.role} user and contractor created: ${credential.email}`);
+              }
+            } else {
+              results.push({
+                role: credential.role,
+                success: true,
+                message: `${credential.role} user created successfully`
+              });
+              console.log(`✅ ${credential.role} user created: ${credential.email}`);
+            }
           }
         }
       } catch (error: any) {
