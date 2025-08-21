@@ -118,30 +118,140 @@ serve(async (req) => {
 
     const results: { role: string; success: boolean; message: string }[] = [];
 
-    for (const credential of TEST_CREDENTIALS) {
-      try {
-        console.log(`Creating ${credential.role} user: ${credential.email}`);
-        
-        // Create user with Supabase admin API
-        const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
-          email: credential.email,
-          password: credential.password,
-          email_confirm: true,
-          user_metadata: {
-            name: credential.name,
-            role: credential.role
-          }
-        });
-        
-        if (authError) {
-          console.error(`Auth error for ${credential.role}:`, authError);
-          results.push({
-            role: credential.role,
-            success: false,
-            message: `Failed to create ${credential.role} user: ${authError.message}`
-          });
-          continue;
-        }
+        for (const credential of TEST_CREDENTIALS) {
+          try {
+            console.log(`Creating ${credential.role} user: ${credential.email}`);
+            
+            // For contractors, check if contractor record already exists
+            if (credential.role === 'contractor') {
+              const normalizedEmail = credential.email.toLowerCase().trim();
+              const { data: existingContractor, error: checkError } = await supabaseClient
+                .from('contractors')
+                .select('*')
+                .eq('email', normalizedEmail)
+                .maybeSingle();
+
+              if (checkError) {
+                console.error(`Error checking existing contractor for ${credential.email}:`, checkError);
+                results.push({
+                  role: credential.role,
+                  success: false,
+                  message: `Failed to check existing contractor: ${checkError.message}`
+                });
+                continue;
+              }
+
+              if (existingContractor) {
+                console.log(`Contractor with email ${normalizedEmail} already exists, skipping`);
+                results.push({
+                  role: credential.role,
+                  success: true,
+                  message: `${credential.role} already exists (skipped)`
+                });
+                continue;
+              }
+            }
+            
+            // Create user with Supabase admin API
+            const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+              email: credential.email,
+              password: credential.password,
+              email_confirm: true,
+              user_metadata: {
+                name: credential.name,
+                role: credential.role
+              }
+            });
+            
+            if (authError) {
+              console.error(`Auth error for ${credential.role}:`, authError);
+              
+              // If user already exists, try to get existing user and update contractor record if needed
+              if (authError.message?.includes('already been registered') && credential.role === 'contractor') {
+                console.log(`Auth user exists for ${credential.email}, checking if contractor record exists`);
+                
+                // Get existing user
+                const { data: { users }, error: getUserError } = await supabaseClient.auth.admin.listUsers();
+                if (getUserError) {
+                  console.error(`Error getting existing users:`, getUserError);
+                  results.push({
+                    role: credential.role,
+                    success: false,
+                    message: `Failed to get existing user: ${getUserError.message}`
+                  });
+                  continue;
+                }
+                
+                const existingUser = users.find(user => user.email === credential.email);
+                if (existingUser) {
+                  // Check if contractor record exists for this user
+                  const { data: existingContractor, error: contractorCheckError } = await supabaseClient
+                    .from('contractors')
+                    .select('*')
+                    .eq('user_id', existingUser.id)
+                    .maybeSingle();
+
+                  if (contractorCheckError) {
+                    console.error(`Error checking contractor by user_id:`, contractorCheckError);
+                    results.push({
+                      role: credential.role,
+                      success: false,
+                      message: `Failed to check contractor record: ${contractorCheckError.message}`
+                    });
+                    continue;
+                  }
+
+                  if (existingContractor) {
+                    console.log(`Contractor record already exists for user ${existingUser.id}, skipping`);
+                    results.push({
+                      role: credential.role,
+                      success: true,
+                      message: `${credential.role} user and contractor already exist (skipped)`
+                    });
+                    continue;
+                  } else {
+                    // Create contractor record for existing auth user
+                    const contractorData = {
+                      user_id: existingUser.id,
+                      company_name: getContractorCompany(credential.email),
+                      contact_name: credential.name,
+                      email: credential.email,
+                      phone: getContractorPhone(credential.email),
+                      address: getContractorAddress(credential.email),
+                      specialties: getContractorSpecialties(credential.email)
+                    };
+
+                    const { error: contractorError } = await supabaseClient
+                      .from('contractors')
+                      .insert(contractorData);
+
+                    if (contractorError) {
+                      console.error(`Contractor creation error:`, contractorError);
+                      results.push({
+                        role: credential.role,
+                        success: false,
+                        message: `Failed to create contractor record: ${contractorError.message}`
+                      });
+                    } else {
+                      results.push({
+                        role: credential.role,
+                        success: true,
+                        message: `${credential.role} contractor record created for existing user`
+                      });
+                      console.log(`✅ contractor record created for existing user: ${credential.email}`);
+                    }
+                    continue;
+                  }
+                }
+              }
+              
+              results.push({
+                role: credential.role,
+                success: false,
+                message: `Failed to create ${credential.role} user: ${authError.message}`
+              });
+              continue;
+            }
         
         if (authData.user) {
           // Create profile entry
