@@ -57,9 +57,18 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     return isLegacyRequest;
   });
 
+  // Apply the same filtering logic as RequestsTable for accurate counts
+  const displayActiveJobs = filteredActiveJobs.filter(request => 
+    request.status === 'in-progress' || request.status === 'completed'
+  ).filter(request => request.status === 'in-progress');
+  
+  const displayCompletedJobs = filteredCompletedJobs.filter(request => 
+    request.status === 'in-progress' || request.status === 'completed'
+  ).filter(request => request.status === 'completed');
+
   console.log('DashboardContent - Final QUOTE REQUESTS (after filtering):', displayQuoteRequests.length);
-  console.log('DashboardContent - Final ACTIVE JOBS:', filteredActiveJobs.length);
-  console.log('DashboardContent - Final COMPLETED JOBS:', filteredCompletedJobs.length);
+  console.log('DashboardContent - Final ACTIVE JOBS (after table filtering):', displayActiveJobs.length);
+  console.log('DashboardContent - Final COMPLETED JOBS (after table filtering):', displayCompletedJobs.length);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -85,10 +94,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           <Tabs defaultValue="active">
             <TabsList className="mb-4">
               <TabsTrigger value="active">
-                Active Jobs ({filteredActiveJobs.length})
+                Active Jobs ({displayActiveJobs.length})
               </TabsTrigger>
               <TabsTrigger value="completed">
-                Completed ({filteredCompletedJobs.length})
+                Completed ({displayCompletedJobs.length})
               </TabsTrigger>
             </TabsList>
             
