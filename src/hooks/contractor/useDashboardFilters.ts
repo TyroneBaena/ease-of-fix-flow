@@ -39,20 +39,13 @@ export const useDashboardFilters = ({
     return filtered;
   }, [pendingQuoteRequests]);
 
-  // Filter active jobs to only show jobs that are actually in progress with approved quotes
-  // These should NOT appear in quote requests section
+  // Filter active jobs to show all jobs that are in-progress status
+  // These are jobs assigned to the contractor, regardless of quote status
   const filteredActiveJobs = useMemo(() => {
     return activeJobs.filter(request => {
-      // Only show jobs that are in 'in-progress' status AND have approved quotes
-      if (request.status === 'in-progress') {
-        // Check if it has an approved quote
-        if (request.quote && typeof request.quote !== 'string') {
-          return request.quote.status === 'approved';
-        }
-        // Or if it has a quoted amount (legacy data)
-        return request.quotedAmount !== undefined && request.quotedAmount !== null;
-      }
-      return false;
+      // Show all jobs that are in 'in-progress' status
+      // This includes both assigned jobs and jobs with approved quotes
+      return request.status === 'in-progress';
     });
   }, [activeJobs]);
 
