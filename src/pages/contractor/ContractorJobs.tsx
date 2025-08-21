@@ -20,18 +20,14 @@ const ContractorJobs = () => {
     refreshData
   } = useContractorDashboard();
 
-  // Filter active and completed jobs to only show those with quotes (same logic as dashboard)
-  const filteredActiveJobs = activeJobs.filter(request => {
-    const hasQuote = request.quotedAmount || 
-                    (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-    return hasQuote;
-  });
-
-  const filteredCompletedJobs = completedJobs.filter(request => {
-    const hasQuote = request.quotedAmount || 
-                    (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-    return hasQuote;
-  });
+  // Apply the same filtering logic as RequestsTable for accurate counts
+  const filteredActiveJobs = activeJobs.filter(request => 
+    request.status === 'in-progress' || request.status === 'completed'
+  ).filter(request => request.status === 'in-progress');
+  
+  const filteredCompletedJobs = completedJobs.filter(request => 
+    request.status === 'in-progress' || request.status === 'completed'
+  ).filter(request => request.status === 'completed');
 
   const handleRefresh = () => {
     refreshData();
@@ -81,7 +77,7 @@ const ContractorJobs = () => {
               
               <TabsContent value="active">
                 <RequestsTable 
-                  requests={activeJobs} 
+                  requests={filteredActiveJobs} 
                   onSelectRequest={(request) => {
                     window.location.href = `/contractor-jobs/${request.id}`;
                   }}
@@ -91,7 +87,7 @@ const ContractorJobs = () => {
               
               <TabsContent value="completed">
                 <RequestsTable 
-                  requests={completedJobs}
+                  requests={filteredCompletedJobs}
                   onSelectRequest={(request) => {
                     window.location.href = `/contractor-jobs/${request.id}`;
                   }}
