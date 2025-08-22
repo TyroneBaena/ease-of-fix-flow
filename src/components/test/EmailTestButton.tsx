@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 const EmailTestButton = () => {
   const [testEmail, setTestEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [debugLoading, setDebugLoading] = useState(false);
 
   const testEmailFunction = async () => {
     if (!testEmail) {
@@ -46,12 +47,43 @@ const EmailTestButton = () => {
     }
   };
 
+  const debugEnvironment = async () => {
+    setDebugLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('debug-env', {
+        body: {},
+      });
+
+      if (error) {
+        console.error('Debug error:', error);
+        toast.error(`Debug failed: ${error.message}`);
+      } else {
+        console.log('Debug results:', data);
+        toast.success('Debug info logged to console. Check browser console for details.');
+      }
+    } catch (error) {
+      console.error('Debug error:', error);
+      toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDebugLoading(false);
+    }
+  };
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Test Email Notifications</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <Button 
+          onClick={debugEnvironment}
+          disabled={debugLoading}
+          variant="outline"
+          className="w-full"
+        >
+          {debugLoading ? 'Checking...' : 'Debug Environment'}
+        </Button>
+        
         <Input
           type="email"
           placeholder="Enter your email"

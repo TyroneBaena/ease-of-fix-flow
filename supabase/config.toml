@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.test-landlord-email]
 verify_jwt = false
+
+[functions.debug-env]
+verify_jwt = false
