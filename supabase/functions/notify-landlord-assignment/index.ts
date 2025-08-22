@@ -34,11 +34,24 @@ serve(async (req) => {
     hasResendKey: !!resendApiKey, 
     hasInboundReply: !!inboundReplyBase,
     resendKeyLength: resendApiKey.length,
-    inboundReplyAddress: inboundReplyBase
+    inboundReplyAddress: inboundReplyBase,
+    allEnvKeys: Object.keys(Deno.env.toObject()).filter(key => 
+      key.includes('RESEND') || key.includes('INBOUND')
+    )
   });
 
-  if (!resendApiKey || !inboundReplyBase) {
-    return new Response(JSON.stringify({ error: "Missing RESEND_API_KEY or INBOUND_REPLY_ADDRESS" }), {
+  // More robust validation - check for actual content, not just existence
+  if (!resendApiKey || resendApiKey.trim() === "" || resendApiKey.length < 10) {
+    log("ERROR", { message: "RESEND_API_KEY is missing or invalid", keyLength: resendApiKey.length });
+    return new Response(JSON.stringify({ error: "RESEND_API_KEY is missing or invalid" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+
+  if (!inboundReplyBase || inboundReplyBase.trim() === "" || !inboundReplyBase.includes("@")) {
+    log("ERROR", { message: "INBOUND_REPLY_ADDRESS must be a valid email address", address: inboundReplyBase });
+    return new Response(JSON.stringify({ error: "INBOUND_REPLY_ADDRESS must be a valid email address" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
