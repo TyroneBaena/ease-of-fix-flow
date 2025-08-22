@@ -9,6 +9,7 @@ import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSideba
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { MaintenanceRequest } from '@/types/maintenance';
+import EmailTestButton from '@/components/test/EmailTestButton';
 
 const Dashboard = () => {
   const { currentUser } = useUserContext();
@@ -30,6 +31,11 @@ const Dashboard = () => {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader title="Dashboard" />
+        
+        {/* Email Test Component - Temporary for testing */}
+        <div className="mb-6 flex justify-end">
+          <EmailTestButton />
+        </div>
         
         <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
           <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>

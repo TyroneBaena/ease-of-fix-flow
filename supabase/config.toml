@@ -21,3 +21,9 @@ verify_jwt = false
 
 [functions.send-comment-notification]
 verify_jwt = false
+
+[functions.notify-landlord-assignment]
+verify_jwt = false
+
+[functions.test-landlord-email]
+verify_jwt = false
