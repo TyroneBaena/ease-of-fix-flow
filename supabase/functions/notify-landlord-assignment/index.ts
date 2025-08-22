@@ -124,7 +124,7 @@ serve(async (req) => {
     `;
 
     const resend = new Resend(resendApiKey);
-    const from = "Property Manager <onboarding@resend.dev>";
+    const from = "Property Manager <noreply@housinghub.app>";
     const subject = `Assigned: ${title}`;
 
     const sendResult = await resend.emails.send({
