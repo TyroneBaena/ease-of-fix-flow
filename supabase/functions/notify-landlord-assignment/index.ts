@@ -27,7 +27,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
+  const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") ?? "";
   const inboundReplyBase = Deno.env.get("INBOUND_REPLY_ADDRESS") ?? "";
 
   log("Environment check", { 
@@ -42,8 +42,8 @@ serve(async (req) => {
 
   // More robust validation - check for actual content, not just existence
   if (!resendApiKey || resendApiKey.trim() === "" || resendApiKey.length < 10) {
-    log("ERROR", { message: "RESEND_API_KEY is missing or invalid", keyLength: resendApiKey.length });
-    return new Response(JSON.stringify({ error: "RESEND_API_KEY is missing or invalid" }), {
+    log("ERROR", { message: "NEW_RESEND_API_KEY is missing or invalid", keyLength: resendApiKey.length });
+    return new Response(JSON.stringify({ error: "NEW_RESEND_API_KEY is missing or invalid" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
