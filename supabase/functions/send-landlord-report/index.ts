@@ -74,16 +74,25 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log("Request data:", JSON.stringify(request, null, 2));
+    console.log("Property data:", JSON.stringify(request.properties, null, 2));
+
     // Check if landlord email exists - try multiple sources
     let landlordEmail = null;
+    
+    console.log("Looking for landlord email...");
+    console.log("Landlords data:", request.properties.landlords);
+    console.log("Practice leader email:", request.properties.practice_leader_email);
     
     // First try the landlord relationship
     if (request.properties.landlords?.email) {
       landlordEmail = request.properties.landlords.email;
+      console.log("Found landlord email:", landlordEmail);
     }
     // Fallback to practice leader email
     else if (request.properties.practice_leader_email) {
       landlordEmail = request.properties.practice_leader_email;
+      console.log("Using practice leader email:", landlordEmail);
     }
     
     if (!landlordEmail) {
