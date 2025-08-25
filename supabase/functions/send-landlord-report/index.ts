@@ -28,7 +28,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY_1"));
+    const resend = new Resend(Deno.env.get("NEW_RESEND_API_KEY"));
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
