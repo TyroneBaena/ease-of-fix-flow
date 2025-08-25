@@ -139,7 +139,7 @@ export function useComments(requestId: string) {
       const { data, error } = await supabase
         .from('comments')
         .insert({
-          user_id: user.id, // Explicitly set user_id to satisfy RLS
+          user_id: user.id.toString(), // Ensure user_id is a string
           request_id: requestId,
           text: text.trim(),
           user_name: currentUser.name || currentUser.email || 'Anonymous',
