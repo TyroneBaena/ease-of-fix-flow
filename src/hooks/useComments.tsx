@@ -126,15 +126,24 @@ export function useComments(requestId: string) {
       console.log('Adding comment for request:', requestId);
       console.log('Current user context:', currentUser);
       
-      // Use direct insert with minimal data - let database handle defaults
+      // Get current user ID from Supabase auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Auth error:', authError);
+        toast.error('Authentication error. Please log in again.');
+        return false;
+      }
+      
+      // Explicitly set user_id to satisfy RLS policy requirements
       const { data, error } = await supabase
         .from('comments')
         .insert({
+          user_id: user.id, // Explicitly set user_id to satisfy RLS
           request_id: requestId,
           text: text.trim(),
           user_name: currentUser.name || currentUser.email || 'Anonymous',
           user_role: currentUser.role || 'User'
-          // Don't set user_id - let the database default (auth.uid()) handle it
         })
         .select()
         .single();
