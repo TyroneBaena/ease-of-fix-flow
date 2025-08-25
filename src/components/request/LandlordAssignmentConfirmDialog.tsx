@@ -64,13 +64,18 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       // Send landlord report email
       const { data, error } = await supabase.functions.invoke('send-landlord-report', {
         body: {
-          request_id: request.id,
+          request_id: request?.id,
           landlord_email: landlordEmail.trim(),
           options: reportOptions
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      console.log('Function response:', data);
 
       toast.success('Report emailed to landlord successfully');
       
