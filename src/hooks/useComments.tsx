@@ -133,20 +133,14 @@ export function useComments(requestId: string) {
       console.log('Adding comment for user ID:', userId);
       console.log('Current user context:', currentUser);
       
-      const newComment = {
-        request_id: requestId,
-        text: text.trim(),
-        user_name: currentUser.name || currentUser.email || 'Anonymous',
-        user_role: currentUser.role || 'User'
-      };
-      
-      console.log('Comment data being inserted:', newComment);
-      
-      const { data, error } = await supabase
-        .from('comments')
-        .insert(newComment)
-        .select()
-        .single();
+      // Use the add_new_comment function instead of direct insert
+      const { data, error } = await supabase.rpc('add_new_comment', {
+        p_user_id: userId,
+        p_request_id: requestId,
+        p_text: text.trim(),
+        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
+        p_user_role: currentUser.role || 'User'
+      });
       
       if (error) {
         console.error('Error adding comment:', error);
@@ -160,19 +154,10 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      console.log('Comment added successfully:', data);
+      console.log('Comment added successfully with ID:', data);
       
-      // Optimistically update the UI
-      const formattedComment: Comment = {
-        id: data.id,
-        user: data.user_name,
-        role: data.user_role,
-        avatar: '',
-        text: data.text,
-        timestamp: 'Just now'
-      };
-      
-      setComments(prev => [formattedComment, ...prev]);
+      // Refresh comments to get the new one
+      await fetchComments();
       toast.success('Comment added');
       return true;
     } catch (error) {
@@ -180,7 +165,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser, extractUserId]);
+  }, [requestId, currentUser, extractUserId, fetchComments]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
