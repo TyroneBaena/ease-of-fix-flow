@@ -74,14 +74,23 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
     
-    // Check for Resend API key
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    console.log("RESEND_API_KEY available:", !!resendApiKey);
+    // Check for Resend API key (try multiple possible secret names)
+    let resendApiKey = Deno.env.get("RESEND_API_KEY") || 
+                       Deno.env.get("NEW_RESEND_API_KEY") || 
+                       Deno.env.get("RESEND_API_KEY_1");
+    
+    console.log("Available env vars:", {
+      RESEND_API_KEY: !!Deno.env.get("RESEND_API_KEY"),
+      NEW_RESEND_API_KEY: !!Deno.env.get("NEW_RESEND_API_KEY"),
+      RESEND_API_KEY_1: !!Deno.env.get("RESEND_API_KEY_1"),
+      finalKey: !!resendApiKey
+    });
     
     if (!resendApiKey) {
-      console.error("RESEND_API_KEY environment variable is not set");
+      console.error("No Resend API key found in environment variables");
       return new Response(JSON.stringify({ 
-        error: "Server configuration error: Missing email service API key" 
+        error: "Server configuration error: Missing email service API key",
+        debug: "Checked RESEND_API_KEY, NEW_RESEND_API_KEY, and RESEND_API_KEY_1"
       }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
