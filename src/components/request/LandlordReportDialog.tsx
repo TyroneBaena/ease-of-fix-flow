@@ -8,6 +8,7 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface LandlordReportDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface LandlordReportDialogProps {
 export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open, onOpenChange, request, options }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [property, setProperty] = useState<{ name: string; address: string; practice_leader?: string; practice_leader_email?: string; practice_leader_phone?: string } | null>(null);
+  const [isEmailingSent, setIsEmailingSent] = useState(false);
 
   useEffect(() => {
     const loadProperty = async () => {
@@ -64,6 +66,28 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
     }
 
     pdf.save(`request-report-${request.id}.pdf`);
+  };
+
+  const handleEmailToLandlord = async () => {
+    setIsEmailingSent(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-landlord-report', {
+        body: {
+          request_id: request.id,
+          options: options
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Report emailed to landlord successfully`);
+      console.log('Email sent successfully:', data);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email to landlord');
+    } finally {
+      setIsEmailingSent(false);
+    }
   };
 
   const attachments = Array.isArray(request.attachments) ? request.attachments : [];
@@ -158,6 +182,13 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button 
+            variant="outline" 
+            onClick={handleEmailToLandlord}
+            disabled={isEmailingSent}
+          >
+            {isEmailingSent ? 'Sending...' : 'Email to Landlord'}
+          </Button>
           <Button onClick={handleDownload}>Download PDF</Button>
         </DialogFooter>
       </DialogContent>
