@@ -951,6 +951,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      test_logging: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       use_tenant_schema: {
         Args: { operation: string }
         Returns: undefined
