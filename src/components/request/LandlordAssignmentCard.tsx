@@ -79,27 +79,8 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
 
       if (error) throw error;
 
-      // Call email notification function
-      console.log('About to call notify-landlord-assignment function');
-      console.log('Request data:', { request_id: requestId, landlord_email: landlordEmail });
-      
-      const { data: emailData, error: emailError } = await supabase.functions.invoke('notify-landlord-assignment', {
-        body: {
-          request_id: requestId,
-          landlord_email: landlordEmail,
-          landlord_name: 'Landlord' // Could be enhanced to get actual name
-        }
-      });
-
-      console.log('Email function response:', { data: emailData, error: emailError });
-
-      if (emailError) {
-        console.error('Email notification failed:', emailError);
-        toast.error(`Assignment completed, but email failed: ${emailError.message}`);
-      } else {
-        console.log('Email sent successfully');
-        toast.success('Landlord assigned and email notification sent!');
-      }
+      // Email notification is now handled by the LandlordAssignmentConfirmDialog
+      console.log('Landlord assignment completed successfully');
 
       await logActivity({
         requestId,
@@ -110,7 +91,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
         metadata: { notes: assignmentNotes, landlordEmail },
       });
 
-      toast.success('Assigned to landlord and notification sent');
+      toast.success('Assigned to landlord successfully');
       onAssigned?.();
     } catch (e) {
       console.error('Assign to landlord failed', e);
