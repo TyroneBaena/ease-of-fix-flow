@@ -51,7 +51,8 @@ const handler = async (req: Request): Promise<Response> => {
           practice_leader,
           practice_leader_email,
           practice_leader_phone,
-          landlords (
+          landlord_id,
+          landlords!properties_landlord_id_fkey (
             id,
             name,
             email,
@@ -73,12 +74,22 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check if landlord email exists
-    const landlordEmail = request.properties.landlords?.email;
+    // Check if landlord email exists - try multiple sources
+    let landlordEmail = null;
+    
+    // First try the landlord relationship
+    if (request.properties.landlords?.email) {
+      landlordEmail = request.properties.landlords.email;
+    }
+    // Fallback to practice leader email
+    else if (request.properties.practice_leader_email) {
+      landlordEmail = request.properties.practice_leader_email;
+    }
+    
     if (!landlordEmail) {
       console.error("No landlord email found for property");
       return new Response(
-        JSON.stringify({ error: "No landlord email found for this property" }),
+        JSON.stringify({ error: "No landlord email found for this property. Please add a landlord or practice leader email." }),
         { 
           status: 400, 
           headers: { "Content-Type": "application/json", ...corsHeaders } 
