@@ -59,6 +59,11 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       alert('Please enter a landlord email address');
       return;
     }
+
+    if (!request?.id) {
+      toast.error('Invalid request - missing ID');
+      return;
+    }
     
     try {
       // Send landlord report email

@@ -40,6 +40,17 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Processing landlord report for request:", request_id);
     console.log("Report options:", options);
 
+    if (!request_id) {
+      console.error("No request_id provided");
+      return new Response(
+        JSON.stringify({ error: "Request ID is required" }),
+        { 
+          status: 400, 
+          headers: { "Content-Type": "application/json", ...corsHeaders } 
+        }
+      );
+    }
+
     // Get maintenance request details
     const { data: request, error: requestError } = await supabase
       .from("maintenance_requests")
