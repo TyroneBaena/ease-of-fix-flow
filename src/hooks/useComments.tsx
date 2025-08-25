@@ -123,6 +123,7 @@ export function useComments(requestId: string) {
     }
     
     try {
+      alert('addComment function called!'); // Simple debugging
       console.log('Adding comment for request:', requestId);
       console.log('Current user context:', currentUser);
       
