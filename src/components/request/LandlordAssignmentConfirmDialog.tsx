@@ -13,15 +13,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Mail, FileText, MapPin, User, Calendar } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface LandlordAssignmentConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: MaintenanceRequest | null;
   property?: any;
-  onConfirm: (notes: string, landlordEmail: string) => Promise<void>;
+  onConfirm: (notes: string, landlordEmail: string, reportOptions: any) => Promise<void>;
   loading?: boolean;
 }
 
@@ -35,6 +38,13 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
 }) => {
   const [notes, setNotes] = useState('');
   const [landlordEmail, setLandlordEmail] = useState('');
+  const [reportOptions, setReportOptions] = useState({
+    summary: true,
+    property: true,
+    issue: true,
+    photos: true,
+    practiceLeader: false
+  });
 
   // Set default email when dialog opens
   React.useEffect(() => {
@@ -49,16 +59,43 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       alert('Please enter a landlord email address');
       return;
     }
-    await onConfirm(notes, landlordEmail);
-    setNotes('');
-    setLandlordEmail('');
-    onOpenChange(false);
+    
+    try {
+      // Send landlord report email
+      const { data, error } = await supabase.functions.invoke('send-landlord-report', {
+        body: {
+          request_id: request.id,
+          options: reportOptions
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('Report emailed to landlord successfully');
+      
+      // Call the original onConfirm with the report options
+      await onConfirm(notes, landlordEmail, reportOptions);
+      
+      setNotes('');
+      setLandlordEmail('');
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email to landlord');
+    }
   };
 
   const handleCancel = () => {
     setNotes('');
     setLandlordEmail('');
     onOpenChange(false);
+  };
+
+  const handleReportOptionChange = (option: string) => {
+    setReportOptions(prev => ({
+      ...prev,
+      [option]: !prev[option as keyof typeof prev]
+    }));
   };
 
   if (!request) return null;
@@ -176,6 +213,57 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
             />
           </div>
 
+          {/* Report Options Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Report Content to Include</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="include-summary"
+                    checked={reportOptions.summary}
+                    onCheckedChange={() => handleReportOptionChange('summary')}
+                  />
+                  <Label htmlFor="include-summary" className="text-sm">Request Summary</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="include-property"
+                    checked={reportOptions.property}
+                    onCheckedChange={() => handleReportOptionChange('property')}
+                  />
+                  <Label htmlFor="include-property" className="text-sm">Property Details</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="include-issue"
+                    checked={reportOptions.issue}
+                    onCheckedChange={() => handleReportOptionChange('issue')}
+                  />
+                  <Label htmlFor="include-issue" className="text-sm">Issue Details</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="include-photos"
+                    checked={reportOptions.photos}
+                    onCheckedChange={() => handleReportOptionChange('photos')}
+                  />
+                  <Label htmlFor="include-photos" className="text-sm">Photos</Label>
+                </div>
+                <div className="flex items-center space-x-2 col-span-2">
+                  <Checkbox 
+                    id="include-practice-leader"
+                    checked={reportOptions.practiceLeader}
+                    onCheckedChange={() => handleReportOptionChange('practiceLeader')}
+                  />
+                  <Label htmlFor="include-practice-leader" className="text-sm">Practice Leader Details</Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Email Information */}
           <div className="bg-muted/50 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">
@@ -190,7 +278,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
             Cancel
           </Button>
           <Button onClick={handleConfirm} disabled={loading}>
-            {loading ? 'Assigning...' : 'Assign to Landlord'}
+            {loading ? 'Sending Report...' : 'Send Report & Assign to Landlord'}
           </Button>
         </DialogFooter>
       </DialogContent>

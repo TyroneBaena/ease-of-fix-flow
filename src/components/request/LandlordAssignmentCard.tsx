@@ -57,7 +57,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
     fetchProperty();
   }, [request.propertyId]);
 
-  const handleConfirmAssignment = async (assignmentNotes: string, landlordEmail: string) => {
+  const handleConfirmAssignment = async (assignmentNotes: string, landlordEmail: string, reportOptions: any) => {
     if (!currentUser) {
       toast.error('You must be logged in');
       return;
