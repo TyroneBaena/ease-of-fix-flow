@@ -6,7 +6,9 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-requested-with",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 interface CommentNotificationRequest {
@@ -37,8 +39,42 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log("Comment notification function called");
+    console.log("Request method:", req.method);
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
     
-    const { recipient_email, recipient_name, notification_data }: CommentNotificationRequest = await req.json();
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log("Request body received:", requestBody);
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return new Response(JSON.stringify({ 
+        error: "Invalid JSON in request body",
+        details: parseError.message 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    
+    const { recipient_email, recipient_name, notification_data }: CommentNotificationRequest = requestBody;
+    
+    if (!recipient_email || !notification_data) {
+      console.error("Missing required fields:", { recipient_email: !!recipient_email, notification_data: !!notification_data });
+      return new Response(JSON.stringify({ 
+        error: "Missing required fields: recipient_email and notification_data are required" 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
     
     console.log("Sending notification to:", recipient_email);
     console.log("Comment data:", notification_data);
