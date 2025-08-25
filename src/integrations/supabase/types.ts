@@ -96,7 +96,7 @@ export type Database = {
           request_id?: string | null
           text?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id: string
           user_name?: string | null
           user_role?: string | null
         }
