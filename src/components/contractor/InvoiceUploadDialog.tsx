@@ -180,7 +180,7 @@ export const InvoiceUploadDialog = ({
         title: 'New Invoice Uploaded',
         message: `Invoice #${invoiceNumber} has been uploaded for job #${requestId.substring(0, 8)} with total amount $${totalAmount.toFixed(2)} (inc. GST)`,
         type: 'info',
-        user_id: user.id,
+        user_id: user.id.toString(),
         link: `/request/${requestId}`
       }));
 

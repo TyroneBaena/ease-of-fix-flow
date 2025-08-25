@@ -146,8 +146,8 @@ export const RequestFormContainer = () => {
         site,
         submittedBy,
         propertyId,
-        userId: currentUser.id,
-        user_id: currentUser.id,
+        userId: currentUser.id.toString(),
+        user_id: currentUser.id.toString(),
         attachments: attachments
       };
 

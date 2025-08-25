@@ -111,7 +111,7 @@ export const EditContractorInfoDialog: React.FC<EditContractorInfoDialogProps> =
         const { data, error } = await supabase
           .from('contractors')
           .insert({
-            user_id: currentUser.id,
+            user_id: currentUser.id.toString(),
             company_name: formData.companyName.trim(),
             contact_name: formData.contactName.trim(),
             email: formData.email.trim(),
