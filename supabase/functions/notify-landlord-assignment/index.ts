@@ -28,7 +28,7 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") ?? "";
-  const inboundReplyBase = Deno.env.get("INBOUND_REPLY_ADDRESS") ?? "";
+  const inboundReplyBase = Deno.env.get("INBOUND_REPLY_ADDRESS_NEW") ?? "";
 
   log("Environment check", { 
     hasResendKey: !!resendApiKey, 
@@ -50,8 +50,8 @@ serve(async (req) => {
   }
 
   if (!inboundReplyBase || inboundReplyBase.trim() === "" || !inboundReplyBase.includes("@")) {
-    log("ERROR", { message: "INBOUND_REPLY_ADDRESS must be a valid email address", address: inboundReplyBase });
-    return new Response(JSON.stringify({ error: "INBOUND_REPLY_ADDRESS must be a valid email address" }), {
+    log("ERROR", { message: "INBOUND_REPLY_ADDRESS_NEW must be a valid email address", address: inboundReplyBase });
+    return new Response(JSON.stringify({ error: "INBOUND_REPLY_ADDRESS_NEW must be a valid email address" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
@@ -103,7 +103,7 @@ serve(async (req) => {
 
     // Build Reply-To using plus addressing
     const [local, domain] = inboundReplyBase.split("@");
-    if (!local || !domain) throw new Error("INBOUND_REPLY_ADDRESS must be a valid email address");
+    if (!local || !domain) throw new Error("INBOUND_REPLY_ADDRESS_NEW must be a valid email address");
     const replyTo = `${local}+${tokenValue}@${domain}`;
 
     // Compose email
