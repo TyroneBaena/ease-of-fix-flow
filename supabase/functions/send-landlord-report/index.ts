@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface LandlordReportRequest {
   request_id: string;
+  landlord_email?: string; // Add the email from dialog
   options: {
     summary: boolean;
     property: boolean;
@@ -34,7 +35,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { request_id, options }: LandlordReportRequest = await req.json();
+    const { request_id, landlord_email: providedEmail, options }: LandlordReportRequest = await req.json();
     
     console.log("Processing landlord report for request:", request_id);
     console.log("Report options:", options);
@@ -77,22 +78,26 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Request data:", JSON.stringify(request, null, 2));
     console.log("Property data:", JSON.stringify(request.properties, null, 2));
 
-    // Check if landlord email exists - try multiple sources
-    let landlordEmail = null;
+    // Use provided email first, then fallback to database lookup
+    let landlordEmail = providedEmail;
     
-    console.log("Looking for landlord email...");
-    console.log("Landlords data:", request.properties.landlords);
-    console.log("Practice leader email:", request.properties.practice_leader_email);
-    
-    // First try the landlord relationship
-    if (request.properties.landlords?.email) {
-      landlordEmail = request.properties.landlords.email;
-      console.log("Found landlord email:", landlordEmail);
-    }
-    // Fallback to practice leader email
-    else if (request.properties.practice_leader_email) {
-      landlordEmail = request.properties.practice_leader_email;
-      console.log("Using practice leader email:", landlordEmail);
+    if (!landlordEmail) {
+      console.log("No email provided, looking for landlord email in database...");
+      console.log("Landlords data:", request.properties.landlords);
+      console.log("Practice leader email:", request.properties.practice_leader_email);
+      
+      // First try the landlord relationship
+      if (request.properties.landlords?.email) {
+        landlordEmail = request.properties.landlords.email;
+        console.log("Found landlord email:", landlordEmail);
+      }
+      // Fallback to practice leader email
+      else if (request.properties.practice_leader_email) {
+        landlordEmail = request.properties.practice_leader_email;
+        console.log("Using practice leader email:", landlordEmail);
+      }
+    } else {
+      console.log("Using provided email:", landlordEmail);
     }
     
     if (!landlordEmail) {

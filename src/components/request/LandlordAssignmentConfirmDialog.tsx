@@ -65,6 +65,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       const { data, error } = await supabase.functions.invoke('send-landlord-report', {
         body: {
           request_id: request.id,
+          landlord_email: landlordEmail.trim(),
           options: reportOptions
         }
       });
