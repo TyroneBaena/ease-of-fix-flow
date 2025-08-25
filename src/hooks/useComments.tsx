@@ -135,29 +135,16 @@ export function useComments(requestId: string) {
         return false;
       }
       
-      // Debug: Log the exact values we're trying to insert
-      console.log('Raw user object:', user);
-      console.log('user.id type:', typeof user.id);
-      console.log('user.id value:', user.id);
-      console.log('user.id.toString():', user.id.toString());
-      
-      const userIdToInsert = String(user.id); // Force conversion to string
-      console.log('Final userIdToInsert:', userIdToInsert, 'type:', typeof userIdToInsert);
-      
       // Explicitly set user_id to satisfy RLS policy requirements
-      const insertData = {
-        user_id: userIdToInsert,
-        request_id: requestId,
-        text: text.trim(),
-        user_name: currentUser.name || currentUser.email || 'Anonymous',
-        user_role: currentUser.role || 'User'
-      };
-      
-      console.log('Insert data being sent:', insertData);
-      
       const { data, error } = await supabase
         .from('comments')
-        .insert(insertData)
+        .insert({
+          user_id: user.id,
+          request_id: requestId,
+          text: text.trim(),
+          user_name: currentUser.name || currentUser.email || 'Anonymous',
+          user_role: currentUser.role || 'User'
+        })
         .select()
         .single();
       
