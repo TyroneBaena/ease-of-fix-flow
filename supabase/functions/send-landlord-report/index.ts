@@ -56,27 +56,32 @@ const handler = async (req: Request): Promise<Response> => {
       .from("maintenance_requests")
       .select(`
         *,
-        properties!inner (
+        properties (
           id,
           name,
           address,
           practice_leader,
           practice_leader_email,
           practice_leader_phone,
-          landlord_id,
-          landlords!properties_landlord_id_fkey (
-            id,
-            name,
-            email,
-            phone
-          )
+          landlord_id
         )
       `)
       .eq("id", request_id)
       .single();
 
-    if (requestError || !request) {
-      console.error("Request not found:", requestError);
+    if (requestError) {
+      console.error("Request error:", requestError);
+      return new Response(
+        JSON.stringify({ error: "Database error: " + requestError.message }),
+        { 
+          status: 500, 
+          headers: { "Content-Type": "application/json", ...corsHeaders } 
+        }
+      );
+    }
+
+    if (!request) {
+      console.error("Request not found");
       return new Response(
         JSON.stringify({ error: "Request not found" }),
         { 
@@ -84,6 +89,17 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { "Content-Type": "application/json", ...corsHeaders } 
         }
       );
+    }
+
+    // Get landlord info separately if landlord_id exists
+    let landlordData = null;
+    if (request.properties?.landlord_id) {
+      const { data: landlord } = await supabase
+        .from("landlords")
+        .select("id, name, email, phone")
+        .eq("id", request.properties.landlord_id)
+        .single();
+      landlordData = landlord;
     }
 
     console.log("Request data:", JSON.stringify(request, null, 2));
@@ -94,12 +110,12 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (!landlordEmail) {
       console.log("No email provided, looking for landlord email in database...");
-      console.log("Landlords data:", request.properties.landlords);
+      console.log("Landlord data:", landlordData);
       console.log("Practice leader email:", request.properties.practice_leader_email);
       
       // First try the landlord relationship
-      if (request.properties.landlords?.email) {
-        landlordEmail = request.properties.landlords.email;
+      if (landlordData?.email) {
+        landlordEmail = landlordData.email;
         console.log("Found landlord email:", landlordEmail);
       }
       // Fallback to practice leader email
