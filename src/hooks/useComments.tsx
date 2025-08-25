@@ -115,6 +115,112 @@ export function useComments(requestId: string) {
     }
   }, []);
 
+  // Helper function to send email notifications
+  const sendEmailNotifications = useCallback(async (commentData: any) => {
+    try {
+      console.log('Sending email notifications for comment:', commentData);
+      
+      // Get the maintenance request details for email context
+      const { data: requestData, error: requestError } = await supabase
+        .from('maintenance_requests')
+        .select(`
+          *,
+          properties (
+            name,
+            address
+          )
+        `)
+        .eq('id', requestId)
+        .single();
+      
+      if (requestError || !requestData) {
+        console.error('Error fetching request data for email:', requestError);
+        return;
+      }
+      
+      // Prepare notification data
+      const notificationData = {
+        request_id: requestId,
+        request_title: requestData.title || '',
+        request_description: requestData.description || '',
+        request_location: requestData.location || '',
+        request_priority: requestData.priority || '',
+        request_status: requestData.status || '',
+        property_name: requestData.properties?.name || '',
+        property_address: requestData.properties?.address || '',
+        comment_text: commentData.text || '',
+        commenter_name: commentData.user_name || '',
+        commenter_role: commentData.user_role || '',
+        comment_date: commentData.created_at || new Date().toISOString(),
+        direct_link: `${window.location.origin}/requests/${requestId}`
+      };
+      
+      // Send email to request owner
+      if (requestData.user_id) {
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', requestData.user_id)
+          .single();
+          
+        if (ownerProfile?.email) {
+          await supabase.functions.invoke('send-comment-notification', {
+            body: {
+              recipient_email: ownerProfile.email,
+              recipient_name: ownerProfile.name || '',
+              notification_data: notificationData
+            }
+          });
+          console.log('Email sent to request owner:', ownerProfile.email);
+        }
+      }
+      
+      // Send email to assigned contractor
+      if (requestData.contractor_id) {
+        const { data: contractorData } = await supabase
+          .from('contractors')
+          .select('contact_name, email')
+          .eq('id', requestData.contractor_id)
+          .single();
+          
+        if (contractorData?.email) {
+          await supabase.functions.invoke('send-comment-notification', {
+            body: {
+              recipient_email: contractorData.email,
+              recipient_name: contractorData.contact_name || '',
+              notification_data: notificationData
+            }
+          });
+          console.log('Email sent to contractor:', contractorData.email);
+        }
+      }
+      
+      // Send email to all admin users
+      const { data: adminProfiles } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('role', 'admin')
+        .not('email', 'is', null);
+        
+      if (adminProfiles && adminProfiles.length > 0) {
+        for (const admin of adminProfiles) {
+          await supabase.functions.invoke('send-comment-notification', {
+            body: {
+              recipient_email: admin.email,
+              recipient_name: admin.name || '',
+              notification_data: notificationData
+            }
+          });
+          console.log('Email sent to admin:', admin.email);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error sending email notifications:', error);
+      // Don't throw error as this shouldn't fail the comment creation
+    }
+  }, [requestId]);
+
   // Add a new comment
   const addComment = useCallback(async (text: string) => {
     if (!requestId || !currentUser) {
@@ -156,6 +262,11 @@ export function useComments(requestId: string) {
       
       console.log('Comment added successfully:', data);
       
+      // Send email notifications (async, don't wait for completion)
+      sendEmailNotifications(data).catch(error => 
+        console.error('Email notification failed:', error)
+      );
+      
       // Refresh comments to get the new one
       await fetchComments();
       toast.success('Comment added');
@@ -165,7 +276,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser, fetchComments]);
+  }, [requestId, currentUser, fetchComments, sendEmailNotifications]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
