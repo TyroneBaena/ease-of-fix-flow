@@ -122,39 +122,30 @@ export function useComments(requestId: string) {
       return false;
     }
     
-    // Get the actual user ID from Supabase auth
-    const userId = await extractUserId();
-    if (!userId) {
-      toast.error('Authentication error. Please log in again.');
-      return false;
-    }
-    
     try {
-      console.log('Adding comment for user ID:', userId);
+      console.log('Adding comment for request:', requestId);
       console.log('Current user context:', currentUser);
       
-      // Use the add_new_comment function instead of direct insert
-      const { data, error } = await supabase.rpc('add_new_comment', {
-        p_user_id: userId,
-        p_request_id: requestId,
-        p_text: text.trim(),
-        p_user_name: currentUser.name || currentUser.email || 'Anonymous',
-        p_user_role: currentUser.role || 'User'
-      });
+      // Use direct insert with minimal data - let database handle defaults
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          request_id: requestId,
+          text: text.trim(),
+          user_name: currentUser.name || currentUser.email || 'Anonymous',
+          user_role: currentUser.role || 'User'
+          // Don't set user_id - let the database default (auth.uid()) handle it
+        })
+        .select()
+        .single();
       
       if (error) {
         console.error('Error adding comment:', error);
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
         toast.error(`Failed to add comment: ${error.message}`);
         return false;
       }
       
-      console.log('Comment added successfully with ID:', data);
+      console.log('Comment added successfully:', data);
       
       // Refresh comments to get the new one
       await fetchComments();
@@ -165,7 +156,7 @@ export function useComments(requestId: string) {
       toast.error('An error occurred while adding your comment');
       return false;
     }
-  }, [requestId, currentUser, extractUserId, fetchComments]);
+  }, [requestId, currentUser, fetchComments]);
 
   // Fetch comments on mount and when requestId changes
   useEffect(() => {
