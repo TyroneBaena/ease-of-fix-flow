@@ -193,7 +193,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email
     const emailResponse = await resend.emails.send({
-      from: "Maintenance System <onboarding@resend.dev>", // Use Resend's default domain for testing
+      from: "Maintenance System <notifications@housinghub.app>", // Use verified custom domain
       to: [recipient_email],
       subject: emailSubject,
       html: emailHtml,
