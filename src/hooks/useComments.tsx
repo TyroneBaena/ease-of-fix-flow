@@ -134,7 +134,6 @@ export function useComments(requestId: string) {
       console.log('Current user context:', currentUser);
       
       const newComment = {
-        user_id: userId,
         request_id: requestId,
         text: text.trim(),
         user_name: currentUser.name || currentUser.email || 'Anonymous',
