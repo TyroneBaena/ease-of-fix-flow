@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SchedulingFormData, ScheduledDate } from '@/types/scheduling';
 import { toast } from '@/lib/toast';
+import { logActivity } from '@/contexts/contractor/operations/helpers/activityHelpers';
 
 export const useJobScheduling = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +55,23 @@ export const useJobScheduling = () => {
       if (updateError) {
         throw updateError;
       }
+
+      // Get contractor info for activity logging
+      const { data: contractorInfo } = await supabase
+        .from('contractors')
+        .select('contact_name')
+        .eq('id', contractorData.id)
+        .single();
+
+      // Log activity for scheduling
+      await logActivity({
+        requestId,
+        actionType: 'job_scheduled',
+        description: `Job scheduled for ${scheduledDatesWithIds.length} date(s)`,
+        actorName: contractorInfo?.contact_name || 'Contractor',
+        actorRole: 'contractor',
+        metadata: { scheduledDates: scheduledDatesWithIds }
+      });
 
       console.log('Job scheduled successfully');
     } catch (error) {

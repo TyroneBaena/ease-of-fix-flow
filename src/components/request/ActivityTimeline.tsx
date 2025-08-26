@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, User, Settings, CheckCircle, AlertCircle, FileText, DollarSign } from 'lucide-react';
+import { Clock, User, Settings, CheckCircle, AlertCircle, FileText, DollarSign, Calendar } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatTimestamp } from './detail/utils/dateUtils';
 import type { Json } from '@/integrations/supabase/types';
@@ -94,6 +94,10 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
         case 'contractor_assigned':
           icon = <User className="h-4 w-4 text-green-500" />;
           title = 'Contractor Assigned';
+          break;
+        case 'job_scheduled':
+          icon = <Calendar className="h-4 w-4 text-purple-500" />;
+          title = 'Job Scheduled';
           break;
         default:
           title = 'Activity Update';
