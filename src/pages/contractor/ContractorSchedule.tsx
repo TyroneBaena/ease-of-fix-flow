@@ -108,6 +108,13 @@ const ContractorSchedule = () => {
   };
 
   const filteredScheduleItems = getFilteredScheduleItems();
+  
+  console.log('=== FILTERING DEBUG ===');
+  console.log('All schedule items:', scheduleItems.length);
+  console.log('Selected date:', selectedDate);
+  console.log('View mode:', viewMode);
+  console.log('Filtered items:', filteredScheduleItems.length);
+  console.log('Filtered items details:', filteredScheduleItems);
 
   const getUpcomingCount = () => {
     const today = new Date();

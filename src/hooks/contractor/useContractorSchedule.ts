@@ -137,7 +137,13 @@ export const useContractorSchedule = () => {
         }
       }
       
+      console.log('=== FINAL PROCESSING RESULTS ===');
+      console.log('Total schedule items created:', items.length);
       console.log('Final schedule items:', items);
+      console.log('Items by date:', items.reduce((acc, item) => {
+        acc[item.date] = (acc[item.date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>));
 
       setScheduleItems(items);
     } catch (error) {
