@@ -119,7 +119,19 @@ export const useContractorSchedule = () => {
               console.log('Time value:', scheduledDate.time);
               console.log('EndTime value:', scheduledDate.endTime);
               
-              if (scheduledDate.date && (scheduledDate.time || scheduledDate.endTime)) {
+              const hasDate = !!scheduledDate.date;
+              const hasTime = !!scheduledDate.time;
+              const hasEndTime = !!scheduledDate.endTime;
+              const hasTimeOrEndTime = hasTime || hasEndTime;
+              
+              console.log('Condition check:');
+              console.log('- hasDate:', hasDate, '(', scheduledDate.date, ')');
+              console.log('- hasTime:', hasTime, '(', scheduledDate.time, ')');
+              console.log('- hasEndTime:', hasEndTime, '(', scheduledDate.endTime, ')');
+              console.log('- hasTimeOrEndTime:', hasTimeOrEndTime);
+              console.log('- Final condition result:', hasDate && hasTimeOrEndTime);
+              
+              if (hasDate && hasTimeOrEndTime) {
                 const timeValue = scheduledDate.time || scheduledDate.endTime;
                 const scheduleItem = {
                   id: `${job.id}-${scheduledDate.date}-${timeValue}`,
@@ -131,8 +143,9 @@ export const useContractorSchedule = () => {
                   requestId: request.id,
                   priority: request.priority
                 };
-                console.log('Created schedule item with date:', scheduleItem.date);
+                console.log('✅ Created schedule item:', scheduleItem);
                 items.push(scheduleItem);
+                console.log('✅ Items array now has', items.length, 'items');
               } else {
                 console.log('Missing date or time/endTime in scheduled date:', scheduledDate);
               }
