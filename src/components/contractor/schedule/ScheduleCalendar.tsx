@@ -8,13 +8,18 @@ import { ScheduleItem } from '@/hooks/contractor/useContractorSchedule';
 interface ScheduleCalendarProps {
   scheduleItems: ScheduleItem[];
   viewMode?: 'day' | 'week' | 'month';
+  selectedDate?: Date;
+  onDateSelect?: (date: Date) => void;
 }
 
 export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ 
   scheduleItems, 
-  viewMode = 'month' 
+  viewMode = 'month',
+  selectedDate: externalSelectedDate,
+  onDateSelect
 }) => {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [internalSelectedDate, setInternalSelectedDate] = useState<Date>(new Date());
+  const selectedDate = externalSelectedDate || internalSelectedDate;
 
   // Get items for selected date
   const selectedDateString = selectedDate.toISOString().split('T')[0];
@@ -33,7 +38,15 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
           <Calendar
             mode="single"
             selected={selectedDate}
-            onSelect={(date) => date && setSelectedDate(date)}
+            onSelect={(date) => {
+              if (date) {
+                if (onDateSelect) {
+                  onDateSelect(date);
+                } else {
+                  setInternalSelectedDate(date);
+                }
+              }
+            }}
             modifiers={{
               hasItems: datesWithItems
             }}

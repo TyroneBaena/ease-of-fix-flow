@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Toaster } from "sonner";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,23 +14,24 @@ import { ScheduleActions } from '@/components/contractor/schedule/ScheduleAction
 const ContractorSchedule = () => {
   const { scheduleItems, loading, error, refreshSchedule } = useContractorSchedule();
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('month');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const handleRefresh = () => {
     refreshSchedule();
   };
 
   const getFilteredScheduleItems = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const baseDate = new Date(selectedDate);
+    baseDate.setHours(0, 0, 0, 0);
     
     switch (viewMode) {
       case 'day': {
-        const todayString = today.toISOString().split('T')[0];
-        return scheduleItems.filter(item => item.date === todayString);
+        const selectedDateString = baseDate.toISOString().split('T')[0];
+        return scheduleItems.filter(item => item.date === selectedDateString);
       }
       case 'week': {
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
+        const startOfWeek = new Date(baseDate);
+        startOfWeek.setDate(baseDate.getDate() - baseDate.getDay());
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         
@@ -40,8 +41,8 @@ const ContractorSchedule = () => {
         });
       }
       case 'month': {
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+        const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
         
         return scheduleItems.filter(item => {
           const itemDate = new Date(item.date);
@@ -50,6 +51,51 @@ const ContractorSchedule = () => {
       }
       default:
         return scheduleItems;
+    }
+  };
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const newDate = new Date(selectedDate);
+    
+    switch (viewMode) {
+      case 'day':
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
+        break;
+      case 'week':
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+        break;
+      case 'month':
+        newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+        break;
+    }
+    
+    setSelectedDate(newDate);
+  };
+
+  const getCurrentPeriodLabel = () => {
+    switch (viewMode) {
+      case 'day':
+        return selectedDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          month: 'long', 
+          day: 'numeric',
+          year: 'numeric'
+        });
+      case 'week': {
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        
+        return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      }
+      case 'month':
+        return selectedDate.toLocaleDateString('en-US', { 
+          month: 'long', 
+          year: 'numeric'
+        });
+      default:
+        return '';
     }
   };
 
@@ -78,6 +124,35 @@ const ContractorSchedule = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Schedule</h1>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateDate('prev')}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-lg font-medium min-w-[200px] text-center">
+                  {getCurrentPeriodLabel()}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateDate('next')}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedDate(new Date())}
+                className="text-sm"
+              >
+                Today
+              </Button>
+            </div>
             <p className="text-gray-600">
               {loading ? 'Loading...' : `${filteredScheduleItems.length} ${viewMode === 'day' ? 'today' : viewMode === 'week' ? 'this week' : 'this month'}, ${getUpcomingCount()} total upcoming`}
             </p>
@@ -125,8 +200,10 @@ const ContractorSchedule = () => {
             
             <div className="space-y-6">
               <ScheduleCalendar 
-                scheduleItems={viewMode === 'day' ? filteredScheduleItems : scheduleItems}
+                scheduleItems={scheduleItems}
                 viewMode={viewMode}
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
               />
               <ScheduleActions />
             </div>
