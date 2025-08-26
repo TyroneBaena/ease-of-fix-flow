@@ -19,6 +19,42 @@ const ContractorSchedule = () => {
     refreshSchedule();
   };
 
+  const getFilteredScheduleItems = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    switch (viewMode) {
+      case 'day': {
+        const todayString = today.toISOString().split('T')[0];
+        return scheduleItems.filter(item => item.date === todayString);
+      }
+      case 'week': {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        
+        return scheduleItems.filter(item => {
+          const itemDate = new Date(item.date);
+          return itemDate >= startOfWeek && itemDate <= endOfWeek;
+        });
+      }
+      case 'month': {
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        return scheduleItems.filter(item => {
+          const itemDate = new Date(item.date);
+          return itemDate >= startOfMonth && itemDate <= endOfMonth;
+        });
+      }
+      default:
+        return scheduleItems;
+    }
+  };
+
+  const filteredScheduleItems = getFilteredScheduleItems();
+
   const getUpcomingCount = () => {
     const today = new Date();
     const upcoming = scheduleItems.filter(item => {
@@ -43,7 +79,7 @@ const ContractorSchedule = () => {
           <div>
             <h1 className="text-2xl font-bold">Schedule</h1>
             <p className="text-gray-600">
-              {loading ? 'Loading...' : `${getUpcomingCount()} upcoming appointments`}
+              {loading ? 'Loading...' : `${filteredScheduleItems.length} ${viewMode === 'day' ? 'today' : viewMode === 'week' ? 'this week' : 'this month'}, ${getUpcomingCount()} total upcoming`}
             </p>
           </div>
           <div className="flex gap-2">
@@ -81,11 +117,17 @@ const ContractorSchedule = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3">
-              <UpcomingAppointments scheduleItems={scheduleItems} />
+              <UpcomingAppointments 
+                scheduleItems={filteredScheduleItems}
+                viewMode={viewMode}
+              />
             </div>
             
             <div className="space-y-6">
-              <ScheduleCalendar scheduleItems={scheduleItems} />
+              <ScheduleCalendar 
+                scheduleItems={viewMode === 'day' ? filteredScheduleItems : scheduleItems}
+                viewMode={viewMode}
+              />
               <ScheduleActions />
             </div>
           </div>

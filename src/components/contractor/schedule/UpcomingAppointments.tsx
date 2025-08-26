@@ -8,9 +8,13 @@ import { useNavigate } from 'react-router-dom';
 
 interface UpcomingAppointmentsProps {
   scheduleItems: ScheduleItem[];
+  viewMode?: 'day' | 'week' | 'month';
 }
 
-export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({ scheduleItems }) => {
+export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({ 
+  scheduleItems, 
+  viewMode = 'month' 
+}) => {
   const navigate = useNavigate();
 
   // Sort by date and time, show next 10 items
@@ -39,16 +43,31 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({ sche
     }
   };
 
+  const getViewTitle = () => {
+    switch (viewMode) {
+      case 'day':
+        return 'Today\'s Appointments';
+      case 'week':
+        return 'This Week\'s Appointments';
+      case 'month':
+        return 'This Month\'s Appointments';
+      default:
+        return 'Upcoming Appointments';
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upcoming Appointments</CardTitle>
+        <CardTitle>{getViewTitle()}</CardTitle>
       </CardHeader>
       <CardContent>
         {upcomingItems.length === 0 ? (
           <div className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No upcoming appointments scheduled</p>
+            <p className="text-gray-500">
+              No appointments {viewMode === 'day' ? 'today' : viewMode === 'week' ? 'this week' : 'this month'}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">

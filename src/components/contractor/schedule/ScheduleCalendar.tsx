@@ -7,9 +7,13 @@ import { ScheduleItem } from '@/hooks/contractor/useContractorSchedule';
 
 interface ScheduleCalendarProps {
   scheduleItems: ScheduleItem[];
+  viewMode?: 'day' | 'week' | 'month';
 }
 
-export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ scheduleItems }) => {
+export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ 
+  scheduleItems, 
+  viewMode = 'month' 
+}) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // Get items for selected date
