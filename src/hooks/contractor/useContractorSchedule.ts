@@ -107,11 +107,12 @@ export const useContractorSchedule = () => {
             if (dateItem && typeof dateItem === 'object' && !Array.isArray(dateItem)) {
               const scheduledDate = dateItem as Record<string, any>;
               console.log('Scheduled date object:', scheduledDate);
-              if (scheduledDate.date && scheduledDate.time) {
+              if (scheduledDate.date && (scheduledDate.time || scheduledDate.endTime)) {
+                const timeValue = scheduledDate.time || scheduledDate.endTime;
                 const scheduleItem = {
-                  id: `${job.id}-${scheduledDate.date}-${scheduledDate.time}`,
+                  id: `${job.id}-${scheduledDate.date}-${timeValue}`,
                   date: String(scheduledDate.date),
-                  time: String(scheduledDate.time),
+                  time: String(timeValue),
                   task: `${request.category} - ${request.title}`,
                   location: request.location,
                   status: request.status === 'in-progress' ? 'scheduled' as const : 'tentative' as const,
@@ -121,7 +122,7 @@ export const useContractorSchedule = () => {
                 console.log('Created schedule item:', scheduleItem);
                 items.push(scheduleItem);
               } else {
-                console.log('Missing date or time in scheduled date:', scheduledDate);
+                console.log('Missing date or time/endTime in scheduled date:', scheduledDate);
               }
             } else {
               console.log('Invalid date item format:', dateItem);
