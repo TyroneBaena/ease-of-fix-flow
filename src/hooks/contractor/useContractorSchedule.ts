@@ -137,7 +137,19 @@ export const useContractorSchedule = () => {
   };
 
   useEffect(() => {
-    fetchScheduleData();
+    const checkAuthAndFetch = async () => {
+      // Wait for auth to be ready
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log('Auth is ready, fetching schedule data for user:', session.user.id);
+        fetchScheduleData();
+      } else {
+        console.log('No session found, skipping schedule fetch');
+        setLoading(false);
+      }
+    };
+
+    checkAuthAndFetch();
   }, []);
 
   const refreshSchedule = () => {
