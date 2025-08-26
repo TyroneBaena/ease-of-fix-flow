@@ -52,22 +52,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Fetching maintenance request and property details for:', request_id);
 
-    // Fetch maintenance request with property details
+    // Fetch maintenance request with property and profile details separately
     const { data: requestData, error: requestError } = await supabase
       .from('maintenance_requests')
-      .select(`
-        *,
-        properties:property_id (
-          name,
-          address,
-          email,
-          practice_leader,
-          practice_leader_email
-        ),
-        profiles:user_id (
-          name
-        )
-      `)
+      .select('*')
       .eq('id', request_id)
       .single();
 
@@ -76,10 +64,29 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Failed to fetch maintenance request details');
     }
 
-    const property = requestData.properties;
-    const submitter = requestData.profiles;
+    // Fetch property details
+    const { data: propertyData, error: propertyError } = await supabase
+      .from('properties')
+      .select('name, address, email, practice_leader, practice_leader_email')
+      .eq('id', requestData.property_id)
+      .single();
 
-    if (!property) {
+    // Fetch submitter profile
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', requestData.user_id)
+      .single();
+
+    if (propertyError) {
+      console.error('Error fetching property data:', propertyError);
+    }
+
+    if (profileError) {
+      console.error('Error fetching profile data:', profileError);
+    }
+
+    if (!propertyData) {
       throw new Error('Property information not found');
     }
 
@@ -101,14 +108,14 @@ const handler = async (req: Request): Promise<Response> => {
           <p><strong>Category:</strong> ${requestData.category}</p>
           <p><strong>Priority:</strong> ${requestData.priority}</p>
           <p><strong>Location:</strong> ${requestData.location}</p>
-          <p><strong>Submitted by:</strong> ${submitter?.name || 'Unknown'}</p>
-          <p><strong>Date:</strong> ${new Date(requestData.created_at).toLocaleDateString()}</p>
-        </div>
+           <p><strong>Submitted by:</strong> ${profileData?.name || 'Unknown'}</p>
+           <p><strong>Date:</strong> ${new Date(requestData.created_at).toLocaleDateString()}</p>
+         </div>
 
-        <div style="background-color: #e9ecef; padding: 20px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="color: #007bff; margin-top: 0;">Property Information</h3>
-          <p><strong>Property:</strong> ${property.name}</p>
-          <p><strong>Address:</strong> ${property.address}</p>
+         <div style="background-color: #e9ecef; padding: 20px; border-radius: 5px; margin: 20px 0;">
+           <h3 style="color: #007bff; margin-top: 0;">Property Information</h3>
+           <p><strong>Property:</strong> ${propertyData.name}</p>
+           <p><strong>Address:</strong> ${propertyData.address}</p>
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
@@ -133,12 +140,12 @@ const handler = async (req: Request): Promise<Response> => {
     const emailPromises = [];
 
     // Send to property contact email
-    if (property.email) {
-      console.log('Sending email to property contact:', property.email);
+    if (propertyData.email) {
+      console.log('Sending email to property contact:', propertyData.email);
       emailPromises.push(
         resend.emails.send({
           from: 'Property Manager <onboarding@resend.dev>',
-          to: [property.email],
+          to: [propertyData.email],
           subject: emailSubject,
           html: createEmailHtml('property contact'),
         })
@@ -146,12 +153,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Send to practice leader if provided
-    if (property.practice_leader_email) {
-      console.log('Sending email to practice leader:', property.practice_leader_email);
+    if (propertyData.practice_leader_email) {
+      console.log('Sending email to practice leader:', propertyData.practice_leader_email);
       emailPromises.push(
         resend.emails.send({
           from: 'Property Manager <onboarding@resend.dev>',
-          to: [property.practice_leader_email],
+          to: [propertyData.practice_leader_email],
           subject: emailSubject,
           html: createEmailHtml('practice leader'),
         })
