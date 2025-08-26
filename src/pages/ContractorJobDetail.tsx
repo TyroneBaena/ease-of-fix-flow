@@ -5,6 +5,7 @@ import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { ContractorProvider } from '@/contexts/contractor';
 import { JobProgressDialog } from '@/components/contractor/JobProgressDialog';
 import { useJobDetail } from '@/hooks/contractor/useJobDetail';
+import { useActivityLogs } from '@/hooks/request-detail/useActivityLogs';
 import { JobDetailSkeleton } from '@/components/contractor/job-detail/JobDetailSkeleton';
 import { JobDetailError } from '@/components/contractor/job-detail/JobDetailError';
 import { ContractorJobDetailHeader } from '@/components/contractor/job-detail/ContractorJobDetailHeader';
@@ -21,7 +22,9 @@ import { supabase } from '@/lib/supabase';
 
 const ContractorJobDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { job, loading, error } = useJobDetail(id);
+  const { job, loading, error, refetch } = useJobDetail(id);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const { activityLogs } = useActivityLogs(id, refreshCounter);
   const [progressDialogOpen, setProgressDialogOpen] = useState(false);
   const [invoice, setInvoice] = useState(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
@@ -97,7 +100,7 @@ const ContractorJobDetail = () => {
             <IssueDetailsCard job={job} />
             <AttachmentsCard attachments={job.attachments} />
             {invoice && !loadingInvoice && <InvoiceCard invoice={invoice} />}
-            <ActivityTimeline request={job} />
+            <ActivityTimeline request={job} activityLogs={activityLogs} />
             <CommentSection requestId={job.id} />
           </div>
           
@@ -107,9 +110,10 @@ const ContractorJobDetail = () => {
               <ScheduleJobCard 
                 request={job} 
                 onScheduled={() => {
-                  // Refresh job details after scheduling
-                  window.location.reload();
-                }} 
+                  // Refresh job details and activity logs after scheduling
+                  refetch();
+                  setRefreshCounter(prev => prev + 1);
+                }}
               />
             )}
             <ProgressCard request={job} />

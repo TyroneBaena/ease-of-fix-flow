@@ -16,6 +16,7 @@ export const useJobDetail = (jobId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<MaintenanceRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   
   useEffect(() => {
     if (!jobId) return;
@@ -138,7 +139,11 @@ export const useJobDetail = (jobId: string | undefined) => {
     };
     
     fetchJobDetails();
-  }, [jobId]);
+  }, [jobId, refreshCounter]);
   
-  return { job, loading, error };
+  const refetch = () => {
+    setRefreshCounter(prev => prev + 1);
+  };
+
+  return { job, loading, error, refetch };
 };
