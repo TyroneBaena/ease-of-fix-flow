@@ -52,21 +52,14 @@ const ContractorSchedule = () => {
         const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
         const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
         
-        console.log('🗓️ MONTH FILTERING DEBUG:');
-        console.log('- baseDate:', baseDate.toISOString());
-        console.log('- startOfMonth:', startOfMonth.toISOString());
-        console.log('- endOfMonth:', endOfMonth.toISOString());
-        
-        const monthFiltered = scheduleItems.filter(item => {
-          const itemDate = new Date(item.date);
-          const isInRange = itemDate >= startOfMonth && itemDate <= endOfMonth;
-          console.log(`- Item ${item.date} (${itemDate.toISOString()}) in range? ${isInRange}`);
-          return isInRange;
+        return scheduleItems.filter(item => {
+          // Parse date as YYYY-MM-DD and compare with same timezone
+          const itemDate = new Date(item.date + 'T00:00:00');
+          const startCompare = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth(), startOfMonth.getDate());
+          const endCompare = new Date(endOfMonth.getFullYear(), endOfMonth.getMonth(), endOfMonth.getDate());
+          
+          return itemDate >= startCompare && itemDate <= endCompare;
         });
-        
-        console.log('🗓️ Month filtered result:', monthFiltered.length, 'items');
-        monthFiltered.forEach(item => console.log(`  ✅ ${item.date} at ${item.time}: ${item.task}`));
-        return monthFiltered;
       }
       default:
         return scheduleItems;
