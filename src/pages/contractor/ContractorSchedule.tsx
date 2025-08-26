@@ -52,20 +52,10 @@ const ContractorSchedule = () => {
         const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
         const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
         
-        console.log('Month filtering:');
-        console.log('baseDate:', baseDate);
-        console.log('startOfMonth:', startOfMonth);
-        console.log('endOfMonth:', endOfMonth);
-        
-        const filteredItems = scheduleItems.filter(item => {
+        return scheduleItems.filter(item => {
           const itemDate = new Date(item.date);
-          console.log(`Checking item ${item.id} with date ${item.date}:`, itemDate, 
-                     'within range?', itemDate >= startOfMonth && itemDate <= endOfMonth);
           return itemDate >= startOfMonth && itemDate <= endOfMonth;
         });
-        
-        console.log('Month filtered result:', filteredItems.length, 'items');
-        return filteredItems;
       }
       default:
         return scheduleItems;
@@ -118,13 +108,6 @@ const ContractorSchedule = () => {
   };
 
   const filteredScheduleItems = getFilteredScheduleItems();
-  
-  console.log('=== FILTERING DEBUG ===');
-  console.log('All schedule items:', scheduleItems.length);
-  console.log('Selected date:', selectedDate);
-  console.log('View mode:', viewMode);
-  console.log('Filtered items:', filteredScheduleItems.length);
-  console.log('Filtered items details:', filteredScheduleItems);
 
   const getUpcomingCount = () => {
     const today = new Date();

@@ -18,10 +18,6 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
   const navigate = useNavigate();
 
   // Sort by date and time, show next 10 items
-  console.log('=== UPCOMING APPOINTMENTS DEBUG ===');
-  console.log('Received schedule items:', scheduleItems.length);
-  console.log('Schedule items details:', scheduleItems);
-  
   const upcomingItems = scheduleItems
     .sort((a, b) => {
       const dateTimeA = new Date(`${a.date}T${a.time}`);
@@ -29,9 +25,6 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
       return dateTimeA.getTime() - dateTimeB.getTime();
     })
     .slice(0, 10);
-    
-  console.log('Upcoming items after sort and slice:', upcomingItems.length);
-  console.log('Upcoming items details:', upcomingItems);
 
   const handleItemClick = (item: ScheduleItem) => {
     navigate(`/contractor-jobs/${item.requestId}`);
