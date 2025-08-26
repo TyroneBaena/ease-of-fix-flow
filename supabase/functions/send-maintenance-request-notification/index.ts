@@ -92,6 +92,51 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Sending emails for request:', requestData.title);
 
+    // Create in-app notifications for admins and managers
+    console.log('Creating in-app notifications...');
+    
+    // Get admin and manager users
+    const { data: adminUsers, error: adminError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin');
+
+    const { data: managerUsers, error: managerError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'manager');
+
+    if (adminError) console.error('Error fetching admin users:', adminError);
+    if (managerError) console.error('Error fetching manager users:', managerError);
+
+    // Create notifications for all admin and manager users
+    const notificationUsers = [...(adminUsers || []), ...(managerUsers || [])];
+    const notificationTitle = 'New Maintenance Request';
+    const notificationMessage = `New request "${requestData.title}" submitted for ${propertyData.name}`;
+    const notificationLink = `/requests/${request_id}`;
+
+    for (const user of notificationUsers) {
+      try {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: user.id,
+            title: notificationTitle,
+            message: notificationMessage,
+            type: 'info',
+            link: notificationLink
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification for user:', user.id, notificationError);
+        } else {
+          console.log('Created notification for user:', user.id);
+        }
+      } catch (error) {
+        console.error('Error inserting notification:', error);
+      }
+    }
+
     const emailSubject = `New Maintenance Request: ${requestData.title}`;
     const directLink = `${Deno.env.get('APPLICATION_URL') || 'https://your-app.com'}/requests/${request_id}`;
 
