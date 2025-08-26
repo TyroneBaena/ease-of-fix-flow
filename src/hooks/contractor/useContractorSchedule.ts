@@ -65,22 +65,35 @@ export const useContractorSchedule = () => {
       // Transform scheduled jobs into schedule items
       const items: ScheduleItem[] = [];
       
+      console.log('Raw scheduled jobs data:', scheduledJobs);
+      
       if (scheduledJobs) {
         for (const job of scheduledJobs) {
           const request = job.maintenance_requests;
-          if (!request) continue;
+          console.log('Processing job:', job);
+          console.log('Request data:', request);
+          console.log('Scheduled dates:', job.scheduled_dates);
+          
+          if (!request) {
+            console.log('No request data found for job:', job.id);
+            continue;
+          }
 
           // Parse scheduled_dates from jsonb
           const scheduledDatesArray = Array.isArray(job.scheduled_dates) 
             ? job.scheduled_dates 
             : [];
+            
+          console.log('Processed scheduled dates array:', scheduledDatesArray);
 
           // Create a schedule item for each scheduled date
           for (const dateItem of scheduledDatesArray) {
+            console.log('Processing date item:', dateItem);
             if (dateItem && typeof dateItem === 'object' && !Array.isArray(dateItem)) {
               const scheduledDate = dateItem as Record<string, any>;
+              console.log('Scheduled date object:', scheduledDate);
               if (scheduledDate.date && scheduledDate.time) {
-                items.push({
+                const scheduleItem = {
                   id: `${job.id}-${scheduledDate.date}-${scheduledDate.time}`,
                   date: String(scheduledDate.date),
                   time: String(scheduledDate.time),
@@ -89,12 +102,20 @@ export const useContractorSchedule = () => {
                   status: request.status === 'in-progress' ? 'scheduled' as const : 'tentative' as const,
                   requestId: request.id,
                   priority: request.priority
-                });
+                };
+                console.log('Created schedule item:', scheduleItem);
+                items.push(scheduleItem);
+              } else {
+                console.log('Missing date or time in scheduled date:', scheduledDate);
               }
+            } else {
+              console.log('Invalid date item format:', dateItem);
             }
           }
         }
       }
+      
+      console.log('Final schedule items:', items);
 
       setScheduleItems(items);
     } catch (error) {
