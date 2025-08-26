@@ -57,14 +57,14 @@ const handler = async (req: Request): Promise<Response> => {
       .from('maintenance_requests')
       .select(`
         *,
-        properties (
+        properties:property_id (
           name,
           address,
           email,
           practice_leader,
           practice_leader_email
         ),
-        profiles (
+        profiles:user_id (
           name
         )
       `)
