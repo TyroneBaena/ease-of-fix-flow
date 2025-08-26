@@ -187,27 +187,29 @@ const handler = async (req: Request): Promise<Response> => {
     // Send to property contact email
     if (propertyData.email) {
       console.log('Sending email to property contact:', propertyData.email);
-      emailPromises.push(
-        resend.emails.send({
-          from: 'Property Manager <onboarding@resend.dev>',
-          to: [propertyData.email],
-          subject: emailSubject,
-          html: createEmailHtml('property contact'),
-        })
-      );
+      const emailResult = await resend.emails.send({
+        from: 'Property Manager <onboarding@resend.dev>',
+        to: [propertyData.email],
+        subject: emailSubject,
+        html: createEmailHtml('property contact'),
+      });
+      
+      console.log('Email send result:', emailResult);
+      emailPromises.push(emailResult);
     }
 
     // Send to practice leader if provided
     if (propertyData.practice_leader_email) {
       console.log('Sending email to practice leader:', propertyData.practice_leader_email);
-      emailPromises.push(
-        resend.emails.send({
-          from: 'Property Manager <onboarding@resend.dev>',
-          to: [propertyData.practice_leader_email],
-          subject: emailSubject,
-          html: createEmailHtml('practice leader'),
-        })
-      );
+      const practiceLeaderResult = await resend.emails.send({
+        from: 'Property Manager <onboarding@resend.dev>',
+        to: [propertyData.practice_leader_email],
+        subject: emailSubject,
+        html: createEmailHtml('practice leader'),
+      });
+      
+      console.log('Practice leader email send result:', practiceLeaderResult);
+      emailPromises.push(practiceLeaderResult);
     }
 
     if (emailPromises.length === 0) {
@@ -224,18 +226,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send all emails concurrently
+    // Wait for all emails to complete and get results
     const emailResults = await Promise.allSettled(emailPromises);
     
-    const successful = emailResults.filter(result => result.status === 'fulfilled').length;
-    const failed = emailResults.filter(result => result.status === 'rejected').length;
+    const successful = emailResults.filter(result => 
+      result.status === 'fulfilled' && !result.value.error
+    ).length;
+    const failed = emailResults.filter(result => 
+      result.status === 'rejected' || (result.status === 'fulfilled' && result.value.error)
+    ).length;
 
     console.log(`Email sending complete. Successful: ${successful}, Failed: ${failed}`);
 
-    // Log any failures
+    // Log any failures with details
     emailResults.forEach((result, index) => {
       if (result.status === 'rejected') {
         console.error(`Email ${index + 1} failed:`, result.reason);
+      } else if (result.status === 'fulfilled' && result.value.error) {
+        console.error(`Email ${index + 1} failed with error:`, result.value.error);
+      } else if (result.status === 'fulfilled') {
+        console.log(`Email ${index + 1} sent successfully:`, result.value);
       }
     });
 
