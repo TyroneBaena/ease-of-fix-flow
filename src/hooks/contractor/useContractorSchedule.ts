@@ -83,6 +83,7 @@ export const useContractorSchedule = () => {
       console.log('Raw scheduled jobs data:', scheduledJobs);
       
       if (scheduledJobs) {
+        console.log('Processing', scheduledJobs.length, 'scheduled jobs');
         for (const job of scheduledJobs) {
           const request = job.maintenance_requests;
           console.log('Processing job:', job);
@@ -99,6 +100,7 @@ export const useContractorSchedule = () => {
             ? job.scheduled_dates 
             : [];
             
+          console.log('Job', job.id, 'has', scheduledDatesArray.length, 'scheduled dates');
           console.log('Processed scheduled dates array:', scheduledDatesArray);
 
           // Create a schedule item for each scheduled date
