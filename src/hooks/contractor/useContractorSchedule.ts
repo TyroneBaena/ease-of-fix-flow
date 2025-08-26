@@ -111,28 +111,16 @@ export const useContractorSchedule = () => {
 
           // Create a schedule item for each scheduled date
           for (const dateItem of scheduledDatesArray) {
-            console.log('Processing date item:', dateItem);
+            console.log('📅 Processing date item:', dateItem);
             if (dateItem && typeof dateItem === 'object' && !Array.isArray(dateItem)) {
               const scheduledDate = dateItem as Record<string, any>;
-              console.log('Scheduled date object:', scheduledDate);
-              console.log('Date value:', scheduledDate.date);
-              console.log('Time value:', scheduledDate.time);
-              console.log('EndTime value:', scheduledDate.endTime);
               
-              const hasDate = !!scheduledDate.date;
-              const hasTime = !!scheduledDate.time;
-              const hasEndTime = !!scheduledDate.endTime;
-              const hasTimeOrEndTime = hasTime || hasEndTime;
+              // Check what time field is available
+              const timeValue = scheduledDate.time || scheduledDate.endTime || scheduledDate.startTime;
               
-              console.log('Condition check:');
-              console.log('- hasDate:', hasDate, '(', scheduledDate.date, ')');
-              console.log('- hasTime:', hasTime, '(', scheduledDate.time, ')');
-              console.log('- hasEndTime:', hasEndTime, '(', scheduledDate.endTime, ')');
-              console.log('- hasTimeOrEndTime:', hasTimeOrEndTime);
-              console.log('- Final condition result:', hasDate && hasTimeOrEndTime);
+              console.log(`📅 Date: ${scheduledDate.date}, Time: ${timeValue}`);
               
-              if (hasDate && hasTimeOrEndTime) {
-                const timeValue = scheduledDate.time || scheduledDate.endTime;
+              if (scheduledDate.date && timeValue) {
                 const scheduleItem = {
                   id: `${job.id}-${scheduledDate.date}-${timeValue}`,
                   date: String(scheduledDate.date),
@@ -143,14 +131,11 @@ export const useContractorSchedule = () => {
                   requestId: request.id,
                   priority: request.priority
                 };
-                console.log('✅ Created schedule item:', scheduleItem);
+                console.log('✅ CREATED ITEM:', scheduleItem.date, scheduleItem.time);
                 items.push(scheduleItem);
-                console.log('✅ Items array now has', items.length, 'items');
               } else {
-                console.log('Missing date or time/endTime in scheduled date:', scheduledDate);
+                console.log('❌ SKIPPED - Missing date or time:', { date: scheduledDate.date, time: timeValue });
               }
-            } else {
-              console.log('Invalid date item format:', dateItem);
             }
           }
         }
