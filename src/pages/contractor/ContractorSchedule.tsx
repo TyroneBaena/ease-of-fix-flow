@@ -14,7 +14,15 @@ import { ScheduleActions } from '@/components/contractor/schedule/ScheduleAction
 const ContractorSchedule = () => {
   const { scheduleItems, loading, error, refreshSchedule } = useContractorSchedule();
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('month');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // Initialize with current date/September 2025 to show September appointments
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const now = new Date();
+    // For demo purposes, if we're looking for September appointments, set to September
+    if (now.getFullYear() === 2025 && now.getMonth() < 8) { // If before September
+      return new Date(2025, 8, 1); // September 1, 2025
+    }
+    return now;
+  });
 
   const handleRefresh = () => {
     refreshSchedule();

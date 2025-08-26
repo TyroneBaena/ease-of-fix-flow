@@ -38,6 +38,7 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
           <Calendar
             mode="single"
             selected={selectedDate}
+            month={selectedDate}
             onSelect={(date) => {
               if (date) {
                 if (onDateSelect) {
