@@ -86,14 +86,20 @@ export const useContractorSchedule = () => {
         console.log('Processing', scheduledJobs.length, 'scheduled jobs');
         for (const job of scheduledJobs) {
           const request = job.maintenance_requests;
-          console.log('Processing job:', job);
+          console.log('=== Processing job:', job.id, '===');
+          console.log('Job object keys:', Object.keys(job));
+          console.log('Job.maintenance_requests:', job.maintenance_requests);
+          console.log('Request data type:', typeof request);
           console.log('Request data:', request);
           console.log('Scheduled dates:', job.scheduled_dates);
           
           if (!request) {
-            console.log('No request data found for job:', job.id);
+            console.log('❌ No request data found for job:', job.id);
+            console.log('Job object:', job);
             continue;
           }
+          
+          console.log('✅ Request data found for job:', job.id);
 
           // Parse scheduled_dates from jsonb
           const scheduledDatesArray = Array.isArray(job.scheduled_dates) 
