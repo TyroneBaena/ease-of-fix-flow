@@ -119,9 +119,10 @@ export const useMaintenanceRequestProvider = () => {
       const formattedNewRequest = formatRequestData(newRequest);
       setRequests(prev => [...prev, formattedNewRequest]);
       toast.success('Maintenance request added successfully');
-      return formattedNewRequest;
+      return formattedNewRequest; // Return the formatted request with its ID
     } else {
       console.error('Failed to create new request');
+      return null;
     }
   };
 

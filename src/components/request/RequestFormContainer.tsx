@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
@@ -157,6 +158,25 @@ export const RequestFormContainer = () => {
       const newRequest = await addRequestToProperty(requestData);
       
       console.log('RequestForm - addRequestToProperty returned:', newRequest);
+      
+      // Send email notifications
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const accessToken = session.session?.access_token;
+        
+        if (accessToken && newRequest?.id) {
+          console.log('Sending email notifications for request:', newRequest.id);
+          await supabase.functions.invoke('send-maintenance-request-notification', {
+            body: { request_id: newRequest.id },
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send email notifications:', emailError);
+        // Don't block the success flow if email fails
+      }
       
       toast.success("Your maintenance request has been submitted");
       navigate('/dashboard');
