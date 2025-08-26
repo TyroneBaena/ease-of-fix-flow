@@ -25,10 +25,19 @@ export const useContractorSchedule = () => {
       setError(null);
 
       // Get contractor ID for current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.error('Error getting user or no user found:', userError);
+        throw new Error('User not authenticated');
+      }
+
+      console.log('Current user:', user.id);
+
       const { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
         .select('id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', user.id)
         .single();
 
       if (contractorError) {
