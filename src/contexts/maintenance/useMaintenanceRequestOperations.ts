@@ -38,33 +38,15 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
         throw error;
       }
 
-      console.log('🔍 ADMIN DEBUG - Raw data from database:', data);
-      console.log('🔍 ADMIN DEBUG - Number of requests found:', data?.length || 0);
+      console.log('🔍 ADMIN DEBUG - Raw data from database:', data?.length, 'requests found');
       
       // Check specifically for add24 request
       const add24Request = data?.find(req => req.title?.includes('add24'));
-      console.log('🔍 ADMIN DEBUG - add24 request found:', add24Request);
-      
-      if (data) {
-        data.forEach(req => {
-          console.log(`🔍 ADMIN DEBUG - Request: ${req.title} (ID: ${req.id}), Status: ${req.status}`);
-        });
-      }
-      
-      if (data && data.length > 0) {
-        // Log attachments for each request
-        data.forEach((request, index) => {
-          console.log(`useMaintenanceRequestOperations - Request ${index + 1} attachments:`, {
-            id: request.id,
-            attachments: request.attachments,
-            attachmentsType: typeof request.attachments
-          });
-        });
-      }
+      console.log('🔍 ADMIN DEBUG - add24 request found:', add24Request ? 'YES' : 'NO');
 
       return data || [];
     } catch (error) {
-      console.error('useMaintenanceRequestOperations - Error in fetchRequests:', error);
+      console.error('🔍 ADMIN DEBUG - Error in fetchRequests:', error);
       return [];
     }
   };

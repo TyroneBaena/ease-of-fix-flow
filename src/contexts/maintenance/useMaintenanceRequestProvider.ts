@@ -14,8 +14,12 @@ export const useMaintenanceRequestProvider = () => {
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
 
   useEffect(() => {
-    console.log('useMaintenanceRequestProvider - Current user:', currentUser);
+    console.log('🔍 MAINTENANCE PROVIDER - Current user changed:', currentUser);
+    console.log('🔍 MAINTENANCE PROVIDER - User ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER - User role:', currentUser?.role);
+    
     if (currentUser) {
+      console.log('🔍 MAINTENANCE PROVIDER - User authenticated, loading requests');
       loadRequests();
       
       // Set up real-time subscription for maintenance requests
@@ -45,32 +49,47 @@ export const useMaintenanceRequestProvider = () => {
         supabase.removeChannel(channel);
       };
     } else {
-      console.log('No current user, skipping request loading');
+      console.log('🔍 MAINTENANCE PROVIDER - No current user, clearing requests and stopping loading');
       setRequests([]);
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.role]); // Watch for both ID and role changes
 
   const loadRequests = async () => {
-    console.log('Loading maintenance requests for user:', currentUser?.id);
+    console.log('🔍 LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role);
+    
+    if (!currentUser) {
+      console.log('🔍 LOADING REQUESTS - No user, skipping');
+      setLoading(false);
+      return [];
+    }
+    
     setLoading(true);
     try {
       const fetchedRequests = await fetchRequests();
-      console.log('Fetched maintenance requests:', fetchedRequests);
+      console.log('🔍 LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
         // Use formatRequestData to properly convert database objects to MaintenanceRequest type
         const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-        console.log('Formatted maintenance requests:', formattedRequests);
+        console.log('🔍 LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
+        
+        // Log specific requests for debugging
+        const add24Request = formattedRequests.find(req => req.title?.includes('add24'));
+        if (add24Request) {
+          console.log('🔍 LOADING REQUESTS - Found add24 request:', add24Request);
+        }
+        
         setRequests(formattedRequests);
         return formattedRequests;
       } else {
-        console.log('No maintenance requests found for this user');
+        console.log('🔍 LOADING REQUESTS - No requests found');
         setRequests([]);
         return [];
       }
     } catch (error) {
-      console.error('Error loading maintenance requests:', error);
+      console.error('🔍 LOADING REQUESTS - Error:', error);
+      setRequests([]);
       return [];
     } finally {
       setLoading(false);
