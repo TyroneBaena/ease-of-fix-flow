@@ -17,9 +17,23 @@ const Dashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   
   // Filter requests to only show those belonging to the current user
+  console.log('🔍 DASHBOARD DEBUG - currentUser:', currentUser);
+  console.log('🔍 DASHBOARD DEBUG - currentUser.role:', currentUser?.role);
+  console.log('🔍 DASHBOARD DEBUG - All requests from context:', requests);
+  console.log('🔍 DASHBOARD DEBUG - Number of requests in context:', requests.length);
+  
   const userRequests = currentUser?.role === 'admin' 
     ? requests 
     : requests.filter(req => req.userId === currentUser?.id);
+    
+  console.log('🔍 DASHBOARD DEBUG - Filtered userRequests:', userRequests);
+  console.log('🔍 DASHBOARD DEBUG - Number of userRequests:', userRequests.length);
+  
+  // Check for add24 specifically
+  const add24InRequests = requests.find(req => req.title?.includes('add24'));
+  const add24InUserRequests = userRequests.find(req => req.title?.includes('add24'));
+  console.log('🔍 DASHBOARD DEBUG - add24 in all requests:', add24InRequests);
+  console.log('🔍 DASHBOARD DEBUG - add24 in user requests:', add24InUserRequests);
 
   // Find requests that have progress to show
   const requestsWithProgress = userRequests.filter(req => 

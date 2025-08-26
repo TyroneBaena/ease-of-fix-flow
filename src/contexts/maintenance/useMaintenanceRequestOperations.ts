@@ -6,10 +6,13 @@ import { toast } from '@/lib/toast';
 export const useMaintenanceRequestOperations = (currentUser: any) => {
   
   const fetchRequests = async () => {
-    console.log('useMaintenanceRequestOperations - fetchRequests called for user:', currentUser?.id);
+    console.log('🔍 ADMIN DEBUG - fetchRequests called');
+    console.log('🔍 ADMIN DEBUG - currentUser:', currentUser);
+    console.log('🔍 ADMIN DEBUG - currentUser.role:', currentUser?.role);
+    console.log('🔍 ADMIN DEBUG - currentUser.id:', currentUser?.id);
     
     if (!currentUser) {
-      console.log('useMaintenanceRequestOperations - No current user, returning empty array');
+      console.log('🔍 ADMIN DEBUG - No current user, returning empty array');
       return [];
     }
 
@@ -21,21 +24,32 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
 
       // If not admin, filter by user_id
       if (currentUser.role !== 'admin') {
-        console.log('useMaintenanceRequestOperations - Non-admin user, filtering by user_id');
+        console.log('🔍 ADMIN DEBUG - Non-admin user, filtering by user_id');
         query = query.eq('user_id', currentUser.id);
       } else {
-        console.log('useMaintenanceRequestOperations - Admin user, fetching all requests');
+        console.log('🔍 ADMIN DEBUG - Admin user detected! Fetching ALL requests without filtering');
       }
 
+      console.log('🔍 ADMIN DEBUG - About to execute query...');
       const { data, error } = await query;
 
       if (error) {
-        console.error('useMaintenanceRequestOperations - Error fetching requests:', error);
+        console.error('🔍 ADMIN DEBUG - Error fetching requests:', error);
         throw error;
       }
 
-      console.log('useMaintenanceRequestOperations - Raw data from database:', data);
-      console.log('useMaintenanceRequestOperations - Number of requests found:', data?.length || 0);
+      console.log('🔍 ADMIN DEBUG - Raw data from database:', data);
+      console.log('🔍 ADMIN DEBUG - Number of requests found:', data?.length || 0);
+      
+      // Check specifically for add24 request
+      const add24Request = data?.find(req => req.title?.includes('add24'));
+      console.log('🔍 ADMIN DEBUG - add24 request found:', add24Request);
+      
+      if (data) {
+        data.forEach(req => {
+          console.log(`🔍 ADMIN DEBUG - Request: ${req.title} (ID: ${req.id}), Status: ${req.status}`);
+        });
+      }
       
       if (data && data.length > 0) {
         // Log attachments for each request
