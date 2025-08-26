@@ -21,6 +21,7 @@ export const useContractorSchedule = () => {
 
   const fetchScheduleData = async () => {
     try {
+      console.log('=== Starting fetchScheduleData ===');
       setLoading(true);
       setError(null);
 
@@ -40,14 +41,19 @@ export const useContractorSchedule = () => {
         .eq('user_id', user.id)
         .single();
 
+      console.log('Contractor query result:', { contractorData, contractorError });
+
       if (contractorError) {
         console.error('Error fetching contractor:', contractorError);
         throw contractorError;
       }
 
       if (!contractorData?.id) {
+        console.error('No contractor found for user:', user.id);
         throw new Error('Contractor not found');
       }
+
+      console.log('Found contractor ID:', contractorData.id);
 
       // Fetch scheduled jobs for this contractor
       const { data: scheduledJobs, error: scheduledJobsError } = await supabase
