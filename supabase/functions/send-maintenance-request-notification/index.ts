@@ -188,7 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (propertyData.email) {
       console.log('Sending email to property contact:', propertyData.email);
       const emailResult = await resend.emails.send({
-        from: 'Property Manager <onboarding@resend.dev>',
+        from: 'Property Manager <noreply@forexnews.bg>',
         to: [propertyData.email],
         subject: emailSubject,
         html: createEmailHtml('property contact'),
@@ -202,7 +202,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (propertyData.practice_leader_email) {
       console.log('Sending email to practice leader:', propertyData.practice_leader_email);
       const practiceLeaderResult = await resend.emails.send({
-        from: 'Property Manager <onboarding@resend.dev>',
+        from: 'Property Manager <noreply@forexnews.bg>',
         to: [propertyData.practice_leader_email],
         subject: emailSubject,
         html: createEmailHtml('practice leader'),
