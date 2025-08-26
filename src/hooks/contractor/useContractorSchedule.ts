@@ -140,12 +140,22 @@ export const useContractorSchedule = () => {
       console.log('=== FINAL PROCESSING RESULTS ===');
       console.log('Total schedule items created:', items.length);
       console.log('Final schedule items:', items);
-      console.log('Items by date:', items.reduce((acc, item) => {
-        acc[item.date] = (acc[item.date] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>));
+      
+      // Safe reduce operation
+      try {
+        const itemsByDate = items.reduce((acc, item) => {
+          const date = item.date || 'unknown';
+          acc[date] = (acc[date] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        console.log('Items by date:', itemsByDate);
+      } catch (reduceError) {
+        console.error('Error in reduce operation:', reduceError);
+      }
 
+      console.log('About to set schedule items...');
       setScheduleItems(items);
+      console.log('Schedule items set successfully');
     } catch (error) {
       console.error('Error fetching schedule data:', error);
       setError('Failed to load schedule data');
