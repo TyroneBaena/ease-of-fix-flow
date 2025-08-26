@@ -52,10 +52,20 @@ const ContractorSchedule = () => {
         const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
         const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
         
-        return scheduleItems.filter(item => {
+        console.log('Month filtering:');
+        console.log('baseDate:', baseDate);
+        console.log('startOfMonth:', startOfMonth);
+        console.log('endOfMonth:', endOfMonth);
+        
+        const filteredItems = scheduleItems.filter(item => {
           const itemDate = new Date(item.date);
+          console.log(`Checking item ${item.id} with date ${item.date}:`, itemDate, 
+                     'within range?', itemDate >= startOfMonth && itemDate <= endOfMonth);
           return itemDate >= startOfMonth && itemDate <= endOfMonth;
         });
+        
+        console.log('Month filtered result:', filteredItems.length, 'items');
+        return filteredItems;
       }
       default:
         return scheduleItems;
