@@ -35,6 +35,12 @@ import ContractorSettings from '@/pages/contractor/ContractorSettings';
 import ContractorNotifications from '@/pages/ContractorNotifications';
 import QuoteSubmission from './pages/contractor/QuoteSubmission';
 
+// Context providers for specific features
+import { SubscriptionProvider } from './contexts/subscription/SubscriptionContext';
+import { MaintenanceRequestProvider } from './contexts/maintenance';
+import { PropertyProvider } from './contexts/property/PropertyContext';
+import { ContractorProvider } from './contexts/contractor';
+
 // New pages
 import Pricing from '@/pages/Pricing';
 import Billing from '@/pages/Billing';
@@ -59,37 +65,61 @@ function App() {
             {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <SubscriptionProvider>
+                  <MaintenanceRequestProvider>
+                    <PropertyProvider>
+                      <Dashboard />
+                    </PropertyProvider>
+                  </MaintenanceRequestProvider>
+                </SubscriptionProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/requests" element={
               <ProtectedRoute>
-                <AllRequests />
+                <MaintenanceRequestProvider>
+                  <ContractorProvider>
+                    <AllRequests />
+                  </ContractorProvider>
+                </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/new-request" element={
               <ProtectedRoute>
-                <NewRequest />
+                <MaintenanceRequestProvider>
+                  <PropertyProvider>
+                    <NewRequest />
+                  </PropertyProvider>
+                </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/requests/:id" element={
               <ProtectedRoute>
-                <RequestDetail />
+                <MaintenanceRequestProvider>
+                  <ContractorProvider>
+                    <RequestDetail />
+                  </ContractorProvider>
+                </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/properties" element={
               <ProtectedRoute>
-                <Properties />
+                <PropertyProvider>
+                  <Properties />
+                </PropertyProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/properties/:id" element={
               <ProtectedRoute>
-                <PropertyDetail />
+                <PropertyProvider>
+                  <MaintenanceRequestProvider>
+                    <PropertyDetail />
+                  </MaintenanceRequestProvider>
+                </PropertyProvider>
               </ProtectedRoute>
             } />
             
@@ -125,49 +155,65 @@ function App() {
             {/* Contractor routes */}
             <Route path="/contractor-dashboard" element={
               <ProtectedRoute>
-                <ContractorDashboard />
+                <ContractorProvider>
+                  <ContractorDashboard />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-jobs" element={
               <ProtectedRoute>
-                <ContractorJobs />
+                <ContractorProvider>
+                  <ContractorJobs />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-jobs/:id" element={
               <ProtectedRoute>
-                <ContractorJobDetail />
+                <ContractorProvider>
+                  <ContractorJobDetail />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-profile" element={
               <ProtectedRoute>
-                <ContractorProfile />
+                <ContractorProvider>
+                  <ContractorProfile />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-schedule" element={
               <ProtectedRoute>
-                <ContractorSchedule />
+                <ContractorProvider>
+                  <ContractorSchedule />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-settings" element={
               <ProtectedRoute>
-                <ContractorSettings />
+                <ContractorProvider>
+                  <ContractorSettings />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-notifications" element={
               <ProtectedRoute>
-                <ContractorNotifications />
+                <ContractorProvider>
+                  <ContractorNotifications />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor/quote-submission/:id" element={
               <ProtectedRoute>
-                <QuoteSubmission />
+                <ContractorProvider>
+                  <QuoteSubmission />
+                </ContractorProvider>
               </ProtectedRoute>
             } />
 
