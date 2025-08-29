@@ -20,7 +20,7 @@ export interface AddUserResult {
 }
 
 export const useUserProvider = () => {
-  const { currentUser, loading: authLoading, signOut } = useSupabaseAuth();
+  const { currentUser, session, loading: authLoading, signOut } = useSupabaseAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
