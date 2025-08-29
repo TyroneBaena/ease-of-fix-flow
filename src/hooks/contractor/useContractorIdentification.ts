@@ -11,6 +11,8 @@ export const useContractorIdentification = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('useContractorIdentification - Effect triggered, currentUser:', currentUser?.id);
+    
     if (!currentUser) {
       console.log('useContractorIdentification - No current user, clearing state');
       setContractorId(null);
@@ -31,6 +33,7 @@ export const useContractorIdentification = () => {
         setError(null);
         
         console.log('useContractorIdentification - Fetching contractor ID for user:', currentUser.id);
+        console.log('useContractorIdentification - Current user full object:', currentUser);
         
         // First verify user authentication
         if (!currentUser.id) {
