@@ -142,7 +142,9 @@ function App() {
             
             <Route path="/reports" element={
               <ProtectedRoute>
-                <Reports />
+                <PropertyProvider>
+                  <Reports />
+                </PropertyProvider>
               </ProtectedRoute>
             } />
             
@@ -156,7 +158,9 @@ function App() {
             <Route path="/contractor-dashboard" element={
               <ProtectedRoute>
                 <ContractorProvider>
-                  <ContractorDashboard />
+                  <PropertyProvider>
+                    <ContractorDashboard />
+                  </PropertyProvider>
                 </ContractorProvider>
               </ProtectedRoute>
             } />
