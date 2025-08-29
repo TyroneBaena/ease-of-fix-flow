@@ -14,8 +14,12 @@ export const useProgressOperations = () => {
     completionPhotos?: Array<{ url: string }>
   ) => {
     console.log(`useProgressOperations - Updating job progress for request ${requestId} to ${progress}%`);
+    console.log(`useProgressOperations - Notes:`, notes);
+    console.log(`useProgressOperations - Completion photos:`, completionPhotos);
+    
     try {
-      await updateJobProgressStatus(requestId, progress, notes);
+      // Pass ALL parameters including completionPhotos
+      await updateJobProgressStatus(requestId, progress, notes, completionPhotos);
       console.log("useProgressOperations - Job progress updated successfully");
       return true;
     } catch (err) {

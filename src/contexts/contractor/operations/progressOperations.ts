@@ -9,6 +9,11 @@ export const updateJobProgressStatus = async (
   notes?: string,
   completionPhotos?: Array<{ url: string }>
 ) => {
+  console.log(`updateJobProgressStatus - Starting update for request ${requestId}`);
+  console.log(`updateJobProgressStatus - Progress: ${progress}%`);
+  console.log(`updateJobProgressStatus - Notes:`, notes);
+  console.log(`updateJobProgressStatus - Completion photos:`, completionPhotos);
+
   const updates: any = {
     completion_percentage: progress
   };
@@ -34,22 +39,41 @@ export const updateJobProgressStatus = async (
     updates.status = 'completed';
   }
 
-  const { error } = await supabase
+  console.log(`updateJobProgressStatus - Database updates:`, updates);
+
+  const { data, error } = await supabase
     .from('maintenance_requests')
     .update(updates)
-    .eq('id', requestId);
+    .eq('id', requestId)
+    .select('*');
 
-  if (error) throw error;
+  if (error) {
+    console.error('updateJobProgressStatus - Database update error:', error);
+    throw error;
+  }
+
+  console.log(`updateJobProgressStatus - Database update successful:`, data);
 
   // Get contractor information for activity logging
-  const { data: contractorData } = await supabase
+  console.log('updateJobProgressStatus - Getting contractor information for activity logging');
+  const { data: userData } = await supabase.auth.getUser();
+  console.log('updateJobProgressStatus - Current user:', userData.user?.id);
+  
+  const { data: contractorData, error: contractorError } = await supabase
     .from('contractors')
     .select('contact_name')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+    .eq('user_id', userData.user?.id)
     .single();
 
+  if (contractorError) {
+    console.error('updateJobProgressStatus - Error fetching contractor data:', contractorError);
+  }
+  console.log('updateJobProgressStatus - Contractor data:', contractorData);
+
   // Log activity based on progress
+  console.log('updateJobProgressStatus - Logging activity for progress:', progress);
   if (progress === 100) {
+    console.log('updateJobProgressStatus - Logging job completion activity');
     await logActivity({
       requestId,
       actionType: 'job_completed',
@@ -65,8 +89,10 @@ export const updateJobProgressStatus = async (
     });
 
     // Send email notification for job completion
+    console.log('updateJobProgressStatus - Sending job completion notification');
     await sendJobCompletionNotification(requestId, contractorData?.contact_name || 'Unknown Contractor', completionPhotos);
   } else {
+    console.log('updateJobProgressStatus - Logging progress update activity');
     await logActivity({
       requestId,
       actionType: 'progress_updated',
@@ -80,6 +106,8 @@ export const updateJobProgressStatus = async (
       }
     });
   }
+
+  console.log('updateJobProgressStatus - Operation completed successfully');
 };
 
 const sendJobCompletionNotification = async (
