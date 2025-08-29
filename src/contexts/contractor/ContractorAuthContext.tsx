@@ -49,6 +49,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
   const fetchContractorData = async (userId: string) => {
     try {
       console.log('ContractorAuth - Fetching contractor profile for user:', userId);
+      console.log('ContractorAuth - About to query contractors table...');
       
       // Get contractor profile
       const { data: contractorData, error: contractorError } = await supabase
@@ -56,6 +57,8 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .select('id, company_name, contact_name')
         .eq('user_id', userId)
         .single();
+
+      console.log('ContractorAuth - Contractor query result:', { contractorData, contractorError });
 
       if (contractorError) {
         if (contractorError.code === 'PGRST116') {
@@ -88,7 +91,8 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       console.log('ContractorAuth - Fetching jobs for contractor:', contractorIdParam);
 
-      // Fetch quote requests
+      // Debug: Let's check what data we're getting
+      console.log('ContractorAuth - About to fetch quotes, active jobs, and completed jobs...');
       const { data: quotes, error: quotesError } = await supabase
         .from('quotes')
         .select(`
@@ -99,6 +103,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .in('status', ['requested', 'pending', 'submitted']);
 
       if (quotesError) throw quotesError;
+      console.log('ContractorAuth - Quotes data:', quotes);
 
       // Fetch active jobs
       const { data: activeJobsData, error: activeJobsError } = await supabase
@@ -108,6 +113,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .eq('status', 'in-progress');
 
       if (activeJobsError) throw activeJobsError;
+      console.log('ContractorAuth - Active jobs data:', activeJobsData);
 
       // Fetch completed jobs
       const { data: completedJobsData, error: completedJobsError } = await supabase
@@ -117,6 +123,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .eq('status', 'completed');
 
       if (completedJobsError) throw completedJobsError;
+      console.log('ContractorAuth - Completed jobs data:', completedJobsData);
 
       // Process data
       const pendingFromQuotes = quotes
