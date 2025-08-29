@@ -40,6 +40,8 @@ import { SubscriptionProvider } from './contexts/subscription/SubscriptionContex
 import { MaintenanceRequestProvider } from './contexts/maintenance';
 import { PropertyProvider } from './contexts/property/PropertyContext';
 import { ContractorProvider } from './contexts/contractor';
+import { ContractorAuthProvider } from './contexts/contractor/ContractorAuthContext';
+import { ContractorRouteGuard } from './components/contractor/ContractorRouteGuard';
 
 // New pages
 import Pricing from '@/pages/Pricing';
@@ -159,11 +161,11 @@ function App() {
             {/* Contractor routes */}
             <Route path="/contractor-dashboard" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <PropertyProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
                     <ContractorDashboard />
-                  </PropertyProvider>
-                </ContractorProvider>
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
