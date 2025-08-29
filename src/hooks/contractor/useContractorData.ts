@@ -42,6 +42,9 @@ export const useContractorData = (
         
         console.log('useContractorData - Fetching contractor data for contractor ID:', contractorId);
         
+        // Debug: Check what contractor ID we're using
+        console.log('useContractorData - Current contractor ID:', contractorId);
+        
         // Fetch quote requests for this contractor - include 'requested', 'pending', and 'submitted' statuses
         // These represent: contractor needs to submit, quote submitted awaiting review, quote under admin review
         const { data: quotes, error: quotesError } = await supabase
@@ -61,6 +64,7 @@ export const useContractorData = (
         
         // Fetch active jobs assigned to this contractor (in-progress with approved quotes)
         // These should NOT appear in quote requests
+        console.log('useContractorData - Fetching active jobs for contractor:', contractorId);
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
