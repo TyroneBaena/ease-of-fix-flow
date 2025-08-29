@@ -62,7 +62,8 @@ export const useContractorIdentification = () => {
             contractorId: contractor.id,
             companyName: contractor.company_name,
             contactName: contractor.contact_name,
-            totalProfiles: data.length
+            totalProfiles: data.length,
+            userId: currentUser.id
           });
           toast.success(`Welcome, ${contractor.contact_name}! Profile loaded successfully.`);
         } else {

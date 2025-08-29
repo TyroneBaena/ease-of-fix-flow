@@ -28,6 +28,8 @@ export const useContractorData = (
       return;
     }
     
+    console.log('useContractorData - Starting fetch for contractor ID:', contractorId);
+    
     const fetchContractorData = async () => {
       try {
         // Prevent concurrent requests
@@ -104,7 +106,8 @@ export const useContractorData = (
         setCompletedJobs(completedRequests);
         hasInitializedRef.current = true;
         
-        console.log(`useContractorData - Successfully loaded contractor data: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+        console.log(`useContractorData - Successfully loaded contractor data for ${contractorId}: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+        console.log('useContractorData - Active jobs data:', activeRequests);
         
         // Show success message only on initial load
         if (!hasInitializedRef.current && (pendingFromQuotes.length > 0 || activeRequests.length > 0 || completedRequests.length > 0)) {
