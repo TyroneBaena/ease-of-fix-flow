@@ -136,7 +136,9 @@ function App() {
             {/* Settings route - allow managers but restrict contractor access */}
             <Route path="/settings" element={
               <ProtectedRoute>
-                <Settings />
+                <PropertyProvider>
+                  <Settings />
+                </PropertyProvider>
               </ProtectedRoute>
             } />
             
