@@ -613,6 +613,7 @@ export type Database = {
           renewal_date: string | null
           rent_amount: number | null
           rent_period: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -629,6 +630,7 @@ export type Database = {
           renewal_date?: string | null
           rent_amount?: number | null
           rent_period?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -645,6 +647,7 @@ export type Database = {
           renewal_date?: string | null
           rent_amount?: number | null
           rent_period?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
