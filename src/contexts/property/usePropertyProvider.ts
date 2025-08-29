@@ -144,10 +144,14 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('PropertyContext: Mapped data for database:', propertyToUpdate);
       console.log('PropertyContext: Sending PATCH request to Supabase...');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('properties')
         .update(propertyToUpdate)
-        .eq('id', id);
+        .eq('id', id)
+        .select('*'); // Add select to see what was actually updated
+
+      console.log('PropertyContext: Supabase response - data:', data);
+      console.log('PropertyContext: Supabase response - error:', error);
 
       if (error) {
         console.error('PropertyContext: Supabase update error:', error);
@@ -155,7 +159,14 @@ export const usePropertyProvider = (): PropertyContextType => {
         return;
       }
 
+      if (!data || data.length === 0) {
+        console.error('PropertyContext: No rows were updated! This suggests the property was not found or RLS blocked the update');
+        toast.error('Property update failed - no rows affected');
+        return;
+      }
+
       console.log('PropertyContext: Database update successful');
+      console.log('PropertyContext: Updated data from DB:', data[0]);
       console.log('PropertyContext: Updating local state...');
 
       setProperties(properties.map(property => 
