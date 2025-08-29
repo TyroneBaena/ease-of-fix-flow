@@ -28,12 +28,22 @@ import { MaintenanceRequest } from '@/types/maintenance';
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getProperty, deleteProperty } = usePropertyContext();
+  const { getProperty, deleteProperty, properties } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
-  const [property, setProperty] = useState(id ? getProperty(id) : undefined);
+  
+  // Use context data directly instead of local state
+  const property = id ? getProperty(id) : undefined;
   const [requests, setRequests] = useState<MaintenanceRequest[]>(id ? getRequestsForProperty(id) : []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  
+  // Re-fetch requests when property changes (in case property ID dependencies change)
+  useEffect(() => {
+    if (id) {
+      const updatedRequests = getRequestsForProperty(id);
+      setRequests(updatedRequests);
+    }
+  }, [id, getRequestsForProperty, properties]); // Re-run when properties context changes
   
   // Only load budget data if we have a valid property ID
   const { maintenanceSpend, currentFinancialYear, loading: budgetLoading, getBudgetAnalysis } = useBudgetData(id || '');
@@ -41,15 +51,12 @@ const PropertyDetail = () => {
   useEffect(() => {
     if (id) {
       const propertyData = getProperty(id);
-      if (propertyData) {
-        setProperty(propertyData);
-        setRequests(getRequestsForProperty(id));
-      } else {
+      if (!propertyData) {
         toast.error('Property not found');
         navigate('/properties');
       }
     }
-  }, [id, getProperty, getRequestsForProperty, navigate]);
+  }, [id, getProperty, navigate]);
 
   const handleDeleteProperty = () => {
     if (id) {
@@ -61,9 +68,7 @@ const PropertyDetail = () => {
 
   const handleDialogClose = () => {
     setDialogOpen(false);
-    if (id) {
-      setProperty(getProperty(id));
-    }
+    // Property data will automatically update via context
   };
 
   const handleQrDownload = () => {

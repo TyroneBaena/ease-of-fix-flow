@@ -29,6 +29,12 @@ import { PropertyForm } from '@/components/property/PropertyForm';
 const Properties = () => {
   const { properties } = usePropertyContext();
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Debug: Log properties to see current state
+  console.log('Properties page: Current properties:', properties);
+  console.log('Properties page: Sample Property email:', 
+    properties.find(p => p.name === 'Sample Property')?.email
+  );
 
   const handleClose = () => {
     setDialogOpen(false);
