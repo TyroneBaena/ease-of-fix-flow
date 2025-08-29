@@ -114,11 +114,18 @@ export const usePropertyProvider = (): PropertyContextType => {
   };
 
   const updateProperty = async (id: string, propertyUpdate: Partial<Property>) => {
+    console.log('PropertyContext: updateProperty called with ID:', id);
+    console.log('PropertyContext: Current user:', currentUser);
+    console.log('PropertyContext: Property update data:', propertyUpdate);
+    
     try {
       if (!currentUser) {
+        console.error('PropertyContext: No current user - blocking update');
         toast.error('You must be logged in to update a property');
         return;
       }
+
+      console.log('PropertyContext: User authenticated, proceeding with update');
 
       const propertyToUpdate: any = {};
       if ('name' in propertyUpdate) propertyToUpdate.name = propertyUpdate.name;
@@ -133,24 +140,31 @@ export const usePropertyProvider = (): PropertyContextType => {
       if ('rentPeriod' in propertyUpdate) propertyToUpdate.rent_period = propertyUpdate.rentPeriod;
       if ('landlordId' in propertyUpdate) propertyToUpdate.landlord_id = propertyUpdate.landlordId ?? null;
 
+      console.log('PropertyContext: Mapped data for database:', propertyToUpdate);
+      console.log('PropertyContext: Sending PATCH request to Supabase...');
+
       const { error } = await supabase
         .from('properties')
         .update(propertyToUpdate)
         .eq('id', id);
 
       if (error) {
-        console.error('Error updating property:', error);
+        console.error('PropertyContext: Supabase update error:', error);
         toast.error('Failed to update property');
         return;
       }
+
+      console.log('PropertyContext: Database update successful');
+      console.log('PropertyContext: Updating local state...');
 
       setProperties(properties.map(property => 
         property.id === id ? { ...property, ...propertyUpdate } : property
       ));
       
+      console.log('PropertyContext: Local state updated');
       toast.success('Property updated successfully');
     } catch (err) {
-      console.error('Unexpected error updating property:', err);
+      console.error('PropertyContext: Unexpected error updating property:', err);
       toast.error('An unexpected error occurred');
     }
   };

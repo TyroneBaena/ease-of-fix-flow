@@ -72,15 +72,22 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     }
     
     try {
+      console.log('PropertyForm: Submitting form with data:', form);
+      console.log('PropertyForm: Is editing?', !!existingProperty);
+      
       if (existingProperty) {
+        console.log('PropertyForm: Updating property ID:', existingProperty.id);
+        console.log('PropertyForm: Update data being sent:', form);
         await updateProperty(existingProperty.id, form);
         toast.success('Property updated successfully');
       } else {
+        console.log('PropertyForm: Adding new property');
         await addProperty(form);
         toast.success('Property added successfully');
       }
       onClose();
     } catch (error) {
+      console.error('PropertyForm: Error saving property:', error);
       toast.error('Failed to save property');
       console.error(error);
     }
