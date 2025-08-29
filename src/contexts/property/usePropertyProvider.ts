@@ -34,7 +34,8 @@ export const usePropertyProvider = (): PropertyContextType => {
       
       console.log('PropertyContext: Properties fetched successfully');
       console.log('PropertyContext: Number of properties:', formattedProperties.length);
-      console.log('PropertyContext: Property details:', formattedProperties.map(p => ({ id: p.id, name: p.name })));
+      console.log('PropertyContext: Property details:', formattedProperties.map(p => ({ id: p.id, name: p.name, email: p.email })));
+      console.log('PropertyContext: Sample Property emails:', formattedProperties.filter(p => p.name === 'Sample Property').map(p => ({ id: p.id, email: p.email })));
       setProperties(formattedProperties);
     } catch (err) {
       console.error('PropertyContext: Error fetching properties:', err);
