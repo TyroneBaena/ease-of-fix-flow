@@ -45,9 +45,52 @@ export const JobProgressDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // If progress is 100%, show invoice upload dialog instead
+    // Check if photos are required for 100% completion
+    if (progress === 100 && (!selectedFiles || selectedFiles.length === 0)) {
+      toast.error('Photos are required to complete this job');
+      return;
+    }
+    
+    // If progress is 100%, show invoice upload dialog after uploading photos
     if (progress === 100) {
-      setShowInvoiceDialog(true);
+      // First upload the completion photos
+      setUploading(true);
+      try {
+        let completionPhotos: Array<{ url: string }> = [];
+        
+        if (selectedFiles && selectedFiles.length > 0) {
+          const uploads = Array.from(selectedFiles).map(async (file) => {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+            const filePath = `maintenance-uploads/${requestId}/${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('maintenance-files')
+              .upload(filePath, file);
+              
+            if (uploadError) throw uploadError;
+            
+            const { data } = supabase.storage
+              .from('maintenance-files')
+              .getPublicUrl(filePath);
+              
+            return { url: data.publicUrl };
+          });
+          
+          completionPhotos = await Promise.all(uploads);
+        }
+        
+        // Update progress with completion photos
+        await updateJobProgress(requestId, progress, notes, completionPhotos);
+        
+        toast.success('Job marked as completed with photos');
+        setShowInvoiceDialog(true);
+      } catch (error) {
+        console.error('Error uploading completion photos:', error);
+        toast.error('Failed to upload completion photos');
+      } finally {
+        setUploading(false);
+      }
       return;
     }
     
@@ -63,13 +106,13 @@ export const JobProgressDialog = ({
           const filePath = `maintenance-uploads/${requestId}/${fileName}`;
           
           const { error: uploadError } = await supabase.storage
-            .from('maintenance')
+            .from('maintenance-files')
             .upload(filePath, file);
             
           if (uploadError) throw uploadError;
           
           const { data } = supabase.storage
-            .from('maintenance')
+            .from('maintenance-files')
             .getPublicUrl(filePath);
             
           return { url: data.publicUrl };
@@ -154,25 +197,33 @@ export const JobProgressDialog = ({
               />
             </div>
             
-            {progress < 100 && (
-              <div className="space-y-2">
-                <Label htmlFor="photos">Upload Photos (Optional)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="photos"
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="flex-1"
-                    onChange={(e) => setSelectedFiles(e.target.files)}
-                  />
-                  <Upload className="h-4 w-4 text-gray-500" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Upload photos showing your work progress
-                </p>
+            <div className="space-y-2">
+              <Label htmlFor="photos">
+                Upload Photos {progress === 100 ? '(Required for Completion)' : '(Optional)'}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="photos"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="flex-1"
+                  onChange={(e) => setSelectedFiles(e.target.files)}
+                />
+                <Upload className="h-4 w-4 text-gray-500" />
               </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                {progress === 100 
+                  ? 'Photos showing the completed work are required before finishing this job'
+                  : 'Upload photos showing your work progress'
+                }
+              </p>
+              {progress === 100 && (!selectedFiles || selectedFiles.length === 0) && (
+                <p className="text-xs text-destructive">
+                  At least one photo is required to complete this job
+                </p>
+              )}
+            </div>
             
             <DialogFooter className="pt-4">
               <Button 
