@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import StatsOverview from '@/components/dashboard/StatsOverview';
@@ -12,9 +13,18 @@ import { MaintenanceRequest } from '@/types/maintenance';
 
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { currentUser, loading: userLoading } = useUserContext();
   const { requests, loading: requestsLoading } = useMaintenanceRequestContext();
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  
+  // Redirect contractors to their specific dashboard
+  useEffect(() => {
+    if (!userLoading && currentUser?.role === 'contractor') {
+      console.log('Dashboard - Contractor detected, redirecting to contractor dashboard');
+      navigate('/contractor-dashboard', { replace: true });
+    }
+  }, [currentUser, userLoading, navigate]);
   
   // Show loading while user or requests are loading
   const isLoading = userLoading || requestsLoading;
