@@ -63,13 +63,26 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('PropertyForm: Form submit triggered');
+    console.log('PropertyForm: Current form state:', form);
+    
     const requiredFields = ['name', 'address', 'contactNumber', 'email', 'practiceLeader'];
-    const missingFields = requiredFields.filter(field => !form[field as keyof typeof form]);
+    const missingFields = requiredFields.filter(field => {
+      const value = form[field as keyof typeof form];
+      const isEmpty = !value || (typeof value === 'string' && value.trim() === '');
+      if (isEmpty) {
+        console.log(`PropertyForm: Missing field '${field}':`, value);
+      }
+      return isEmpty;
+    });
     
     if (missingFields.length > 0) {
+      console.error('PropertyForm: Validation failed, missing fields:', missingFields);
       toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
+    
+    console.log('PropertyForm: Validation passed, proceeding with submission');
     
     try {
       console.log('PropertyForm: Submitting form with data:', form);
