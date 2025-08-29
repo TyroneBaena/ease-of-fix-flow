@@ -80,9 +80,11 @@ function App() {
             <Route path="/requests" element={
               <ProtectedRoute>
                 <MaintenanceRequestProvider>
-                  <ContractorProvider>
-                    <AllRequests />
-                  </ContractorProvider>
+                  <PropertyProvider>
+                    <ContractorProvider>
+                      <AllRequests />
+                    </ContractorProvider>
+                  </PropertyProvider>
                 </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
