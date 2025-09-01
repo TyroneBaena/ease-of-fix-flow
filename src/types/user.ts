@@ -18,6 +18,7 @@ export interface User {
   phone?: string; // Added phone field
   profilePicture?: string;
   assignedProperties?: string[]; // Array of property IDs for managers
+  organization_id?: string; // Organization ID for multi-tenancy
   createdAt: string;
   notificationSettings?: NotificationSettings;
   unreadNotifications?: number; // Count of unread notifications

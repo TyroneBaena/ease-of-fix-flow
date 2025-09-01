@@ -2,6 +2,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useUserContext } from '@/contexts/UserContext';
+import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -50,7 +51,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   
   // Only render children if we have a valid authenticated user
   if (currentUser) {
-    return <>{children}</>;
+    return (
+      <OrganizationProvider>
+        {children}
+      </OrganizationProvider>
+    );
   }
   
   // Fallback - should not reach here in normal circumstances

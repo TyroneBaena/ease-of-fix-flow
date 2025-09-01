@@ -24,6 +24,7 @@ export const convertToAppUser = async (authUser: any): Promise<User | null> => {
       email: authUser.email || '',
       role: (authUser.user_metadata?.role as UserRole) || 'manager',
       assignedProperties: authUser.user_metadata?.assignedProperties || [],
+      organization_id: authUser.user_metadata?.organization_id || undefined,
       createdAt: authUser.created_at || new Date().toISOString()
     };
   }
@@ -35,6 +36,7 @@ export const convertToAppUser = async (authUser: any): Promise<User | null> => {
     email: profile.email || '',
     role: profile.role as UserRole || 'manager',
     assignedProperties: profile.assigned_properties || [],
+    organization_id: profile.organization_id || undefined,
     createdAt: profile.created_at || new Date().toISOString()
   };
 };
