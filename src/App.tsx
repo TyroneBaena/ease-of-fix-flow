@@ -173,9 +173,11 @@ function App() {
             
             <Route path="/contractor-jobs" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorJobs />
-                </ContractorProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorJobs />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
