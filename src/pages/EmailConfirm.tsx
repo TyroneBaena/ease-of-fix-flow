@@ -17,44 +17,61 @@ const EmailConfirm = () => {
   useEffect(() => {
     const handleEmailConfirmation = async () => {
       try {
-        // Extract token from URL hash
+        // Check if this is a Supabase auth callback with tokens in hash
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
 
-        console.log('Email confirmation params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
-
-        if (!accessToken || !refreshToken) {
-          throw new Error('Missing authentication tokens in the URL');
-        }
-
-        if (type !== 'signup') {
-          throw new Error('Invalid confirmation type');
-        }
-
-        // Set the session using the tokens
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
+        console.log('Email confirmation params:', { 
+          accessToken: !!accessToken, 
+          refreshToken: !!refreshToken, 
+          type,
+          fullHash: window.location.hash 
         });
 
-        if (error) {
-          console.error('Error setting session:', error);
-          throw error;
-        }
+        if (accessToken && refreshToken) {
+          // This is a proper Supabase auth callback
+          if (type !== 'signup' && type !== 'recovery') {
+            throw new Error('Invalid confirmation type');
+          }
 
-        if (data.user) {
-          console.log('Email confirmed successfully for user:', data.user.id);
-          setIsVerified(true);
-          toast.success('Email confirmed successfully!');
-          
-          // Redirect to dashboard after a short delay
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 2000);
+          // Set the session using the tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Error setting session:', error);
+            throw error;
+          }
+
+          if (data.user) {
+            console.log('Email confirmed successfully for user:', data.user.id);
+            setIsVerified(true);
+            toast.success('Email confirmed successfully!');
+            
+            // Redirect to signup for plan selection or dashboard
+            setTimeout(() => {
+              navigate('/signup');
+            }, 2000);
+          } else {
+            throw new Error('No user data returned');
+          }
         } else {
-          throw new Error('No user data returned');
+          // Check if user is already signed in (maybe came here directly)
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session?.user) {
+            console.log('User is already authenticated');
+            setIsVerified(true);
+            toast.success('You are already signed in!');
+            setTimeout(() => {
+              navigate('/signup');
+            }, 2000);
+          } else {
+            throw new Error('No authentication tokens found. Please use the link from your confirmation email.');
+          }
         }
       } catch (err: any) {
         console.error('Email confirmation error:', err);
@@ -100,10 +117,10 @@ const EmailConfirm = () => {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Your email has been successfully confirmed. You're being redirected to your dashboard.
+              Your email has been successfully confirmed. You're being redirected to complete your signup.
             </p>
-            <Button onClick={() => navigate('/dashboard')} className="w-full">
-              Go to Dashboard
+            <Button onClick={() => navigate('/signup')} className="w-full">
+              Continue to Plan Selection
             </Button>
           </CardContent>
         </Card>

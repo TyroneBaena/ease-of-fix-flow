@@ -68,16 +68,26 @@ useEffect(() => {
     try {
       setIsLoading(true);
       console.log(`Signing up with email: ${email}`);
-      console.log(`Redirect URL will be: ${window.location.origin}/email-confirm`);
       
-      // Sign up the user WITHOUT email confirmation
+      // Clean up any existing auth state first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+      
+      const redirectUrl = `${window.location.origin}/email-confirm`;
+      console.log(`Email confirmation redirect URL: ${redirectUrl}`);
+      
+      // Sign up with proper email confirmation
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             name,
-            role: 'manager', // Default role
+            role: 'manager',
             assignedProperties: []
           }
         }
@@ -92,28 +102,14 @@ useEffect(() => {
       if (data.user) {
         console.log("Account created successfully:", data.user.id);
         
-        // Send confirmation email through our own function
-        try {
-          const confirmationUrl = `${window.location.origin}/email-confirm?token=${data.user.id}`;
-          
-          const emailResponse = await supabase.functions.invoke('send-confirmation-email', {
-            body: {
-              email: email,
-              name: name,
-              confirmationUrl: confirmationUrl
-            }
-          });
-          
-          if (emailResponse.error) {
-            console.error('Email sending failed:', emailResponse.error);
-            toast.warning("Account created but confirmation email failed to send. You can still use your account.");
-          } else {
-            console.log('Confirmation email sent successfully');
-            toast.success("Account created! Please check your email for confirmation.");
-          }
-        } catch (emailError) {
-          console.error('Email function error:', emailError);
-          toast.warning("Account created but confirmation email failed to send. You can still use your account.");
+        // Check if user needs email confirmation
+        if (!data.user.email_confirmed_at) {
+          toast.success("Account created! Please check your email for a confirmation link.");
+          setError("Please check your email and click the confirmation link to complete your registration.");
+        } else {
+          // User is immediately confirmed (email confirmation disabled in Supabase)
+          toast.success("Account created successfully! You can now choose your plan.");
+          setIsAuthed(true);
         }
         
         // Verify schema creation
@@ -135,14 +131,8 @@ useEffect(() => {
             console.error("Error verifying schema:", err);
           }
         }, 1000);
-
-        // User can proceed immediately since email confirmation is optional
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session) {
-          setIsAuthed(true);
-        }
       } else {
-        toast.info("Account created successfully. You can now sign in.");
+        toast.info("Account created successfully. Please check your email for confirmation.");
       }
     } catch (error: any) {
       console.error('Signup error:', error);
