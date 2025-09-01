@@ -22,7 +22,7 @@ serve(async (req: Request) => {
     
     // Handle email confirmation events
     if (type === 'INSERT' && table === 'users' && record) {
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+      const resend = new Resend(Deno.env.get("NEW_RESEND_API_KEY"));
       
       const { email, email_confirm_token, confirmation_url } = record;
       
