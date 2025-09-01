@@ -4,7 +4,7 @@ import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RequestsTable } from '@/components/contractor/requests/RequestsTable';
-import { useContractorDashboard } from '@/hooks/useContractorDashboard';
+import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Toaster } from "sonner";
@@ -18,16 +18,11 @@ const ContractorJobs = () => {
     loading, 
     error,
     refreshData
-  } = useContractorDashboard();
+  } = useContractorAuth();
 
-  // Apply the same filtering logic as RequestsTable for accurate counts
-  const filteredActiveJobs = activeJobs.filter(request => 
-    request.status === 'in-progress' || request.status === 'completed'
-  ).filter(request => request.status === 'in-progress');
-  
-  const filteredCompletedJobs = completedJobs.filter(request => 
-    request.status === 'in-progress' || request.status === 'completed'
-  ).filter(request => request.status === 'completed');
+  // Filter jobs by status - the data should already be pre-filtered by the context
+  const filteredActiveJobs = activeJobs.filter(request => request.status === 'in-progress');
+  const filteredCompletedJobs = completedJobs.filter(request => request.status === 'completed');
 
   const handleRefresh = () => {
     refreshData();
