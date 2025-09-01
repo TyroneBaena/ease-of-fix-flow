@@ -105,13 +105,16 @@ export const useContractorData = (
         const activeRequests = activeJobsData.map(mapRequestFromDb);
         const completedRequests = completedJobsData.map(mapRequestFromDb);
         
+        console.log('useContractorData - Mapped active requests:', activeRequests);
+        console.log('useContractorData - Mapped completed requests:', completedRequests);
+        
         // Update state only if we have a valid response
         setPendingQuoteRequests(pendingFromQuotes);
         setActiveJobs(activeRequests);
         setCompletedJobs(completedRequests);
         hasInitializedRef.current = true;
         
-        console.log(`useContractorData - Successfully loaded contractor data for ${contractorId}: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+        console.log(`useContractorData - STATE UPDATED for ${contractorId}: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
         console.log('useContractorData - Active jobs data:', activeRequests);
         
         // Show success message only on initial load

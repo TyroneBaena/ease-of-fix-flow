@@ -16,6 +16,12 @@ interface RequestsTableProps {
 export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests = false }: RequestsTableProps) => {
   const navigate = useNavigate();
   
+  console.log('RequestsTable - Received props:', {
+    requestsCount: requests?.length || 0,
+    filterQuoteRequests,
+    requestsData: requests?.map(r => ({ id: r.id?.substring(0, 8), title: r.title, status: r.status }))
+  });
+  
   // Apply filtering for quote requests section to show all relevant statuses
   const filteredRequests = filterQuoteRequests 
     ? requests.filter(request => {
@@ -32,14 +38,7 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
         console.log(`RequestsTable - Legacy request ${request.id}: quoteRequested = ${request.quoteRequested}, include = ${isLegacy}`);
         return isLegacy;
       })
-    : requests.filter(request => {
-        // For job lists: show all jobs that are in-progress or completed status
-        // This includes assigned jobs regardless of quote status
-        const isJob = request.status === 'in-progress' || request.status === 'completed';
-        
-        console.log(`RequestsTable - Job ${request.id}: isJob = ${isJob}, status = ${request.status}`);
-        return isJob;
-      });
+    : requests; // Remove the status filtering for jobs - show all requests passed to the component
   
   console.log('RequestsTable - Filter type:', filterQuoteRequests ? 'quote requests' : 'jobs');
   console.log('RequestsTable - Original requests:', requests.length);

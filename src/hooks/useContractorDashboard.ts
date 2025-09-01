@@ -23,6 +23,15 @@ export const useContractorDashboard = () => {
     refreshData
   } = useContractorData(contractorId, loading, setLoading, setError);
 
+  console.log('useContractorDashboard - Hook state:', {
+    contractorId,
+    pendingQuoteRequestsCount: pendingQuoteRequests?.length || 0,
+    activeJobsCount: activeJobs?.length || 0,
+    completedJobsCount: completedJobs?.length || 0,
+    loading,
+    error
+  });
+
   return {
     pendingQuoteRequests,
     activeJobs,

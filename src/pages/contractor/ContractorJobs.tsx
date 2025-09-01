@@ -17,8 +17,19 @@ const ContractorJobs = () => {
     completedJobs, 
     loading, 
     error,
-    refreshData
+    refreshData,
+    contractorId
   } = useContractorDashboard();
+
+  console.log('ContractorJobs - Current data state:', {
+    contractorId,
+    activeJobsCount: activeJobs?.length || 0,
+    completedJobsCount: completedJobs?.length || 0,
+    loading,
+    error,
+    activeJobs: activeJobs?.map(job => ({ id: job.id.substring(0, 8), title: job.title, status: job.status })),
+    completedJobs: completedJobs?.map(job => ({ id: job.id.substring(0, 8), title: job.title, status: job.status }))
+  });
 
   const handleRefresh = () => {
     refreshData();
