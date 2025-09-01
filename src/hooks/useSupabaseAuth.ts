@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, UserRole } from '@/types/user';
 import { convertToAppUser } from './auth/userConverter';
-import { signInWithEmailPassword, signOutUser, updateUserRole as updateRole } from './auth/authOperations';
+import { signInWithEmailPassword, signOutUser, updateUserRole } from './auth/authOperations';
+import { cleanupAuthState } from '@/utils/authCleanup';
 import { toast } from '@/lib/toast';
 import type { Session } from '@supabase/supabase-js';
+import { User, UserRole } from '@/types/user';
 
 export const useSupabaseAuth = () => {
   const [loading, setLoading] = useState(true);
@@ -14,95 +15,101 @@ export const useSupabaseAuth = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    let subscription;
+    console.log('Setting up auth state listener');
+    
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log(`Auth state changed: ${event}`, {
+          _type: typeof session,
+          value: session ? 'session_exists' : 'undefined'
+        });
 
-    // Set up auth state listener FIRST (best practice)
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`Auth state changed: ${event}`, session?.user?.id);
-      
-      // Store both session and user state
-      setSession(session);
-      setIsSigningOut(false);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Use setTimeout to defer profile fetching after the callback has finished
-        setTimeout(() => {
-          convertToAppUser(session.user)
-            .then(appUser => {
-              console.log("Setting user after sign in:", appUser);
-              setCurrentUser(appUser);
-              setLoading(false);
-            })
-            .catch(error => {
-              console.error("Error converting user:", error);
-              setLoading(false);
-            });
-        }, 0);
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out, clearing state");
-        setCurrentUser(null);
-        setSession(null);
-        setLoading(false);
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setTimeout(() => {
-          convertToAppUser(session.user)
-            .then(appUser => {
-              console.log("User updated:", appUser);
-              setCurrentUser(appUser);
-            })
-            .catch(error => console.error("Error converting updated user:", error));
-        }, 0);
-      } else if (event === 'INITIAL_SESSION') {
-        // Handle initial session load
-        if (session?.user) {
-          console.log("Found existing session for user:", session.user.id);
-          setTimeout(() => {
-            convertToAppUser(session.user)
-              .then(appUser => {
-                console.log("Setting user from existing session:", appUser);
+        if (event === 'SIGNED_IN') {
+          if (session?.user) {
+            setTimeout(async () => {
+              try {
+                const appUser = await convertToAppUser(session.user);
                 setCurrentUser(appUser);
-                setLoading(false);
-              })
-              .catch(error => {
-                console.error("Error converting user:", error);
-                setLoading(false);
-              });
+              } catch (error) {
+                console.error('Error converting user:', error);
+                setCurrentUser(null);
+              }
+            }, 0);
+          } else {
+            setCurrentUser(null);
+          }
+          setSession(session);
+          setLoading(false);
+          
+          // Defer any additional data fetching to prevent deadlocks
+          setTimeout(() => {
+            console.log('User signed in successfully');
           }, 0);
-        } else {
-          console.log("No existing session found");
+        } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
           setSession(null);
+          setIsSigningOut(false);
+          setLoading(false);
+          
+          // Clean up auth state on sign out
+          cleanupAuthState();
+        } else if (event === 'USER_UPDATED') {
+          if (session?.user) {
+            setTimeout(async () => {
+              try {
+                const appUser = await convertToAppUser(session.user);
+                setCurrentUser(appUser);
+              } catch (error) {
+                console.error('Error converting updated user:', error);
+              }
+            }, 0);
+          } else {
+            setCurrentUser(null);
+          }
+          setSession(session);
+          setLoading(false);
+        } else if (event === 'INITIAL_SESSION') {
+          if (session?.user) {
+            setTimeout(async () => {
+              try {
+                const appUser = await convertToAppUser(session.user);
+                setCurrentUser(appUser);
+              } catch (error) {
+                console.error('Error converting user from initial session:', error);
+                setCurrentUser(null);
+              }
+            }, 0);
+          } else {
+            setCurrentUser(null);
+          }
+          setSession(session);
           setLoading(false);
         }
       }
-    });
-    
-    subscription = data.subscription;
+    );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !currentUser) {
-        console.log("Manual session check - found session for user:", session.user.id);
-        setSession(session);
-        convertToAppUser(session.user)
-          .then(appUser => {
-            console.log("Setting user from manual session check:", appUser);
-            setCurrentUser(appUser);
-            setLoading(false);
-          })
-          .catch(error => {
-            console.error("Error converting user in manual check:", error);
-            setLoading(false);
-          });
-      } else if (!session) {
-        console.log("Manual session check - no session found");
-        setLoading(false);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('Manual session check - session found:', !!session);
+      if (session?.user) {
+        try {
+          const appUser = await convertToAppUser(session.user);
+          setCurrentUser(appUser);
+        } catch (error) {
+          console.error('Error converting user from manual session check:', error);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
       }
+      setSession(session);
+      setLoading(false);
     });
 
-    // Cleanup function to unsubscribe when component unmounts.
     return () => {
-      subscription?.unsubscribe();
+      console.log('Cleaning up auth state listener');
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -158,20 +165,16 @@ export const useSupabaseAuth = () => {
   };
 
   // Update user role
-  const updateUserRole = async (role: UserRole) => {
+  const updateUserRoleLocal = async (role: UserRole) => {
     if (!currentUser) {
       throw new Error("No user is currently logged in");
     }
     
     setLoading(true);
     try {
-      const updatedUser = await updateRole(currentUser.id, role);
-      if (updatedUser) {
-        setCurrentUser(updatedUser);
-      } else {
-        // If no user returned but no error was thrown, just update the role locally
-        setCurrentUser(prev => prev ? { ...prev, role } : null);
-      }
+      await updateUserRole(currentUser.id, role);
+      // Update the role locally since the function doesn't return a user
+      setCurrentUser(prev => prev ? { ...prev, role } : null);
     } finally {
       setLoading(false);
     }
@@ -183,6 +186,6 @@ export const useSupabaseAuth = () => {
     loading,
     signIn,
     signOut,
-    updateUserRole
+    updateUserRole: updateUserRoleLocal
   };
 };
