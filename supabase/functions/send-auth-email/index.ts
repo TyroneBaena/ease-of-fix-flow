@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const authHookSecret = Deno.env.get("AUTH_HOOK_SECRET") || "auth-email-hook-secret-2024";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +33,18 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log("Auth email webhook triggered");
+    
+    // Verify the webhook secret
+    const providedSecret = req.headers.get("authorization")?.replace("Bearer ", "") || 
+                          req.headers.get("x-webhook-secret");
+    
+    if (providedSecret !== authHookSecret) {
+      console.error("Invalid webhook secret provided");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
     
     const webhookData: AuthEmailData = await req.json();
     console.log("Webhook data received:", {
