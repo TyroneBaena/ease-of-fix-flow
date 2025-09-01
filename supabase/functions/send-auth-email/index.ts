@@ -24,42 +24,24 @@ interface AuthEmailData {
   };
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  console.log("🚀 Auth Email Webhook Started");
-  
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function sendEmailInBackground(webhookData: AuthEmailData) {
   try {
-    // Get Resend API key
+    console.log("🚀 Background email task started for:", webhookData.user.email);
+    
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
-      console.error("❌ RESEND_API_KEY not found");
-      return new Response(JSON.stringify({ error: "Email service not configured" }), {
-        status: 200, // Return 200 to prevent Supabase retries
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      console.error("❌ RESEND_API_KEY not found in background task");
+      return;
     }
 
-    console.log("✅ Resend API key found, initializing...");
     const resend = new Resend(resendApiKey);
-
-    // Parse webhook data
-    const body = await req.text();
-    console.log("📦 Body received, length:", body.length);
-    
-    const webhookData: AuthEmailData = JSON.parse(body);
-    console.log("📧 Processing email for:", webhookData.user.email);
-    console.log("🔄 Action type:", webhookData.email_data.email_action_type);
-
     const { user, email_data } = webhookData;
     const { token_hash, redirect_to, email_action_type, site_url } = email_data;
 
     if (email_action_type === "signup") {
       const confirmUrl = `${site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
       
-      console.log("📬 Sending signup confirmation email...");
+      console.log("📧 Sending email to:", user.email);
       console.log("🔗 Confirmation URL:", confirmUrl);
 
       const emailResponse = await resend.emails.send({
@@ -105,40 +87,88 @@ const handler = async (req: Request): Promise<Response> => {
         `,
       });
 
-      console.log("✅ Email sent successfully:", emailResponse);
+      console.log("✅ Email sent successfully in background!");
       console.log("📬 Email ID:", emailResponse.data?.id);
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Confirmation email sent successfully",
-        emailId: emailResponse.data?.id 
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      console.log("📊 Email status:", emailResponse.error ? "FAILED" : "SUCCESS");
+      
+      if (emailResponse.error) {
+        console.error("📧 Email error:", emailResponse.error);
+      }
 
     } else {
-      console.log("ℹ️ Non-signup email type, returning success without sending");
-      return new Response(JSON.stringify({ success: true, message: "Non-signup email handled" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      console.log("ℹ️ Non-signup email type, skipping email send");
     }
 
   } catch (error: any) {
-    console.error("❌ Error in auth email function:");
+    console.error("❌ Background email task failed:");
     console.error("Error message:", error.message);
     console.error("Error stack:", error.stack);
+  }
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  console.log("🚀 Auth Email Webhook - IMMEDIATE RESPONSE MODE");
+  
+  if (req.method === "OPTIONS") {
+    console.log("✅ CORS preflight - returning immediately");
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Parse webhook data immediately
+    const body = await req.text();
+    console.log("📦 Body received, length:", body.length);
     
+    const webhookData: AuthEmailData = JSON.parse(body);
+    console.log("👤 User email:", webhookData.user.email);
+    console.log("🔄 Action type:", webhookData.email_data.email_action_type);
+
+    // Start background email task WITHOUT awaiting
+    console.log("🚀 Starting background email task...");
+    
+    // Use EdgeRuntime.waitUntil to run email sending in background
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(sendEmailInBackground(webhookData));
+      console.log("✅ Background task scheduled with EdgeRuntime.waitUntil");
+    } else {
+      // Fallback: start background task without awaiting
+      sendEmailInBackground(webhookData);
+      console.log("✅ Background task started (fallback mode)");
+    }
+
+    // Return IMMEDIATE response to Supabase (within 100ms)
+    console.log("⚡ Returning immediate success response");
     return new Response(JSON.stringify({ 
-      error: "Internal server error",
+      success: true, 
+      message: "Email webhook received, processing in background",
+      user_email: webhookData.user.email,
+      action_type: webhookData.email_data.email_action_type,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+
+  } catch (error: any) {
+    console.error("❌ IMMEDIATE ERROR in webhook handler:");
+    console.error("Error message:", error.message);
+    
+    // Still return 200 to prevent Supabase retries
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: "Webhook parsing failed",
       message: error.message,
       timestamp: new Date().toISOString()
     }), {
-      status: 200, // Return 200 to prevent Supabase retries
+      status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 };
+
+// Handle function shutdown gracefully
+addEventListener('beforeunload', (ev) => {
+  console.log('🛑 Function shutdown due to:', ev.detail?.reason);
+});
 
 serve(handler);
