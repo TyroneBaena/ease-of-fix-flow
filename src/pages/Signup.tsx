@@ -70,19 +70,18 @@ useEffect(() => {
       console.log(`Signing up with email: ${email}`);
       console.log(`Redirect URL will be: ${window.location.origin}/email-confirm`);
       
-      // Sign up the user
-const { data, error: signUpError } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    emailRedirectTo: `${window.location.origin}/email-confirm`,
-    data: {
-      name,
-      role: 'manager', // Default role
-      assignedProperties: []
-    }
-  }
-});
+      // Sign up the user WITHOUT email confirmation
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role: 'manager', // Default role
+            assignedProperties: []
+          }
+        }
+      });
       
       console.log('Signup response:', { data, error: signUpError });
       
@@ -90,39 +89,61 @@ const { data, error: signUpError } = await supabase.auth.signUp({
         throw signUpError;
       }
       
-if (data.user) {
-  console.log("Account created successfully:", data.user.id);
-  toast.success("Account created! If email confirmation is required, please confirm to continue.");
-  
-  // Verify schema creation
-  setTimeout(async () => {
-    try {
-      const hasSchema = await tenantService.verifyUserSchema(data.user!.id);
-      if (!hasSchema) {
-        console.log("Schema not found for user, creating manually");
-        const { error: rpcError } = await supabase.rpc('create_tenant_schema', { new_user_id: data.user!.id });
-        if (rpcError) {
-          console.error("Error creating schema:", rpcError);
-        } else {
-          console.log("Schema created successfully");
+      if (data.user) {
+        console.log("Account created successfully:", data.user.id);
+        
+        // Send confirmation email through our own function
+        try {
+          const confirmationUrl = `${window.location.origin}/email-confirm?token=${data.user.id}`;
+          
+          const emailResponse = await supabase.functions.invoke('send-confirmation-email', {
+            body: {
+              email: email,
+              name: name,
+              confirmationUrl: confirmationUrl
+            }
+          });
+          
+          if (emailResponse.error) {
+            console.error('Email sending failed:', emailResponse.error);
+            toast.warning("Account created but confirmation email failed to send. You can still use your account.");
+          } else {
+            console.log('Confirmation email sent successfully');
+            toast.success("Account created! Please check your email for confirmation.");
+          }
+        } catch (emailError) {
+          console.error('Email function error:', emailError);
+          toast.warning("Account created but confirmation email failed to send. You can still use your account.");
+        }
+        
+        // Verify schema creation
+        setTimeout(async () => {
+          try {
+            const hasSchema = await tenantService.verifyUserSchema(data.user!.id);
+            if (!hasSchema) {
+              console.log("Schema not found for user, creating manually");
+              const { error: rpcError } = await supabase.rpc('create_tenant_schema', { new_user_id: data.user!.id });
+              if (rpcError) {
+                console.error("Error creating schema:", rpcError);
+              } else {
+                console.log("Schema created successfully");
+              }
+            } else {
+              console.log("Schema was created successfully");
+            }
+          } catch (err) {
+            console.error("Error verifying schema:", err);
+          }
+        }, 1000);
+
+        // User can proceed immediately since email confirmation is optional
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          setIsAuthed(true);
         }
       } else {
-        console.log("Schema was created successfully");
+        toast.info("Account created successfully. You can now sign in.");
       }
-    } catch (err) {
-      console.error("Error verifying schema:", err);
-    }
-  }, 1000);
-
-  // If session is already established, proceed to billing step
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (sessionData.session) {
-    setIsAuthed(true);
-  }
-} else {
-  // If user signed up but needs to confirm email
-  toast.info("Please check your email to confirm your account");
-}
     } catch (error: any) {
       console.error('Signup error:', error);
       setError(error.message || "An error occurred during signup");
