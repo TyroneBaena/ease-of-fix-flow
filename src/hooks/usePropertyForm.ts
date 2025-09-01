@@ -26,7 +26,13 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
   });
 
   useEffect(() => {
-    const managerUsers = users.filter(user => user.role === 'manager');
+    console.log('PropertyForm: All users:', users);
+    console.log('PropertyForm: Users with roles:', users.map(u => ({ name: u.name, role: u.role })));
+    
+    // Get all users who can be practice leaders (managers and admins)
+    const managerUsers = users.filter(user => user.role === 'manager' || user.role === 'admin');
+    console.log('PropertyForm: Practice leader candidates:', managerUsers.map(u => ({ name: u.name, role: u.role })));
+    
     setManagers(managerUsers);
   }, [users]);
 
