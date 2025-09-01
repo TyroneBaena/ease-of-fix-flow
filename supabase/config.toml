@@ -2,8 +2,8 @@ project_id = "ltjlswzrdgtoddyqmydo"
 
 [auth]
 enabled = true
-site_url = "https://ltjlswzrdgtoddyqmydo.supabase.co"
-additional_redirect_urls = ["https://ltjlswzrdgtoddyqmydo.supabase.co", "http://localhost:3000"]
+site_url = "https://lovable.dev"
+additional_redirect_urls = ["https://lovable.dev", "https://ltjlswzrdgtoddyqmydo.supabase.co"]
 jwt_expiry = 3600
 
 [database]
