@@ -105,7 +105,7 @@ serve(async (req) => {
         created_at,
         contractor_id,
         request_id,
-        maintenance_requests!inner(
+        maintenance_requests(
           title,
           description,
           status,
