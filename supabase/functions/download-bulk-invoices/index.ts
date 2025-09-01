@@ -276,7 +276,8 @@ serve(async (req) => {
         .from('maintenance-files')
         .upload(`bulk-downloads/${zipFileName}`, zipFileBuffer, {
           contentType: 'application/zip',
-          cacheControl: '3600'
+          cacheControl: '3600',
+          upsert: true
         });
 
       if (uploadError) {
