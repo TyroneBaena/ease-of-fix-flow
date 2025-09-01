@@ -92,7 +92,7 @@ serve(async (req) => {
       timeframeLabel
     });
 
-    // Fetch invoices with related request and property data
+    // First fetch invoices
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select(`
@@ -104,24 +104,7 @@ serve(async (req) => {
         total_amount_with_gst,
         created_at,
         contractor_id,
-        request_id,
-        maintenance_requests(
-          title,
-          description,
-          status,
-          priority,
-          category,
-          location,
-          created_at,
-          properties(
-            name,
-            address
-          )
-        ),
-        contractors(
-          contact_name,
-          company_name
-        )
+        request_id
       `)
       .gte('created_at', dateRange.from)
       .lte('created_at', dateRange.to)
@@ -144,6 +127,39 @@ serve(async (req) => {
       );
     }
 
+    // Get all request IDs and contractor IDs
+    const requestIds = [...new Set(invoices.map(inv => inv.request_id).filter(Boolean))];
+    const contractorIds = [...new Set(invoices.map(inv => inv.contractor_id).filter(Boolean))];
+
+    // Fetch maintenance requests
+    const { data: requests } = await supabase
+      .from('maintenance_requests')
+      .select(`
+        id,
+        title,
+        description,
+        status,
+        priority,
+        category,
+        location,
+        created_at,
+        property_id
+      `)
+      .in('id', requestIds);
+
+    // Fetch properties for the requests
+    const propertyIds = [...new Set(requests?.map(req => req.property_id).filter(Boolean) || [])];
+    const { data: properties } = await supabase
+      .from('properties')
+      .select('id, name, address')
+      .in('id', propertyIds);
+
+    // Fetch contractors
+    const { data: contractors } = await supabase
+      .from('contractors')
+      .select('id, contact_name, company_name')
+      .in('id', contractorIds);
+
     console.log(`Found ${invoices.length} invoices to process`);
 
     // Create a temporary directory for file processing
@@ -164,14 +180,14 @@ serve(async (req) => {
       const errors: string[] = [];
 
       // Process each invoice
-      for (const invoice of invoices as any[]) {
+      for (const invoice of invoices) {
         try {
           console.log(`Processing invoice: ${invoice.invoice_number}`);
           
-          // Extract related data with safe navigation
-          const request = invoice.maintenance_requests;
-          const property = request?.properties;
-          const contractor = invoice.contractors;
+          // Find related data
+          const request = requests?.find(r => r.id === invoice.request_id);
+          const property = properties?.find(p => p.id === request?.property_id);
+          const contractor = contractors?.find(c => c.id === invoice.contractor_id);
           
           // Download the invoice file from Supabase Storage
           const { data: fileData, error: downloadError } = await supabase.storage
@@ -197,8 +213,8 @@ serve(async (req) => {
           const escapeCsv = (str: string) => `"${(str || '').replace(/"/g, '""')}"`;
           
           csvContent += [
-            escapeCsv(invoice.invoice_number),
-            escapeCsv(invoice.invoice_file_name),
+            escapeCsv(invoice.invoice_number || ''),
+            escapeCsv(invoice.invoice_file_name || ''),
             escapeCsv(invoice.final_cost?.toString() || '0'),
             escapeCsv(invoice.total_amount_with_gst?.toString() || '0'),
             escapeCsv(invoice.created_at || ''),
