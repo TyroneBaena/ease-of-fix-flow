@@ -3,6 +3,7 @@ import Navbar from '@/components/Navbar';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
+import BulkInvoiceDownload from '@/components/reports/BulkInvoiceDownload';
 import { useUserContext } from '@/contexts/UserContext';
 import { usePropertyContext } from '@/contexts/property';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -11,7 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
 const Reports = () => {
-  const { currentUser, loading: userLoading } = useUserContext();
+  const { currentUser, loading: userLoading, isAdmin } = useUserContext();
   const { loading: propertiesLoading, loadingFailed } = usePropertyContext();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +130,7 @@ const Reports = () => {
         <Tabs defaultValue="maintenance" onValueChange={setActiveTab} value={activeTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="maintenance">Maintenance Requests</TabsTrigger>
+            {isAdmin && <TabsTrigger value="invoices">Invoice Downloads</TabsTrigger>}
             <TabsTrigger value="overview">Overview</TabsTrigger>
           </TabsList>
           
@@ -137,6 +139,12 @@ const Reports = () => {
               <MaintenanceReport key={`maintenance-report-${refreshKey}`} />
             </Card>
           </TabsContent>
+          
+          {isAdmin && (
+            <TabsContent value="invoices">
+              <BulkInvoiceDownload />
+            </TabsContent>
+          )}
           
           <TabsContent value="overview">
             <Card className="p-6">

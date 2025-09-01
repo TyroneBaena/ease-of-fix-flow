@@ -15,7 +15,7 @@ interface DateRange {
   to: Date;
 }
 
-const InvoiceManagement = () => {
+const BulkInvoiceDownload = () => {
   const [timeframe, setTimeframe] = useState<string>('');
   const [customRange, setCustomRange] = useState<DateRange | null>(null);
   const [showCustomRange, setShowCustomRange] = useState(false);
@@ -148,16 +148,15 @@ const InvoiceManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Invoice Management</h2>
-        <p className="text-gray-600 mb-6">
-          Download invoices in bulk for reporting and record-keeping purposes.
-        </p>
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-medium">Bulk Invoice Download</h3>
+          <p className="text-gray-600 text-sm">
+            Download invoices in bulk for reporting and record-keeping purposes.
+          </p>
+        </div>
       </div>
-
-      <Card className="p-6">
-        <h3 className="text-lg font-medium mb-4">Bulk Invoice Download</h3>
         
         <div className="space-y-4">
           <div className="space-y-2">
@@ -269,9 +268,8 @@ const InvoiceManagement = () => {
             <p>• Only invoices you have access to will be included</p>
           </div>
         </div>
-      </Card>
-    </div>
+    </Card>
   );
 };
 
-export default InvoiceManagement;
+export default BulkInvoiceDownload;
