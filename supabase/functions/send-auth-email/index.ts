@@ -18,30 +18,46 @@ serve(async (req: Request) => {
     const body = await req.json();
     console.log("Webhook body:", JSON.stringify(body, null, 2));
     
-    const { type, table, record } = body;
+    // Handle both webhook formats - direct trigger and auth webhook
+    let emailData, userEmail, confirmationUrl;
     
-    // Handle email confirmation events
-    if (type === 'INSERT' && table === 'users' && record) {
+    if (body.type === 'INSERT' && body.table === 'users' && body.record) {
+      // Direct trigger format
+      emailData = body.record;
+      userEmail = emailData.email;
+      confirmationUrl = emailData.confirmation_url;
+    } else if (body.user && body.email_data) {
+      // Auth webhook format
+      emailData = body.email_data;
+      userEmail = body.user.email;
+      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${emailData.redirect_to}`;
+    } else {
+      console.log("Webhook received but conditions not met:", { 
+        hasType: !!body.type, 
+        hasTable: !!body.table, 
+        hasRecord: !!body.record,
+        hasUser: !!body.user,
+        hasEmailData: !!body.email_data
+      });
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: "No action needed",
+        timestamp: new Date().toISOString()
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+    
+    if (userEmail && confirmationUrl) {
       const resend = new Resend(Deno.env.get("NEW_RESEND_API_KEY"));
       
-      const { email, email_confirm_token, confirmation_url } = record;
-      
-      // Use the confirmation URL from the trigger if provided, or build one
-      let emailConfirmationUrl = confirmation_url;
-      if (!emailConfirmationUrl && email_confirm_token) {
-        emailConfirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${email_confirm_token}&type=signup&redirect_to=${encodeURIComponent('https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm')}`;
-      }
-      
-      console.log("Sending confirmation email to:", email);
-      console.log("Using confirmation URL:", emailConfirmationUrl);
-      
-      if (!email || !emailConfirmationUrl) {
-        throw new Error(`Missing required fields: email=${!!email}, confirmationUrl=${!!emailConfirmationUrl}`);
-      }
+      console.log("Sending confirmation email to:", userEmail);
+      console.log("Using confirmation URL:", confirmationUrl);
       
       const emailResponse = await resend.emails.send({
         from: "Housing Hub <noreply@housinghub.app>",
-        to: [email],
+        to: [userEmail],
         subject: "Confirm your Housing Hub account",
         html: `
           <!DOCTYPE html>
@@ -64,7 +80,7 @@ serve(async (req: Request) => {
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${emailConfirmationUrl}" 
+                <a href="${confirmationUrl}" 
                    style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
                   Confirm Email Address
                 </a>
@@ -75,7 +91,7 @@ serve(async (req: Request) => {
                   If you didn't create an account, you can safely ignore this email.
                 </p>
                 <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 10px 0 0 0;">
-                  If the button doesn't work, copy and paste this link: ${emailConfirmationUrl}
+                  If the button doesn't work, copy and paste this link: ${confirmationUrl}
                 </p>
               </div>
             </div>
@@ -90,7 +106,7 @@ serve(async (req: Request) => {
         throw new Error(`Resend API error: ${emailResponse.error.message}`);
       }
     } else {
-      console.log("Webhook received but conditions not met:", { type, table, hasRecord: !!record });
+      console.log("Missing required email data:", { userEmail, confirmationUrl });
     }
     
     return new Response(JSON.stringify({ 
