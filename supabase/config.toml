@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.debug-env]
 verify_jwt = false
+
+[functions.download-bulk-invoices]
+verify_jwt = true

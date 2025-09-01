@@ -11,6 +11,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
+import InvoiceManagement from '@/components/settings/InvoiceManagement';
 import { Toaster } from "sonner";
 import DevToolsPanel from '@/components/DevToolsPanel';
 
@@ -98,6 +99,7 @@ const Settings = () => {
             {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
             {/* Only show contractor management to admins, not managers */}
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="invoices">Invoice Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -115,6 +117,15 @@ const Settings = () => {
             <TabsContent value="contractors">
               <Card className="p-6">
                 <ContractorManagement />
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Invoice management is restricted to admins only */}
+          {isAdmin && (
+            <TabsContent value="invoices">
+              <Card className="p-6">
+                <InvoiceManagement />
               </Card>
             </TabsContent>
           )}
