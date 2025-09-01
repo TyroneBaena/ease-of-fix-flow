@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Check } from 'lucide-react';
+import { AlertCircle, Check, Info } from 'lucide-react';
 import { tenantService } from '@/services/user/tenantService';
 import { Toaster } from "sonner";
 
@@ -18,26 +17,46 @@ const Signup = () => {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Auth and billing step state
   const [isAuthed, setIsAuthed] = useState(false);
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
   type Interval = 'month' | 'year';
   type Plan = 'starter' | 'pro';
   const [interval, setInterval] = useState<Interval>('month');
   const [selectedPlan, setSelectedPlan] = useState<Plan>('starter');
   const [loadingPlan, setLoadingPlan] = useState(false);
 
-// Initialize auth state and show billing step for authenticated users
+// Initialize auth state - only check for CONFIRMED users
 useEffect(() => {
   let unsub: { unsubscribe: () => void } | null = null;
 
   supabase.auth.getSession().then(({ data }) => {
-    setIsAuthed(!!data.session);
+    // Only set as authenticated if user exists AND email is confirmed
+    const isConfirmedUser = data.session?.user && data.session.user.email_confirmed_at;
+    setIsAuthed(!!isConfirmedUser);
+    
+    if (data.session?.user && !data.session.user.email_confirmed_at) {
+      setEmailConfirmationRequired(true);
+      setInfo("Please check your email and click the confirmation link to complete your registration.");
+    }
   });
 
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setIsAuthed(!!session);
+  const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log(`Auth state changed: ${event}`, session?.user?.email_confirmed_at);
+    
+    // Only show plan selection for confirmed users
+    if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+      setIsAuthed(true);
+      setEmailConfirmationRequired(false);
+      setInfo(null);
+    } else if (event === 'SIGNED_OUT') {
+      setIsAuthed(false);
+      setEmailConfirmationRequired(false);
+      setInfo(null);
+    }
   });
   unsub = listener?.subscription ?? null;
 
@@ -49,6 +68,7 @@ useEffect(() => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setInfo(null);
     
     if (!email || !password || !name) {
       setError("All fields are required");
@@ -67,24 +87,24 @@ useEffect(() => {
     
     try {
       setIsLoading(true);
-      console.log(`Signing up with email: ${email}`);
+      console.log(`Starting signup process for: ${email}`);
       
       // Clean up any existing auth state first
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
-        // Continue even if this fails
+        console.log('Could not clear existing session:', err);
       }
       
       const redirectUrl = `${window.location.origin}/email-confirm`;
       console.log(`Email confirmation redirect URL: ${redirectUrl}`);
       
-      // Sign up with proper email confirmation
+      // Sign up with proper email confirmation - DISABLE Supabase's built-in emails
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
+          // Remove emailRedirectTo to prevent Supabase from sending its own email
           data: {
             name,
             role: 'manager',
@@ -102,16 +122,17 @@ useEffect(() => {
       if (data.user) {
         console.log("Account created successfully:", data.user.id);
         
-        // Check if user needs email confirmation
+        // Check if email confirmation is required
         if (!data.user.email_confirmed_at) {
-          console.log("Email confirmation required - user will receive confirmation email");
-          toast.success("Account created! Please check your email for a confirmation link.");
-          setError("Please check your email and click the confirmation link to complete your registration. After confirming, you'll be able to choose your subscription plan.");
+          console.log("Email confirmation required - custom email will be sent via database trigger");
+          setEmailConfirmationRequired(true);
+          setInfo("Account created! Please check your email for a confirmation link. After confirming, you'll be able to choose your subscription plan.");
+          toast.success("Account created! Please check your email for confirmation.");
         } else {
           // User is immediately confirmed (email confirmation disabled in Supabase)
-          console.log("Email confirmation not required - user can proceed immediately");
-          toast.success("Account created successfully! You can now choose your plan.");
+          console.log("Email confirmation not required - proceeding to plan selection");
           setIsAuthed(true);
+          toast.success("Account created successfully! You can now choose your plan.");
         }
         
         // Verify schema creation
@@ -166,6 +187,13 @@ return (
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          
+          {info && (
+            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
+              <Info className="h-4 w-4 mr-2" />
+              <AlertDescription>{info}</AlertDescription>
+            </Alert>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -188,9 +216,25 @@ return (
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm your password" required />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Sign Up"}
+            <Button type="submit" className="w-full" disabled={isLoading || emailConfirmationRequired}>
+              {isLoading ? "Creating Account..." : emailConfirmationRequired ? "Check Your Email" : "Sign Up"}
             </Button>
+            
+            {emailConfirmationRequired && (
+              <div className="text-center text-sm text-gray-600 mt-2">
+                <p>Didn't receive the email? Check your spam folder or</p>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-blue-500"
+                  onClick={() => {
+                    setEmailConfirmationRequired(false);
+                    setInfo(null);
+                  }}
+                >
+                  try signing up again
+                </Button>
+              </div>
+            )}
 
             <p className="text-sm text-center text-gray-500 mt-4">
               Already have an account? <Link to="/login" className="text-blue-500 hover:underline">Sign in</Link>

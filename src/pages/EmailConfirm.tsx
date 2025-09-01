@@ -17,6 +17,10 @@ const EmailConfirm = () => {
   useEffect(() => {
     const handleEmailConfirmation = async () => {
       try {
+        console.log('EmailConfirm component loaded');
+        console.log('Current URL:', window.location.href);
+        console.log('Hash:', window.location.hash);
+        
         // Check if this is a Supabase auth callback with tokens in hash
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
@@ -33,9 +37,10 @@ const EmailConfirm = () => {
         if (accessToken && refreshToken) {
           // This is a proper Supabase auth callback
           if (type !== 'signup' && type !== 'recovery') {
-            throw new Error('Invalid confirmation type');
+            throw new Error('Invalid confirmation type. Expected "signup" but got: ' + type);
           }
 
+          console.log('Setting session with tokens...');
           // Set the session using the tokens
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -49,28 +54,35 @@ const EmailConfirm = () => {
 
           if (data.user) {
             console.log('Email confirmed successfully for user:', data.user.id);
+            console.log('User email confirmed at:', data.user.email_confirmed_at);
             setIsVerified(true);
             toast.success('Email confirmed successfully!');
             
-            // Redirect to signup for plan selection or dashboard
+            // Redirect to signup for plan selection - the auth state will be properly set
             setTimeout(() => {
-              navigate('/signup');
+              console.log('Redirecting to signup for plan selection...');
+              navigate('/signup', { replace: true });
             }, 2000);
           } else {
-            throw new Error('No user data returned');
+            throw new Error('No user data returned after setting session');
           }
         } else {
-          // Check if user is already signed in (maybe came here directly)
+          // No tokens in URL - check if user is already signed in
+          console.log('No tokens found in URL, checking for existing session...');
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData.session?.user) {
-            console.log('User is already authenticated');
-            setIsVerified(true);
-            toast.success('You are already signed in!');
-            setTimeout(() => {
-              navigate('/signup');
-            }, 2000);
+            if (sessionData.session.user.email_confirmed_at) {
+              console.log('User is already authenticated and confirmed');
+              setIsVerified(true);
+              toast.success('You are already signed in!');
+              setTimeout(() => {
+                navigate('/signup', { replace: true });
+              }, 2000);
+            } else {
+              throw new Error('Your email is not yet confirmed. Please check your email and click the confirmation link.');
+            }
           } else {
-            throw new Error('No authentication tokens found. Please use the link from your confirmation email.');
+            throw new Error('No authentication tokens found. Please use the confirmation link from your email or sign up again.');
           }
         }
       } catch (err: any) {
@@ -119,7 +131,7 @@ const EmailConfirm = () => {
             <p className="text-muted-foreground">
               Your email has been successfully confirmed. You're being redirected to complete your signup.
             </p>
-            <Button onClick={() => navigate('/signup')} className="w-full">
+            <Button onClick={() => navigate('/signup', { replace: true })} className="w-full">
               Continue to Plan Selection
             </Button>
           </CardContent>
@@ -152,18 +164,18 @@ const EmailConfirm = () => {
           <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
             <li>An expired confirmation link</li>
             <li>An invalid or malformed URL</li>
-            <li>Configuration issues with the authentication service</li>
+            <li>The confirmation link was already used</li>
           </ul>
           <div className="flex flex-col gap-2">
-            <Button onClick={() => navigate('/login')} className="w-full">
-              Go to Login
+            <Button onClick={() => navigate('/signup', { replace: true })} className="w-full">
+              Try Signing Up Again
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => navigate('/signup')} 
+              onClick={() => navigate('/login', { replace: true })} 
               className="w-full"
             >
-              Sign Up Again
+              Go to Login
             </Button>
           </div>
         </CardContent>
