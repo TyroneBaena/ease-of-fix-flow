@@ -16,6 +16,20 @@ interface InvoiceRecord {
   created_at: string;
   contractor_id: string;
   request_id: string;
+  // Request details
+  request_title: string;
+  request_description: string;
+  request_status: string;
+  request_priority: string;
+  request_category: string;
+  request_location: string;
+  request_created_at: string;
+  // Property details
+  property_name: string;
+  property_address: string;
+  // Contractor details
+  contractor_name: string;
+  contractor_company: string;
 }
 
 interface DateRange {
@@ -78,7 +92,7 @@ serve(async (req) => {
       timeframeLabel
     });
 
-    // Fetch invoices in the date range
+    // Fetch invoices with related request and property data
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select(`
@@ -90,7 +104,24 @@ serve(async (req) => {
         total_amount_with_gst,
         created_at,
         contractor_id,
-        request_id
+        request_id,
+        maintenance_requests!inner(
+          title,
+          description,
+          status,
+          priority,
+          category,
+          location,
+          created_at,
+          properties(
+            name,
+            address
+          )
+        ),
+        contractors(
+          contact_name,
+          company_name
+        )
       `)
       .gte('created_at', dateRange.from)
       .lte('created_at', dateRange.to)
@@ -125,17 +156,22 @@ serve(async (req) => {
       const JSZip = (await import("https://cdn.skypack.dev/jszip@3.10.1")).default;
       const zip = new JSZip();
 
-      // Create a summary CSV file
-      let csvContent = "Invoice Number,File Name,Amount (Ex GST),Total Amount (Inc GST),Date Created,Contractor ID,Request ID\n";
+      // Create a comprehensive CSV file with invoice and request details
+      let csvContent = "Invoice Number,Invoice File,Amount (Ex GST),Total Amount (Inc GST),Invoice Date,Request Title,Request Description,Request Status,Request Priority,Request Category,Request Location,Request Created Date,Property Name,Property Address,Contractor Name,Company Name\n";
       
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
 
       // Process each invoice
-      for (const invoice of invoices as InvoiceRecord[]) {
+      for (const invoice of invoices as any[]) {
         try {
           console.log(`Processing invoice: ${invoice.invoice_number}`);
+          
+          // Extract related data with safe navigation
+          const request = invoice.maintenance_requests;
+          const property = request?.properties;
+          const contractor = invoice.contractors;
           
           // Download the invoice file from Supabase Storage
           const { data: fileData, error: downloadError } = await supabase.storage
@@ -152,12 +188,32 @@ serve(async (req) => {
           // Convert blob to array buffer
           const arrayBuffer = await fileData.arrayBuffer();
           
-          // Add file to zip with organized naming
-          const fileName = `${invoice.invoice_number}_${invoice.invoice_file_name}`;
+          // Create organized filename with request info
+          const requestTitle = request?.title ? request.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) : 'Unknown_Request';
+          const fileName = `${invoice.invoice_number}_${requestTitle}_${invoice.invoice_file_name}`;
           zip.file(fileName, arrayBuffer);
 
-          // Add to CSV summary
-          csvContent += `"${invoice.invoice_number}","${invoice.invoice_file_name}","${invoice.final_cost}","${invoice.total_amount_with_gst}","${invoice.created_at}","${invoice.contractor_id}","${invoice.request_id}"\n`;
+          // Add comprehensive data to CSV
+          const escapeCsv = (str: string) => `"${(str || '').replace(/"/g, '""')}"`;
+          
+          csvContent += [
+            escapeCsv(invoice.invoice_number),
+            escapeCsv(invoice.invoice_file_name),
+            escapeCsv(invoice.final_cost?.toString() || '0'),
+            escapeCsv(invoice.total_amount_with_gst?.toString() || '0'),
+            escapeCsv(invoice.created_at || ''),
+            escapeCsv(request?.title || ''),
+            escapeCsv(request?.description || ''),
+            escapeCsv(request?.status || ''),
+            escapeCsv(request?.priority || ''),
+            escapeCsv(request?.category || ''),
+            escapeCsv(request?.location || ''),
+            escapeCsv(request?.created_at || ''),
+            escapeCsv(property?.name || ''),
+            escapeCsv(property?.address || ''),
+            escapeCsv(contractor?.contact_name || ''),
+            escapeCsv(contractor?.company_name || '')
+          ].join(',') + '\n';
           
           successCount++;
           console.log(`Successfully processed invoice: ${invoice.invoice_number}`);
@@ -169,8 +225,8 @@ serve(async (req) => {
         }
       }
 
-      // Add the CSV summary to the zip
-      zip.file("invoice_summary.csv", csvContent);
+      // Add the comprehensive report to the zip
+      zip.file("Invoice_Request_Report.csv", csvContent);
 
       // Add error log if there were any errors
       if (errors.length > 0) {
