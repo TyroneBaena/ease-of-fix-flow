@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@4.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const authHookSecret = Deno.env.get("AUTH_HOOK_SECRET") || "auth-email-hook-secret-2024";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +8,7 @@ const corsHeaders = {
 
 interface AuthEmailData {
   user: {
+    id: string;
     email: string;
     user_metadata?: {
       name?: string;
@@ -26,46 +24,76 @@ interface AuthEmailData {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("=== Auth Email Hook Started ===");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    console.log("Invalid method:", req.method);
+    return new Response("Method not allowed", { 
+      status: 405, 
+      headers: corsHeaders 
+    });
+  }
+
   try {
-    console.log("Auth email webhook triggered");
-    
-    // Verify the webhook secret
-    const providedSecret = req.headers.get("authorization")?.replace("Bearer ", "") || 
-                          req.headers.get("x-webhook-secret");
-    
-    if (providedSecret !== authHookSecret) {
-      console.error("Invalid webhook secret provided");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    // Get the Resend API key
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not found in environment");
+      return new Response(JSON.stringify({ error: "Email service not configured" }), {
+        status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-    
-    const webhookData: AuthEmailData = await req.json();
-    console.log("Webhook data received:", {
-      email: webhookData.user.email,
-      action_type: webhookData.email_data.email_action_type
-    });
+
+    console.log("Resend API key found, initializing...");
+    const resend = new Resend(resendApiKey);
+
+    // Parse the webhook data
+    let webhookData: AuthEmailData;
+    try {
+      const body = await req.text();
+      console.log("Raw webhook body received:", body.substring(0, 200) + "...");
+      webhookData = JSON.parse(body);
+      console.log("Webhook data parsed successfully");
+    } catch (parseError) {
+      console.error("Failed to parse webhook data:", parseError);
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     const { user, email_data } = webhookData;
-    const { token_hash, redirect_to, email_action_type } = email_data;
+    
+    if (!user?.email) {
+      console.error("No user email in webhook data");
+      return new Response(JSON.stringify({ error: "No user email provided" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Processing email for:", user.email, "Action:", email_data.email_action_type);
+
+    const { token_hash, redirect_to, email_action_type, site_url } = email_data;
 
     let subject = "";
     let htmlContent = "";
 
     if (email_action_type === "signup") {
       subject = "Confirm your HousingHub account";
-      const confirmUrl = `${email_data.site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
+      const confirmUrl = `${site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
       
       htmlContent = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 40px;">
-            <div style="display: inline-block; width: 60px; height: 60px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+            <div style="display: inline-block; width: 60px; height: 60px; background: #3b82f6; border-radius: 8px; line-height: 60px; margin-bottom: 20px;">
               <span style="color: white; font-size: 24px; font-weight: bold;">H</span>
             </div>
             <h1 style="color: #1f2937; margin: 0; font-size: 24px; font-weight: bold;">Welcome to HousingHub</h1>
@@ -88,33 +116,30 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              If the button doesn't work, you can copy and paste this link into your browser:<br>
+              If the button doesn't work, copy and paste this link:<br>
               <a href="${confirmUrl}" style="color: #3b82f6; word-break: break-all;">${confirmUrl}</a>
             </p>
           </div>
           
           <div style="text-align: center; color: #6b7280; font-size: 14px;">
-            <p>If you didn't create an account with HousingHub, you can safely ignore this email.</p>
+            <p>If you didn't create an account, you can safely ignore this email.</p>
             <p style="margin-bottom: 0;">© 2024 HousingHub. All rights reserved.</p>
           </div>
         </div>
       `;
     } else if (email_action_type === "recovery") {
       subject = "Reset your HousingHub password";
-      const resetUrl = `${email_data.site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
+      const resetUrl = `${site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
       
       htmlContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 40px;">
-            <div style="display: inline-block; width: 60px; height: 60px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <span style="color: white; font-size: 24px; font-weight: bold;">H</span>
-            </div>
             <h1 style="color: #1f2937; margin: 0; font-size: 24px; font-weight: bold;">Reset Your Password</h1>
           </div>
           
           <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 30px;">
             <p style="color: #4b5563; margin-bottom: 25px; line-height: 1.6;">
-              You requested to reset your password for your HousingHub account. Click the button below to choose a new password.
+              You requested to reset your password for your HousingHub account.
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
@@ -123,23 +148,13 @@ const handler = async (req: Request): Promise<Response> => {
                 Reset Password
               </a>
             </div>
-            
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              If the button doesn't work, you can copy and paste this link into your browser:<br>
-              <a href="${resetUrl}" style="color: #3b82f6; word-break: break-all;">${resetUrl}</a>
-            </p>
-          </div>
-          
-          <div style="text-align: center; color: #6b7280; font-size: 14px;">
-            <p>If you didn't request a password reset, you can safely ignore this email.</p>
-            <p style="margin-bottom: 0;">© 2024 HousingHub. All rights reserved.</p>
           </div>
         </div>
       `;
     } else {
       // Fallback for other email types
       subject = `Action required for your HousingHub account`;
-      const actionUrl = `${email_data.site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
+      const actionUrl = `${site_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`;
       
       htmlContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -150,30 +165,50 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }
 
-    console.log("Sending email via Resend from housinghub.app domain");
+    console.log("Sending email via Resend...");
 
-    const emailResponse = await resend.emails.send({
-      from: "HousingHub <noreply@housinghub.app>",
-      to: [user.email],
-      subject: subject,
-      html: htmlContent,
-    });
+    try {
+      const emailResponse = await resend.emails.send({
+        from: "HousingHub <noreply@housinghub.app>",
+        to: [user.email],
+        subject: subject,
+        html: htmlContent,
+      });
 
-    console.log("Email sent successfully:", emailResponse);
+      console.log("Email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: "Email sent successfully",
+        emailId: emailResponse.data?.id 
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    } catch (emailError) {
+      console.error("Resend email error:", emailError);
+      return new Response(JSON.stringify({ 
+        error: "Failed to send email",
+        details: emailError.message 
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
   } catch (error: any) {
-    console.error("Error in send-auth-email function:", error);
+    console.error("=== Function Error ===");
+    console.error("Error:", error);
+    console.error("Stack:", error.stack);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.toString()
+        error: "Internal server error",
+        message: error.message,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
