@@ -10,8 +10,11 @@ export const useContractorIdentification = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  console.log('useContractorIdentification - Hook initialized. CurrentUser:', currentUser?.id, 'Loading:', loading);
+
   useEffect(() => {
     console.log('useContractorIdentification - Effect triggered, currentUser:', currentUser?.id);
+    console.log('useContractorIdentification - Full currentUser object:', currentUser);
     
     if (!currentUser) {
       console.log('useContractorIdentification - No current user, clearing state');
@@ -20,6 +23,8 @@ export const useContractorIdentification = () => {
       setLoading(false);
       return;
     }
+
+    console.log('useContractorIdentification - Current user found, proceeding to fetch contractor ID');
 
     const fetchContractorId = async () => {
       try {
@@ -97,11 +102,16 @@ export const useContractorIdentification = () => {
     };
 
     // Add a small delay to ensure authentication is stable
+    console.log('useContractorIdentification - Setting timeout to fetch contractor data');
     const timeoutId = setTimeout(() => {
+      console.log('useContractorIdentification - Timeout fired, calling fetchContractorId');
       fetchContractorId();
     }, 100);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      console.log('useContractorIdentification - Cleanup: clearing timeout');
+      clearTimeout(timeoutId);
+    };
   }, [currentUser?.id]); // Only depend on user ID, not the entire user object
 
   return { contractorId, setContractorId, loading, setLoading, error, setError };
