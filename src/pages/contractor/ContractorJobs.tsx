@@ -4,7 +4,7 @@ import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RequestsTable } from '@/components/contractor/requests/RequestsTable';
-import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
+import { useContractorDashboard } from '@/hooks/useContractorDashboard';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Toaster } from "sonner";
@@ -18,11 +18,7 @@ const ContractorJobs = () => {
     loading, 
     error,
     refreshData
-  } = useContractorAuth();
-
-  // Filter jobs by status - the data should already be pre-filtered by the context
-  const filteredActiveJobs = activeJobs.filter(request => request.status === 'in-progress');
-  const filteredCompletedJobs = completedJobs.filter(request => request.status === 'completed');
+  } = useContractorDashboard();
 
   const handleRefresh = () => {
     refreshData();
@@ -63,16 +59,16 @@ const ContractorJobs = () => {
             <Tabs defaultValue="active">
               <TabsList className="mb-4">
                 <TabsTrigger value="active">
-                  Active Jobs ({filteredActiveJobs.length})
+                  Active Jobs ({activeJobs?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="completed">
-                  Completed ({filteredCompletedJobs.length})
+                  Completed ({completedJobs?.length || 0})
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="active">
                 <RequestsTable 
-                  requests={filteredActiveJobs} 
+                  requests={activeJobs || []} 
                   onSelectRequest={(request) => {
                     window.location.href = `/contractor-jobs/${request.id}`;
                   }}
@@ -82,7 +78,7 @@ const ContractorJobs = () => {
               
               <TabsContent value="completed">
                 <RequestsTable 
-                  requests={filteredCompletedJobs}
+                  requests={completedJobs || []}
                   onSelectRequest={(request) => {
                     window.location.href = `/contractor-jobs/${request.id}`;
                   }}
