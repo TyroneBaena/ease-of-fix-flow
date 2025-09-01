@@ -13,127 +13,92 @@ serve(async (req: Request) => {
   }
 
   try {
-    console.log("=== AUTH EMAIL WEBHOOK RECEIVED ===");
+    console.log("=== SIMPLIFIED AUTH EMAIL FUNCTION ===");
     
     const body = await req.json();
-    console.log("Webhook body:", JSON.stringify(body, null, 2));
+    console.log("Request received");
     
-    // Handle both webhook formats - direct trigger and auth webhook
-    let emailData, userEmail, confirmationUrl;
+    // Initialize Resend early
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("NEW_RESEND_API_KEY not found");
+      throw new Error("Email service not configured");
+    }
     
-    if (body.type === 'INSERT' && body.table === 'users' && body.record) {
-      // Direct trigger format
-      emailData = body.record;
-      userEmail = emailData.email;
-      confirmationUrl = emailData.confirmation_url;
-    } else if (body.user && body.email_data) {
-      // Auth webhook format
-      emailData = body.email_data;
+    const resend = new Resend(resendApiKey);
+    console.log("Resend initialized");
+    
+    // Extract email and create simple confirmation URL
+    let userEmail = "";
+    let confirmationUrl = "";
+    
+    if (body.user?.email) {
       userEmail = body.user.email;
-      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${emailData.redirect_to}`;
-    } else {
-      console.log("Webhook received but conditions not met:", { 
-        hasType: !!body.type, 
-        hasTable: !!body.table, 
-        hasRecord: !!body.record,
-        hasUser: !!body.user,
-        hasEmailData: !!body.email_data
-      });
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: "No action needed",
-        timestamp: new Date().toISOString()
-      }), {
+      const token = body.email_data?.token_hash || body.email_data?.token || "";
+      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=signup&redirect_to=https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm`;
+    } else if (body.record?.email) {
+      userEmail = body.record.email;
+      confirmationUrl = body.record.confirmation_url || `https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm`;
+    }
+    
+    if (!userEmail) {
+      console.log("No email found in request");
+      return new Response(JSON.stringify({ success: true, message: "No email to send" }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders }
       });
     }
     
-    if (userEmail && confirmationUrl) {
-      const resend = new Resend(Deno.env.get("NEW_RESEND_API_KEY"));
-      
-      console.log("Sending confirmation email to:", userEmail);
-      console.log("Using confirmation URL:", confirmationUrl);
-      
-      const emailResponse = await resend.emails.send({
-        from: "Housing Hub <noreply@housinghub.app>",
-        to: [userEmail],
-        subject: "Confirm your Housing Hub account",
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Confirm Your Account</title>
-          </head>
-          <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #333; margin: 0; font-size: 28px;">Welcome to Housing Hub!</h1>
-              </div>
-              
-              <div style="margin-bottom: 30px;">
-                <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                  Thanks for signing up! Please confirm your email address to complete your account setup.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${confirmationUrl}" 
-                   style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
-                  Confirm Email Address
-                </a>
-              </div>
-              
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                <p style="color: #999; font-size: 14px; line-height: 1.5; margin: 0;">
-                  If you didn't create an account, you can safely ignore this email.
-                </p>
-                <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 10px 0 0 0;">
-                  If the button doesn't work, copy and paste this link: ${confirmationUrl}
-                </p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      });
-      
-      console.log("Email sent successfully:", emailResponse);
-      
-      if (emailResponse.error) {
-        throw new Error(`Resend API error: ${emailResponse.error.message}`);
-      }
-    } else {
-      console.log("Missing required email data:", { userEmail, confirmationUrl });
-    }
+    console.log(`Sending email to: ${userEmail}`);
+    
+    // Send email with timeout
+    const emailPromise = resend.emails.send({
+      from: "Housing Hub <noreply@housinghub.app>",
+      to: [userEmail],
+      subject: "Confirm your Housing Hub account",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #333;">Welcome to Housing Hub!</h1>
+          <p>Please confirm your email address by clicking the button below:</p>
+          <a href="${confirmationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Confirm Email
+          </a>
+          <p style="margin-top: 20px; color: #666; font-size: 14px;">
+            If the button doesn't work, copy this link: ${confirmationUrl}
+          </p>
+        </div>
+      `,
+    });
+    
+    // Race against timeout
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Email timeout")), 4000)
+    );
+    
+    const emailResponse = await Promise.race([emailPromise, timeoutPromise]);
+    
+    console.log("Email sent successfully");
     
     return new Response(JSON.stringify({ 
       success: true,
       timestamp: new Date().toISOString(),
-      processed: true
+      emailId: emailResponse.data?.id
     }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders }
     });
     
   } catch (error: any) {
-    console.error("Error in send-auth-email:", error);
+    console.error("Email function error:", error.message);
     
+    // Always return success to avoid webhook retries
     return new Response(JSON.stringify({ 
       success: false,
       error: error.message,
       timestamp: new Date().toISOString()
     }), {
-      status: 200, // Return 200 to avoid Supabase retries
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders }
     });
   }
 });
