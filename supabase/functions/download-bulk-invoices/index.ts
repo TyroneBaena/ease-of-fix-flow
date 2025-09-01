@@ -250,7 +250,8 @@ serve(async (req) => {
 
         } catch (error) {
           console.error(`Error processing invoice ${invoice.invoice_number}:`, error);
-          errors.push(`${invoice.invoice_number}: ${error.message}`);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          errors.push(`${invoice.invoice_number}: ${errorMessage}`);
           errorCount++;
         }
       }
