@@ -190,14 +190,16 @@ serve(async (req) => {
           const contractor = contractors?.find(c => c.id === invoice.contractor_id);
           
           // Download the invoice file from Supabase Storage
-          // Extract the file path - handle both full URLs and relative paths
+          // Extract the file path from the full URL
           let filePath = invoice.invoice_file_url;
-          if (filePath.includes('/storage/v1/object/invoices/')) {
+          
+          // Handle full storage URLs - extract everything after 'public/invoices/'
+          if (filePath.includes('/storage/v1/object/public/invoices/')) {
+            filePath = filePath.split('/storage/v1/object/public/invoices/')[1];
+          } else if (filePath.includes('/storage/v1/object/invoices/')) {
             filePath = filePath.split('/storage/v1/object/invoices/')[1];
           } else if (filePath.startsWith('invoices/')) {
             filePath = filePath.replace('invoices/', '');
-          } else if (filePath.includes('/')) {
-            filePath = filePath.split('/').pop() || '';
           }
           
           console.log(`Downloading file: ${filePath} for invoice: ${invoice.invoice_number}`);
