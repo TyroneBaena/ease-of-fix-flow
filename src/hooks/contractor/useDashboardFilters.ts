@@ -49,13 +49,12 @@ export const useDashboardFilters = ({
     });
   }, [activeJobs]);
 
-  // Filter completed jobs to only show jobs that are completed and had quotes
+  // Filter completed jobs to show all completed jobs (consistent with Jobs tab)
   const filteredCompletedJobs = useMemo(() => {
-    return completedJobs.filter(request => {
-      const hasQuote = request.quotedAmount || 
-                      (request.quote && typeof request.quote !== 'string' && request.quote.amount);
-      return hasQuote && request.status === 'completed';
-    });
+    console.log('Dashboard Filters - Raw completed jobs:', completedJobs.length);
+    const filtered = completedJobs.filter(request => request.status === 'completed');
+    console.log('Dashboard Filters - Filtered completed jobs:', filtered.length);
+    return filtered;
   }, [completedJobs]);
 
   console.log('Dashboard Filters - Final Results:');
