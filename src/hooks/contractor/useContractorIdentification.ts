@@ -68,6 +68,7 @@ export const useContractorIdentification = () => {
             totalProfiles: data.length,
             userId: currentUser.id
           });
+          console.log('useContractorIdentification - Setting contractor ID to:', contractor.id);
           toast.success(`Welcome, ${contractor.contact_name}! Profile loaded successfully.`);
         } else {
           console.log('useContractorIdentification - No contractor profile found for user:', currentUser.id);
