@@ -1,10 +1,9 @@
-
 project_id = "ltjlswzrdgtoddyqmydo"
 
 [auth]
 enabled = true
 site_url = "https://ltjlswzrdgtoddyqmydo.supabase.co"
-additional_redirect_urls = ["http://localhost:3000", "https://ltjlswzrdgtoddyqmydo.supabase.co"]
+additional_redirect_urls = ["https://ltjlswzrdgtoddyqmydo.supabase.co", "http://localhost:3000"]
 jwt_expiry = 3600
 
 [database]
@@ -30,7 +29,6 @@ verify_jwt = false
 
 [functions.debug-env]
 verify_jwt = false
-
 
 [functions.send-auth-email]
 verify_jwt = false

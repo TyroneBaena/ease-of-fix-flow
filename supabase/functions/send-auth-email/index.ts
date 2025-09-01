@@ -26,14 +26,18 @@ serve(async (req: Request) => {
       
       const { email, email_confirm_token, confirmation_url } = record;
       
-      console.log("Processing signup confirmation for:", email);
-      console.log("Using confirmation URL from trigger:", confirmation_url);
+      // Use the confirmation URL from the trigger if provided, or build one
+      let emailConfirmationUrl = confirmation_url;
+      if (!emailConfirmationUrl && email_confirm_token) {
+        emailConfirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${email_confirm_token}&type=signup&redirect_to=${encodeURIComponent('https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm')}`;
+      }
       
-      // Use the confirmation URL provided by the trigger, or fallback to constructing one
-      const finalConfirmationUrl = confirmation_url || 
-        `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${email_confirm_token}&type=signup&redirect_to=${encodeURIComponent('https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm')}`;
+      console.log("Sending confirmation email to:", email);
+      console.log("Using confirmation URL:", emailConfirmationUrl);
       
-      console.log("Final confirmation URL:", finalConfirmationUrl);
+      if (!email || !emailConfirmationUrl) {
+        throw new Error(`Missing required fields: email=${!!email}, confirmationUrl=${!!emailConfirmationUrl}`);
+      }
       
       const emailResponse = await resend.emails.send({
         from: "Housing Hub <noreply@housinghub.app>",
@@ -55,12 +59,12 @@ serve(async (req: Request) => {
               
               <div style="margin-bottom: 30px;">
                 <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                  Thanks for signing up! Please confirm your email address to complete your account setup and choose your subscription plan.
+                  Thanks for signing up! Please confirm your email address to complete your account setup.
                 </p>
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${finalConfirmationUrl}" 
+                <a href="${emailConfirmationUrl}" 
                    style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
                   Confirm Email Address
                 </a>
@@ -71,7 +75,7 @@ serve(async (req: Request) => {
                   If you didn't create an account, you can safely ignore this email.
                 </p>
                 <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 10px 0 0 0;">
-                  This link will expire for security purposes. If you need a new one, please try signing up again.
+                  If the button doesn't work, copy and paste this link: ${emailConfirmationUrl}
                 </p>
               </div>
             </div>
@@ -82,41 +86,17 @@ serve(async (req: Request) => {
       
       console.log("Email sent successfully:", emailResponse);
       
-      // Return success with details
-      return new Response(JSON.stringify({ 
-        success: true,
-        timestamp: new Date().toISOString(),
-        processed: true,
-        email_sent_to: email,
-        resend_response: emailResponse
-      }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      });
+      if (emailResponse.error) {
+        throw new Error(`Resend API error: ${emailResponse.error.message}`);
+      }
     } else {
-      console.log("Event not processed - not a user INSERT:", { type, table });
-      return new Response(JSON.stringify({ 
-        success: true,
-        timestamp: new Date().toISOString(),
-        processed: false,
-        reason: "Not a user signup event"
-      }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      });
+      console.log("Webhook received but conditions not met:", { type, table, hasRecord: !!record });
     }
     
     return new Response(JSON.stringify({ 
       success: true,
       timestamp: new Date().toISOString(),
-      processed: false,
-      reason: "No matching event type"
+      processed: true
     }), {
       status: 200,
       headers: {
