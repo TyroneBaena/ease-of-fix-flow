@@ -68,6 +68,7 @@ useEffect(() => {
     try {
       setIsLoading(true);
       console.log(`Signing up with email: ${email}`);
+      console.log(`Redirect URL will be: ${window.location.origin}/email-confirm`);
       
       // Sign up the user
 const { data, error: signUpError } = await supabase.auth.signUp({
@@ -82,6 +83,8 @@ const { data, error: signUpError } = await supabase.auth.signUp({
     }
   }
 });
+      
+      console.log('Signup response:', { data, error: signUpError });
       
       if (signUpError) {
         throw signUpError;
