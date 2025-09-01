@@ -23,12 +23,8 @@ export const useContractorIdentification = () => {
 
     const fetchContractorId = async () => {
       try {
-        // Prevent concurrent requests
-        if (loading) {
-          console.log('useContractorIdentification - Already loading, skipping');
-          return;
-        }
-
+        console.log('useContractorIdentification - fetchContractorId called, current loading state:', loading);
+        
         setLoading(true);
         setError(null);
         
@@ -41,10 +37,13 @@ export const useContractorIdentification = () => {
         }
         
         // Query contractor profile with enhanced handling for duplicates
+        console.log('useContractorIdentification - About to query contractors table with user_id:', currentUser.id);
         const { data, error, count } = await supabase
           .from('contractors')
           .select('id, company_name, contact_name', { count: 'exact' })
           .eq('user_id', currentUser.id);
+
+        console.log('useContractorIdentification - Query result:', { data, error, count });
 
         if (error) {
           console.error('useContractorIdentification - Database error fetching contractor ID:', error);
@@ -54,6 +53,7 @@ export const useContractorIdentification = () => {
         if (data && data.length > 0) {
           // Handle multiple contractors by taking the first one
           const contractor = data[0];
+          console.log('useContractorIdentification - Found contractor, setting ID to:', contractor.id);
           setContractorId(contractor.id);
           
           if (data.length > 1) {
