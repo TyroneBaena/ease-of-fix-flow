@@ -105,7 +105,7 @@ useEffect(() => {
         // Check if user needs email confirmation
         if (!data.user.email_confirmed_at) {
           toast.success("Account created! Please check your email for a confirmation link.");
-          setError("Please check your email and click the confirmation link to complete your registration.");
+          setError("Please check your email and click the confirmation link to complete your registration. After confirming, you'll be able to choose your subscription plan.");
         } else {
           // User is immediately confirmed (email confirmation disabled in Supabase)
           toast.success("Account created successfully! You can now choose your plan.");

@@ -18,16 +18,22 @@ serve(async (req: Request) => {
     const body = await req.json();
     console.log("Webhook body:", JSON.stringify(body, null, 2));
     
-    const { type, table, record, old_record } = body;
+    const { type, table, record } = body;
     
     // Handle email confirmation events
     if (type === 'INSERT' && table === 'users' && record) {
       const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
       
-      const { email, email_confirm_token } = record;
-      const confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${email_confirm_token}&type=signup&redirect_to=${encodeURIComponent('https://ltjlswzrdgtoddyqmydo.supabase.co/')}`;
+      const { email, email_confirm_token, confirmation_url } = record;
       
-      console.log("Sending confirmation email to:", email);
+      console.log("Processing signup confirmation for:", email);
+      console.log("Using confirmation URL from trigger:", confirmation_url);
+      
+      // Use the confirmation URL provided by the trigger, or fallback to constructing one
+      const finalConfirmationUrl = confirmation_url || 
+        `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${email_confirm_token}&type=signup&redirect_to=${encodeURIComponent('https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm')}`;
+      
+      console.log("Final confirmation URL:", finalConfirmationUrl);
       
       const emailResponse = await resend.emails.send({
         from: "Housing Hub <noreply@housinghub.app>",
@@ -49,12 +55,12 @@ serve(async (req: Request) => {
               
               <div style="margin-bottom: 30px;">
                 <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                  Thanks for signing up! Please confirm your email address to complete your account setup.
+                  Thanks for signing up! Please confirm your email address to complete your account setup and choose your subscription plan.
                 </p>
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${confirmationUrl}" 
+                <a href="${finalConfirmationUrl}" 
                    style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
                   Confirm Email Address
                 </a>
@@ -64,6 +70,9 @@ serve(async (req: Request) => {
                 <p style="color: #999; font-size: 14px; line-height: 1.5; margin: 0;">
                   If you didn't create an account, you can safely ignore this email.
                 </p>
+                <p style="color: #999; font-size: 12px; line-height: 1.5; margin: 10px 0 0 0;">
+                  This link will expire for security purposes. If you need a new one, please try signing up again.
+                </p>
               </div>
             </div>
           </body>
@@ -72,12 +81,42 @@ serve(async (req: Request) => {
       });
       
       console.log("Email sent successfully:", emailResponse);
+      
+      // Return success with details
+      return new Response(JSON.stringify({ 
+        success: true,
+        timestamp: new Date().toISOString(),
+        processed: true,
+        email_sent_to: email,
+        resend_response: emailResponse
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    } else {
+      console.log("Event not processed - not a user INSERT:", { type, table });
+      return new Response(JSON.stringify({ 
+        success: true,
+        timestamp: new Date().toISOString(),
+        processed: false,
+        reason: "Not a user signup event"
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
     }
     
     return new Response(JSON.stringify({ 
       success: true,
       timestamp: new Date().toISOString(),
-      processed: true
+      processed: false,
+      reason: "No matching event type"
     }), {
       status: 200,
       headers: {
