@@ -1,49 +1,54 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 const handler = async (req: Request): Promise<Response> => {
-  console.log("=== MINIMAL TEST FUNCTION CALLED ===");
+  console.log("🚀 WEBHOOK CALLED!");
   console.log("Method:", req.method);
+  console.log("URL:", req.url);
   console.log("Headers:", Object.fromEntries(req.headers.entries()));
   
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("CORS preflight - returning success");
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*",
+      },
+    });
   }
 
   try {
     const body = await req.text();
-    console.log("Request body length:", body.length);
-    console.log("Request body preview:", body.substring(0, 200));
+    console.log("Body length:", body.length);
+    console.log("Body preview:", body.substring(0, 500));
     
-    // Just return success immediately - no email sending
-    console.log("Returning immediate success");
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: "Webhook received successfully",
-      timestamp: new Date().toISOString()
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-    
-  } catch (error: any) {
-    console.error("Error in test function:", error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    // Return success immediately
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        received: true,
+        timestamp: new Date().toISOString()
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("❌ Error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 200, // Return 200 even on error to avoid Supabase retry
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
   }
 };
 
