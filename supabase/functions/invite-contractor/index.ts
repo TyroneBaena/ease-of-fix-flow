@@ -192,9 +192,9 @@ serve(async (req: Request) => {
           <p>Best regards,<br>Property Manager Team</p>
         `;
 
-        // Determine email recipient (test mode vs production)
-        const emailRecipient = normalizedEmail.includes('@example.com') || normalizedEmail === ownerEmail ? normalizedEmail : ownerEmail;
-        const isTestMode = emailRecipient !== normalizedEmail;
+        // Send email directly to contractor since domain is verified
+        const emailRecipient = normalizedEmail;
+        const isTestMode = false;
         
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: 'Property Manager <noreply@housinghub.app>',
