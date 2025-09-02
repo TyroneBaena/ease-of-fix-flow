@@ -56,7 +56,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
 
   const handleConfirm = async () => {
     if (!landlordEmail.trim()) {
-      alert('Please enter a landlord email address');
+      toast.error('Please enter a landlord email address');
       return;
     }
 
@@ -69,7 +69,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       // Send landlord report email
       const { data, error } = await supabase.functions.invoke('send-landlord-report', {
         body: {
-          request_id: request?.id,
+          request_id: request.id,
           landlord_email: landlordEmail.trim(),
           options: reportOptions
         }
@@ -87,18 +87,33 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       // Call the original onConfirm with the report options
       await onConfirm(notes, landlordEmail, reportOptions);
       
+      // Reset form state
       setNotes('');
       setLandlordEmail('');
+      setReportOptions({
+        summary: true,
+        property: true,
+        issue: true,
+        photos: true,
+        practiceLeader: false
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error('Failed to send email to landlord');
+      toast.error('Failed to send email to landlord. Please try again.');
     }
   };
 
   const handleCancel = () => {
     setNotes('');
     setLandlordEmail('');
+    setReportOptions({
+      summary: true,
+      property: true,
+      issue: true,
+      photos: true,
+      practiceLeader: false
+    });
     onOpenChange(false);
   };
 

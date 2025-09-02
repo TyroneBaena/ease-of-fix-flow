@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { MaintenanceRequest } from '@/types/maintenance';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -21,23 +23,42 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
   const contentRef = useRef<HTMLDivElement>(null);
   const [property, setProperty] = useState<{ name: string; address: string; practice_leader?: string; practice_leader_email?: string; practice_leader_phone?: string } | null>(null);
   const [isEmailingSent, setIsEmailingSent] = useState(false);
+  const [landlordEmail, setLandlordEmail] = useState('');
 
   useEffect(() => {
     const loadProperty = async () => {
       try {
+        // Fix property ID access - use propertyId consistently with MaintenanceRequest type
         const propertyId = (request as any).propertyId || (request as any).property_id;
-        if (!propertyId) return;
+        if (!propertyId) {
+          console.warn('No property ID found in request');
+          return;
+        }
         const { data, error } = await supabase
           .from('properties')
           .select('name, address, practice_leader, practice_leader_email, practice_leader_phone')
           .eq('id', propertyId)
           .single();
-        if (!error) setProperty(data as any);
+        if (!error && data) {
+          setProperty(data as any);
+          // Set default email when property loads
+          const defaultEmail = data.practice_leader_email || '';
+          setLandlordEmail(defaultEmail);
+        } else {
+          console.warn('Failed to load property:', error);
+        }
       } catch (e) {
-        console.warn('Failed to load property for report', e);
+        console.error('Error loading property for report:', e);
+        toast.error('Failed to load property information');
       }
     };
-    if (open) loadProperty();
+    if (open) {
+      loadProperty();
+    } else {
+      // Reset state when dialog closes
+      setProperty(null);
+      setLandlordEmail('');
+    }
   }, [open, request]);
 
   const handleDownload = async () => {
@@ -69,22 +90,40 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
   };
 
   const handleEmailToLandlord = async () => {
+    // Validate email input
+    if (!landlordEmail.trim()) {
+      toast.error('Please enter a landlord email address');
+      return;
+    }
+
+    if (!request.id) {
+      toast.error('Invalid request - missing ID');
+      return;
+    }
+
     setIsEmailingSent(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-landlord-report', {
         body: {
           request_id: request.id,
+          landlord_email: landlordEmail.trim(),
           options: options
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
-      toast.success(`Report emailed to landlord successfully`);
+      toast.success('Report emailed to landlord successfully');
       console.log('Email sent successfully:', data);
+      
+      // Close dialog on success
+      onOpenChange(false);
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error('Failed to send email to landlord');
+      toast.error('Failed to send email to landlord. Please try again.');
     } finally {
       setIsEmailingSent(false);
     }
@@ -98,10 +137,27 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
         <DialogHeader>
           <DialogTitle>Request Report Preview</DialogTitle>
           <DialogDescription>
-            Review the report tailored to this request. You can download it as a PDF.
+            Review the report tailored to this request. You can download it as a PDF or email it to the landlord.
           </DialogDescription>
         </DialogHeader>
 
+        {/* Email Input Section */}
+        <div className="space-y-2 border-b pb-4">
+          <Label htmlFor="landlord-email">Landlord Email Address</Label>
+          <Input
+            id="landlord-email"
+            type="email"
+            placeholder="Enter landlord's email address"
+            value={landlordEmail}
+            onChange={(e) => setLandlordEmail(e.target.value)}
+            disabled={isEmailingSent}
+          />
+          {property?.practice_leader_email && (
+            <p className="text-xs text-muted-foreground">
+              Default: {property.practice_leader_email}
+            </p>
+          )}
+        </div>
 
         <div ref={contentRef} className="space-y-4">
           {options.summary && (
@@ -181,15 +237,19 @@ export const LandlordReportDialog: React.FC<LandlordReportDialogProps> = ({ open
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isEmailingSent}>
+            Close
+          </Button>
           <Button 
             variant="outline" 
             onClick={handleEmailToLandlord}
-            disabled={isEmailingSent}
+            disabled={isEmailingSent || !landlordEmail.trim()}
           >
             {isEmailingSent ? 'Sending...' : 'Email to Landlord'}
           </Button>
-          <Button onClick={handleDownload}>Download PDF</Button>
+          <Button onClick={handleDownload} disabled={isEmailingSent}>
+            Download PDF
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

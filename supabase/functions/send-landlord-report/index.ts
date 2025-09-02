@@ -106,12 +106,12 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Property data:", JSON.stringify(request.properties, null, 2));
 
     // Use provided email first, then fallback to database lookup
-    let landlordEmail = providedEmail;
+    let landlordEmail = providedEmail?.trim();
     
     if (!landlordEmail) {
       console.log("No email provided, looking for landlord email in database...");
       console.log("Landlord data:", landlordData);
-      console.log("Practice leader email:", request.properties.practice_leader_email);
+      console.log("Practice leader email:", request.properties?.practice_leader_email);
       
       // First try the landlord relationship
       if (landlordData?.email) {
@@ -119,7 +119,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("Found landlord email:", landlordEmail);
       }
       // Fallback to practice leader email
-      else if (request.properties.practice_leader_email) {
+      else if (request.properties?.practice_leader_email) {
         landlordEmail = request.properties.practice_leader_email;
         console.log("Using practice leader email:", landlordEmail);
       }
@@ -130,7 +130,22 @@ const handler = async (req: Request): Promise<Response> => {
     if (!landlordEmail) {
       console.error("No landlord email found for property");
       return new Response(
-        JSON.stringify({ error: "No landlord email found for this property. Please add a landlord or practice leader email." }),
+        JSON.stringify({ 
+          error: "No landlord email found for this property. Please provide an email address or add a landlord/practice leader email to the property." 
+        }),
+        { 
+          status: 400, 
+          headers: { "Content-Type": "application/json", ...corsHeaders } 
+        }
+      );
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(landlordEmail)) {
+      console.error("Invalid email format:", landlordEmail);
+      return new Response(
+        JSON.stringify({ error: "Invalid email address format" }),
         { 
           status: 400, 
           headers: { "Content-Type": "application/json", ...corsHeaders } 
