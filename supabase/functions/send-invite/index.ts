@@ -121,8 +121,9 @@ serve(async (req: Request) => {
       isNewUser: true
     });
 
-    const emailRecipient = normalizedEmail === ownerEmail ? normalizedEmail : ownerEmail;
-    const isTestMode = normalizedEmail !== ownerEmail;
+    // Send email directly to the invited user (Pro account - no test mode restrictions)
+    const emailRecipient = normalizedEmail;
+    const isTestMode = false;
     
     const emailData = await sendInvitationEmail(
       resendApiKey,
