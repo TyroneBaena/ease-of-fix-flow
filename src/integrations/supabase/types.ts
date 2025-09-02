@@ -1064,10 +1064,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_tenant_schema: {
-        Args: { new_user_id: string; schema_prefix?: string }
-        Returns: string
-      }
       get_contractor_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1096,10 +1092,6 @@ export type Database = {
         }[]
       }
       get_user_role_for_maintenance: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_user_schema: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
@@ -1134,10 +1126,6 @@ export type Database = {
       }
       test_logging: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      use_tenant_schema: {
-        Args: { operation: string }
         Returns: undefined
       }
       user_has_property_access: {
