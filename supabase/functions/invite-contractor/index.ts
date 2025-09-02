@@ -142,6 +142,27 @@ serve(async (req: Request) => {
       console.log("Auth user created successfully:", authUserId);
     }
 
+    // Get the current user's organization_id from the Authorization header
+    const authHeader = req.headers.get('Authorization');
+    let currentUserOrgId = null;
+    
+    if (authHeader) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabaseClient.auth.getUser(token);
+        if (user) {
+          const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
+          currentUserOrgId = profile?.organization_id;
+        }
+      } catch (error) {
+        console.warn("Could not get current user's organization:", error);
+      }
+    }
+
     // Create contractor profile
     const { data: contractorData, error: contractorError } = await supabaseClient
       .from('contractors')
@@ -152,7 +173,8 @@ serve(async (req: Request) => {
         email: normalizedEmail,
         phone: body.phone,
         address: body.address || null,
-        specialties: body.specialties || []
+        specialties: body.specialties || [],
+        organization_id: currentUserOrgId
       })
       .select()
       .single();
