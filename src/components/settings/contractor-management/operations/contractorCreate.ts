@@ -40,14 +40,18 @@ export const createContractor = async (newContractor: Partial<Contractor>) => {
     }
     
     if (data?.success) {
-      toast.success(`Invitation sent to ${newContractor.email}`);
+      // Always show success message for contractor creation
+      toast.success(`Contractor created successfully`);
       
-      if (data.testMode) {
-        toast.info('Note: Email was sent in test mode');
-      }
-      
-      if (!data.emailSent && data.emailError) {
-        toast.warning(`Contractor created but email failed: ${data.emailError}`);
+      // Handle email status separately
+      if (data.emailSent) {
+        if (data.testMode) {
+          toast.info('Note: Invitation email sent to admin email (test mode). To send emails directly to contractors, verify your domain at resend.com/domains');
+        } else {
+          toast.success(`Invitation email sent to ${newContractor.email}`);
+        }
+      } else {
+        toast.warning(`Contractor created but email failed: ${data.emailError || 'Email service not configured'}`);
       }
       
       return true;

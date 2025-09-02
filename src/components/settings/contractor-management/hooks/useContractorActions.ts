@@ -22,14 +22,19 @@ export const useContractorActions = (
     try {
       setLoading(true);
       
+      let success = false;
       if (isEditMode && selectedContractor) {
-        await updateContractor(selectedContractor, newContractor);
+        success = await updateContractor(selectedContractor, newContractor);
       } else {
-        await createContractor(newContractor);
+        success = await createContractor(newContractor);
       }
       
-      await fetchContractors();
-      return true;
+      if (success) {
+        // Force refresh the contractors list
+        await fetchContractors();
+        return true;
+      }
+      return false;
     } catch (err) {
       console.error('Error saving contractor:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save contractor');
