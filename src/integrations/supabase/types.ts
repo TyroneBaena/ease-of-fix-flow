@@ -1145,6 +1145,17 @@ export type Database = {
         Args: { property_uuid: string }
         Returns: boolean
       }
+      verify_multi_tenancy_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          has_rls_policy: boolean
+          health_status: string
+          records_missing_org_id: number
+          records_with_org_id: number
+          table_name: string
+          total_records: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
