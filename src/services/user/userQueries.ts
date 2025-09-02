@@ -19,6 +19,7 @@ export async function fetchAllUsers(): Promise<User[]> {
     email: profile.email || '',
     role: profile.role as UserRole || 'manager',
     assignedProperties: profile.assigned_properties || [],
+    organization_id: profile.organization_id || undefined,
     createdAt: profile.created_at || ''
   }));
 }

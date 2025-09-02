@@ -4,12 +4,26 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useUserContext } from '@/contexts/UserContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { userService } from '@/services/userService';
 
 const DebugAuthStatus = () => {
   const [dbAuthStatus, setDbAuthStatus] = useState<any>(null);
   const [manualSessionCheck, setManualSessionCheck] = useState<any>(null);
+  const [userFetchTest, setUserFetchTest] = useState<any>(null);
   const { currentUser, session, loading } = useSupabaseAuth();
-  const { currentUser: contextUser, isAdmin, loading: contextLoading } = useUserContext();
+  const { currentUser: contextUser, isAdmin, loading: contextLoading, users } = useUserContext();
+
+  const testUserFetching = async () => {
+    try {
+      console.log('🧪 Testing user fetching...');
+      const users = await userService.getAllUsers();
+      console.log('🧪 User fetch result:', users);
+      setUserFetchTest({ success: true, users, count: users.length });
+    } catch (error) {
+      console.error('🧪 User fetch failed:', error);
+      setUserFetchTest({ success: false, error: error.message });
+    }
+  };
 
   const checkDatabaseAuth = async () => {
     try {
@@ -27,6 +41,11 @@ const DebugAuthStatus = () => {
       console.error('Database auth check failed:', error);
       setDbAuthStatus({ error: error.message });
     }
+  };
+
+  const forceFullRefresh = () => {
+    console.log('🔄 Forcing full page refresh to update state');
+    window.location.reload();
   };
 
   const forceSessionRefresh = async () => {
@@ -54,6 +73,7 @@ const DebugAuthStatus = () => {
   useEffect(() => {
     checkDatabaseAuth();
     checkCurrentSession();
+    testUserFetching();
   }, []);
 
   return (
@@ -85,13 +105,22 @@ const DebugAuthStatus = () => {
                 currentUser: contextUser ? {
                   id: contextUser.id,
                   email: contextUser.email,
-                  role: contextUser.role
+                  role: contextUser.role,
+                  organization_id: contextUser.organization_id
                 } : null,
                 isAdmin,
-                loading: contextLoading
+                loading: contextLoading,
+                usersCount: users?.length || 0
               }, null, 2)}
             </pre>
           </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold">User Fetch Test:</h3>
+          <pre className="text-xs bg-gray-100 p-2 rounded">
+            {JSON.stringify(userFetchTest, null, 2)}
+          </pre>
         </div>
 
         <div>
@@ -108,7 +137,7 @@ const DebugAuthStatus = () => {
           </pre>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={checkDatabaseAuth} variant="outline" size="sm">
             Recheck DB Auth
           </Button>
@@ -117,6 +146,12 @@ const DebugAuthStatus = () => {
           </Button>
           <Button onClick={forceSessionRefresh} variant="outline" size="sm">
             Force Refresh
+          </Button>
+          <Button onClick={testUserFetching} variant="outline" size="sm">
+            Test User Fetch
+          </Button>
+          <Button onClick={forceFullRefresh} variant="destructive" size="sm">
+            🔄 Full Refresh
           </Button>
         </div>
       </CardContent>

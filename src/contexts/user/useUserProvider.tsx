@@ -50,27 +50,42 @@ export const useUserProvider = () => {
   const fetchUsers = useCallback(async () => {
     // Prevent concurrent fetches and only allow admins and managers
     if (fetchInProgress.current || !canFetchUsers) {
-      console.log("Fetch skipped: already in progress or not admin/manager");
+      console.log("👥 Fetch skipped: already in progress or not admin/manager", {
+        fetchInProgress: fetchInProgress.current,
+        canFetchUsers,
+        currentUserRole: currentUser?.role
+      });
       return;
     }
 
     try {
-      console.log("Starting user fetch");
+      console.log("👥 Starting user fetch for role:", currentUser?.role);
       fetchInProgress.current = true;
       setLoading(true);
       const allUsers = await userService.getAllUsers();
-      console.log("Fetched users:", allUsers);
+      console.log("👥 Fetched users successfully:", {
+        count: allUsers.length,
+        users: allUsers.map(u => ({ id: u.id, email: u.email, role: u.role }))
+      });
       setUsers(allUsers);
       setLoadingError(null);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('❌ Error fetching users:', error);
       setLoadingError(error as Error);
-      toast.error("Failed to load users");
+      
+      // More specific error messages
+      if (error.message?.includes('0 rows')) {
+        toast.error("No users found - this may be an authentication issue");
+      } else if (error.message?.includes('406')) {
+        toast.error("Access denied - please check your role and organization");
+      } else {
+        toast.error(`Failed to load users: ${error.message}`);
+      }
     } finally {
       setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [canFetchUsers]);
+  }, [canFetchUsers, currentUser?.role]);
 
   // Only fetch users when the component mounts and user is admin or manager
   useEffect(() => {
