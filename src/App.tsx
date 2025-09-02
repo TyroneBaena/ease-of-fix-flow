@@ -180,9 +180,11 @@ function App() {
             
             <Route path="/contractor-jobs/:id" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorJobDetail />
-                </ContractorProvider>
+                <MaintenanceRequestProvider>
+                  <ContractorProvider>
+                    <ContractorJobDetail />
+                  </ContractorProvider>
+                </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
             
@@ -220,9 +222,11 @@ function App() {
             
             <Route path="/contractor/quote-submission/:id" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <QuoteSubmission />
-                </ContractorProvider>
+                <MaintenanceRequestProvider>
+                  <ContractorProvider>
+                    <QuoteSubmission />
+                  </ContractorProvider>
+                </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
 
