@@ -170,11 +170,18 @@ export const useSupabaseAuth = () => {
       throw new Error("No user is currently logged in");
     }
     
+    console.log("🔑 useSupabaseAuth: Updating user role", {
+      userId: currentUser.id,
+      currentRole: currentUser.role,
+      newRole: role
+    });
+    
     setLoading(true);
     try {
       await updateUserRole(currentUser.id, role);
       // Update the role locally since the function doesn't return a user
       setCurrentUser(prev => prev ? { ...prev, role } : null);
+      console.log("✅ useSupabaseAuth: Role updated successfully");
     } finally {
       setLoading(false);
     }

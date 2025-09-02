@@ -12,18 +12,30 @@ const AdminRoleUpdater = () => {
   const handleMakeAdmin = async () => {
     try {
       setIsLoading(true);
-      console.log("Making user admin:", currentUser?.id);
-      await updateUserRole('admin');
-      console.log("Successfully updated role to admin");
-      toast.success("You are now an admin! Please refresh the page to see new admin options.");
+      console.log("🔑 AdminRoleUpdater: Making user admin", {
+        currentUser: currentUser ? {
+          id: currentUser.id,
+          email: currentUser.email,
+          role: currentUser.role
+        } : null
+      });
       
-      // Force a page refresh after 2 seconds
+      if (!currentUser) {
+        throw new Error("No current user found");
+      }
+      
+      await updateUserRole('admin');
+      console.log("✅ AdminRoleUpdater: Successfully updated role to admin");
+      toast.success("You are now an admin! Refreshing page...");
+      
+      // Force a page refresh after 1 second
       setTimeout(() => {
+        console.log("🔄 AdminRoleUpdater: Refreshing page");
         window.location.reload();
-      }, 2000);
+      }, 1000);
     } catch (error) {
-      console.error("Error making user admin:", error);
-      toast.error("Failed to update role. Please try again.");
+      console.error("❌ AdminRoleUpdater: Error making user admin:", error);
+      toast.error(`Failed to update role: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

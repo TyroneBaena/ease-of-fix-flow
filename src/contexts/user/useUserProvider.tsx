@@ -31,6 +31,22 @@ export const useUserProvider = () => {
   );
   const fetchInProgress = useRef(false);
 
+  // Debug logging for auth state
+  useEffect(() => {
+    console.log('👤 UserProvider: Auth state changed', {
+      currentUser: currentUser ? {
+        id: currentUser.id,
+        email: currentUser.email,
+        role: currentUser.role,
+        organization_id: currentUser.organization_id
+      } : null,
+      session: session ? 'exists' : 'null',
+      authLoading,
+      isAdmin,
+      canFetchUsers
+    });
+  }, [currentUser, session, authLoading, isAdmin, canFetchUsers]);
+
   const fetchUsers = useCallback(async () => {
     // Prevent concurrent fetches and only allow admins and managers
     if (fetchInProgress.current || !canFetchUsers) {

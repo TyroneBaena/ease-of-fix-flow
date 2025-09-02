@@ -13,6 +13,7 @@ import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
 import DevToolsPanel from '@/components/DevToolsPanel';
+import DebugAuthStatus from '@/components/DebugAuthStatus';
 
 const Settings = () => {
   const { currentUser, isAdmin, loading } = useUserContext();
@@ -91,6 +92,7 @@ const Settings = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
         
+        <DebugAuthStatus />
         <DevToolsPanel />
         
         <Tabs defaultValue={isAdmin ? "users" : "account"}>
