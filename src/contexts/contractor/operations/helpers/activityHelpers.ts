@@ -20,7 +20,9 @@ export const logActivity = async (data: ActivityLogData) => {
       description: data.description,
       actor_name: data.actorName,
       actor_role: data.actorRole,
-      metadata: data.metadata
+      metadata: data.metadata,
+      // Temporary dummy value - will be set by trigger
+      organization_id: '00000000-0000-0000-0000-000000000000'
     };
 
     console.log('logActivity - Activity record to insert:', activityRecord);

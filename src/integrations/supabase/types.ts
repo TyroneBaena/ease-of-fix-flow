@@ -23,7 +23,7 @@ export type Database = {
           description: string
           id: string
           metadata: Json | null
-          organization_id: string | null
+          organization_id: string
           request_id: string
         }
         Insert: {
@@ -34,7 +34,7 @@ export type Database = {
           description: string
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
+          organization_id: string
           request_id: string
         }
         Update: {
@@ -45,7 +45,7 @@ export type Database = {
           description?: string
           id?: string
           metadata?: Json | null
-          organization_id?: string | null
+          organization_id?: string
           request_id?: string
         }
         Relationships: [
