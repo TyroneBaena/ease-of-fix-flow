@@ -27,6 +27,8 @@ export async function sendInvitationEmail(
     const resend = new Resend(resendApiKey);
     console.log("Attempting to send email...");
     console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
+    console.log("API Key length:", resendApiKey.length);
+    console.log("API Key prefix:", resendApiKey.substring(0, 10) + "...");
     
     const { data, error } = await resend.emails.send({
       from: 'Property Manager <onboarding@resend.dev>',
@@ -39,6 +41,8 @@ export async function sendInvitationEmail(
 
     if (error) {
       console.error("Error sending email via Resend:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error string:", JSON.stringify(error));
       throw error;
     }
     
@@ -46,6 +50,10 @@ export async function sendInvitationEmail(
     return data;
   } catch (error) {
     console.error("Failed to send email:", error);
-    throw new Error(`Email sending failed: ${error.message || 'Unknown error'}`);
+    console.error("Error type:", typeof error);
+    console.error("Error message:", error?.message);
+    console.error("Error name:", error?.name);
+    console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    throw new Error(`Email sending failed: ${error?.message || error?.toString() || 'Unknown error'}`);
   }
 }
