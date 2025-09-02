@@ -151,8 +151,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Request Summary
     if (options.summary) {
       emailContent += `
-        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #555; margin-top: 0;">Request Summary</h2>
+        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f8f9fa;">
+          <h2 style="color: #555; margin-top: 0; background-color: #e9ecef; padding: 10px; border-radius: 3px; margin-bottom: 15px;">Request Summary</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div><strong>Request ID:</strong> ${request.id}</div>
             <div><strong>Created:</strong> ${new Date(request.created_at).toLocaleDateString()}</div>
@@ -171,14 +171,14 @@ const handler = async (req: Request): Promise<Response> => {
     // Property Details
     if (options.property) {
       emailContent += `
-        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #555; margin-top: 0;">Property Details</h2>
-          <div><strong>Name:</strong> ${request.properties.name || 'N/A'}</div>
-          <div><strong>Address:</strong> ${request.properties.address || 'N/A'}</div>
+        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #fff8e1;">
+          <h2 style="color: #555; margin-top: 0; background-color: #ffecb3; padding: 10px; border-radius: 3px; margin-bottom: 15px;">Property Details</h2>
+          <div style="margin-bottom: 8px;"><strong>Name:</strong> ${request.properties.name || 'N/A'}</div>
+          <div style="margin-bottom: 8px;"><strong>Address:</strong> ${request.properties.address || 'N/A'}</div>
           ${options.practiceLeader && request.properties.practice_leader ? `
-            <div><strong>Practice Leader:</strong> ${request.properties.practice_leader}</div>
-            ${request.properties.practice_leader_email ? `<div><strong>Email:</strong> ${request.properties.practice_leader_email}</div>` : ''}
-            ${request.properties.practice_leader_phone ? `<div><strong>Phone:</strong> ${request.properties.practice_leader_phone}</div>` : ''}
+            <div style="margin-bottom: 8px;"><strong>Practice Leader:</strong> ${request.properties.practice_leader}</div>
+            ${request.properties.practice_leader_email ? `<div style="margin-bottom: 8px;"><strong>Email:</strong> ${request.properties.practice_leader_email}</div>` : ''}
+            ${request.properties.practice_leader_phone ? `<div style="margin-bottom: 8px;"><strong>Phone:</strong> ${request.properties.practice_leader_phone}</div>` : ''}
           ` : ''}
         </div>
       `;
@@ -187,12 +187,12 @@ const handler = async (req: Request): Promise<Response> => {
     // Issue Details
     if (options.issue) {
       emailContent += `
-        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #555; margin-top: 0;">Issue Details</h2>
-          ${request.issue_nature ? `<div><strong>Issue Nature:</strong> ${request.issue_nature}</div>` : ''}
-          ${request.description ? `<div style="margin: 10px 0;"><strong>Description:</strong> ${request.description}</div>` : ''}
-          ${request.explanation ? `<div style="margin: 10px 0;"><strong>Explanation:</strong> ${request.explanation}</div>` : ''}
-          ${request.attempted_fix ? `<div style="margin: 10px 0;"><strong>Attempted Fix:</strong> ${request.attempted_fix}</div>` : ''}
+        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3e5f5;">
+          <h2 style="color: #555; margin-top: 0; background-color: #e1bee7; padding: 10px; border-radius: 3px; margin-bottom: 15px;">Issue Details</h2>
+          ${request.issue_nature ? `<div style="margin-bottom: 8px;"><strong>Issue Nature:</strong> ${request.issue_nature}</div>` : ''}
+          ${request.description ? `<div style="margin-bottom: 8px;"><strong>Description:</strong> ${request.description}</div>` : ''}
+          ${request.explanation ? `<div style="margin-bottom: 8px;"><strong>Explanation:</strong> ${request.explanation}</div>` : ''}
+          ${request.attempted_fix ? `<div style="margin-bottom: 8px;"><strong>Attempted Fix:</strong> ${request.attempted_fix}</div>` : ''}
         </div>
       `;
     }
@@ -202,8 +202,8 @@ const handler = async (req: Request): Promise<Response> => {
       const attachments = Array.isArray(request.attachments) ? request.attachments : [];
       if (attachments.length > 0) {
         emailContent += `
-          <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-            <h2 style="color: #555; margin-top: 0;">Photos (${attachments.length})</h2>
+          <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #e8f5e8;">
+            <h2 style="color: #555; margin-top: 0; background-color: #c8e6c9; padding: 10px; border-radius: 3px; margin-bottom: 15px;">Photos (${attachments.length})</h2>
             <p style="margin: 10px 0;">Photos are attached to this maintenance request. Please review them for additional context.</p>
           </div>
         `;
