@@ -31,8 +31,18 @@ serve(async (req: Request) => {
     );
     
     const body: InviteRequest = await req.json();
+    console.log("Request body received:", JSON.stringify(body, null, 2));
+    
     validateRequest(body);
     const envConfig = validateEnvironment();
+    
+    console.log("Environment validation completed. API Key status:", {
+      hasApiKey: !!envConfig.resendApiKey,
+      keyLength: envConfig.resendApiKey?.length,
+      keyPrefix: envConfig.resendApiKey?.substring(0, 12) + "...",
+      ownerEmail: envConfig.ownerEmail,
+      applicationUrl: envConfig.applicationUrl
+    });
     
     const { resendApiKey, applicationUrl, ownerEmail } = envConfig;
     const normalizedEmail = body.email.toLowerCase().trim();

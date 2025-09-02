@@ -29,6 +29,9 @@ export async function sendInvitationEmail(
     console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
     console.log("API Key length:", resendApiKey.length);
     console.log("API Key prefix:", resendApiKey.substring(0, 10) + "...");
+    console.log("Target email:", email);
+    console.log("Recipient email:", emailRecipient);
+    console.log("Is test mode:", isTestMode);
     
     const { data, error } = await resend.emails.send({
       from: 'Property Manager <onboarding@resend.dev>',
@@ -43,6 +46,12 @@ export async function sendInvitationEmail(
       console.error("Error sending email via Resend:", error);
       console.error("Error type:", typeof error);
       console.error("Error string:", JSON.stringify(error));
+      
+      // Handle specific Resend test mode error
+      if (error.error && error.error.includes("verify a domain")) {
+        throw new Error(`Resend Domain Verification Required: ${error.error}. Please verify your domain at https://resend.com/domains or upgrade your Resend plan.`);
+      }
+      
       throw new Error(`Resend API Error: ${error.error || error.message || JSON.stringify(error)}`);
     }
     
