@@ -34,8 +34,20 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
           .select('*')
           .eq('id', requestId);
           
-        // If not admin, add user filtering
-        if (currentUser.role !== 'admin' && currentUser.role !== 'contractor') {
+        // Apply filtering based on user role
+        if (currentUser.role === 'admin') {
+          // Admins see all requests in their organization (RLS handles organization filtering)
+        } else if (currentUser.role === 'manager') {
+          // Managers see requests for properties they're assigned to
+          const assignedProperties = currentUser.assignedProperties || [];
+          if (assignedProperties.length > 0) {
+            query.in('property_id', assignedProperties);
+          } else {
+            // If no assigned properties, fall back to user_id filtering
+            query.eq('user_id', currentUser.id);
+          }
+        } else if (currentUser.role !== 'contractor') {
+          // Regular users see only requests they created
           query.eq('user_id', currentUser.id);
         }
           
@@ -97,8 +109,20 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         .select('*')
         .eq('id', requestId);
         
-      // If not admin, add user filtering
-      if (currentUser.role !== 'admin' && currentUser.role !== 'contractor') {
+      // Apply filtering based on user role
+      if (currentUser.role === 'admin') {
+        // Admins see all requests in their organization (RLS handles organization filtering)
+      } else if (currentUser.role === 'manager') {
+        // Managers see requests for properties they're assigned to
+        const assignedProperties = currentUser.assignedProperties || [];
+        if (assignedProperties.length > 0) {
+          query.in('property_id', assignedProperties);
+        } else {
+          // If no assigned properties, fall back to user_id filtering
+          query.eq('user_id', currentUser.id);
+        }
+      } else if (currentUser.role !== 'contractor') {
+        // Regular users see only requests they created
         query.eq('user_id', currentUser.id);
       }
         
