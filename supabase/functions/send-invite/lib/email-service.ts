@@ -43,7 +43,7 @@ export async function sendInvitationEmail(
       console.error("Error sending email via Resend:", error);
       console.error("Error type:", typeof error);
       console.error("Error string:", JSON.stringify(error));
-      throw error;
+      throw new Error(`Resend API Error: ${error.error || error.message || JSON.stringify(error)}`);
     }
     
     console.log(`Email sent successfully to ${emailRecipient}, EmailID: ${data?.id}`);
