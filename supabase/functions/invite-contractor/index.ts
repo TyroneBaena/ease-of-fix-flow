@@ -169,7 +169,7 @@ serve(async (req: Request) => {
     console.log("Contractor profile created successfully:", contractorData.id);
 
     // Send invitation email
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY');
     const applicationUrl = Deno.env.get('APPLICATION_URL') || 'http://localhost:5173';
     const ownerEmail = Deno.env.get('OWNER_EMAIL') || 'admin@example.com';
     
@@ -252,14 +252,14 @@ serve(async (req: Request) => {
         );
       }
     } else {
-      console.warn("RESEND_API_KEY not configured, skipping email");
+      console.warn("NEW_RESEND_API_KEY not configured, skipping email");
       return new Response(
         JSON.stringify({
           success: true,
           message: "Contractor created successfully (email not configured)",
           contractorId: contractorData.id,
           emailSent: false,
-          emailError: "RESEND_API_KEY not configured"
+          emailError: "NEW_RESEND_API_KEY not configured"
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

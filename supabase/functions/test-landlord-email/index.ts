@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") ?? "";
     const inboundReplyBase = Deno.env.get("INBOUND_REPLY_ADDRESS") ?? "";
 
     console.log("Test function - Environment check:", {
