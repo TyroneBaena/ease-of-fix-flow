@@ -124,10 +124,39 @@ useEffect(() => {
         
         // Check if email confirmation is required
         if (!data.user.email_confirmed_at) {
-          console.log("Email confirmation required - custom email will be sent via database trigger");
+          console.log("Email confirmation required - sending custom confirmation email");
+          
+          // Send confirmation email via edge function
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-auth-email', {
+              body: {
+                user: {
+                  email: data.user.email,
+                  id: data.user.id
+                },
+                email_data: {
+                  token_hash: data.user.id, // Use user ID as token for now
+                  token: data.user.id,
+                  type: 'signup',
+                  redirect_to: `${window.location.origin}/email-confirm`
+                }
+              }
+            });
+            
+            if (emailError) {
+              console.error('Error sending confirmation email:', emailError);
+              toast.error('Account created but failed to send confirmation email. Please contact support.');
+            } else {
+              console.log('Confirmation email sent successfully');
+              toast.success("Account created! Please check your email for confirmation.");
+            }
+          } catch (emailErr) {
+            console.error('Exception sending confirmation email:', emailErr);
+            toast.error('Account created but failed to send confirmation email. Please contact support.');
+          }
+          
           setEmailConfirmationRequired(true);
           setInfo("Account created! Please check your email for a confirmation link. After confirming, you'll be able to choose your subscription plan.");
-          toast.success("Account created! Please check your email for confirmation.");
         } else {
           // User is immediately confirmed (email confirmation disabled in Supabase)
           console.log("Email confirmation not required - proceeding to plan selection");
