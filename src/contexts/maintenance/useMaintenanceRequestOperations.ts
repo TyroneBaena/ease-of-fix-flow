@@ -22,12 +22,23 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // If not admin, filter by user_id
-      if (currentUser.role !== 'admin') {
+      // Different filtering logic based on user role
+      if (currentUser.role === 'admin') {
+        console.log('🔍 ADMIN DEBUG - Admin user detected! Fetching ALL requests without filtering');
+        // Admins see all requests in their organization (RLS handles organization filtering)
+      } else if (currentUser.role === 'manager') {
+        console.log('🔍 ADMIN DEBUG - Manager user detected! Filtering by assigned properties');
+        // Managers see requests for properties they're assigned to
+        const assignedProperties = currentUser.assignedProperties || [];
+        if (assignedProperties.length > 0) {
+          query = query.in('property_id', assignedProperties);
+        } else {
+          // If no assigned properties, fall back to user_id filtering
+          query = query.eq('user_id', currentUser.id);
+        }
+      } else {
         console.log('🔍 ADMIN DEBUG - Non-admin user, filtering by user_id');
         query = query.eq('user_id', currentUser.id);
-      } else {
-        console.log('🔍 ADMIN DEBUG - Admin user detected! Fetching ALL requests without filtering');
       }
 
       console.log('🔍 ADMIN DEBUG - About to execute query...');
