@@ -197,7 +197,7 @@ serve(async (req: Request) => {
         const isTestMode = emailRecipient !== normalizedEmail;
         
         const { data: emailData, error: emailError } = await resend.emails.send({
-          from: 'Property Manager <onboarding@resend.dev>',
+          from: 'Property Manager <noreply@housinghub.app>',
           to: [emailRecipient],
           subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager - Contractor Invitation`,
           html: isTestMode 
