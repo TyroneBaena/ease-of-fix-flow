@@ -102,7 +102,7 @@ export async function findExistingUser(supabaseClient: any, email: string): Prom
   }
 }
 
-export async function createNewUser(supabaseClient: any, email: string, name: string, role: string, temporaryPassword: string, assignedProperties: string[] = []) {
+export async function createNewUser(supabaseClient: any, email: string, name: string, role: string, temporaryPassword: string, assignedProperties: string[] = [], invitingUserId?: string) {
   if (!email || !name || !role || !temporaryPassword) {
     console.error("Missing required parameters in createNewUser");
     throw new Error("Email, name, role, and temporaryPassword are required to create a user");
@@ -112,6 +112,25 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   const normalizedEmail = email.toLowerCase().trim();
   
   console.log(`Creating new user with email: ${normalizedEmail}`);
+  
+  // Get the inviting user's organization to assign the new user to the same organization
+  let targetOrganizationId = null;
+  if (invitingUserId) {
+    try {
+      const { data: invitingUserProfile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', invitingUserId)
+        .single();
+      
+      if (!profileError && invitingUserProfile?.organization_id) {
+        targetOrganizationId = invitingUserProfile.organization_id;
+        console.log(`New user will be assigned to organization: ${targetOrganizationId}`);
+      }
+    } catch (error) {
+      console.log("Could not get inviting user's organization, user will get new organization");
+    }
+  }
   
   try {
     // Double check that user doesn't exist before creating
@@ -141,7 +160,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     
     console.log("Auth user created successfully:", authData.user.id);
 
-    // Create the profile manually to ensure it exists
+    // Create the profile manually to ensure it exists with correct organization
     try {
       console.log("Creating profile for new user");
       const { data: profile, error: profileError } = await supabaseClient
@@ -151,7 +170,8 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
           email: normalizedEmail,
           name: name,
           role: role,
-          assigned_properties: role === 'manager' ? assignedProperties : []
+          assigned_properties: role === 'manager' ? assignedProperties : [],
+          organization_id: targetOrganizationId // Assign to inviting user's organization
         }])
         .select()
         .single();

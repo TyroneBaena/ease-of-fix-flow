@@ -98,6 +98,23 @@ serve(async (req: Request) => {
       console.log("Bypassing existing user check as requested");
     }
 
+    // Get the current user (inviting user) to pass their organization
+    const authHeader = req.headers.get('Authorization');
+    let invitingUserId = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+        if (!error && user) {
+          invitingUserId = user.id;
+          console.log(`Inviting user ID: ${invitingUserId}`);
+        }
+      } catch (error) {
+        console.log("Could not get inviting user from token:", error);
+      }
+    }
+
     // Create new user
     const temporaryPassword = generateTemporaryPassword();
     const newUser = await createNewUser(
@@ -106,7 +123,8 @@ serve(async (req: Request) => {
       body.name,
       body.role,
       temporaryPassword,
-      body.assignedProperties
+      body.assignedProperties,
+      invitingUserId
     );
 
     // Send email
