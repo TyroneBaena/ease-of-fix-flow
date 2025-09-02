@@ -13,11 +13,16 @@ export const convertToAppUser = async (authUser: any): Promise<User | null> => {
     .from('profiles')
     .select('*')
     .eq('id', authUser.id)
-    .single();
+    .maybeSingle();
   
   if (error) {
     console.error("Error fetching user profile:", error);
     // Fall back to metadata if profile can't be fetched
+  } 
+  
+  // If no profile exists or there was an error, fall back to metadata
+  if (!profile) {
+    console.log("No profile found, using metadata for user:", authUser.id);
     return {
       id: authUser.id,
       name: authUser.user_metadata?.name || '',
