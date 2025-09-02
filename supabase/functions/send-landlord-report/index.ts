@@ -148,6 +148,37 @@ const handler = async (req: Request): Promise<Response> => {
         </h1>
     `;
 
+    // Report Configuration Section
+    emailContent += `
+      <div style="margin: 20px 0; padding: 20px; border: 2px solid #2196f3; border-radius: 8px; background-color: #e3f2fd !important;">
+        <h2 style="color: #1976d2; margin-top: 0; background-color: #bbdefb !important; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #2196f3;">⚙️ Report Configuration</h2>
+        <div style="font-size: 14px;">
+          <div style="margin-bottom: 8px; padding: 4px;">
+            <span style="display: inline-block; width: 20px;">${options.summary ? '✅' : '❌'}</span>
+            <strong>Request Summary:</strong> ${options.summary ? 'Included' : 'Not included'}
+          </div>
+          <div style="margin-bottom: 8px; padding: 4px;">
+            <span style="display: inline-block; width: 20px;">${options.property ? '✅' : '❌'}</span>
+            <strong>Property Details:</strong> ${options.property ? 'Included' : 'Not included'}
+          </div>
+          <div style="margin-bottom: 8px; padding: 4px;">
+            <span style="display: inline-block; width: 20px;">${options.issue ? '✅' : '❌'}</span>
+            <strong>Issue Details:</strong> ${options.issue ? 'Included' : 'Not included'}
+          </div>
+          <div style="margin-bottom: 8px; padding: 4px;">
+            <span style="display: inline-block; width: 20px;">${options.photos ? '✅' : '❌'}</span>
+            <strong>Photos:</strong> ${options.photos ? 'Included' : 'Not included'}
+          </div>
+          ${options.practiceLeader !== undefined ? `
+            <div style="margin-bottom: 8px; padding: 4px;">
+              <span style="display: inline-block; width: 20px;">${options.practiceLeader ? '✅' : '❌'}</span>
+              <strong>Practice Leader Details:</strong> ${options.practiceLeader ? 'Included' : 'Not included'}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
     // Request Summary
     if (options.summary) {
       emailContent += `
