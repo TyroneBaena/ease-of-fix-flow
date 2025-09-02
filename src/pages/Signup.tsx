@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Check, Info } from 'lucide-react';
-import { tenantService } from '@/services/user/tenantService';
+import { ensureUserOrganization } from '@/services/user/tenantService';
 import { Toaster } from "sonner";
 
 const Signup = () => {
@@ -164,25 +164,20 @@ useEffect(() => {
           toast.success("Account created successfully! You can now choose your plan.");
         }
         
-        // Verify schema creation
+        // Verify organization setup after a brief delay
         setTimeout(async () => {
           try {
-            const hasSchema = await tenantService.verifyUserSchema(data.user!.id);
-            if (!hasSchema) {
-              console.log("Schema not found for user, creating manually");
-              const { error: rpcError } = await supabase.rpc('create_tenant_schema', { new_user_id: data.user!.id });
-              if (rpcError) {
-                console.error("Error creating schema:", rpcError);
-              } else {
-                console.log("Schema created successfully");
-              }
+            const hasOrganization = await ensureUserOrganization(data.user!.id);
+            if (!hasOrganization) {
+              console.log("Organization setup incomplete for new user");
+              toast.warning("Account created but setup incomplete. Please contact support if you experience issues.");
             } else {
-              console.log("Schema was created successfully");
+              console.log("Organization setup verified for new user");
             }
-          } catch (err) {
-            console.error("Error verifying schema:", err);
+          } catch (error) {
+            console.error("Error verifying organization setup:", error);
           }
-        }, 1000);
+        }, 2000);
       } else {
         toast.info("Account created successfully. Please check your email for confirmation.");
       }

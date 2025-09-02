@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +8,8 @@ import { toast } from '@/lib/toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Toaster } from "sonner";
-import { tenantService } from '@/services/user/tenantService';
+import { ensureUserOrganization } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
-import { supabase } from '@/integrations/supabase/client';
-
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -60,29 +57,16 @@ const Login = () => {
       console.log(`Attempting to sign in with email: ${email}`);
       const result = await signIn(email, password);
       
-      // Check if the user has a tenant schema
+      // Check if the user has organization setup
       if (result?.user) {
-        const hasSchema = await tenantService.verifyUserSchema(result.user.id);
+        console.log("Login successful, verifying organization...");
         
-        if (!hasSchema) {
-          console.log("No schema found for user, attempting to create one");
-          try {
-            // Create schema for user if it doesn't exist (could happen if trigger failed)
-            const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
-              new_user_id: result.user.id
-            });
-            
-            if (rpcError) {
-              console.error("Error creating schema during login:", rpcError);
-              toast.error("There was an issue setting up your account. Please contact support.");
-            } else {
-              console.log("Schema created successfully during login");
-            }
-          } catch (schemaError) {
-            console.error("Exception creating schema during login:", schemaError);
-          }
-        } else {
-          console.log("User has existing schema");
+        // Verify user has organization setup
+        const hasOrganization = await ensureUserOrganization(result.user.id);
+        
+        if (!hasOrganization) {
+          console.log("User missing organization, but continuing login");
+          toast.warning("Your account setup may be incomplete. Please contact support if you experience issues.");
         }
       }
       

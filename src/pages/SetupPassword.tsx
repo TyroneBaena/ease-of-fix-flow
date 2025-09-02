@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { tenantService } from '@/services/user/tenantService';
+import { ensureUserOrganization } from '@/services/user/tenantService';
 
 const SetupPassword = () => {
   const [password, setPassword] = useState('');
@@ -110,30 +110,17 @@ const SetupPassword = () => {
         throw error;
       }
       
-      // Verify the tenant schema exists for this user
+      // Verify organization setup
       setVerifyingSchema(true);
       if (data.user) {
-        const hasSchema = await tenantService.verifyUserSchema(data.user.id);
+        console.log('Password setup successful');
         
-        if (!hasSchema) {
-          console.log("Schema not found for user, attempting to create...");
-          try {
-            // Attempt to create schema manually
-            const { error: rpcError } = await supabase.rpc('create_tenant_schema', {
-              new_user_id: data.user.id
-            });
-            
-            if (rpcError) {
-              console.error("Error creating schema:", rpcError);
-              toast.error("Your account was set up, but there was an issue with your database setup. Please contact support.");
-            } else {
-              console.log("Schema created successfully");
-            }
-          } catch (schemaError) {
-            console.error("Exception creating schema:", schemaError);
-          }
-        } else {
-          console.log("Schema already exists for this user");
+        // Verify organization setup
+        const hasOrganization = await ensureUserOrganization(data.user.id);
+        
+        if (!hasOrganization) {
+          console.log("Organization setup incomplete during password setup");
+          toast.warning("Password set successfully, but account setup may be incomplete. Please contact support if you experience issues.");
         }
       }
       setVerifyingSchema(false);

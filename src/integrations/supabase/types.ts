@@ -1056,6 +1056,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_manage_organization: {
+        Args: { org_id: string }
+        Returns: boolean
+      }
       create_comment_notifications: {
         Args: {
           comment_text: string
@@ -1110,6 +1114,15 @@ export type Database = {
       log_contractor_access: {
         Args: { user_id_param: string }
         Returns: string
+      }
+      log_organization_access: {
+        Args: {
+          action_type: string
+          additional_info?: Json
+          record_id?: string
+          table_name: string
+        }
+        Returns: undefined
       }
       meta_to_array: {
         Args: { meta: Json }

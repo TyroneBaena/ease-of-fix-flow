@@ -145,9 +145,10 @@ export const userService: UserService = {
     }
   },
   
-  useUserSchema: async (operation: string) => {
+  useUserSchema: async () => {
     try {
-      return await tenantService.useUserSchema(operation);
+      // Organization-based approach doesn't need explicit schema operations
+      return true;
     } catch (error) {
       console.error("Error using user schema:", error);
       return false;

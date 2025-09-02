@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 import { tenantService } from '@/services/user/tenantService';
@@ -6,21 +5,27 @@ import { toast } from "sonner";
 
 export interface UseTenantSchemaResult {
   isSchemaReady: boolean;
-  schemaName: string | null;
+  organizationName: string | null;
+  organizationId: string | null;
   setSchemaForOperation: (operation: string) => Promise<boolean>;
   loading: boolean;
   error: Error | null;
 }
 
+/**
+ * Hook for organization-based tenant management
+ * Replaces the old schema-based approach
+ */
 export const useTenantSchema = (): UseTenantSchemaResult => {
   const { currentUser } = useUserContext();
-  const [schemaName, setSchemaName] = useState<string | null>(null);
+  const [organizationName, setOrganizationName] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [isSchemaReady, setIsSchemaReady] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   
-  // Function to fetch schema information
-  const fetchSchemaInfo = useCallback(async () => {
+  // Function to fetch organization information
+  const fetchOrganizationInfo = useCallback(async () => {
     if (!currentUser) {
       setLoading(false);
       return;
@@ -28,18 +33,19 @@ export const useTenantSchema = (): UseTenantSchemaResult => {
     
     try {
       setLoading(true);
-      const schemaInfo = await tenantService.getUserSchema();
+      const userProfile = await tenantService.getUserOrganization();
       
-      if (schemaInfo) {
-        console.log("Found schema for user:", schemaInfo.schema_name);
-        setSchemaName(schemaInfo.schema_name);
+      if (userProfile?.organization_id) {
+        console.log("Found organization for user:", userProfile.organizations?.name);
+        setOrganizationId(userProfile.organization_id);
+        setOrganizationName(userProfile.organizations?.name || 'Unknown Organization');
         setIsSchemaReady(true);
       } else {
-        setError(new Error('No schema found for current user'));
+        setError(new Error('No organization found for current user'));
         setIsSchemaReady(false);
       }
     } catch (err: any) {
-      console.error("Error fetching schema info:", err);
+      console.error("Error fetching organization info:", err);
       setError(err);
       setIsSchemaReady(false);
     } finally {
@@ -47,36 +53,36 @@ export const useTenantSchema = (): UseTenantSchemaResult => {
     }
   }, [currentUser]);
   
-  // Function to set schema for an operation
+  // Function to set schema for an operation (now a no-op for organization-based approach)
   const setSchemaForOperation = async (operation: string): Promise<boolean> => {
     if (!currentUser || !isSchemaReady) {
-      console.warn("Cannot set schema - user not authenticated or schema not ready");
+      console.warn("Cannot set schema - user not authenticated or organization not ready");
       return false;
     }
     
     try {
-      const success = await tenantService.useUserSchema(operation);
-      if (!success) {
-        toast.error("Failed to set schema context for operation");
-      }
-      return success;
+      // Organization-based approach doesn't need explicit schema switching
+      // All operations are automatically scoped by organization_id via RLS
+      console.log(`Operation ${operation} ready for organization ${organizationId}`);
+      return true;
     } catch (err: any) {
-      console.error("Error setting schema for operation:", err);
-      toast.error(`Schema error: ${err.message}`);
+      console.error("Error setting context for operation:", err);
+      toast.error(`Context error: ${err.message}`);
       return false;
     }
   };
   
-  // Fetch schema info when component mounts or user changes
+  // Fetch organization info when component mounts or user changes
   useEffect(() => {
-    fetchSchemaInfo().catch(err => {
-      console.error("Error in useEffect schema initialization:", err);
+    fetchOrganizationInfo().catch(err => {
+      console.error("Error in useEffect organization initialization:", err);
     });
-  }, [fetchSchemaInfo, currentUser]);
+  }, [fetchOrganizationInfo, currentUser]);
   
   return {
     isSchemaReady,
-    schemaName,
+    organizationName,
+    organizationId,
     setSchemaForOperation,
     loading,
     error
