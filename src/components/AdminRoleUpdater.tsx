@@ -12,10 +12,18 @@ const AdminRoleUpdater = () => {
   const handleMakeAdmin = async () => {
     try {
       setIsLoading(true);
+      console.log("Making user admin:", currentUser?.id);
       await updateUserRole('admin');
+      console.log("Successfully updated role to admin");
       toast.success("You are now an admin! Please refresh the page to see new admin options.");
+      
+      // Force a page refresh after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error("Error making user admin:", error);
+      toast.error("Failed to update role. Please try again.");
     } finally {
       setIsLoading(false);
     }
