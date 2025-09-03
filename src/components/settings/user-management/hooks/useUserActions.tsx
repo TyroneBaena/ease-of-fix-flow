@@ -90,8 +90,7 @@ export const useUserActions = (
               }, 1000);
             }
             
-            // Force refresh the user list after successful adding
-            await fetchUsers();
+            // UI refresh will happen automatically when dialog closes
           } else {
             // This message is for failures like "user already exists"
             console.error("User creation failed:", result.message);

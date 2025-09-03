@@ -159,14 +159,9 @@ export const useUserManagement = () => {
   // Refresh user list whenever the dialog is closed or after certain operations
   useEffect(() => {
     if (!isDialogOpen && isAdmin && fetchedOnce) {
-      // Small delay to allow time for the backend to process
-      const refreshTimer = setTimeout(() => {
-        fetchUsers();
-      }, 500);
-      
-      return () => {
-        clearTimeout(refreshTimer);
-      };
+      // Immediate refresh when dialog closes after successful operation
+      console.log("Dialog closed, refreshing user list");
+      fetchUsers();
     }
   }, [isDialogOpen, isAdmin, fetchedOnce, fetchUsers]);
 
