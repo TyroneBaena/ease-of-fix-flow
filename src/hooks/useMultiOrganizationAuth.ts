@@ -76,6 +76,30 @@ export const useMultiOrganizationAuth = () => {
               try {
                 const appUser = await convertToAppUser(session.user);
                 setCurrentUser(appUser);
+                
+                // Ensure session organization is set for USER_UPDATED too
+                if (appUser.organization_id) {
+                  console.log('🏢 USER_UPDATED: Checking session organization for user:', appUser.id);
+                  const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('session_organization_id')
+                    .eq('id', appUser.id)
+                    .single();
+                  
+                  if (!profile?.session_organization_id) {
+                    console.log('🏢 USER_UPDATED: Setting session organization to:', appUser.organization_id);
+                    const { error: updateError } = await supabase
+                      .from('profiles')
+                      .update({ session_organization_id: appUser.organization_id })
+                      .eq('id', appUser.id);
+                    
+                    if (updateError) {
+                      console.error('❌ USER_UPDATED: Failed to set session organization:', updateError);
+                    } else {
+                      console.log('✅ USER_UPDATED: Session organization set successfully');
+                    }
+                  }
+                }
               } catch (error) {
                 console.error('Error converting updated user:', error);
               }
@@ -92,8 +116,9 @@ export const useMultiOrganizationAuth = () => {
                 const appUser = await convertToAppUser(session.user);
                 setCurrentUser(appUser);
                 
-                // Initialize session organization if not set
+                // Initialize session organization if not set - CRITICAL for RLS policies
                 if (appUser.organization_id) {
+                  console.log('🏢 INITIAL_SESSION: Checking session organization for user:', appUser.id);
                   const { data: profile } = await supabase
                     .from('profiles')
                     .select('session_organization_id')
@@ -101,11 +126,19 @@ export const useMultiOrganizationAuth = () => {
                     .single();
                   
                   if (!profile?.session_organization_id) {
-                    // Set default organization as session organization
-                    await supabase
+                    console.log('🏢 INITIAL_SESSION: Setting session organization to:', appUser.organization_id);
+                    const { error: updateError } = await supabase
                       .from('profiles')
                       .update({ session_organization_id: appUser.organization_id })
                       .eq('id', appUser.id);
+                    
+                    if (updateError) {
+                      console.error('❌ INITIAL_SESSION: Failed to set session organization:', updateError);
+                    } else {
+                      console.log('✅ INITIAL_SESSION: Session organization set successfully');
+                    }
+                  } else {
+                    console.log('🏢 INITIAL_SESSION: Session organization already set:', profile.session_organization_id);
                   }
                 }
               } catch (error) {

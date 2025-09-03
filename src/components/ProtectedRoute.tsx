@@ -11,22 +11,11 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useUserContext();
-  const [timeoutElapsed, setTimeoutElapsed] = useState(false);
   const navigate = useNavigate();
   
-  console.log('🔒 ProtectedRoute - State:', { currentUser: !!currentUser, loading, timeoutElapsed });
+  console.log('🔒 ProtectedRoute - State:', { currentUser: !!currentUser, loading });
   
-  // Add a safeguard timeout to prevent infinite loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setTimeoutElapsed(true);
-      console.log('🔒 ProtectedRoute - Timeout elapsed');
-    }, 2000); // Reduced timeout to 2 seconds for faster redirect
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  // Handle redirect when user is not authenticated
+  // Handle redirect when user is not authenticated (only when loading is complete)
   useEffect(() => {
     if (!loading && !currentUser) {
       console.log("🔒 ProtectedRoute: User not authenticated, redirecting to login");
@@ -34,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
   }, [loading, currentUser, navigate]);
   
-  // Show loading state only while actually checking authentication
+  // Show loading state while checking authentication - be more patient to avoid flashing
   if (loading) {
     console.log('🔒 ProtectedRoute - Showing loading state');
     return (
