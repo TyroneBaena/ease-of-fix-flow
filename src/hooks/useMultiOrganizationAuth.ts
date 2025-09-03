@@ -119,11 +119,15 @@ export const useMultiOrganizationAuth = () => {
                 // Initialize session organization if not set - CRITICAL for RLS policies
                 if (appUser.organization_id) {
                   console.log('🏢 INITIAL_SESSION: Checking session organization for user:', appUser.id);
-                  const { data: profile } = await supabase
+                  const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('session_organization_id')
                     .eq('id', appUser.id)
                     .single();
+                  
+                  if (profileError) {
+                    console.error('❌ INITIAL_SESSION: Error fetching profile:', profileError);
+                  }
                   
                   if (!profile?.session_organization_id) {
                     console.log('🏢 INITIAL_SESSION: Setting session organization to:', appUser.organization_id);
@@ -134,6 +138,17 @@ export const useMultiOrganizationAuth = () => {
                     
                     if (updateError) {
                       console.error('❌ INITIAL_SESSION: Failed to set session organization:', updateError);
+                      // Try alternative method using RPC function
+                      console.log('🏢 INITIAL_SESSION: Trying RPC function as fallback...');
+                      const { error: rpcError } = await supabase.rpc('switch_user_organization', {
+                        new_org_id: appUser.organization_id
+                      });
+                      
+                      if (rpcError) {
+                        console.error('❌ INITIAL_SESSION: RPC fallback also failed:', rpcError);
+                      } else {
+                        console.log('✅ INITIAL_SESSION: Session organization set via RPC fallback');
+                      }
                     } else {
                       console.log('✅ INITIAL_SESSION: Session organization set successfully');
                     }
