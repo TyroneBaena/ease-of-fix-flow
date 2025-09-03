@@ -12,17 +12,6 @@ export const signInWithEmailPassword = async (email: string, password: string) =
   try {
     console.log('🔑 Starting sign in process for:', email);
     
-    // Clean up any existing auth state first
-    cleanupAuthState();
-    
-    // Attempt global sign out to clear any stale sessions
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-    } catch (err) {
-      console.log('🔑 Global signout attempt (ignoring errors):', err);
-      // Continue even if this fails
-    }
-    
     const { data, error } = await supabase.auth.signInWithPassword({ 
       email, 
       password 
@@ -40,11 +29,8 @@ export const signInWithEmailPassword = async (email: string, password: string) =
       
       toast.success("Successfully signed in!");
       
-      // Force page refresh to ensure clean state
-      setTimeout(() => {
-        forcePageRefresh('/dashboard');
-      }, 100);
-      
+      // Let the auth state listener handle the session and organization setup
+      // Don't force page refresh here - let React Router handle navigation
       return data;
     }
     

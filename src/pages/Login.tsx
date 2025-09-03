@@ -68,24 +68,17 @@ const Login = () => {
           console.log("User missing organization, but continuing login");
           toast.warning("Your account setup may be incomplete. Please contact support if you experience issues.");
         }
-      }
-      
-      // Check if this is a first-time login (using temporary password)
-      const params = new URLSearchParams(location.search);
-      if (params.get('setupPassword') === 'true') {
-        navigate(`/setup-password?email=${encodeURIComponent(email)}`);
-        return;
-      }
-      
-      // Determine the correct dashboard based on the user's role
-      if (result?.user) {
-        const userRole = result.user.user_metadata?.role || 'manager';
-        const redirectPath = getRedirectPathByRole(userRole);
-        console.log(`Redirecting user with role ${userRole} to ${redirectPath}`);
-        navigate(redirectPath, { replace: true });
-      } else {
-        // Fallback to default dashboard
-        navigate('/dashboard', { replace: true });
+        
+        // Check if this is a first-time login (using temporary password)
+        const params = new URLSearchParams(location.search);
+        if (params.get('setupPassword') === 'true') {
+          navigate(`/setup-password?email=${encodeURIComponent(email)}`);
+          return;
+        }
+        
+        // The auth state listener will handle navigation automatically
+        // Don't navigate here - let the useLayoutEffect handle it
+        console.log('Login successful, auth state listener will handle navigation');
       }
     } catch (error) {
       console.error('Login error:', error);
