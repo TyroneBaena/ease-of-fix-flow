@@ -69,9 +69,11 @@ export const useUserProvider = () => {
       });
       setUsers(allUsers);
       setLoadingError(null);
+      clearTimeout(fetchTimeout); // Clear timeout on success
     } catch (error) {
       console.error('❌ Error fetching users:', error);
       setLoadingError(error as Error);
+      clearTimeout(fetchTimeout); // Clear timeout on error
       
       // More specific error messages
       if (error.message?.includes('0 rows')) {

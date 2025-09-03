@@ -55,8 +55,124 @@ serve(async (req: Request) => {
       
       console.log(`Existing user check result:`, JSON.stringify(existingUserResult, null, 2));
       
-      // Handle existing non-placeholder user
+      // Handle existing non-placeholder user - BUT CHECK ORGANIZATION MEMBERSHIP FIRST!
       if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
+        // Get the inviting user's organization ID first
+        let invitingUserOrgId = null;
+        const authHeader = req.headers.get('Authorization');
+        
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          try {
+            const token = authHeader.replace('Bearer ', '');
+            const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+            if (!error && user) {
+              const { data: invitingUserProfile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('organization_id')
+                .eq('id', user.id)
+                .single();
+              
+              if (!profileError && invitingUserProfile?.organization_id) {
+                invitingUserOrgId = invitingUserProfile.organization_id;
+                console.log(`Inviting user's organization: ${invitingUserOrgId}`);
+                
+                // Check if existing user is already a member of THIS organization
+                const { data: membership, error: membershipError } = await supabaseClient
+                  .from('user_organizations')
+                  .select('*')
+                  .eq('user_id', existingUserResult.user.id)
+                  .eq('organization_id', invitingUserOrgId)
+                  .eq('is_active', true);
+                
+                if (!membershipError && membership && membership.length > 0) {
+                  console.log(`User ${normalizedEmail} is already a member of organization ${invitingUserOrgId}`);
+                  return new Response(
+                    JSON.stringify({
+                      success: false,
+                      message: `User ${normalizedEmail} is already a member of your organization.`,
+                      userId: existingUserResult.user?.id,
+                      email: normalizedEmail
+                    }),
+                    { 
+                      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                      status: 200
+                    }
+                  );
+                } else {
+                  // User exists but NOT in this organization - ADD THEM TO THIS ORGANIZATION!
+                  console.log(`Adding existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
+                  
+                  // Create user organization membership
+                  const { error: membershipInsertError } = await supabaseClient
+                    .from('user_organizations')
+                    .insert({
+                      user_id: existingUserResult.user.id,
+                      organization_id: invitingUserOrgId,
+                      role: body.role,
+                      is_active: true,
+                      is_default: false // Don't change their default organization
+                    });
+                  
+                  if (membershipInsertError) {
+                    console.error("Error adding user to organization:", membershipInsertError);
+                    return new Response(
+                      JSON.stringify({
+                        success: false,
+                        message: `Failed to add existing user to organization: ${membershipInsertError.message}`,
+                        email: normalizedEmail
+                      }),
+                      { 
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                        status: 200
+                      }
+                    );
+                  }
+                  
+                  console.log(`Successfully added existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
+                  
+                  // Send them an email about being added to the new organization
+                  const cleanAppUrl = cleanApplicationUrl(applicationUrl);
+                  const loginUrl = `${cleanAppUrl}/login`;
+                  const emailHtml = createEmailHtml({
+                    to: normalizedEmail,
+                    name: existingUserResult.profile?.name || body.name,
+                    role: body.role,
+                    temporaryPassword: null, // No new password needed
+                    loginUrl,
+                    isNewUser: false // Existing user
+                  });
+
+                  // Send notification email
+                  const emailData = await sendInvitationEmail(
+                    resendApiKey,
+                    normalizedEmail,
+                    normalizedEmail,
+                    emailHtml,
+                    false
+                  );
+
+                  return new Response(
+                    JSON.stringify({
+                      success: true,
+                      message: `Existing user ${normalizedEmail} has been successfully added to your organization`,
+                      userId: existingUserResult.user.id,
+                      emailSent: true,
+                      emailId: emailData?.id,
+                      isNewUser: false,
+                      email: normalizedEmail,
+                      isExistingUserAddedToOrg: true
+                    }),
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                  );
+                }
+              }
+            }
+          } catch (error) {
+            console.log("Could not get inviting user's organization, treating as new user invite");
+          }
+        }
+        
+        // Fallback - user exists but we couldn't check organization membership
         console.log(`User with email ${normalizedEmail} already exists, sending error response`);
         return new Response(
           JSON.stringify({

@@ -75,6 +75,8 @@ export const useUserActions = (
           if (result.success) {
             if (result.isNewUser) {
               toast.success("User created successfully");
+            } else if (result.isExistingUserAddedToOrg) {
+              toast.success(`Existing user ${result.email} has been added to your organization`);
             } else {
               toast.success(result.message || "User processed successfully");
             }
