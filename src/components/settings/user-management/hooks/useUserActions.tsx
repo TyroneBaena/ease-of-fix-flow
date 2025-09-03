@@ -56,6 +56,7 @@ export const useUserActions = (
           assignedProperties: newUser.role === 'manager' ? newUser.assignedProperties : []
         };
         console.log("Updating user:", updatedUser);
+        console.log("User assignedProperties being saved:", updatedUser.assignedProperties);
         await updateUser(updatedUser);
         toast.success(`User ${updatedUser.name} updated successfully`);
         setIsDialogOpen(false);

@@ -51,18 +51,26 @@ export const useUserDialog = () => {
   };
   
   const handlePropertySelection = (propertyId: string) => {
+    console.log('handlePropertySelection called with propertyId:', propertyId);
     setNewUser(prev => {
       const assignedProperties = [...(prev.assignedProperties || [])];
+      console.log('Current assignedProperties:', assignedProperties);
       
       if (assignedProperties.includes(propertyId)) {
+        console.log('Removing property from assignment');
+        const newAssignedProperties = assignedProperties.filter(id => id !== propertyId);
+        console.log('New assignedProperties after removal:', newAssignedProperties);
         return {
           ...prev,
-          assignedProperties: assignedProperties.filter(id => id !== propertyId)
+          assignedProperties: newAssignedProperties
         };
       } else {
+        console.log('Adding property to assignment');
+        const newAssignedProperties = [...assignedProperties, propertyId];
+        console.log('New assignedProperties after addition:', newAssignedProperties);
         return {
           ...prev,
-          assignedProperties: [...assignedProperties, propertyId]
+          assignedProperties: newAssignedProperties
         };
       }
     });
