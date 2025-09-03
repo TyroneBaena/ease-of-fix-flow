@@ -11,6 +11,7 @@ export interface InviteUserResult {
   testMode?: boolean;
   testModeInfo?: string;
   isNewUser?: boolean;
+  isExistingUserAddedToOrg?: boolean;
   email?: string;
 }
 

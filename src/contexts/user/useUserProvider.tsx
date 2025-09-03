@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, UserRole } from '@/types/user';
 import { useMultiOrganizationAuth } from '@/hooks/useMultiOrganizationAuth';
@@ -16,6 +15,7 @@ export interface AddUserResult {
   testMode?: boolean;
   testModeInfo?: string;
   isNewUser?: boolean;
+  isExistingUserAddedToOrg?: boolean;
   email?: string;
 }
 
@@ -69,11 +69,9 @@ export const useUserProvider = () => {
       });
       setUsers(allUsers);
       setLoadingError(null);
-      clearTimeout(fetchTimeout); // Clear timeout on success
     } catch (error) {
       console.error('❌ Error fetching users:', error);
       setLoadingError(error as Error);
-      clearTimeout(fetchTimeout); // Clear timeout on error
       
       // More specific error messages
       if (error.message?.includes('0 rows')) {

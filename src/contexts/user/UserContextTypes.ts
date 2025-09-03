@@ -1,6 +1,6 @@
 
 import { User, UserRole } from '@/types/user';
-import { AddUserResult } from './useUserProvider';
+import { AddUserResult } from './useUserProvider'; // Updated AddUserResult interface
 import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
 
 export interface UserContextType {
