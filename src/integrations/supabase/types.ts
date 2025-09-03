@@ -688,6 +688,33 @@ export type Database = {
           },
         ]
       }
+      organization_consolidation_audit: {
+        Row: {
+          consolidation_date: string | null
+          consolidation_reason: string | null
+          id: string
+          org_name: string | null
+          original_org_id: string | null
+          target_org_id: string | null
+        }
+        Insert: {
+          consolidation_date?: string | null
+          consolidation_reason?: string | null
+          id?: string
+          org_name?: string | null
+          original_org_id?: string | null
+          target_org_id?: string | null
+        }
+        Update: {
+          consolidation_date?: string | null
+          consolidation_reason?: string | null
+          id?: string
+          org_name?: string | null
+          original_org_id?: string | null
+          target_org_id?: string | null
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
