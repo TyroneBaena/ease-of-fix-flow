@@ -35,10 +35,10 @@ serve(async (req: Request) => {
     if (body.user?.email) {
       userEmail = body.user.email;
       const token = body.email_data?.token_hash || body.email_data?.token || "";
-      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=signup&redirect_to=https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm`;
+      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=signup&redirect_to=https://lovable.dev/email-confirm`;
     } else if (body.record?.email) {
       userEmail = body.record.email;
-      confirmationUrl = body.record.confirmation_url || `https://ltjlswzrdgtoddyqmydo.supabase.co/email-confirm`;
+      confirmationUrl = body.record.confirmation_url || `https://lovable.dev/email-confirm`;
     }
     
     if (!userEmail) {
