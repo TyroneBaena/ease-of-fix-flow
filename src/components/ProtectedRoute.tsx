@@ -12,29 +12,31 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useUserContext();
   const [timeoutElapsed, setTimeoutElapsed] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
   const navigate = useNavigate();
+  
+  console.log('🔒 ProtectedRoute - State:', { currentUser: !!currentUser, loading, timeoutElapsed });
   
   // Add a safeguard timeout to prevent infinite loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setTimeoutElapsed(true);
-    }, 3000); // Increased timeout to 3 seconds for better reliability
+      console.log('🔒 ProtectedRoute - Timeout elapsed');
+    }, 2000); // Reduced timeout to 2 seconds for faster redirect
     
     return () => clearTimeout(timer);
   }, []);
   
-  // Effect to handle authentication redirects
+  // Handle redirect when user is not authenticated
   useEffect(() => {
-    if (!loading && timeoutElapsed && !currentUser && !redirecting) {
-      console.log("ProtectedRoute: User not authenticated, redirecting to login");
-      setRedirecting(true);
+    if (!loading && !currentUser) {
+      console.log("🔒 ProtectedRoute: User not authenticated, redirecting to login");
       navigate('/login', { replace: true });
     }
-  }, [loading, currentUser, timeoutElapsed, navigate, redirecting]);
+  }, [loading, currentUser, navigate]);
   
-  // Show loading state if still checking authentication and timeout hasn't elapsed
-  if (loading && !timeoutElapsed) {
+  // Show loading state only while actually checking authentication
+  if (loading) {
+    console.log('🔒 ProtectedRoute - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
@@ -42,27 +44,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
   
-  // Redirect to login if not authenticated after timeout
-  if (!currentUser && timeoutElapsed) {
-    console.log("ProtectedRoute: No user found after timeout, showing Navigate component");
+  // If no user and not loading, redirect immediately
+  if (!currentUser) {
+    console.log("🔒 ProtectedRoute: No user found, showing Navigate component");
     return <Navigate to="/login" replace />;
   }
   
-  
   // Only render children if we have a valid authenticated user
-  if (currentUser) {
-    return (
-      <OrganizationProvider>
-        {children}
-      </OrganizationProvider>
-    );
-  }
-  
-  // Fallback - should not reach here in normal circumstances
+  console.log('🔒 ProtectedRoute - Rendering protected content for user:', currentUser.email);
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-    </div>
+    <OrganizationProvider>
+      {children}
+    </OrganizationProvider>
   );
 };
 

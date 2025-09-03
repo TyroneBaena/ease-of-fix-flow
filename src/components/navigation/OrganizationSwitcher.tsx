@@ -34,13 +34,18 @@ export const OrganizationSwitcher = () => {
     setOpen(false);
   };
 
-  if (loading || !currentOrganization) {
+  if (loading) {
     return (
       <div className="flex items-center space-x-2 text-sm text-muted-foreground">
         <Building2 className="h-4 w-4" />
         <span>Loading...</span>
       </div>
     );
+  }
+
+  // If no organization at all, don't show anything
+  if (!currentOrganization) {
+    return null;
   }
 
   // If user only has one organization, just show the name
