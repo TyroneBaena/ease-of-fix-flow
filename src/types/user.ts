@@ -19,6 +19,7 @@ export interface User {
   profilePicture?: string;
   assignedProperties?: string[]; // Array of property IDs for managers
   organization_id?: string; // Organization ID for multi-tenancy
+  session_organization_id?: string; // Current session organization
   createdAt: string;
   notificationSettings?: NotificationSettings;
   unreadNotifications?: number; // Count of unread notifications

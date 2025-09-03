@@ -60,12 +60,20 @@ export const useUserProvider = () => {
 
     try {
       console.log("👥 Starting user fetch for role:", currentUser?.role);
+      console.log("👥 Current user org:", currentUser?.organization_id);
+      console.log("👥 Current session org:", currentUser?.session_organization_id);
       fetchInProgress.current = true;
       setLoading(true);
       const allUsers = await userService.getAllUsers();
       console.log("👥 Fetched users successfully:", {
         count: allUsers.length,
-        users: allUsers.map(u => ({ id: u.id, email: u.email, role: u.role }))
+        users: allUsers.map(u => ({ 
+          id: u.id, 
+          email: u.email, 
+          role: u.role,
+          name: u.name,
+          organization_id: u.organization_id 
+        }))
       });
       setUsers(allUsers);
       setLoadingError(null);
@@ -85,7 +93,7 @@ export const useUserProvider = () => {
       setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [canFetchUsers, currentUser?.role]);
+  }, [canFetchUsers, currentUser?.role, currentUser?.organization_id, currentUser?.session_organization_id]);
 
   // Only fetch users when the component mounts and user is admin or manager
   useEffect(() => {
