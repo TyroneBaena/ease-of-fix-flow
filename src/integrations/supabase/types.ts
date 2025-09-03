@@ -190,6 +190,36 @@ export type Database = {
           },
         ]
       }
+      cross_org_assignments_audit: {
+        Row: {
+          cleaned_at: string | null
+          cleaned_by: string | null
+          contractor_id: string | null
+          contractor_org_id: string | null
+          id: string
+          request_id: string | null
+          request_org_id: string | null
+        }
+        Insert: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          contractor_id?: string | null
+          contractor_org_id?: string | null
+          id?: string
+          request_id?: string | null
+          request_org_id?: string | null
+        }
+        Update: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          contractor_id?: string | null
+          contractor_org_id?: string | null
+          id?: string
+          request_id?: string | null
+          request_org_id?: string | null
+        }
+        Relationships: []
+      }
       email_relay_keys: {
         Row: {
           actor_type: string
@@ -1079,7 +1109,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      security_compliance_check: {
+        Row: {
+          check_name: string | null
+          status: string | null
+          violation_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_new_comment: {
