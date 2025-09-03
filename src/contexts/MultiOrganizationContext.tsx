@@ -84,6 +84,65 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
 
       if (userOrgsError) throw userOrgsError;
 
+      // Handle case where user has no organizations yet
+      if (!userOrgs || userOrgs.length === 0) {
+        console.log('User has no organizations, checking if they have an organization_id in profile');
+        
+        // If user has an organization_id but no user_organizations record, create one
+        if (currentUser.organization_id) {
+          console.log('Creating user organization membership for existing organization');
+          
+          // Fetch the organization details
+          const { data: org, error: orgError } = await supabase
+            .from('organizations')
+            .select('*')
+            .eq('id', currentUser.organization_id)
+            .single();
+          
+          if (!orgError && org) {
+            // Create the user organization relationship
+            const { data: newUserOrg, error: createError } = await supabase
+              .from('user_organizations')
+              .insert({
+                user_id: currentUser.id,
+                organization_id: currentUser.organization_id,
+                role: currentUser.role || 'manager',
+                is_active: true,
+                is_default: true
+              })
+              .select(`
+                id,
+                user_id,
+                organization_id,
+                role,
+                is_active,
+                is_default,
+                created_at,
+                updated_at
+              `)
+              .single();
+            
+            if (!createError && newUserOrg) {
+              const mappedUserOrg = {
+                ...newUserOrg,
+                organization: org as Organization
+              };
+              
+              setUserOrganizations([mappedUserOrg]);
+              setCurrentOrganization(org as Organization);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+        
+        // No organizations found and couldn't create one
+        setUserOrganizations([]);
+        setCurrentOrganization(null);
+        setLoading(false);
+        return;
+      }
+
       // Fetch organization details separately
       const orgIds = (userOrgs || []).map(uo => uo.organization_id);
       const { data: organizations, error: orgsError } = await supabase
