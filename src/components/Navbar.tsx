@@ -6,6 +6,7 @@ import NavLinks from '@/components/navigation/NavLinks';
 import NotificationBell from '@/components/navigation/NotificationBell';
 import UserMenu from '@/components/navigation/UserMenu';
 import MobileMenu from '@/components/navigation/MobileMenu';
+import { OrganizationSwitcher } from './navigation/OrganizationSwitcher';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
@@ -28,6 +29,7 @@ const Navbar = () => {
           
           {/* Actions */}
           <div className="flex items-center space-x-4">
+            <OrganizationSwitcher />
             <NotificationBell />
             <UserMenu />
             

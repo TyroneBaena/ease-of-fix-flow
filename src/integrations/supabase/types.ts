@@ -698,6 +698,7 @@ export type Database = {
           organization_id: string | null
           phone: string | null
           role: string
+          session_organization_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -709,6 +710,7 @@ export type Database = {
           organization_id?: string | null
           phone?: string | null
           role?: string
+          session_organization_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -720,6 +722,7 @@ export type Database = {
           organization_id?: string | null
           phone?: string | null
           role?: string
+          session_organization_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1041,6 +1044,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_organizations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          organization_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          organization_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          organization_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1095,6 +1131,10 @@ export type Database = {
           total_spend: number
         }[]
       }
+      get_user_default_organization: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
       get_user_role_for_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1136,6 +1176,10 @@ export type Database = {
           p_request_id: string
         }
         Returns: undefined
+      }
+      switch_user_organization: {
+        Args: { new_org_id: string }
+        Returns: boolean
       }
       test_logging: {
         Args: Record<PropertyKey, never>

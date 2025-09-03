@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, UserRole } from '@/types/user';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useMultiOrganizationAuth } from '@/hooks/useMultiOrganizationAuth';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
 import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
@@ -20,7 +20,7 @@ export interface AddUserResult {
 }
 
 export const useUserProvider = () => {
-  const { currentUser, session, loading: authLoading, signOut } = useSupabaseAuth();
+  const { currentUser, session, loading: authLoading, signOut } = useMultiOrganizationAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);

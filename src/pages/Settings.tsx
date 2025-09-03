@@ -11,6 +11,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
+import { Phase2TestingPanel } from '@/components/testing/Phase2TestingPanel';
 import { Toaster } from "sonner";
 import DevToolsPanel from '@/components/DevToolsPanel';
 
@@ -100,6 +101,9 @@ const Settings = () => {
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            {currentUser?.role === 'admin' && (
+              <TabsTrigger value="testing">Phase 2 Testing</TabsTrigger>
+            )}
           </TabsList>
           
           {isAdmin && (
@@ -133,6 +137,14 @@ const Settings = () => {
               {currentUser && <NotificationSettings user={currentUser} />}
             </Card>
           </TabsContent>
+          
+          {currentUser?.role === 'admin' && (
+            <TabsContent value="testing">
+              <Card className="p-6">
+                <Phase2TestingPanel />
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

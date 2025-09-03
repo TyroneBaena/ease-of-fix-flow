@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from './UserContext';
+import { useMultiOrganizationContext } from './MultiOrganizationContext';
 
 interface Organization {
   id: string;
@@ -30,6 +31,31 @@ export const useOrganizationContext = () => {
 };
 
 export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // This provider now acts as a bridge to the MultiOrganizationContext
+  // for backward compatibility with existing code
+  try {
+    const multiOrgContext = useMultiOrganizationContext();
+    
+    const value: OrganizationContextType = {
+      currentOrganization: multiOrgContext.currentOrganization,
+      loading: multiOrgContext.loading,
+      error: multiOrgContext.error,
+      refreshOrganization: multiOrgContext.refreshOrganizations
+    };
+
+    return (
+      <OrganizationContext.Provider value={value}>
+        {children}
+      </OrganizationContext.Provider>
+    );
+  } catch (error) {
+    // Fallback to original implementation if MultiOrganizationContext is not available
+    console.warn('MultiOrganizationContext not available, using fallback OrganizationProvider');
+    return <FallbackOrganizationProvider>{children}</FallbackOrganizationProvider>;
+  }
+};
+
+const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useUserContext();
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);

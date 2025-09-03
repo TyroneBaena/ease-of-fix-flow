@@ -1,7 +1,9 @@
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
-import { useNavigate } from 'react-router-dom';
+import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { OrganizationAccessError } from '@/components/errors/OrganizationAccessError';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PropertyAccessControlProps {
   propertyId: string;
@@ -14,23 +16,57 @@ const PropertyAccessControl: React.FC<PropertyAccessControlProps> = ({
   children,
   fallback
 }) => {
-  const { canAccessProperty } = useUserContext();
-  const navigate = useNavigate();
+  const { currentUser, canAccessProperty } = useUserContext();
+  const { currentOrganization } = useMultiOrganizationContext();
+  const [propertyOrgId, setPropertyOrgId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  const hasAccess = canAccessProperty(propertyId);
+  useEffect(() => {
+    const fetchPropertyOrganization = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('properties')
+          .select('organization_id')
+          .eq('id', propertyId)
+          .single();
+
+        if (error) throw error;
+        setPropertyOrgId(data.organization_id);
+      } catch (error) {
+        console.error('Error fetching property organization:', error);
+        setPropertyOrgId(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (propertyId) {
+      fetchPropertyOrganization();
+    }
+  }, [propertyId]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  // Check if user can access this property via the traditional method
+  const hasDirectAccess = canAccessProperty(propertyId);
+  
+  // Check if property belongs to current organization
+  const hasOrganizationAccess = propertyOrgId === currentOrganization?.id;
+  
+  // Check if user is admin
+  const isAdmin = currentUser?.role === 'admin';
+  
+  const hasAccess = hasDirectAccess || hasOrganizationAccess || isAdmin;
   
   if (!hasAccess) {
     return fallback || (
-      <div className="text-center py-8">
-        <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-        <p className="text-gray-500 mb-4">You don't have permission to access this property.</p>
-        <button 
-          onClick={() => navigate('/properties')}
-          className="text-blue-500 hover:underline"
-        >
-          Return to Properties
-        </button>
-      </div>
+      <OrganizationAccessError 
+        message="You don't have permission to access this property. It may belong to a different organization."
+        showSwitcher={true}
+      />
     );
   }
   
