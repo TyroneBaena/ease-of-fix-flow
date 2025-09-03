@@ -3,6 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types/user';
 
 export async function updateUserProfile(user: User): Promise<void> {
+  console.log('updateUserProfile called with user:', {
+    id: user.id,
+    name: user.name,
+    role: user.role,
+    assignedProperties: user.assignedProperties,
+    assignedPropertiesLength: user.assignedProperties?.length || 0
+  });
+  
+  const assignedPropertiesArray = user.role === 'manager' ? user.assignedProperties : [];
+  console.log('Final assigned_properties to save:', assignedPropertiesArray);
+  
   const { error } = await supabase
     .from('profiles')
     .update({
@@ -10,7 +21,7 @@ export async function updateUserProfile(user: User): Promise<void> {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      assigned_properties: user.role === 'manager' ? user.assignedProperties : [],
+      assigned_properties: assignedPropertiesArray,
       updated_at: new Date().toISOString()
     })
     .eq('id', user.id);
