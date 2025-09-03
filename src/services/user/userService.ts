@@ -33,9 +33,20 @@ export const userService: UserService = {
       
       const normalizedEmail = email.toLowerCase().trim();
       
-      console.log(`Proceeding with invitation for: ${normalizedEmail}`);
+      // Ensure we have a valid session before making the request
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error('No valid session found for user invitation:', sessionError);
+        return {
+          success: false,
+          message: "Authentication required. Please log in and try again.",
+          email: normalizedEmail
+        };
+      }
       
-      // Call the edge function directly without pre-checking
+      console.log(`Proceeding with invitation for: ${normalizedEmail} with valid session`);
+      
+      // Call the edge function with explicit headers
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: {
           email: normalizedEmail,
@@ -43,6 +54,10 @@ export const userService: UserService = {
           role,
           assignedProperties: role === 'manager' ? assignedProperties : [],
           bypassExistingCheck: false
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
       
