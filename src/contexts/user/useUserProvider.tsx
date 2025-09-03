@@ -211,7 +211,7 @@ export const useUserProvider = () => {
   return {
     currentUser,
     users,
-    loading: loading || authLoading,
+    loading: authLoading, // Only use authLoading for user context loading state
     loadingError,
     fetchUsers,
     addUser,
