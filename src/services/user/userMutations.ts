@@ -11,6 +11,14 @@ export async function updateUserProfile(user: User): Promise<void> {
     assignedPropertiesLength: user.assignedProperties?.length || 0
   });
   
+  // Check current session before making the request
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log('Current session in updateUserProfile:', {
+    hasSession: !!session,
+    userId: session?.user?.id,
+    accessToken: session?.access_token ? 'present' : 'missing'
+  });
+  
   const assignedPropertiesArray = user.role === 'manager' ? user.assignedProperties : [];
   console.log('Final assigned_properties to save:', assignedPropertiesArray);
   
