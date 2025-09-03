@@ -1109,14 +1109,7 @@ export type Database = {
       }
     }
     Views: {
-      security_compliance_check: {
-        Row: {
-          check_name: string | null
-          status: string | null
-          violation_count: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       add_new_comment: {
@@ -1166,6 +1159,14 @@ export type Database = {
         Returns: {
           category_spend: Json
           total_spend: number
+        }[]
+      }
+      get_security_compliance_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          check_name: string
+          status: string
+          violation_count: number
         }[]
       }
       get_user_default_organization: {

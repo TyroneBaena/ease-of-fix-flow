@@ -101,6 +101,28 @@ const createAssignmentNotificationWithPropertyDetails = async (
 };
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
+  console.log(`SECURITY: Assigning contractor ${contractorId} to request ${requestId}`);
+  
+  // SECURITY FIX: Validate organization boundaries before assignment
+  // First verify the contractor exists and is in the same organization as the request
+  const { data: validation, error: validationError } = await supabase
+    .from('maintenance_requests')
+    .select(`
+      id,
+      organization_id,
+      contractors!inner(id, organization_id, company_name)
+    `)
+    .eq('id', requestId)
+    .eq('contractors.id', contractorId)
+    .single();
+
+  if (validationError || !validation) {
+    console.error("SECURITY VIOLATION: Contractor assignment validation failed:", validationError);
+    throw new Error("Cannot assign contractor: Invalid contractor selection or organization mismatch");
+  }
+
+  console.log("SECURITY: Organization boundary validation passed");
+
   const { error } = await supabase
     .from('maintenance_requests')
     .update({
@@ -110,8 +132,12 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
     })
     .eq('id', requestId);
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error during contractor assignment:", error);
+    throw error;
+  }
 
+  console.log("SECURITY: Contractor assignment completed successfully");
   // Create notification with property details for the assigned contractor
   await createAssignmentNotificationWithPropertyDetails(contractorId, requestId);
 };

@@ -17,11 +17,29 @@ export const requestQuote = async (
   includeInfo: IncludeInfo,
   notes: string
 ) => {
-  console.log(`Requesting quote for request ${requestId} from contractor ${contractorId}`);
+  console.log(`SECURITY: Requesting quote for request ${requestId} from contractor ${contractorId}`);
   console.log("Include info:", includeInfo);
   console.log("Notes:", notes);
 
   try {
+    // SECURITY FIX: Validate organization boundaries before quote request
+    const { data: validation, error: validationError } = await supabase
+      .from('maintenance_requests')
+      .select(`
+        id,
+        organization_id,
+        contractors!inner(id, organization_id, company_name)
+      `)
+      .eq('id', requestId)
+      .eq('contractors.id', contractorId)
+      .single();
+
+    if (validationError || !validation) {
+      console.error("SECURITY VIOLATION: Quote request validation failed:", validationError);
+      throw new Error("Cannot request quote: Invalid contractor selection or organization mismatch");
+    }
+
+    console.log("SECURITY: Organization boundary validation passed for quote request");
     // Fetch property details for notifications (not for quote description)
     const propertyDetails = await fetchPropertyDetails(requestId);
     console.log("Fetched property details for notifications:", propertyDetails);
