@@ -285,13 +285,37 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Critical invitation error:", error);
-    // Return a 200 even for errors to avoid edge function failures
+    
+    // Determine appropriate error status and message
+    let statusCode = 500;
+    let errorMessage = "An unexpected error occurred";
+    
+    if (error.message?.includes('authentication') || error.message?.includes('unauthorized')) {
+      statusCode = 401;
+      errorMessage = "Authentication required";
+    } else if (error.message?.includes('permission') || error.message?.includes('access denied')) {
+      statusCode = 403;
+      errorMessage = "Access denied";
+    } else if (error.message?.includes('already exists') || error.message?.includes('duplicate')) {
+      statusCode = 409;
+      errorMessage = error.message;
+    } else if (error.message?.includes('validation') || error.message?.includes('invalid')) {
+      statusCode = 400;
+      errorMessage = error.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error.message || "An unexpected error occurred"
+        message: errorMessage,
+        error_code: error.code || 'UNKNOWN_ERROR'
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: statusCode 
+      }
     );
   }
 });

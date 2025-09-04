@@ -288,13 +288,42 @@ serve(async (req: Request) => {
     }
 
   } catch (error: any) {
-    console.error("Critical invitation error:", error);
+    console.error("Critical contractor invitation error:", error);
+    
+    // Determine appropriate error status and message
+    let statusCode = 500;
+    let errorMessage = "An unexpected error occurred during contractor invitation";
+    
+    if (error.message?.includes('authentication') || error.message?.includes('unauthorized')) {
+      statusCode = 401;
+      errorMessage = "Authentication required to invite contractors";
+    } else if (error.message?.includes('permission') || error.message?.includes('access denied')) {
+      statusCode = 403;
+      errorMessage = "You don't have permission to invite contractors";
+    } else if (error.message?.includes('already exists') || error.message?.includes('duplicate')) {
+      statusCode = 409;
+      errorMessage = error.message;
+    } else if (error.message?.includes('validation') || error.message?.includes('invalid') || error.message?.includes('required')) {
+      statusCode = 400;
+      errorMessage = error.message;
+    } else if (error.message?.includes('network') || error.message?.includes('timeout')) {
+      statusCode = 503;
+      errorMessage = "Service temporarily unavailable. Please try again.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error.message || "An unexpected error occurred"
+        message: errorMessage,
+        error_code: error.code || 'CONTRACTOR_INVITE_ERROR',
+        details: error.details || null
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: statusCode 
+      }
     );
   }
 });

@@ -23,20 +23,39 @@ export const requestQuote = async (
 
   try {
     // SECURITY FIX: Validate organization boundaries before quote request
-    const { data: validation, error: validationError } = await supabase
+    console.log("SECURITY: Validating organization boundaries for quote request");
+    
+    // First get the maintenance request details
+    const { data: requestData, error: requestError } = await supabase
       .from('maintenance_requests')
-      .select(`
-        id,
-        organization_id,
-        contractors!inner(id, organization_id, company_name)
-      `)
+      .select('id, organization_id, title')
       .eq('id', requestId)
-      .eq('contractors.id', contractorId)
       .single();
 
-    if (validationError || !validation) {
-      console.error("SECURITY VIOLATION: Quote request validation failed:", validationError);
-      throw new Error("Cannot request quote: Invalid contractor selection or organization mismatch");
+    if (requestError) {
+      console.error("SECURITY VIOLATION: Cannot access maintenance request:", requestError);
+      throw new Error(`Cannot access maintenance request: ${requestError.message}`);
+    }
+
+    // Then get the contractor details
+    const { data: contractorData, error: contractorError } = await supabase
+      .from('contractors')
+      .select('id, organization_id, company_name')
+      .eq('id', contractorId)
+      .single();
+
+    if (contractorError) {
+      console.error("SECURITY VIOLATION: Cannot access contractor:", contractorError);
+      throw new Error(`Cannot access contractor: ${contractorError.message}`);
+    }
+
+    // Validate organization match
+    if (requestData.organization_id !== contractorData.organization_id) {
+      console.error("SECURITY VIOLATION: Organization mismatch", {
+        requestOrg: requestData.organization_id,
+        contractorOrg: contractorData.organization_id
+      });
+      throw new Error("SECURITY: Cannot request quote - organization mismatch detected");
     }
 
     console.log("SECURITY: Organization boundary validation passed for quote request");
@@ -44,16 +63,8 @@ export const requestQuote = async (
     const propertyDetails = await fetchPropertyDetails(requestId);
     console.log("Fetched property details for notifications:", propertyDetails);
 
-    // Get contractor details for activity logging
-    const { data: contractorData, error: contractorError } = await supabase
-      .from('contractors')
-      .select('company_name, contact_name')
-      .eq('id', contractorId)
-      .single();
-
-    if (contractorError) {
-      console.error("Error fetching contractor details:", contractorError);
-    }
+    // Get contractor details for activity logging (reuse the data from above)
+    const contractorCompanyName = contractorData?.company_name || 'contractor';
 
     // Check if a quote already exists for this contractor and request
     const { data: existingQuote, error: checkError } = await supabase
@@ -104,12 +115,12 @@ export const requestQuote = async (
       await logActivity({
         requestId,
         actionType: 'quote_re_requested',
-        description: `Quote re-requested from ${contractorData?.company_name || 'contractor'}`,
+        description: `Quote re-requested from ${contractorCompanyName}`,
         actorName: 'System',
         actorRole: 'system',
         metadata: {
           contractorId,
-          contractorName: contractorData?.company_name,
+          contractorName: contractorCompanyName,
           notes: notes || null
         }
       });
@@ -154,12 +165,12 @@ export const requestQuote = async (
       await logActivity({
         requestId,
         actionType: 'quote_requested',
-        description: `Quote requested from ${contractorData?.company_name || 'contractor'}`,
+        description: `Quote requested from ${contractorCompanyName}`,
         actorName: 'System',
         actorRole: 'system',
         metadata: {
           contractorId,
-          contractorName: contractorData?.company_name,
+          contractorName: contractorCompanyName,
           notes: notes || null
         }
       });
@@ -168,7 +179,7 @@ export const requestQuote = async (
     }
 
     // Mark the request as having quotes requested (only if not already marked)
-    const { error: requestError } = await supabase
+    const { error: updateRequestError } = await supabase
       .from('maintenance_requests')
       .update({
         quote_requested: true,
@@ -176,8 +187,8 @@ export const requestQuote = async (
       })
       .eq('id', requestId);
 
-    if (requestError) {
-      console.error("Error updating maintenance request:", requestError);
+    if (updateRequestError) {
+      console.error("Error updating maintenance request:", updateRequestError);
       // Don't throw here as the main operation succeeded
     }
     
@@ -198,35 +209,35 @@ export const submitQuoteForJob = async (
   description: string
 ) => {
   try {
-    const { data: contractorData, error: contractorError } = await supabase
+    const { data: submitContractorData, error: submitContractorError } = await supabase
       .from('contractors')
       .select('id, company_name, contact_name')
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
       .single();
 
-    if (contractorError) throw new Error(`Failed to get contractor data: ${contractorError.message}`);
+    if (submitContractorError) throw new Error(`Failed to get contractor data: ${submitContractorError.message}`);
     
-    if (!contractorData?.id) {
+    if (!submitContractorData?.id) {
       throw new Error('Contractor ID not found');
     }
 
     // Check if a quote request already exists for this contractor and request
-    const { data: existingQuote, error: checkError } = await supabase
+    const { data: existingSubmitQuote, error: submitCheckError } = await supabase
       .from('quotes')
       .select('id, status, amount, description')
       .eq('request_id', requestId)
-      .eq('contractor_id', contractorData.id)
+      .eq('contractor_id', submitContractorData.id)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw new Error(`Failed to check existing quote: ${checkError.message}`);
+    if (submitCheckError && submitCheckError.code !== 'PGRST116') {
+      throw new Error(`Failed to check existing quote: ${submitCheckError.message}`);
     }
 
-    if (existingQuote) {
+    if (existingSubmitQuote) {
       // Store old values for logging
-      const oldAmount = existingQuote.amount;
-      const oldDescription = existingQuote.description;
-      const isResubmission = existingQuote.status === 'pending' || existingQuote.status === 'rejected';
+      const oldAmount = existingSubmitQuote.amount;
+      const oldDescription = existingSubmitQuote.description;
+      const isResubmission = existingSubmitQuote.status === 'pending' || existingSubmitQuote.status === 'rejected';
       
       // Update the existing quote with the actual amount and description
       const { error: updateError } = await supabase
@@ -237,15 +248,15 @@ export const submitQuoteForJob = async (
           status: 'pending',
           submitted_at: new Date().toISOString()
         })
-        .eq('id', existingQuote.id);
+        .eq('id', existingSubmitQuote.id);
 
       if (updateError) throw new Error(`Failed to update quote: ${updateError.message}`);
 
       // Create quote log for the update/resubmission
       const action = isResubmission ? 'resubmitted' : 'updated';
       await createQuoteLog(
-        existingQuote.id,
-        contractorData.id,
+        existingSubmitQuote.id,
+        submitContractorData.id,
         action,
         oldAmount,
         amount,
@@ -257,12 +268,12 @@ export const submitQuoteForJob = async (
       await logActivity({
         requestId,
         actionType: isResubmission ? 'quote_resubmitted' : 'quote_updated',
-        description: `Quote ${isResubmission ? 'resubmitted' : 'updated'} by ${contractorData.company_name} for $${amount}`,
-        actorName: contractorData.contact_name || contractorData.company_name,
+        description: `Quote ${isResubmission ? 'resubmitted' : 'updated'} by ${submitContractorData.company_name} for $${amount}`,
+        actorName: submitContractorData.contact_name || submitContractorData.company_name,
         actorRole: 'contractor',
         metadata: {
-          contractorId: contractorData.id,
-          contractorName: contractorData.company_name,
+          contractorId: submitContractorData.id,
+          contractorName: submitContractorData.company_name,
           amount,
           description,
           oldAmount: isResubmission ? oldAmount : null
@@ -274,7 +285,7 @@ export const submitQuoteForJob = async (
         .from('quotes')
         .insert({
           request_id: requestId,
-          contractor_id: contractorData.id,
+          contractor_id: submitContractorData.id,
           amount,
           description,
           status: 'pending'
@@ -288,7 +299,7 @@ export const submitQuoteForJob = async (
       if (newQuote) {
         await createQuoteLog(
           newQuote.id,
-          contractorData.id,
+          submitContractorData.id,
           'created',
           undefined,
           amount,
@@ -301,12 +312,12 @@ export const submitQuoteForJob = async (
       await logActivity({
         requestId,
         actionType: 'quote_submitted',
-        description: `Quote submitted by ${contractorData.company_name} for $${amount}`,
-        actorName: contractorData.contact_name || contractorData.company_name,
+        description: `Quote submitted by ${submitContractorData.company_name} for $${amount}`,
+        actorName: submitContractorData.contact_name || submitContractorData.company_name,
         actorRole: 'contractor',
         metadata: {
-          contractorId: contractorData.id,
-          contractorName: contractorData.company_name,
+          contractorId: submitContractorData.id,
+          contractorName: submitContractorData.company_name,
           amount,
           description
         }

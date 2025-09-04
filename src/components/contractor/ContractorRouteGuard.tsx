@@ -10,32 +10,40 @@ interface ContractorRouteGuardProps {
 export const ContractorRouteGuard: React.FC<ContractorRouteGuardProps> = ({ children }) => {
   const { currentUser, loading } = useUserContext();
 
-  // Show loading while authentication is in progress
+  console.log('🔒 ContractorRouteGuard - State:', { 
+    currentUser: !!currentUser, 
+    role: currentUser?.role,
+    loading 
+  });
+
+  // Show loading while authentication is in progress - match ProtectedRoute behavior
   if (loading) {
+    console.log('🔒 ContractorRouteGuard - Showing loading state');
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading contractor dashboard...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated - consistent with ProtectedRoute
   if (!currentUser) {
+    console.log("🔒 ContractorRouteGuard: User not authenticated, redirecting to login");
     return <Navigate to="/login" replace />;
   }
 
-  // Allow admin users (for testing purposes)
+  // Allow admin users (for testing/admin purposes)
   if (currentUser.role === 'admin') {
+    console.log("🔒 ContractorRouteGuard: Admin user accessing contractor routes");
     return <>{children}</>;
   }
 
   // Check if user is a contractor
   if (currentUser.role !== 'contractor') {
+    console.log(`🔒 ContractorRouteGuard: User role '${currentUser.role}' not authorized for contractor routes`);
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('🔒 ContractorRouteGuard - Rendering contractor content for user:', currentUser.email);
   return <>{children}</>;
 };

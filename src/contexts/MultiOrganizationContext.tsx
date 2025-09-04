@@ -215,32 +215,47 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
   };
 
   const switchOrganization = async (organizationId: string) => {
+    // Prevent concurrent organization switches
+    if (loading) {
+      console.log('Organization switch already in progress, skipping');
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
       
+      // Validate organization exists in user's organizations first
+      const targetOrgData = userOrganizations.find(
+        uo => uo.organization_id === organizationId
+      );
+
+      if (!targetOrgData) {
+        throw new Error('Organization not found in user organizations');
+      }
+
       // Call the database function to switch organization
       const { data, error } = await supabase.rpc('switch_user_organization', {
         new_org_id: organizationId
       });
 
-      if (error) throw error;
-
-      // Find and set the new current organization
-      const targetOrgData = userOrganizations.find(
-        uo => uo.organization_id === organizationId
-      );
-
-      if (targetOrgData) {
-        setCurrentOrganization(targetOrgData.organization);
-        toast.success(`Switched to ${targetOrgData.organization.name}`);
-      } else {
-        throw new Error('Organization not found in user organizations');
+      if (error) {
+        console.error('Database error switching organization:', error);
+        throw new Error(`Failed to switch organization: ${error.message}`);
       }
+
+      // Only update state after successful database operation
+      setCurrentOrganization(targetOrgData.organization);
+      toast.success(`Switched to ${targetOrgData.organization.name}`);
+      
+      console.log(`Successfully switched to organization: ${targetOrgData.organization.name}`);
     } catch (err) {
       console.error('Error switching organization:', err);
       const message = err instanceof Error ? err.message : 'Failed to switch organization';
       setError(message);
       toast.error(message);
+      
+      // Don't change current organization on error
     } finally {
       setLoading(false);
     }

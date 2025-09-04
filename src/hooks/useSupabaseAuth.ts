@@ -14,97 +14,99 @@ export const useSupabaseAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     console.log('Setting up auth state listener');
+    let isInitialized = false;
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log(`Auth state changed: ${event}`, {
           _type: typeof session,
           value: session ? 'session_exists' : 'undefined'
         });
 
-        if (event === 'SIGNED_IN') {
-          if (session?.user) {
-            setTimeout(async () => {
-              try {
-                const appUser = await convertToAppUser(session.user);
-                setCurrentUser(appUser);
-              } catch (error) {
-                console.error('Error converting user:', error);
-                setCurrentUser(null);
-              }
-            }, 0);
-          } else {
+        // Handle session persistence and user conversion synchronously where possible
+        try {
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            if (session?.user) {
+              const appUser = await convertToAppUser(session.user);
+              setCurrentUser(appUser);
+              setSession(session);
+              console.log('User authenticated successfully:', session.user.email);
+            } else {
+              setCurrentUser(null);
+              setSession(null);
+            }
+            setLoading(false);
+            isInitialized = true;
+          } else if (event === 'SIGNED_OUT') {
             setCurrentUser(null);
+            setSession(null);
+            setIsSigningOut(false);
+            setLoading(false);
+            
+            // Clean up auth state on sign out
+            cleanupAuthState();
+            isInitialized = true;
+          } else if (event === 'USER_UPDATED') {
+            if (session?.user) {
+              const appUser = await convertToAppUser(session.user);
+              setCurrentUser(appUser);
+              setSession(session);
+              console.log('User updated successfully');
+            } else {
+              setCurrentUser(null);
+              setSession(null);
+            }
+            setLoading(false);
+          } else if (event === 'TOKEN_REFRESHED') {
+            // Handle token refresh without changing user state
+            if (session) {
+              setSession(session);
+              console.log('Token refreshed successfully');
+            }
           }
-          setSession(session);
-          setLoading(false);
-          
-          // Defer any additional data fetching to prevent deadlocks
-          setTimeout(() => {
-            console.log('User signed in successfully');
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
+        } catch (error) {
+          console.error(`Error handling auth event ${event}:`, error);
           setCurrentUser(null);
           setSession(null);
-          setIsSigningOut(false);
-          setLoading(false);
-          
-          // Clean up auth state on sign out
-          cleanupAuthState();
-        } else if (event === 'USER_UPDATED') {
-          if (session?.user) {
-            setTimeout(async () => {
-              try {
-                const appUser = await convertToAppUser(session.user);
-                setCurrentUser(appUser);
-              } catch (error) {
-                console.error('Error converting updated user:', error);
-              }
-            }, 0);
-          } else {
-            setCurrentUser(null);
-          }
-          setSession(session);
-          setLoading(false);
-        } else if (event === 'INITIAL_SESSION') {
-          if (session?.user) {
-            setTimeout(async () => {
-              try {
-                const appUser = await convertToAppUser(session.user);
-                setCurrentUser(appUser);
-              } catch (error) {
-                console.error('Error converting user from initial session:', error);
-                setCurrentUser(null);
-              }
-            }, 0);
-          } else {
-            setCurrentUser(null);
-          }
-          setSession(session);
           setLoading(false);
         }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // THEN check for existing session - but only if not already initialized
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting initial session:', error);
+        setLoading(false);
+        return;
+      }
+
+      // If auth state change already handled this, skip
+      if (isInitialized) {
+        console.log('Session already handled by auth state change');
+        return;
+      }
+
       console.log('Manual session check - session found:', !!session);
-      if (session?.user) {
-        try {
+      try {
+        if (session?.user) {
           const appUser = await convertToAppUser(session.user);
           setCurrentUser(appUser);
-        } catch (error) {
-          console.error('Error converting user from manual session check:', error);
+          setSession(session);
+        } else {
           setCurrentUser(null);
+          setSession(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error converting user from manual session check:', error);
         setCurrentUser(null);
+        setSession(null);
+      } finally {
+        setLoading(false);
       }
-      setSession(session);
-      setLoading(false);
     });
 
     return () => {

@@ -61,9 +61,26 @@ export const userService: UserService = {
         }
       });
       
+      // Handle edge function errors (network, timeout, etc.)
       if (error) {
-        console.error("Error inviting user:", error);
-        throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
+        console.error('Edge function error:', error);
+        const errorMessage = error.message || "Failed to send invitation due to network error";
+        return {
+          success: false,
+          message: errorMessage,
+          email: normalizedEmail
+        };
+      }
+
+      // Handle business logic failures from the edge function
+      if (!data?.success) {
+        console.error('Edge function returned failure:', data);
+        const errorMessage = data?.message || "Failed to send invitation";
+        return {
+          success: false,
+          message: errorMessage,
+          email: normalizedEmail
+        };
       }
       
       // Check if tenant schema was created properly

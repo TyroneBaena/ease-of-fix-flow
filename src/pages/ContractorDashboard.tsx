@@ -41,8 +41,8 @@ const ContractorDashboard = () => {
     completedJobs
   });
 
-  // Loading state
-  if (loading) {
+  // Loading state - only show when actually loading data
+  if (loading && !contractorId) {
     return (
       <div className="min-h-screen bg-gray-50">
         <ContractorHeader />
@@ -57,46 +57,49 @@ const ContractorDashboard = () => {
       <ContractorHeader />
       <Toaster position="bottom-right" richColors />
       
-      <DashboardErrorState 
-        error={error}
-        contractorId={contractorId}
-        refreshData={refreshData}
-        loading={loading}
-      />
-
-      {/* Show main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
+      {/* Show error state prominently if there's a critical error */}
+      {error && !contractorId ? (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <DashboardErrorState 
             error={error}
             contractorId={contractorId}
             refreshData={refreshData}
             loading={loading}
           />
-        )}
-        
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Contractor Dashboard</h1>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={refreshData}
-            className="flex items-center gap-2"
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-        
-        <DashboardContent
-          filteredQuoteRequests={filteredQuoteRequests}
-          filteredActiveJobs={filteredActiveJobs}
-          filteredCompletedJobs={filteredCompletedJobs}
-          loading={loading}
-          onSelectRequest={handleSelectRequest}
-        />
-      </main>
+        </main>
+      ) : (
+        /* Show main content when no critical errors */
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Contractor Dashboard</h1>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshData}
+              className="flex items-center gap-2"
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+          
+          {/* Show minor errors as warnings but still show content */}
+          {error && contractorId && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-yellow-800 text-sm">{error}</p>
+            </div>
+          )}
+          
+          <DashboardContent
+            filteredQuoteRequests={filteredQuoteRequests}
+            filteredActiveJobs={filteredActiveJobs}
+            filteredCompletedJobs={filteredCompletedJobs}
+            loading={loading}
+            onSelectRequest={handleSelectRequest}
+          />
+        </main>
+      )}
     </div>
   );
 };

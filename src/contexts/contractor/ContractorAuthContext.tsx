@@ -63,12 +63,21 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       if (contractorError) {
         if (contractorError.code === 'PGRST116') {
           // No contractor profile found - user is not a contractor
-          console.log('ContractorAuth - User is not a contractor');
+          console.log('ContractorAuth - User is not a contractor (no profile found)');
           setIsContractor(false);
           setContractorId(null);
+          setError(null); // Clear any previous errors
+          return;
+        } else if (contractorError.code === '42501') {
+          // Permission denied - likely RLS policy blocking access
+          console.log('ContractorAuth - Access denied to contractor profile');
+          setIsContractor(false);
+          setContractorId(null);
+          setError('Access denied. Please ensure you have contractor permissions.');
           return;
         }
-        throw contractorError;
+        console.error('ContractorAuth - Database error:', contractorError);
+        throw new Error(`Failed to load contractor profile: ${contractorError.message}`);
       }
 
       console.log('ContractorAuth - Found contractor profile:', contractorData);
