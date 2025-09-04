@@ -11,8 +11,6 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
-import { Phase2TestingPanel } from '@/components/testing/Phase2TestingPanel';
-import { MultiOrgTestingPanel } from '@/components/testing/MultiOrgTestingPanel';
 import { Toaster } from "sonner";
 import DevToolsPanel from '@/components/DevToolsPanel';
 
@@ -102,12 +100,6 @@ const Settings = () => {
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            {currentUser?.role === 'admin' && (
-              <TabsTrigger value="testing">Phase 2 Testing</TabsTrigger>
-            )}
-            {currentUser?.role === 'admin' && (
-              <TabsTrigger value="multi-org-testing">Multi-Org Testing</TabsTrigger>
-            )}
           </TabsList>
           
           {isAdmin && (
@@ -141,22 +133,6 @@ const Settings = () => {
               {currentUser && <NotificationSettings user={currentUser} />}
             </Card>
           </TabsContent>
-          
-          {currentUser?.role === 'admin' && (
-            <TabsContent value="testing">
-              <Card className="p-6">
-                <Phase2TestingPanel />
-              </Card>
-            </TabsContent>
-          )}
-          
-          {currentUser?.role === 'admin' && (
-            <TabsContent value="multi-org-testing">
-              <div className="space-y-6">
-                <MultiOrgTestingPanel />
-              </div>
-            </TabsContent>
-          )}
         </Tabs>
       </main>
     </div>
