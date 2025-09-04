@@ -10,6 +10,53 @@ import {
   createAssignmentNotification 
 } from '../notifications/quoteNotifications';
 
+// Email notification functions
+const sendQuoteRequestEmail = async (contractorId: string, requestId: string, propertyDetails: PropertyDetails) => {
+  try {
+    const { data: contractor } = await supabase
+      .from('contractors')
+      .select('email, contact_name')
+      .eq('id', contractorId)
+      .single();
+
+    if (contractor?.email) {
+      await supabase.functions.invoke('send-quote-notification', {
+        body: {
+          quote_id: requestId, // Using request ID for quote request
+          notification_type: 'requested',
+          recipient_email: contractor.email,
+          recipient_name: contractor.contact_name || 'Contractor'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error sending quote request email:', error);
+  }
+};
+
+const sendQuoteApprovalEmail = async (contractorId: string, quoteId: string) => {
+  try {
+    const { data: contractor } = await supabase
+      .from('contractors')
+      .select('email, contact_name')
+      .eq('id', contractorId)
+      .single();
+
+    if (contractor?.email) {
+      await supabase.functions.invoke('send-quote-notification', {
+        body: {
+          quote_id: quoteId,
+          notification_type: 'approved',
+          recipient_email: contractor.email,
+          recipient_name: contractor.contact_name || 'Contractor'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error sending quote approval email:', error);
+  }
+};
+
 // Update the requestQuote function to keep quote description simple
 export const requestQuote = async (
   requestId: string,
@@ -194,6 +241,9 @@ export const requestQuote = async (
     
     // Create notification with full site details (separate from quote description)
     await createContractorNotificationWithPropertyDetails(contractorId, requestId, propertyDetails);
+    
+    // Send email notification to contractor
+    await sendQuoteRequestEmail(contractorId, requestId, propertyDetails);
     
     return true; // Return success indicator
   } catch (error) {
@@ -460,6 +510,9 @@ export const approveQuoteForJob = async (quoteId: string) => {
 
     // Create assignment notification for the approved contractor
     await createAssignmentNotification(quote.contractor_id, quote.request_id, propertyDetails);
+
+    // Send email notification about quote approval
+    await sendQuoteApprovalEmail(quote.contractor_id, quoteId);
 
     console.log(`Quote ${quoteId} approved successfully with assignment confirmation`);
     return true;

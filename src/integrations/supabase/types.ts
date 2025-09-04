@@ -1245,6 +1245,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      send_comment_email_notifications_v2: {
+        Args: { comment_id: string }
+        Returns: undefined
+      }
       switch_user_organization: {
         Args: { new_org_id: string }
         Returns: boolean

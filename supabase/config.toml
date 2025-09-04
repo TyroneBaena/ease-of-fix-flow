@@ -35,3 +35,33 @@ verify_jwt = false
 
 [functions.download-bulk-invoices]
 verify_jwt = true
+
+[functions.send-quote-notification]
+verify_jwt = false
+
+[functions.send-invoice-notification]
+verify_jwt = false
+
+[functions.send-job-completion-notification]
+verify_jwt = false
+
+[functions.send-maintenance-request-notification]
+verify_jwt = false
+
+[functions.send-landlord-report]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.create-test-users]
+verify_jwt = false
+
+[functions.inbound-email]
+verify_jwt = false

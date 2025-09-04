@@ -164,38 +164,72 @@ export const InvoiceUploadDialog = ({
 
   const sendInvoiceNotifications = async (requestId: string, invoiceNumber: string, totalAmount: number) => {
     try {
-      // Get all admin and manager users
+      // Get all admin and manager users from the same organization as the request
+      const { data: requestData } = await supabase
+        .from('maintenance_requests')
+        .select('organization_id')
+        .eq('id', requestId)
+        .single();
+
+      if (!requestData?.organization_id) {
+        console.error('Could not find organization for request');
+        return;
+      }
+
       const { data: adminUsers, error: adminError } = await supabase
         .from('profiles')
-        .select('id')
-        .in('role', ['admin', 'manager']);
+        .select('id, email, name, organization_id')
+        .in('role', ['admin', 'manager'])
+        .eq('organization_id', requestData.organization_id);
 
       if (adminError) {
         console.error('Error fetching admin users:', adminError);
         return;
       }
 
-      // Create notifications for each admin/manager
+      // Create in-app notifications for each admin/manager
       const notifications = adminUsers.map(user => ({
         title: 'New Invoice Uploaded',
         message: `Invoice #${invoiceNumber} has been uploaded for job #${requestId.substring(0, 8)} with total amount $${totalAmount.toFixed(2)} (inc. GST)`,
         type: 'info',
         user_id: user.id.toString(),
-        link: `/request/${requestId}`
       }));
 
-      const { error: notificationError } = await supabase
+      const { error: notifyError } = await supabase
         .from('notifications')
         .insert(notifications);
 
-      if (notificationError) {
-        console.error('Error creating notifications:', notificationError);
+      if (notifyError) {
+        console.error('Error creating notifications:', notifyError);
       }
+
+      // Send email notifications to admins/managers
+      for (const user of adminUsers) {
+        if (user.email) {
+          try {
+            const { error } = await supabase.functions.invoke('send-invoice-notification', {
+              body: {
+                invoice_id: requestId, // This should be the actual invoice ID once created
+                notification_type: 'uploaded',
+                recipient_email: user.email,
+                recipient_name: user.name || 'Admin'
+              }
+            });
+            
+            if (error) {
+              console.error('Error sending invoice email to:', user.email, error);
+            }
+          } catch (emailError) {
+            console.error('Failed to send invoice email:', emailError);
+          }
+        }
+      }
+
     } catch (error) {
-      console.error('Error sending invoice notifications:', error);
+      console.error('Error in sendInvoiceNotifications:', error);
     }
   };
-
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
