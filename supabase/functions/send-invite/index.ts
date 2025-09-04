@@ -30,7 +30,20 @@ serve(async (req: Request) => {
       }
     );
     
-    const body: InviteRequest = await req.json();
+    // Handle both direct HTTP requests and Supabase function invocations
+    let body: InviteRequest;
+    try {
+      // Try to parse as JSON (for direct HTTP requests)
+      const rawBody = await req.text();
+      if (rawBody.trim() === '') {
+        throw new Error('Empty request body');
+      }
+      body = JSON.parse(rawBody);
+    } catch (jsonError) {
+      console.error("Failed to parse request body as JSON:", jsonError);
+      throw new Error(`Invalid request body: ${jsonError.message}`);
+    }
+    
     console.log("Request body received:", JSON.stringify(body, null, 2));
     
     validateRequest(body);
