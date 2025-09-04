@@ -95,16 +95,18 @@ const handler = async (req: Request): Promise<Response> => {
     // Create in-app notifications for admins and managers
     console.log('Creating in-app notifications...');
     
-    // Get admin and manager users
+    // Get admin and manager users from the same organization
     const { data: adminUsers, error: adminError } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('role', 'admin');
+      .select('id, organization_id')
+      .eq('role', 'admin')
+      .eq('organization_id', requestData.organization_id);
 
     const { data: managerUsers, error: managerError } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('role', 'manager');
+      .select('id, organization_id')
+      .eq('role', 'manager')
+      .eq('organization_id', requestData.organization_id);
 
     if (adminError) console.error('Error fetching admin users:', adminError);
     if (managerError) console.error('Error fetching manager users:', managerError);

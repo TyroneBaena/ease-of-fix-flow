@@ -53,15 +53,13 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
     
-    // Get Resend API key
-    let resendApiKey = Deno.env.get("RESEND_API_KEY") || 
-                       Deno.env.get("NEW_RESEND_API_KEY") || 
-                       Deno.env.get("RESEND_API_KEY_1");
+    // Get Resend API key - use NEW_RESEND_API_KEY consistently
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
     
     if (!resendApiKey) {
-      console.error("No Resend API key found");
+      console.error("NEW_RESEND_API_KEY not found");
       return new Response(JSON.stringify({ 
-        error: "Server configuration error: Missing email service API key"
+        error: "Server configuration error: NEW_RESEND_API_KEY not configured"
       }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -184,9 +182,9 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send the email
+    // Send the email using verified domain
     const emailResponse = await resend.emails.send({
-      from: "Maintenance System <notifications@housinghub.app>",
+      from: "Property Manager <notifications@housinghub.app>",
       to: [recipient_email],
       subject: emailSubject,
       html: emailHtml,
