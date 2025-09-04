@@ -30,7 +30,42 @@ serve(async (req: Request) => {
       }
     );
     
-    const body: InviteRequest = await req.json();
+    // Handle both direct HTTP requests and Supabase function invocations
+    let body: InviteRequest;
+    try {
+      const contentType = req.headers.get('content-type') || '';
+      console.log("Request headers:", {
+        method: req.method,
+        contentType,
+        hasAuth: !!req.headers.get('authorization')
+      });
+      
+      if (contentType.includes('application/json')) {
+        body = await req.json();
+      } else {
+        const rawBody = await req.text();
+        console.log("Raw body received:", rawBody);
+        
+        if (!rawBody || rawBody.trim() === '') {
+          throw new Error('Empty request body received');
+        }
+        
+        body = JSON.parse(rawBody);
+      }
+    } catch (jsonError) {
+      console.error("Failed to parse request body:", jsonError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `Invalid request body: ${jsonError.message}`,
+          error_code: 'INVALID_BODY'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
     
     console.log("Request body received:", JSON.stringify(body, null, 2));
     
