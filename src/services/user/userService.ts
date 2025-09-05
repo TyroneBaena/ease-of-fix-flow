@@ -48,19 +48,21 @@ export const userService: UserService = {
       console.log(`Proceeding with invitation for: ${normalizedEmail} with valid session`);
       console.log("About to call supabase.functions.invoke('send-invite')...");
       
-      // Call the edge function with explicit headers
+      const requestBody = {
+        email: normalizedEmail,
+        name,
+        role,
+        assignedProperties: role === 'manager' ? assignedProperties : [],
+        bypassExistingCheck: false
+      };
+      
+      console.log("Request body to be sent:", JSON.stringify(requestBody, null, 2));
+      console.log("Session access token available:", !!session.access_token);
+      console.log("User ID from session:", session.user?.id);
+      
+      // Call the edge function (Supabase automatically adds auth headers)
       const { data, error } = await supabase.functions.invoke('send-invite', {
-        body: {
-          email: normalizedEmail,
-          name,
-          role,
-          assignedProperties: role === 'manager' ? assignedProperties : [],
-          bypassExistingCheck: false
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        }
+        body: requestBody
       });
       
       console.log("Supabase function call completed. Response:", { data, error });

@@ -32,39 +32,72 @@ serve(async (req: Request) => {
     
     // Handle both direct HTTP requests and Supabase function invocations
     let body: InviteRequest;
+    
+    console.log("Request method:", req.method);
+    console.log("Request URL:", req.url);
+    console.log("Content-Type:", req.headers.get('content-type'));
+    console.log("Authorization header present:", !!req.headers.get('authorization'));
+    
     try {
-      const contentType = req.headers.get('content-type') || '';
-      console.log("Request headers:", {
-        method: req.method,
-        contentType,
-        hasAuth: !!req.headers.get('authorization')
-      });
+      // Try to read the body as JSON first (most common case)
+      body = await req.json();
+      console.log("Successfully parsed request body:", JSON.stringify(body, null, 2));
+    } catch (jsonError) {
+      console.error("Failed to parse request body as JSON:", jsonError);
       
-      if (contentType.includes('application/json')) {
-        body = await req.json();
-      } else {
+      // If JSON parsing fails, let's see what we actually received
+      try {
         const rawBody = await req.text();
-        console.log("Raw body received:", rawBody);
+        console.log("Raw body content (length: " + rawBody.length + "):", rawBody);
         
         if (!rawBody || rawBody.trim() === '') {
-          throw new Error('Empty request body received');
+          console.error("Empty request body received");
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: "Empty request body received",
+              error_code: 'EMPTY_BODY'
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 400 
+            }
+          );
         }
         
-        body = JSON.parse(rawBody);
-      }
-    } catch (jsonError) {
-      console.error("Failed to parse request body:", jsonError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `Invalid request body: ${jsonError.message}`,
-          error_code: 'INVALID_BODY'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
+        // Try to parse the raw body as JSON
+        try {
+          body = JSON.parse(rawBody);
+          console.log("Successfully parsed raw body as JSON:", JSON.stringify(body, null, 2));
+        } catch (secondParseError) {
+          console.error("Failed to parse raw body as JSON:", secondParseError);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: `Invalid JSON format: ${secondParseError.message}`,
+              error_code: 'INVALID_JSON',
+              receivedContent: rawBody.substring(0, 200) // First 200 chars for debugging
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 400 
+            }
+          );
         }
-      );
+      } catch (textError) {
+        console.error("Failed to read request as text:", textError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `Failed to read request body: ${textError.message}`,
+            error_code: 'BODY_READ_ERROR'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 400 
+          }
+        );
+      }
     }
     
     console.log("Request body received:", JSON.stringify(body, null, 2));
