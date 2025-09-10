@@ -104,21 +104,34 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
   console.log(`SECURITY: Assigning contractor ${contractorId} to request ${requestId}`);
   
   // SECURITY FIX: Validate organization boundaries before assignment
-  // First verify the contractor exists and is in the same organization as the request
-  const { data: validation, error: validationError } = await supabase
+  // First get the request's organization
+  const { data: requestData, error: requestError } = await supabase
     .from('maintenance_requests')
-    .select(`
-      id,
-      organization_id,
-      contractors!inner(id, organization_id, company_name)
-    `)
+    .select('id, organization_id')
     .eq('id', requestId)
-    .eq('contractors.id', contractorId)
     .single();
 
-  if (validationError || !validation) {
-    console.error("SECURITY VIOLATION: Contractor assignment validation failed:", validationError);
-    throw new Error("Cannot assign contractor: Invalid contractor selection or organization mismatch");
+  if (requestError || !requestData) {
+    console.error("SECURITY VIOLATION: Request not found:", requestError);
+    throw new Error("Cannot assign contractor: Request not found");
+  }
+
+  // Then verify the contractor exists and is in the same organization
+  const { data: contractorData, error: contractorError } = await supabase
+    .from('contractors')
+    .select('id, organization_id, company_name')
+    .eq('id', contractorId)
+    .single();
+
+  if (contractorError || !contractorData) {
+    console.error("SECURITY VIOLATION: Contractor not found:", contractorError);
+    throw new Error("Cannot assign contractor: Contractor not found");
+  }
+
+  // Validate organizations match
+  if (requestData.organization_id !== contractorData.organization_id) {
+    console.error("SECURITY VIOLATION: Organization mismatch - Request org:", requestData.organization_id, "Contractor org:", contractorData.organization_id);
+    throw new Error("Cannot assign contractor: Organization mismatch - contractors can only be assigned to requests within their organization");
   }
 
   console.log("SECURITY: Organization boundary validation passed");
