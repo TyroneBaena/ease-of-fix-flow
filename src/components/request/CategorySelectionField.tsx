@@ -63,9 +63,9 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
           </SelectTrigger>
           <SelectContent>
             {isLoading ? (
-              <SelectItem value="" disabled>Loading categories...</SelectItem>
+              <div className="p-2 text-sm text-muted-foreground">Loading categories...</div>
             ) : budgetCategories.length === 0 ? (
-              <SelectItem value="" disabled>No categories available</SelectItem>
+              <div className="p-2 text-sm text-muted-foreground">No categories available</div>
             ) : (
               budgetCategories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
