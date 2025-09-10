@@ -6,7 +6,6 @@ import { useUserContext } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from "sonner";
 import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
-import { ContractorProfileDebug } from '@/components/contractor/ContractorProfileDebug';
 import { EditContractorInfoDialog } from '@/components/contractor/EditContractorInfoDialog';
 import { ManageSkillsDialog } from '@/components/contractor/ManageSkillsDialog';
 import { ChangePasswordDialog } from '@/components/contractor/ChangePasswordDialog';
@@ -63,11 +62,6 @@ const ContractorProfile = () => {
               {error}
             </AlertDescription>
           </Alert>
-          
-          {/* Debug panel to help identify the issue */}
-          <div className="mt-8">
-            <ContractorProfileDebug />
-          </div>
         </main>
       </div>
     );
