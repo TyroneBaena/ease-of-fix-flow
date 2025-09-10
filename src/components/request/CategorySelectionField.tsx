@@ -19,6 +19,7 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
   onPriorityChange
 }) => {
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchBudgetCategories();
@@ -26,21 +27,29 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
 
   const fetchBudgetCategories = async () => {
     try {
+      setIsLoading(true);
+      console.log('Fetching budget categories...');
+      
       // Fetch budget categories for the current organization
       const { data, error } = await supabase
         .from('budget_categories')
         .select('*')
         .order('name');
 
+      console.log('Budget categories response:', { data, error });
+
       if (error) {
         console.error('Error fetching budget categories:', error);
         setBudgetCategories([]);
       } else {
+        console.log('Setting budget categories:', data);
         setBudgetCategories(data || []);
       }
     } catch (err) {
       console.error('Error fetching budget categories:', err);
       setBudgetCategories([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -53,11 +62,17 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {budgetCategories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
+            {isLoading ? (
+              <SelectItem value="" disabled>Loading categories...</SelectItem>
+            ) : budgetCategories.length === 0 ? (
+              <SelectItem value="" disabled>No categories available</SelectItem>
+            ) : (
+              budgetCategories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>
