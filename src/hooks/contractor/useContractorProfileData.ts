@@ -25,8 +25,17 @@ export const useContractorProfileData = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchContractorProfile = async () => {
-    if (!currentUser || currentUser.role !== 'contractor') {
-      console.log('useContractorProfileData - No contractor user found');
+    console.log('useContractorProfileData - fetchContractorProfile called');
+    console.log('useContractorProfileData - currentUser:', currentUser);
+    
+    if (!currentUser) {
+      console.log('useContractorProfileData - No currentUser found');
+      setLoading(false);
+      return;
+    }
+    
+    if (currentUser.role !== 'contractor') {
+      console.log('useContractorProfileData - User role is not contractor:', currentUser.role);
       setLoading(false);
       return;
     }
@@ -36,6 +45,7 @@ export const useContractorProfileData = () => {
       setError(null);
 
       console.log('useContractorProfileData - Starting fetch for user:', currentUser.id);
+      console.log('useContractorProfileData - User role:', currentUser.role);
 
       // Fetch contractor data with fresh query (no cache)
       // Handle potential duplicate records by getting the most recent one
@@ -49,6 +59,12 @@ export const useContractorProfileData = () => {
 
       if (contractorError) {
         console.error('useContractorProfileData - Error fetching contractor data:', contractorError);
+        console.error('useContractorProfileData - Error details:', {
+          code: contractorError.code,
+          message: contractorError.message,
+          details: contractorError.details,
+          hint: contractorError.hint
+        });
         throw contractorError;
       }
 
@@ -103,7 +119,13 @@ export const useContractorProfileData = () => {
   };
 
   useEffect(() => {
-    console.log('useContractorProfileData - useEffect triggered, currentUser:', currentUser?.id);
+    console.log('useContractorProfileData - useEffect triggered');
+    console.log('useContractorProfileData - currentUser:', {
+      id: currentUser?.id,
+      email: currentUser?.email,
+      role: currentUser?.role,
+      organizationId: currentUser?.organization_id
+    });
     fetchContractorProfile();
   }, [currentUser]);
 
