@@ -2,31 +2,31 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { Contractor } from '@/types/contractor';
+import { validateAndRepairContractorProfile, validateOrganizationConsistency } from '@/utils/contractorValidation';
 
 // Remove the fetchContractors function - it's now in contractorFetch.ts
 
-// Helper function to create notification with property details for assignment
+// Enhanced helper function with comprehensive validation and auto-repair
 const createAssignmentNotificationWithPropertyDetails = async (
   contractorId: string,
   requestId: string
 ) => {
   try {
-    // Get contractor details
-    const { data: contractor, error: contractorError } = await supabase
-      .from('contractors')
-      .select('user_id, company_name')
-      .eq('id', contractorId)
-      .single();
+    console.log(`Creating assignment notification for contractor ${contractorId}, request ${requestId}`);
     
-    if (contractorError) {
-      console.error("Error fetching contractor:", contractorError);
-      return false;
-    }
+    // Validate and auto-repair contractor profile before creating notification
+    const validation = await validateAndRepairContractorProfile(contractorId);
     
-    if (!contractor?.user_id) {
-      console.error("Missing user_id for contractor:", contractorId);
-      return false;
+    if (!validation.isValid) {
+      console.error("Contractor validation failed:", validation.issues);
+      throw new Error(`Contractor validation failed: ${validation.issues.join(', ')}`);
     }
+
+    if (validation.wasRepaired) {
+      console.log(`Auto-repaired contractor profile for ${validation.contractor?.company_name}`);
+    }
+
+    const contractor = validation.contractor!;
 
     // Fetch property details for the maintenance request
     const { data: request, error: requestError } = await supabase
@@ -117,56 +117,67 @@ const createAssignmentNotificationWithPropertyDetails = async (
 };
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
+  console.log(`=== STARTING CONTRACTOR ASSIGNMENT ===`);
   console.log(`Assigning contractor ${contractorId} to request ${requestId}`);
   
-  // SECURITY FIX: Validate organization boundaries before assignment
-  // First get the request's organization
-  const { data: requestData, error: requestError } = await supabase
-    .from('maintenance_requests')
-    .select('id, organization_id, title')
-    .eq('id', requestId)
-    .single();
+  try {
+    // STEP 1: Validate organization consistency
+    const orgValidation = await validateOrganizationConsistency(requestId, contractorId);
+    
+    if (!orgValidation.isValid) {
+      console.error("SECURITY VIOLATION:", orgValidation.error);
+      throw new Error(`Assignment failed: ${orgValidation.error}`);
+    }
 
-  if (requestError || !requestData) {
-    console.error("SECURITY VIOLATION: Request not found:", requestError);
-    throw new Error("Cannot assign contractor: Request not found");
-  }
+    console.log("✅ Organization validation passed");
 
-  // Then verify the contractor exists and is in the same organization
-  const { data: contractorData, error: contractorError } = await supabase
-    .from('contractors')
-    .select('id, organization_id, company_name')
-    .eq('id', contractorId)
-    .single();
+    // STEP 2: Validate and auto-repair contractor profile
+    const contractorValidation = await validateAndRepairContractorProfile(contractorId);
+    
+    if (!contractorValidation.isValid) {
+      console.error("Contractor profile validation failed:", contractorValidation.issues);
+      throw new Error(`Contractor validation failed: ${contractorValidation.issues.join(', ')}`);
+    }
 
-  if (contractorError || !contractorData) {
-    console.error("SECURITY VIOLATION: Contractor not found:", contractorError);
-    throw new Error("Cannot assign contractor: Contractor not found");
-  }
+    if (contractorValidation.wasRepaired) {
+      console.log(`✅ Auto-repaired contractor profile for ${contractorValidation.contractor?.company_name}`);
+    } else {
+      console.log("✅ Contractor profile validation passed");
+    }
 
-  // Validate organizations match
-  if (requestData.organization_id !== contractorData.organization_id) {
-    console.error("SECURITY VIOLATION: Organization mismatch");
-    throw new Error("Cannot assign contractor: Organization mismatch - contractors can only be assigned to requests within their organization");
-  }
+    // STEP 3: Perform the assignment
 
-  const { error } = await supabase
-    .from('maintenance_requests')
-    .update({
-      contractor_id: contractorId,
-      assigned_at: new Date().toISOString(),
-      status: 'in-progress'
-    })
-    .eq('id', requestId);
+    const { error } = await supabase
+      .from('maintenance_requests')
+      .update({
+        contractor_id: contractorId,
+        assigned_at: new Date().toISOString(),
+        status: 'in-progress'
+      })
+      .eq('id', requestId);
 
-  if (error) {
-    console.error("Error during contractor assignment:", error);
+    if (error) {
+      console.error("Error during contractor assignment:", error);
+      throw error;
+    }
+
+    console.log("✅ Contractor assignment completed successfully");
+    
+    // STEP 4: Create notification (with validation already complete)
+    const notificationSuccess = await createAssignmentNotificationWithPropertyDetails(contractorId, requestId);
+    
+    if (notificationSuccess) {
+      console.log("✅ Assignment notification created successfully");
+    } else {
+      console.warn("⚠️ Assignment completed but notification creation failed");
+    }
+    
+    console.log(`=== CONTRACTOR ASSIGNMENT COMPLETED ===`);
+    
+  } catch (error) {
+    console.error("❌ Contractor assignment failed:", error);
     throw error;
   }
-
-  console.log("SECURITY: Contractor assignment completed successfully");
-  // Create notification with property details for the assigned contractor
-  await createAssignmentNotificationWithPropertyDetails(contractorId, requestId);
 };
 
 export const changeContractorAssignment = async (requestId: string, contractorId: string) => {

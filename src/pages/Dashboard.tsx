@@ -9,6 +9,7 @@ import RequestsList from '@/components/dashboard/RequestsList';
 import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSidebar';
 import { useUserContext } from '@/contexts/UserContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
+import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 
@@ -17,6 +18,9 @@ const Dashboard = () => {
   const { currentUser, loading: userLoading } = useUserContext();
   const { requests, loading: requestsLoading } = useMaintenanceRequestContext();
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  
+  // Enable proactive contractor profile monitoring for admin users
+  useContractorProfileMonitoring();
   
   // Redirect contractors to their specific dashboard
   useEffect(() => {
