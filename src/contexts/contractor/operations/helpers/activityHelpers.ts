@@ -14,39 +14,15 @@ export const logActivity = async (data: ActivityLogData) => {
   try {
     console.log('logActivity - Attempting to log activity:', data);
     
-    // Get the organization_id from the maintenance request
-    const { data: requestData, error: requestError } = await supabase
-      .from('maintenance_requests')
-      .select('organization_id')
-      .eq('id', data.requestId)
-      .single();
-
-    if (requestError) {
-      console.error('logActivity - Error getting request organization:', requestError);
-      throw requestError;
-    }
-
-    if (!requestData?.organization_id) {
-      console.error('logActivity - No organization_id found for request:', data.requestId);
-      throw new Error('No organization_id found for request');
-    }
-    
-    const activityRecord = {
-      request_id: data.requestId,
-      action_type: data.actionType,
-      description: data.description,
-      actor_name: data.actorName,
-      actor_role: data.actorRole,
-      metadata: data.metadata,
-      organization_id: requestData.organization_id
-    };
-
-    console.log('logActivity - Activity record to insert:', activityRecord);
-
-    const { data: insertedData, error } = await supabase
-      .from('activity_logs')
-      .insert(activityRecord)
-      .select('*');
+    // Use the secure database function that bypasses RLS
+    const { data: result, error } = await supabase.rpc('insert_activity_log_secure', {
+      p_request_id: data.requestId,
+      p_action_type: data.actionType,
+      p_description: data.description,
+      p_actor_name: data.actorName || null,
+      p_actor_role: data.actorRole || null,
+      p_metadata: data.metadata || null
+    });
 
     if (error) {
       console.error('logActivity - Error logging activity:', error);
@@ -59,10 +35,11 @@ export const logActivity = async (data: ActivityLogData) => {
       throw error;
     }
 
-    console.log(`logActivity - Activity logged successfully:`, insertedData);
+    console.log(`logActivity - Activity logged successfully with ID:`, result);
     console.log(`logActivity - Activity logged: ${data.actionType} for request ${data.requestId}`);
   } catch (error) {
     console.error('logActivity - Failed to log activity:', error);
     // Don't throw here to prevent breaking the main operation
   }
 };
+

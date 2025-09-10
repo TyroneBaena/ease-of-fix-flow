@@ -1223,6 +1223,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      insert_activity_log_secure: {
+        Args: {
+          p_action_type: string
+          p_actor_name?: string
+          p_actor_role?: string
+          p_description: string
+          p_metadata?: Json
+          p_request_id: string
+        }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
