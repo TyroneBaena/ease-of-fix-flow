@@ -26,6 +26,7 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
 
   const fetchBudgetCategories = async () => {
     try {
+      // Fetch budget categories for the current organization
       const { data, error } = await supabase
         .from('budget_categories')
         .select('*')
@@ -33,19 +34,13 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
 
       if (error) {
         console.error('Error fetching budget categories:', error);
-        // Fallback to default categories
-        setBudgetCategories([
-          { id: 'general', name: 'General', description: null, created_at: '', updated_at: '' }
-        ]);
+        setBudgetCategories([]);
       } else {
         setBudgetCategories(data || []);
       }
     } catch (err) {
       console.error('Error fetching budget categories:', err);
-      // Fallback to default categories
-      setBudgetCategories([
-        { id: 'general', name: 'General', description: null, created_at: '', updated_at: '' }
-      ]);
+      setBudgetCategories([]);
     }
   };
 
