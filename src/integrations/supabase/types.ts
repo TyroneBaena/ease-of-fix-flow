@@ -1164,6 +1164,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_default_budget_categories: {
+        Args: { org_id: string }
+        Returns: undefined
+      }
+      debug_organization_context: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          budget_categories_count: number
+          current_org_function: string
+          profile_org_id: string
+          session_org_id: string
+          user_email: string
+          user_id: string
+          user_role: string
+        }[]
+      }
       get_contractor_id: {
         Args: Record<PropertyKey, never>
         Returns: string
