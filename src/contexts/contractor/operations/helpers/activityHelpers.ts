@@ -14,6 +14,23 @@ export const logActivity = async (data: ActivityLogData) => {
   try {
     console.log('logActivity - Attempting to log activity:', data);
     
+    // Get the organization_id from the maintenance request
+    const { data: requestData, error: requestError } = await supabase
+      .from('maintenance_requests')
+      .select('organization_id')
+      .eq('id', data.requestId)
+      .single();
+
+    if (requestError) {
+      console.error('logActivity - Error getting request organization:', requestError);
+      throw requestError;
+    }
+
+    if (!requestData?.organization_id) {
+      console.error('logActivity - No organization_id found for request:', data.requestId);
+      throw new Error('No organization_id found for request');
+    }
+    
     const activityRecord = {
       request_id: data.requestId,
       action_type: data.actionType,
@@ -21,8 +38,7 @@ export const logActivity = async (data: ActivityLogData) => {
       actor_name: data.actorName,
       actor_role: data.actorRole,
       metadata: data.metadata,
-      // Temporary dummy value - will be set by trigger
-      organization_id: '00000000-0000-0000-0000-000000000000'
+      organization_id: requestData.organization_id
     };
 
     console.log('logActivity - Activity record to insert:', activityRecord);
