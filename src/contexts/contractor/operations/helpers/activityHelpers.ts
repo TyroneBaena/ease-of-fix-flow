@@ -12,7 +12,8 @@ export interface ActivityLogData {
 
 export const logActivity = async (data: ActivityLogData) => {
   try {
-    console.log('logActivity - Attempting to log activity:', data);
+    console.log('🔥 logActivity - NEW VERSION - Attempting to log activity:', data);
+    console.log('🔥 Using RPC function insert_activity_log_secure');
     
     // Use the secure database function that bypasses RLS
     const { data: result, error } = await supabase.rpc('insert_activity_log_secure', {
