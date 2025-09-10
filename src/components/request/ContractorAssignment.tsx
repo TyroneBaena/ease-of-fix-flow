@@ -98,6 +98,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         // Toast is triggered from the context function
       } else {
         console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
+        console.log("ContractorAssignment - Request ID:", requestId);
+        console.log("ContractorAssignment - Full contractor list:", contractors);
+        const selectedContractorObj = contractors.find(c => c.id === selectedContractor);
+        console.log("ContractorAssignment - Selected contractor object:", selectedContractorObj);
         await assignContractor(requestId, selectedContractor);
         console.log("ContractorAssignment - Assignment successful");
         // Toast is triggered from the context function

@@ -101,15 +101,19 @@ const createAssignmentNotificationWithPropertyDetails = async (
 };
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
-  console.log(`SECURITY: Assigning contractor ${contractorId} to request ${requestId}`);
+  console.log(`=== ASSIGNMENT DEBUG START ===`);
+  console.log(`Assigning contractor ${contractorId} to request ${requestId}`);
   
   // SECURITY FIX: Validate organization boundaries before assignment
   // First get the request's organization
   const { data: requestData, error: requestError } = await supabase
     .from('maintenance_requests')
-    .select('id, organization_id')
+    .select('id, organization_id, title')
     .eq('id', requestId)
     .single();
+
+  console.log('Request data:', requestData);
+  console.log('Request error:', requestError);
 
   if (requestError || !requestData) {
     console.error("SECURITY VIOLATION: Request not found:", requestError);
@@ -123,18 +127,27 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
     .eq('id', contractorId)
     .single();
 
+  console.log('Contractor data:', contractorData);
+  console.log('Contractor error:', contractorError);
+
   if (contractorError || !contractorData) {
     console.error("SECURITY VIOLATION: Contractor not found:", contractorError);
     throw new Error("Cannot assign contractor: Contractor not found");
   }
 
   // Validate organizations match
+  console.log('Request organization_id:', requestData.organization_id);
+  console.log('Contractor organization_id:', contractorData.organization_id);
+  
   if (requestData.organization_id !== contractorData.organization_id) {
-    console.error("SECURITY VIOLATION: Organization mismatch - Request org:", requestData.organization_id, "Contractor org:", contractorData.organization_id);
+    console.error("SECURITY VIOLATION: Organization mismatch");
+    console.error("Request org:", requestData.organization_id);
+    console.error("Contractor org:", contractorData.organization_id);
     throw new Error("Cannot assign contractor: Organization mismatch - contractors can only be assigned to requests within their organization");
   }
 
   console.log("SECURITY: Organization boundary validation passed");
+  console.log(`=== ASSIGNMENT DEBUG END ===`);
 
   const { error } = await supabase
     .from('maintenance_requests')
