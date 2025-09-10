@@ -37,6 +37,13 @@ const createAssignmentNotificationWithPropertyDetails = async (
 
     if (requestError || !request?.property_id) {
       console.log('No property_id found for request:', requestId);
+      // Get request organization for notification
+      const { data: requestData } = await supabase
+        .from('maintenance_requests')
+        .select('organization_id')
+        .eq('id', requestId)
+        .single();
+
       // Create basic notification without property details
       const { error: notificationError } = await supabase
         .from('notifications')
@@ -45,7 +52,8 @@ const createAssignmentNotificationWithPropertyDetails = async (
           message: `You have been assigned to maintenance job #${requestId.substring(0, 8)}`,
           type: 'info',
           user_id: contractor.user_id,
-          link: `/contractor/jobs/${requestId}`
+          link: `/contractor/jobs/${requestId}`,
+          organization_id: requestData?.organization_id
         });
       
       return !notificationError;
@@ -76,6 +84,13 @@ const createAssignmentNotificationWithPropertyDetails = async (
       }
     }
     
+    // Get request organization for notification
+    const { data: requestData } = await supabase
+      .from('maintenance_requests')
+      .select('organization_id')
+      .eq('id', requestId)
+      .single();
+
     // Create notification in the database
     const { error: notificationError } = await supabase
       .from('notifications')
@@ -84,7 +99,8 @@ const createAssignmentNotificationWithPropertyDetails = async (
         message: message,
         type: 'info',
         user_id: contractor.user_id,
-        link: `/contractor/jobs/${requestId}`
+        link: `/contractor/jobs/${requestId}`,
+        organization_id: requestData?.organization_id
       });
         
     if (notificationError) {
