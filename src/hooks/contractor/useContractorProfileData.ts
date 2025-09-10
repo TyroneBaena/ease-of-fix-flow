@@ -38,11 +38,14 @@ export const useContractorProfileData = () => {
       console.log('useContractorProfileData - Starting fetch for user:', currentUser.id);
 
       // Fetch contractor data with fresh query (no cache)
+      // Handle potential duplicate records by getting the most recent one
       const { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
         .select('*')
         .eq('user_id', currentUser.id)
-        .maybeSingle(); // Use maybeSingle to avoid errors if no data found
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
       if (contractorError) {
         console.error('useContractorProfileData - Error fetching contractor data:', contractorError);
