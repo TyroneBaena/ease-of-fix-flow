@@ -86,29 +86,8 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Check if we're in development mode (using onboarding@resend.dev)
-    const isDevelopmentMode = true; // Using default resend domain
-    const allowedDevelopmentEmail = 'gurusingh2033@gmail.com'; // From error message
-    
-    // In development, only send to allowed email or skip
-    if (isDevelopmentMode && recipient_email !== allowedDevelopmentEmail) {
-      console.log(`Development mode: Skipping email to ${recipient_email} (only ${allowedDevelopmentEmail} allowed)`);
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: `Development mode: Email notification skipped for ${recipient_email}`,
-        recipient: recipient_email,
-        note: "In production, this email would be sent after domain verification"
-      }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      });
-    }
-
     const { data, error } = await resend.emails.send({
-      from: 'Property Management <onboarding@resend.dev>',
+      from: 'Property Management <noreply@housinghub.app>',
       to: [recipient_email],
       subject: `New Comment: ${notification_data.request_title}`,
       html: emailHtml,
@@ -116,24 +95,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error("Error sending email via Resend:", error);
-      
-      // Handle specific Resend development restrictions gracefully
-      if (error.message && error.message.includes('You can only send testing emails')) {
-        console.log(`Resend development restriction: ${error.message}`);
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: `Development mode: Email restricted by Resend - ${error.message}`,
-          recipient: recipient_email,
-          note: "Verify domain at resend.com/domains for production use"
-        }), {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        });
-      }
-      
       throw error;
     }
 
