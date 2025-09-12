@@ -12,7 +12,6 @@ export interface EmailData {
   temporaryPassword?: string;
   loginUrl: string;
   isNewUser: boolean;
-  organizationCode?: string;
 }
 
 export interface Environment {

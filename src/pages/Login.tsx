@@ -19,7 +19,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showTempPasswordNote, setShowTempPasswordNote] = useState(false);
   const { signIn, currentUser } = useSupabaseAuth();
-  const { switchToOrganizationByCode } = useMultiOrganizationContext();
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,11 +33,10 @@ const Login = () => {
   }, [currentUser, navigate]);
 
   useEffect(() => {
-    // Check if we have email, setupPassword and organization code in query params
+    // Check if we have email and setupPassword in query params
     const params = new URLSearchParams(location.search);
     const emailParam = params.get('email');
     const setupPassword = params.get('setupPassword');
-    const orgCode = params.get('org');
     
     if (emailParam) {
       setEmail(emailParam);
@@ -45,13 +44,6 @@ const Login = () => {
       if (setupPassword === 'true') {
         setShowTempPasswordNote(true);
       }
-    }
-
-    // Handle organization code from URL
-    if (orgCode) {
-      console.log(`Phase 3: Organization code detected in URL: ${orgCode}`);
-      // Store the organization code for use after login
-      sessionStorage.setItem('phase3_org_code', orgCode);
     }
   }, [location]);
 
@@ -72,24 +64,6 @@ const Login = () => {
       if (result?.user) {
         console.log("Login successful, verifying organization...");
         
-        // Phase 3: Handle organization code switching after login
-        const storedOrgCode = sessionStorage.getItem('phase3_org_code');
-        if (storedOrgCode) {
-          console.log(`Phase 3: Switching to organization with code: ${storedOrgCode}`);
-          
-          try {
-            const success = await switchToOrganizationByCode(storedOrgCode);
-            if (!success) {
-              toast.error(`Unable to access organization with code: ${storedOrgCode}`);
-            }
-          } catch (error) {
-            console.error('Phase 3: Error during organization switch:', error);
-            toast.error('Error switching to requested organization');
-          } finally {
-            // Clear the stored organization code
-            sessionStorage.removeItem('phase3_org_code');
-          }
-        }
         
         // Verify user has organization setup
         const hasOrganization = await ensureUserOrganization(result.user.id);
