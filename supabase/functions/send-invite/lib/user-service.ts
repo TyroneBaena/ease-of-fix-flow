@@ -115,6 +115,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   
   // Get the inviting user's organization to assign the new user to the same organization
   let targetOrganizationId = null;
+  let organizationCode = null;
   if (invitingUserId) {
     try {
       const { data: invitingUserProfile, error: profileError } = await supabaseClient
@@ -126,6 +127,18 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
       if (!profileError && invitingUserProfile?.organization_id) {
         targetOrganizationId = invitingUserProfile.organization_id;
         console.log(`New user will be assigned to organization: ${targetOrganizationId}`);
+        
+        // Get organization code for Phase 3
+        const { data: orgData, error: orgError } = await supabaseClient
+          .from('organizations')
+          .select('organization_code, name')
+          .eq('id', targetOrganizationId)
+          .single();
+        
+        if (!orgError && orgData) {
+          organizationCode = orgData.organization_code;
+          console.log(`Phase 3: Found organization code ${organizationCode} for organization ${orgData.name}`);
+        }
       }
     } catch (error) {
       console.log("Could not get inviting user's organization, user will get new organization");
@@ -149,7 +162,9 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
         name,
         role,
         assignedProperties: role === 'manager' ? assignedProperties : [],
-        isPlaceholderUser: false // Mark as a real user from the beginning
+        isPlaceholderUser: false, // Mark as a real user from the beginning
+        organization_id: targetOrganizationId,
+        organization_code: organizationCode
       }
     });
     

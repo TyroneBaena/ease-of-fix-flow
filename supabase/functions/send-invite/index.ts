@@ -199,6 +199,22 @@ serve(async (req: Request) => {
                   
                   console.log(`Successfully added existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
                   
+                  // Get organization code for the invitation
+                  let orgCode = null;
+                  try {
+                    const { data: orgData, error: orgError } = await supabaseClient
+                      .from('organizations')
+                      .select('organization_code')
+                      .eq('id', invitingUserOrgId)
+                      .single();
+                    
+                    if (!orgError && orgData) {
+                      orgCode = orgData.organization_code;
+                    }
+                  } catch (error) {
+                    console.log("Could not get organization code for existing user invitation");
+                  }
+
                   // Send them an email about being added to the new organization
                   const cleanAppUrl = cleanApplicationUrl(applicationUrl);
                   const loginUrl = `${cleanAppUrl}/login`;
@@ -208,7 +224,8 @@ serve(async (req: Request) => {
                     role: body.role,
                     temporaryPassword: null, // No new password needed
                     loginUrl,
-                    isNewUser: false // Existing user
+                    isNewUser: false, // Existing user
+                    organizationCode: orgCode
                   });
 
                   // Send notification email
@@ -312,6 +329,33 @@ serve(async (req: Request) => {
       invitingUserId
     );
 
+    // Get organization code for Phase 3
+    let organizationCode = null;
+    if (invitingUserId) {
+      try {
+        const { data: invitingUserProfile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', invitingUserId)
+          .single();
+        
+        if (!profileError && invitingUserProfile?.organization_id) {
+          const { data: orgData, error: orgError } = await supabaseClient
+            .from('organizations')
+            .select('organization_code')
+            .eq('id', invitingUserProfile.organization_id)
+            .single();
+          
+          if (!orgError && orgData) {
+            organizationCode = orgData.organization_code;
+            console.log(`Phase 3: Including organization code ${organizationCode} in invitation`);
+          }
+        }
+      } catch (error) {
+        console.log("Could not get organization code for invitation");
+      }
+    }
+
     // Send email
     const cleanAppUrl = cleanApplicationUrl(applicationUrl);
     const loginUrl = `${cleanAppUrl}/login`;
@@ -321,7 +365,8 @@ serve(async (req: Request) => {
       role: body.role,
       temporaryPassword,
       loginUrl,
-      isNewUser: true
+      isNewUser: true,
+      organizationCode
     });
 
     // Send email directly to the invited user (Pro account - no test mode restrictions)

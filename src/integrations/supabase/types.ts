@@ -724,6 +724,7 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
+          organization_code: string
           settings: Json | null
           slug: string
           updated_at: string
@@ -733,6 +734,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
+          organization_code: string
           settings?: Json | null
           slug: string
           updated_at?: string
@@ -742,6 +744,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+          organization_code?: string
           settings?: Json | null
           slug?: string
           updated_at?: string

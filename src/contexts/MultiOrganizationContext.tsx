@@ -31,6 +31,7 @@ interface MultiOrganizationContextType {
   loading: boolean;
   error: string | null;
   switchOrganization: (organizationId: string) => Promise<void>;
+  switchToOrganizationByCode: (organizationCode: string) => Promise<boolean>;
   refreshOrganizations: () => Promise<void>;
   getCurrentUserRole: () => string;
 }
@@ -265,6 +266,50 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     await fetchUserOrganizations();
   };
 
+  const switchToOrganizationByCode = async (organizationCode: string): Promise<boolean> => {
+    console.log(`Phase 3: Attempting to switch to organization with code: ${organizationCode}`);
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Find organization by code
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name, organization_code')
+        .eq('organization_code', organizationCode.toUpperCase())
+        .single();
+
+      if (orgError || !orgData) {
+        console.error(`Phase 3: Organization not found for code: ${organizationCode}`, orgError);
+        setError(`Organization not found for code: ${organizationCode}`);
+        return false;
+      }
+
+      console.log(`Phase 3: Found organization: ${orgData.name} (${orgData.id})`);
+
+      // Check if user has access to this organization
+      const hasAccess = userOrganizations.some(uo => uo.organization_id === orgData.id);
+      
+      if (!hasAccess) {
+        console.error(`Phase 3: User does not have access to organization: ${orgData.name}`);
+        setError(`You do not have access to ${orgData.name}`);
+        return false;
+      }
+
+      // Switch to the organization
+      await switchOrganization(orgData.id);
+      return true;
+    } catch (err) {
+      console.error('Phase 3: Error switching organization by code:', err);
+      const message = err instanceof Error ? err.message : 'Failed to switch organization';
+      setError(message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getCurrentUserRole = (): string => {
     if (!currentOrganization || !currentUser?.id) {
       return 'manager';
@@ -287,6 +332,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     loading,
     error,
     switchOrganization,
+    switchToOrganizationByCode,
     refreshOrganizations,
     getCurrentUserRole
   };
