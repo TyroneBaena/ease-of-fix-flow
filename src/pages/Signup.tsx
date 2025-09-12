@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Check, Info } from 'lucide-react';
 import { ensureUserOrganization } from '@/services/user/tenantService';
 import { Toaster } from "sonner";
+import { OrganizationOnboarding } from '@/components/auth/OrganizationOnboarding';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -20,9 +21,11 @@ const Signup = () => {
   const [info, setInfo] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Auth and billing step state
+  // Auth, organization and billing step state
   const [isAuthed, setIsAuthed] = useState(false);
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
+  const [hasOrganization, setHasOrganization] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   type Interval = 'month' | 'year';
   type Plan = 'starter' | 'pro';
   const [interval, setInterval] = useState<Interval>('month');
@@ -33,27 +36,53 @@ const Signup = () => {
 useEffect(() => {
   let unsub: { unsubscribe: () => void } | null = null;
 
-  supabase.auth.getSession().then(({ data }) => {
+  const checkUserOrganization = async (user: any) => {
+    if (!user) return false;
+    
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      return !!profile?.organization_id;
+    } catch (error) {
+      console.error('Error checking user organization:', error);
+      return false;
+    }
+  };
+
+  supabase.auth.getSession().then(async ({ data }) => {
     // Only set as authenticated if user exists AND email is confirmed
     const isConfirmedUser = data.session?.user && data.session.user.email_confirmed_at;
-    setIsAuthed(!!isConfirmedUser);
     
-    if (data.session?.user && !data.session.user.email_confirmed_at) {
+    if (isConfirmedUser) {
+      setCurrentUser(data.session.user);
+      const hasOrg = await checkUserOrganization(data.session.user);
+      setHasOrganization(hasOrg);
+      setIsAuthed(true);
+    } else if (data.session?.user && !data.session.user.email_confirmed_at) {
       setEmailConfirmationRequired(true);
       setInfo("Please check your email and click the confirmation link to complete your registration.");
     }
   });
 
-  const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+  const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
     console.log(`Auth state changed: ${event}`, session?.user?.email_confirmed_at);
     
-    // Only show plan selection for confirmed users
+    // Only show organization/plan selection for confirmed users
     if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+      setCurrentUser(session.user);
+      const hasOrg = await checkUserOrganization(session.user);
+      setHasOrganization(hasOrg);
       setIsAuthed(true);
       setEmailConfirmationRequired(false);
       setInfo(null);
     } else if (event === 'SIGNED_OUT') {
       setIsAuthed(false);
+      setHasOrganization(false);
+      setCurrentUser(null);
       setEmailConfirmationRequired(false);
       setInfo(null);
     }
@@ -164,20 +193,7 @@ useEffect(() => {
           toast.success("Account created successfully! You can now choose your plan.");
         }
         
-        // Verify organization setup after a brief delay
-        setTimeout(async () => {
-          try {
-            const hasOrganization = await ensureUserOrganization(data.user!.id);
-            if (!hasOrganization) {
-              console.log("Organization setup incomplete for new user");
-              toast.warning("Account created but setup incomplete. Please contact support if you experience issues.");
-            } else {
-              console.log("Organization setup verified for new user");
-            }
-          } catch (error) {
-            console.error("Error verifying organization setup:", error);
-          }
-        }, 2000);
+        // Don't auto-create organization anymore - user will do it in onboarding
       } else {
         toast.info("Account created successfully. Please check your email for confirmation.");
       }
@@ -188,6 +204,11 @@ useEffect(() => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOrganizationComplete = async () => {
+    setHasOrganization(true);
+    toast.success("Setup complete! You can now choose your plan.");
   };
 
 return (
@@ -266,6 +287,11 @@ return (
           </form>
         </CardContent>
       </Card>
+    ) : !hasOrganization ? (
+      <OrganizationOnboarding 
+        user={currentUser} 
+        onComplete={handleOrganizationComplete} 
+      />
     ) : (
       <Card className="w-full max-w-xl">
         <CardHeader className="space-y-1 text-center">
