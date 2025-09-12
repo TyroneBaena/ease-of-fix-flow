@@ -59,7 +59,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
     try {
       setIsLoading(true);
-      console.log('Creating organization:', { orgName, orgSlug });
+      console.log('Creating organization:', { orgName, orgSlug, userId: user.id });
 
       // Create the organization
       const { data: orgData, error: orgError } = await supabase
@@ -73,9 +73,16 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         .select()
         .single();
 
+      console.log('Organization creation result:', { orgData, orgError });
+
       if (orgError) {
+        console.error('Organization creation error:', orgError);
         if (orgError.code === '23505') {
           setError("Organization name or identifier already exists. Please choose a different name.");
+          return;
+        }
+        if (orgError.message) {
+          setError(`Failed to create organization: ${orgError.message}`);
           return;
         }
         throw orgError;

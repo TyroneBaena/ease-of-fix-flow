@@ -207,6 +207,7 @@ useEffect(() => {
   };
 
   const handleOrganizationComplete = async () => {
+    console.log('Organization setup completed');
     setHasOrganization(true);
     toast.success("Setup complete! You can now choose your plan.");
   };
