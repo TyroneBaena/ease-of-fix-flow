@@ -117,6 +117,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
   let targetOrganizationId = null;
   let organizationCode = null;
   if (invitingUserId) {
+    console.log(`Getting organization for inviting user: ${invitingUserId}`);
     try {
       const { data: invitingUserProfile, error: profileError } = await supabaseClient
         .from('profiles')
@@ -124,9 +125,15 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
         .eq('id', invitingUserId)
         .single();
       
+      console.log('Inviting user profile lookup result:', { 
+        invitingUserId, 
+        profile: invitingUserProfile, 
+        error: profileError?.message 
+      });
+      
       if (!profileError && invitingUserProfile?.organization_id) {
         targetOrganizationId = invitingUserProfile.organization_id;
-        console.log(`New user will be assigned to organization: ${targetOrganizationId}`);
+        console.log(`✅ New user will be assigned to organization: ${targetOrganizationId}`);
         
         // Get organization code for Phase 3
         const { data: orgData, error: orgError } = await supabaseClient
@@ -139,10 +146,14 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
           organizationCode = orgData.organization_code;
           console.log(`Phase 3: Found organization code ${organizationCode} for organization ${orgData.name}`);
         }
+      } else {
+        console.error(`❌ Could not get organization for inviting user ${invitingUserId}:`, profileError?.message);
       }
     } catch (error) {
-      console.log("Could not get inviting user's organization, user will get new organization");
+      console.error(`❌ Exception getting inviting user's organization:`, error);
     }
+  } else {
+    console.error(`❌ No inviting user ID provided - user will get a new organization`);
   }
   
   try {
@@ -177,7 +188,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
 
     // Create the profile manually to ensure it exists with correct organization
     try {
-      console.log("Creating profile for new user");
+      console.log(`Creating profile for new user with organization: ${targetOrganizationId}`);
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .insert([{
@@ -192,14 +203,14 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
         .single();
 
       if (profileError) {
-        console.error("Error creating user profile:", profileError);
-        console.log("Profile creation failed but auth user exists - continuing");
+        console.error("❌ Error creating user profile:", profileError);
+        throw new Error(`Failed to create user profile: ${profileError.message}`);
       } else {
-        console.log("Profile created successfully:", profile?.id);
+        console.log("✅ Profile created successfully:", profile?.id, "with organization:", profile?.organization_id);
       }
     } catch (profileError) {
-      console.error("Exception creating user profile:", profileError);
-      console.log("Profile creation failed but auth user exists - continuing");
+      console.error("❌ Exception creating user profile:", profileError);
+      throw new Error(`Failed to create user profile: ${profileError.message}`);
     }
     
     return authData.user;
