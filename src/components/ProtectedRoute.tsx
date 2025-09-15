@@ -31,13 +31,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // Check organization access
   useEffect(() => {
     const checkAccess = async () => {
-      if (loading || orgLoading) {
-        return; // Still loading auth or organization data
+      // Wait for auth loading to complete first
+      if (loading) {
+        console.log("🔒 ProtectedRoute: Still loading auth, waiting...");
+        return; 
       }
 
+      // If auth is done loading but no user, redirect to login
       if (!currentUser) {
-        console.log("🔒 ProtectedRoute: No user found, redirecting to login");
-        navigate('/login', { replace: true });
+        console.log("🔒 ProtectedRoute: Auth loading complete, no user found, redirecting to login");
+        setIsCheckingAccess(false);
+        return; // Let the render logic handle the redirect
+      }
+
+      // Now wait for organization loading to complete
+      if (orgLoading) {
+        console.log("🔒 ProtectedRoute: User found, waiting for organization loading...");
         return;
       }
 
@@ -63,7 +72,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }, [currentUser, loading, currentOrganization, orgLoading, navigate]);
   
   // Show loading state while checking authentication or organization
-  if (loading || orgLoading || isCheckingAccess) {
+  if (loading || orgLoading || (isCheckingAccess && currentUser)) {
     console.log('🔒 ProtectedRoute - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -72,8 +81,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
   
-  // If no user and not loading, redirect immediately
-  if (!currentUser) {
+  // Only redirect to login if auth loading is complete and no user found
+  if (!loading && !currentUser) {
     console.log("🔒 ProtectedRoute: No user found, showing Navigate component");
     return <Navigate to="/login" replace />;
   }
