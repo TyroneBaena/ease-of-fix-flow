@@ -209,7 +209,15 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .eq('contractor_id', contractorIdParam);
 
       if (allJobsError) throw allJobsError;
-      console.log('ContractorAuth - All assigned jobs:', allJobs);
+      console.log('ContractorAuth - Contractor ID being searched:', contractorIdParam);
+      console.log('ContractorAuth - All assigned jobs raw data:', allJobs);
+      console.log('ContractorAuth - Jobs with contractor assignments:', allJobs?.map(job => ({
+        id: job.id.substring(0, 8),
+        title: job.title,
+        status: job.status,
+        contractor_id: job.contractor_id,
+        matches: job.contractor_id === contractorIdParam
+      })));
 
       // Separate jobs by status
       const activeJobsData = allJobs.filter(job => job.status === 'in_progress');

@@ -42,20 +42,25 @@ export const useDashboardFilters = ({
   // Filter active jobs to show all jobs that are in-progress status
   // These are jobs assigned to the contractor, regardless of quote status
   const filteredActiveJobs = useMemo(() => {
+    console.log('Dashboard Filters - RAW activeJobs array:', activeJobs);
+    console.log('Dashboard Filters - Raw active jobs count:', activeJobs.length);
     console.log('Dashboard Filters - Raw active jobs with status check:', activeJobs.map(r => ({
-      id: r.id.substring(0, 8),
+      id: r.id?.substring(0, 8) || 'no-id',
       title: r.title,
       status: r.status,
       contractorId: r.contractorId
     })));
     
-    return activeJobs.filter(request => {
+    const filtered = activeJobs.filter(request => {
       // Show all jobs that are in 'in-progress' status (data mapper converts in_progress to in-progress)
       // This includes both assigned jobs and jobs with approved quotes
       const isActive = request.status === 'in-progress';
-      console.log(`Dashboard Filters - Job ${request.id.substring(0, 8)}: status=${request.status}, isActive=${isActive}`);
+      console.log(`Dashboard Filters - Job ${request.id?.substring(0, 8) || 'no-id'}: status=${request.status}, isActive=${isActive}`);
       return isActive;
     });
+    
+    console.log('Dashboard Filters - Filtered active jobs result:', filtered);
+    return filtered;
   }, [activeJobs]);
 
   // Filter completed jobs to show all completed jobs (consistent with Jobs tab)
