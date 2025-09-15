@@ -180,8 +180,8 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     }
   };
 
-  // Fetch jobs data for contractor
-  const fetchJobsData = async (contractorIdParam: string) => {
+  // Fetch jobs data for contractor with memoization
+  const fetchJobsData = useCallback(async (contractorIdParam: string) => {
     try {
       console.log('ContractorAuth - Fetching jobs for contractor:', contractorIdParam);
 
@@ -233,10 +233,12 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       console.error('ContractorAuth - Error fetching jobs:', err);
       setError('Failed to load jobs data');
     }
-  };
+  }, []); // No dependencies needed since contractorIdParam is passed as parameter
 
-  // Initialize contractor data when user changes
+  // Initialize contractor data when user changes - with proper dependency management
   useEffect(() => {
+    let isCancelled = false;
+    
     const initializeContractor = async () => {
       console.log('ContractorAuth - useEffect triggered:', { currentUser: currentUser?.id, userLoading });
       
@@ -262,20 +264,23 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       setLoading(true);
       setError(null);
 
-      // Add small delay to ensure auth state is fully established
-      setTimeout(async () => {
-        try {
-          await fetchContractorData(currentUser.id);
-        } catch (error) {
-          console.error('ContractorAuth - Error in initialization:', error);
-        } finally {
+      try {
+        await fetchContractorData(currentUser.id);
+      } catch (error) {
+        console.error('ContractorAuth - Error in initialization:', error);
+        if (!isCancelled) {
+          setError('Failed to initialize contractor data');
           setLoading(false);
         }
-      }, 100);
+      }
     };
 
     initializeContractor();
-  }, [currentUser, userLoading]);
+    
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentUser?.id, userLoading]); // Only depend on stable values
 
   // Refresh data function with useCallback to prevent infinite re-renders
   const refreshData = useCallback(async () => {
