@@ -189,24 +189,57 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     // Create the profile manually to ensure it exists with correct organization
     try {
       console.log(`Creating profile for new user with organization: ${targetOrganizationId}`);
-      const { data: profile, error: profileError } = await supabaseClient
+      
+      // First check if profile already exists (in case of partial failure)
+      const { data: existingProfile, error: checkError } = await supabaseClient
         .from('profiles')
-        .insert([{
-          id: authData.user.id,
-          email: normalizedEmail,
-          name: name,
-          role: role,
-          assigned_properties: role === 'manager' ? assignedProperties : [],
-          organization_id: targetOrganizationId // Assign to inviting user's organization
-        }])
-        .select()
+        .select('id, organization_id')
+        .eq('id', authData.user.id)
         .single();
+      
+      if (existingProfile) {
+        console.log(`Profile already exists for user ${authData.user.id}, updating instead`);
+        const { data: profile, error: updateError } = await supabaseClient
+          .from('profiles')
+          .update({
+            email: normalizedEmail,
+            name: name,
+            role: role,
+            assigned_properties: role === 'manager' ? assignedProperties : [],
+            organization_id: targetOrganizationId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', authData.user.id)
+          .select()
+          .single();
 
-      if (profileError) {
-        console.error("❌ Error creating user profile:", profileError);
-        throw new Error(`Failed to create user profile: ${profileError.message}`);
+        if (updateError) {
+          console.error("❌ Error updating existing user profile:", updateError);
+          throw new Error(`Failed to update user profile: ${updateError.message}`);
+        } else {
+          console.log("✅ Profile updated successfully:", profile?.id, "with organization:", profile?.organization_id);
+        }
       } else {
-        console.log("✅ Profile created successfully:", profile?.id, "with organization:", profile?.organization_id);
+        // Profile doesn't exist, create it
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            email: normalizedEmail,
+            name: name,
+            role: role,
+            assigned_properties: role === 'manager' ? assignedProperties : [],
+            organization_id: targetOrganizationId
+          }])
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error("❌ Error creating user profile:", profileError);
+          throw new Error(`Failed to create user profile: ${profileError.message}`);
+        } else {
+          console.log("✅ Profile created successfully:", profile?.id, "with organization:", profile?.organization_id);
+        }
       }
     } catch (profileError) {
       console.error("❌ Exception creating user profile:", profileError);
@@ -216,6 +249,18 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     return authData.user;
   } catch (error) {
     console.error("Error in createNewUser:", error);
+    
+    // If profile creation failed but auth user was created, clean up the auth user
+    if (authData?.user?.id) {
+      try {
+        console.log(`Cleaning up orphaned auth user: ${authData.user.id}`);
+        await supabaseClient.auth.admin.deleteUser(authData.user.id);
+        console.log(`Cleaned up auth user ${authData.user.id}`);
+      } catch (cleanupError) {
+        console.error(`Failed to cleanup auth user ${authData.user.id}:`, cleanupError);
+      }
+    }
+    
     throw new Error(`Failed to create new user: ${error.message}`);
   }
 }
