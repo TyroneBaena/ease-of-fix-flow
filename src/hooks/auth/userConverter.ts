@@ -5,16 +5,24 @@ import { User, UserRole } from '@/types/user';
 /**
  * Converts a Supabase auth user and profile data to our application's User model
  */
-export const convertToAppUser = async (authUser: any): Promise<User | null> => {
+export const convertToAppUser = async (authUser: any): Promise<User> => {
   console.log('convertToAppUser called with:', {
     hasAuthUser: !!authUser,
     userId: authUser?.id,
     email: authUser?.email
   });
   
-  if (!authUser) {
-    console.log('convertToAppUser: No auth user provided');
-    return null;
+  if (!authUser?.id || !authUser?.email) {
+    console.log('convertToAppUser: Invalid auth user provided');
+    // Return a basic fallback user instead of null to prevent loading issues
+    return {
+      id: authUser?.id || 'unknown',
+      name: authUser?.email?.split('@')[0] || 'User',
+      email: authUser?.email || 'unknown@example.com',
+      role: 'manager',
+      assignedProperties: [],
+      createdAt: new Date().toISOString()
+    };
   }
   
   console.log('Fetching profile for user:', authUser.id);
@@ -22,13 +30,20 @@ export const convertToAppUser = async (authUser: any): Promise<User | null> => {
   try {
     console.log('Starting profile fetch for user:', authUser.id);
     
-    // Simple timeout approach - if it takes too long, proceed with fallback
+    // Use Promise.race to implement a proper timeout that prevents hanging
     const startTime = Date.now();
-    const { data: profile, error } = await supabase
+    
+    const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
       .maybeSingle();
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Profile fetch timeout after 2 seconds')), 2000)
+    );
+    
+    const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
     
     const duration = Date.now() - startTime;
     console.log(`Profile fetch completed in ${duration}ms`);

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { convertToAppUser } from '@/hooks/auth/userConverter';
 import { toast } from '@/lib/toast';
+import { UserRole } from '@/types/user';
 
 interface Organization {
   id: string;
@@ -330,15 +331,24 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
       if (event === 'SIGNED_IN' && session?.user) {
         try {
           const appUser = await convertToAppUser(session.user);
-          console.log('User converted:', appUser?.email);
+          console.log('User converted:', appUser.email);
           setCurrentUser(appUser);
           // Fetch organizations immediately with the user data
-          console.log('About to fetch organizations for converted user:', appUser?.email);
+          console.log('About to fetch organizations for converted user:', appUser.email);
           setTimeout(() => fetchUserOrganizations(appUser), 100);
           isProcessingAuth = false; // Auth processing complete
         } catch (error) {
           console.error('Error converting user:', error);
-          setCurrentUser(null);
+          // Still create a basic user object to prevent loading state issues
+          const basicUser = {
+            id: session.user.id,
+            name: session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            role: 'manager' as UserRole,
+            assignedProperties: [],
+            createdAt: new Date().toISOString()
+          };
+          setCurrentUser(basicUser);
           setLoading(false);
           isProcessingAuth = false; // Auth processing complete (failed)
         }
@@ -368,12 +378,21 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
             const appUser = await convertToAppUser(session.user);
             console.log('Initial session user:', appUser.email);
             setCurrentUser(appUser);
-            console.log('About to fetch organizations for initial session user:', appUser?.email);
+            console.log('About to fetch organizations for initial session user:', appUser.email);
             setTimeout(() => fetchUserOrganizations(appUser), 100);
             isProcessingAuth = false; // Auth processing complete
           } catch (error) {
             console.error('Error converting initial session user:', error);
-            setCurrentUser(null);
+            // Still create a basic user object to prevent loading state issues
+            const basicUser = {
+              id: session.user.id,
+              name: session.user.email?.split('@')[0] || 'User',
+              email: session.user.email || '',
+              role: 'manager' as UserRole,
+              assignedProperties: [],
+              createdAt: new Date().toISOString()
+            };
+            setCurrentUser(basicUser);
             setLoading(false);
             isProcessingAuth = false; // Auth processing complete (failed)
           }
@@ -396,12 +415,21 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           const appUser = await convertToAppUser(session.user);
           console.log('Initial session user:', appUser.email);
           setCurrentUser(appUser);
-          console.log('About to fetch organizations for manual session check user:', appUser?.email);
+          console.log('About to fetch organizations for manual session check user:', appUser.email);
           fetchUserOrganizations(appUser);
           isProcessingAuth = false; // Auth processing complete
         } catch (error) {
           console.error('Error converting initial session user:', error);
-          setCurrentUser(null);
+          // Still create a basic user object to prevent loading state issues
+          const basicUser = {
+            id: session.user.id,
+            name: session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            role: 'manager' as UserRole,
+            assignedProperties: [],
+            createdAt: new Date().toISOString()
+          };
+          setCurrentUser(basicUser);
           setLoading(false);
           isProcessingAuth = false; // Auth processing complete (failed)
         }
