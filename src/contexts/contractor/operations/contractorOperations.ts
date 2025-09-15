@@ -145,14 +145,25 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
       console.log("✅ Contractor profile validation passed");
     }
 
-    // STEP 3: Perform the assignment
+    // STEP 3: Get the request organization for quote creation
+    const { data: requestData } = await supabase
+      .from('maintenance_requests')
+      .select('organization_id')
+      .eq('id', requestId)
+      .single();
 
+    if (!requestData) {
+      throw new Error('Request not found');
+    }
+
+    // STEP 4: Perform the assignment with quote requested status
     const { error } = await supabase
       .from('maintenance_requests')
       .update({
         contractor_id: contractorId,
         assigned_at: new Date().toISOString(),
-        status: 'in-progress'
+        status: 'requested',
+        quote_requested: true
       })
       .eq('id', requestId);
 
@@ -161,9 +172,28 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
       throw error;
     }
 
+    // STEP 5: Create a quote record for the contractor dashboard
+    const { error: quoteError } = await supabase
+      .from('quotes')
+      .insert({
+        request_id: requestId,
+        contractor_id: contractorId,
+        amount: 0,
+        description: 'Quote requested',
+        status: 'requested',
+        organization_id: requestData.organization_id
+      });
+
+    if (quoteError) {
+      console.error("Error creating quote:", quoteError);
+      // Don't throw - assignment is still valid
+    } else {
+      console.log("✅ Quote record created for contractor dashboard");
+    }
+
     console.log("✅ Contractor assignment completed successfully");
     
-    // STEP 4: Create notification (with validation already complete)
+    // STEP 6: Create notification (with validation already complete)
     const notificationSuccess = await createAssignmentNotificationWithPropertyDetails(contractorId, requestId);
     
     if (notificationSuccess) {
