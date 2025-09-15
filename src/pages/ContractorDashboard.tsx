@@ -10,8 +10,8 @@ import { DashboardLoadingState } from '@/components/contractor/dashboard/Dashboa
 import { DashboardContent } from '@/components/contractor/dashboard/DashboardContent';
 import { useDashboardFilters } from '@/hooks/contractor/useDashboardFilters';
 import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
-import { AuthDebugComponent } from '@/components/contractor/AuthDebugComponent';
 import { SessionDebugger } from '@/components/contractor/SessionDebugger';
+import { DirectContractorTest } from '@/components/contractor/DirectContractorTest';
 import { Toaster } from "sonner";
 
 const ContractorDashboard = () => {
@@ -52,7 +52,6 @@ const ContractorDashboard = () => {
       <div className="min-h-screen bg-gray-50">
         <ContractorHeader />
         <Toaster position="bottom-right" richColors />
-        <AuthDebugComponent />
         <DashboardLoadingState />
       </div>
     );
@@ -108,8 +107,8 @@ const ContractorDashboard = () => {
       
       {/* Debug Components */}
       <div className="space-y-4 mt-8">
+        <DirectContractorTest />
         <SessionDebugger />
-        <AuthDebugComponent />
       </div>
       
       <Toaster />
