@@ -25,6 +25,14 @@ const ContractorDashboard = () => {
     refreshData
   } = useContractorAuth();
 
+  // Force refresh data when contractor ID is available
+  React.useEffect(() => {
+    if (contractorId && !loading) {
+      console.log('ContractorDashboard - Forcing data refresh for contractor:', contractorId);
+      refreshData();
+    }
+  }, [contractorId, refreshData]);
+
   const handleSelectRequest = (request: MaintenanceRequest) => {
     console.log('ContractorDashboard - Request selected:', request);
     // Navigate to the quote submission page instead of opening a dialog
