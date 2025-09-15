@@ -32,10 +32,8 @@ const Signup = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plan>('starter');
   const [loadingPlan, setLoadingPlan] = useState(false);
 
-// Initialize auth state - only check for CONFIRMED users
+// Initialize auth state
 useEffect(() => {
-  let unsub: { unsubscribe: () => void } | null = null;
-
   const checkUserOrganization = async (user: any) => {
     if (!user) return false;
     
@@ -53,48 +51,49 @@ useEffect(() => {
     }
   };
 
-  supabase.auth.getSession().then(async ({ data }) => {
-    // Check if user exists (confirmed or unconfirmed)
-    if (data.session?.user) {
-      setCurrentUser(data.session.user);
-      
-      if (data.session.user.email_confirmed_at) {
-        // Email is confirmed - proceed to organization check
-        const hasOrg = await checkUserOrganization(data.session.user);
-        setHasOrganization(hasOrg);
-        setIsAuthed(true);
-        setEmailConfirmationRequired(false);
-      } else {
-        // Email not confirmed - show confirmation message but allow org creation
-        setEmailConfirmationRequired(true);
-        setIsAuthed(true); // Allow user to proceed to org creation
-        setInfo("Please check your email and click the confirmation link to complete your registration.");
-      }
-    }
-  });
-
-  const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log(`Auth state changed: ${event}`, session?.user?.email_confirmed_at);
+  const initializeAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
     
-    // Allow organization/plan selection for any signed-in user
-    if (event === 'SIGNED_IN' && session?.user) {
+    if (session?.user) {
+      console.log('Initial session found:', session.user.email, 'confirmed:', !!session.user.email_confirmed_at);
       setCurrentUser(session.user);
+      setIsAuthed(true);
       
       if (session.user.email_confirmed_at) {
-        // Email confirmed - proceed normally
         const hasOrg = await checkUserOrganization(session.user);
         setHasOrganization(hasOrg);
         setEmailConfirmationRequired(false);
         setInfo(null);
       } else {
-        // Email not confirmed but allow org creation
         setHasOrganization(false);
         setEmailConfirmationRequired(true);
         setInfo("Please check your email and click the confirmation link to complete your registration.");
       }
-      
+    }
+  };
+
+  initializeAuth();
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log(`Auth state changed: ${event}`, session?.user?.email);
+    
+    if (event === 'SIGNED_IN' && session?.user) {
+      console.log('User signed in:', session.user.email, 'confirmed:', !!session.user.email_confirmed_at);
+      setCurrentUser(session.user);
       setIsAuthed(true);
+      
+      if (session.user.email_confirmed_at) {
+        const hasOrg = await checkUserOrganization(session.user);
+        setHasOrganization(hasOrg);
+        setEmailConfirmationRequired(false);
+        setInfo(null);
+      } else {
+        setHasOrganization(false);
+        setEmailConfirmationRequired(true);
+        setInfo("Please check your email and click the confirmation link to complete your registration.");
+      }
     } else if (event === 'SIGNED_OUT') {
+      console.log('User signed out');
       setIsAuthed(false);
       setHasOrganization(false);
       setCurrentUser(null);
@@ -102,11 +101,8 @@ useEffect(() => {
       setInfo(null);
     }
   });
-  unsub = listener?.subscription ?? null;
 
-  return () => {
-    unsub?.unsubscribe?.();
-  };
+  return () => subscription.unsubscribe();
 }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,25 +153,14 @@ useEffect(() => {
       }
       
       if (data.user) {
-        console.log("Account created successfully:", data.user.id);
+        console.log("Account created successfully:", data.user.id, "confirmed:", !!data.user.email_confirmed_at);
         
-        // Check if email confirmation is required
-        if (!data.user.email_confirmed_at) {
-          console.log("Email confirmation required - user will be automatically signed in for organization setup");
-          setEmailConfirmationRequired(true);
-          setInfo("Account created! Please check your email for a confirmation link. You can proceed with setup while we verify your email.");
-          toast.success("Account created! Check your email for confirmation.");
-        } else {
-          // User is immediately confirmed (email confirmation disabled in Supabase)
-          console.log("Email confirmation not required - proceeding to organization setup");
-          toast.success("Account created successfully!");
-        }
+        // Always show success message
+        toast.success("Account created successfully!");
         
-        // User is now signed in - auth state change will trigger organization setup
-        setCurrentUser(data.user);
-        setIsAuthed(true);
+        // The auth state change listener will handle setting the correct state
+        // No need to manually set state here as onAuthStateChange will be triggered
       } else {
-        // This case should rarely happen with the current Supabase setup
         console.log("Signup completed but no user returned - this may indicate email confirmation is required");
         setInfo("Account created successfully. Please check your email for confirmation.");
         toast.info("Account created! Please check your email for confirmation.");
@@ -279,22 +264,6 @@ return (
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Creating Account..." : "Sign Up"}
             </Button>
-            
-            {emailConfirmationRequired && (
-              <div className="text-center text-sm text-gray-600 mt-2">
-                <p>Didn't receive the email? Check your spam folder or</p>
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-blue-500"
-                  onClick={() => {
-                    setEmailConfirmationRequired(false);
-                    setInfo(null);
-                  }}
-                >
-                  try signing up again
-                </Button>
-              </div>
-            )}
 
             <p className="text-sm text-center text-gray-500 mt-4">
               Already have an account? <Link to="/login" className="text-blue-500 hover:underline">Sign in</Link>

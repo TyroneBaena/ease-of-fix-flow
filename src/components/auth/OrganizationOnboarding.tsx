@@ -57,26 +57,22 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       return;
     }
 
+    if (!user?.id) {
+      setError("User authentication error. Please sign in again.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       console.log('Creating organization:', { orgName, orgSlug, userId: user.id });
 
-      // First check current auth status with new debug function
-      const { data: authStatus, error: debugError } = await supabase.rpc('debug_user_auth_status');
-      console.log('Auth status debug:', { authStatus, debugError });
-      
-      if (!authStatus?.[0]?.is_authenticated) {
-        setError("You must be logged in to create an organization. Please sign in again.");
-        return;
-      }
-
-      // Create the organization
+      // Create the organization directly without the debug call
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .insert({
           name: orgName.trim(),
           slug: orgSlug.trim(),
-          created_by: user.id, // Use the user passed from props
+          created_by: user.id,
           settings: {}
         })
         .select()
