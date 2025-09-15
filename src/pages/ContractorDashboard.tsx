@@ -27,14 +27,8 @@ const ContractorDashboard = () => {
     refreshData
   } = useContractorAuth();
 
-  // Force immediate refresh when contractor ID is available
-  React.useEffect(() => {
-    if (contractorId && !loading) {
-      console.log('ContractorDashboard - Auto-refreshing data for contractor:', contractorId);
-      // Force refresh with a small delay to ensure data is ready
-      setTimeout(refreshData, 100);
-    }
-  }, [contractorId, loading, refreshData]);
+  // Remove auto-refresh to prevent infinite loops
+  // The ContractorAuthContext already handles data fetching properly
 
   const handleSelectRequest = (request: MaintenanceRequest) => {
     console.log('ContractorDashboard - Request selected:', request);

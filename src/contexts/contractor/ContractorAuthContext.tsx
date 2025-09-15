@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUserContext } from '@/contexts/UserContext';
 import { MaintenanceRequest } from '@/types/maintenance';
@@ -277,15 +277,15 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     initializeContractor();
   }, [currentUser, userLoading]);
 
-  // Refresh data function
-  const refreshData = async () => {
+  // Refresh data function with useCallback to prevent infinite re-renders
+  const refreshData = useCallback(async () => {
     if (!contractorId) return;
     
     setLoading(true);
     await fetchJobsData(contractorId);
     setLoading(false);
     toast.success('Data refreshed');
-  };
+  }, [contractorId]);
 
   const value: ContractorAuthContextType = {
     // Auth state
