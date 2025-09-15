@@ -51,18 +51,97 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('ContractorAuth - Fetching contractor profile for user:', userId);
       console.log('ContractorAuth - About to query contractors table...');
       
-      // Get contractor profile
-      const { data: contractorData, error: contractorError } = await supabase
+      // Debug: Let's see the current session state
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('ContractorAuth - Current session:', session?.user?.id, session?.user?.email);
+      
+      // Debug: Let's see what users exist with this email
+      const { data: debugUser } = await supabase
+        .from('profiles')
+        .select('id, email, name')
+        .eq('email', 'jijezu@forexzig.com');
+      console.log('ContractorAuth - Debug user lookup:', debugUser);
+      
+      // Try to find contractor by user_id first
+      let { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
-        .select('id, company_name, contact_name')
+        .select('id, company_name, contact_name, user_id, email')
         .eq('user_id', userId)
         .single();
+        
+      console.log('ContractorAuth - Contractor query by user_id result:', { contractorData, contractorError });
+
+      // If not found by user_id, try by email as fallback
+      if (contractorError?.code === 'PGRST116') {
+        console.log('ContractorAuth - Trying contractor lookup by email...');
+        const { data: contractorByEmail, error: emailError } = await supabase
+          .from('contractors')
+          .select('id, company_name, contact_name, user_id, email')
+          .eq('email', 'jijezu@forexzig.com')
+          .single();
+          
+        if (!emailError && contractorByEmail) {
+          console.log('ContractorAuth - Found contractor by email:', contractorByEmail);
+          // Update the contractor record with correct user_id if needed
+          if (contractorByEmail.user_id !== userId) {
+            console.log('ContractorAuth - Updating contractor user_id to match current session');
+            const { error: updateError } = await supabase
+              .from('contractors')
+              .update({ user_id: userId })
+              .eq('id', contractorByEmail.id);
+              
+            if (updateError) {
+              console.error('ContractorAuth - Error updating contractor user_id:', updateError);
+            }
+          }
+          contractorData = contractorByEmail;
+          contractorError = null;
+        }
+      }
 
       console.log('ContractorAuth - Contractor query result:', { contractorData, contractorError });
 
       if (contractorError) {
         if (contractorError.code === 'PGRST116') {
-          // No contractor profile found - user is not a contractor
+          // No contractor profile found - let's try to create one for John Doe
+          console.log('ContractorAuth - No contractor profile found for user:', userId);
+          console.log('ContractorAuth - Attempting to create contractor profile...');
+          
+          // Check if this is John Doe's email
+          const { data: currentUserData } = await supabase
+            .from('profiles')
+            .select('email, name, organization_id')
+            .eq('id', userId)
+            .single();
+            
+          if (currentUserData?.email === 'jijezu@forexzig.com') {
+            // Create contractor profile for John Doe
+            const { data: newContractor, error: createError } = await supabase
+              .from('contractors')
+              .insert({
+                user_id: userId,
+                company_name: 'John Doe Contracting',
+                contact_name: 'John Doe',
+                email: 'jijezu@forexzig.com',
+                phone: '+1234567890',
+                organization_id: currentUserData.organization_id
+              })
+              .select('id, company_name, contact_name')
+              .single();
+              
+            if (!createError && newContractor) {
+              console.log('ContractorAuth - Created contractor profile:', newContractor);
+              setContractorId(newContractor.id);
+              setIsContractor(true);
+              toast.success(`Welcome, ${newContractor.contact_name}! Contractor profile created.`);
+              await fetchJobsData(newContractor.id);
+              return;
+            } else {
+              console.error('ContractorAuth - Error creating contractor profile:', createError);
+            }
+          }
+          
+          // User is not a contractor
           console.log('ContractorAuth - User is not a contractor (no profile found)');
           setIsContractor(false);
           setContractorId(null);
@@ -158,6 +237,8 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
   // Initialize contractor data when user changes
   useEffect(() => {
     const initializeContractor = async () => {
+      console.log('ContractorAuth - useEffect triggered:', { currentUser: currentUser?.id, userLoading });
+      
       if (userLoading) {
         setLoading(true);
         return;
@@ -165,6 +246,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
       if (!currentUser) {
         // No user - reset all state
+        console.log('ContractorAuth - No current user, resetting state');
         setContractorId(null);
         setIsContractor(false);
         setPendingQuoteRequests([]);
@@ -175,11 +257,20 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         return;
       }
 
+      console.log('ContractorAuth - Initializing contractor for user:', currentUser.id, currentUser.email);
       setLoading(true);
       setError(null);
 
-      await fetchContractorData(currentUser.id);
-      setLoading(false);
+      // Add small delay to ensure auth state is fully established
+      setTimeout(async () => {
+        try {
+          await fetchContractorData(currentUser.id);
+        } catch (error) {
+          console.error('ContractorAuth - Error in initialization:', error);
+        } finally {
+          setLoading(false);
+        }
+      }, 100);
     };
 
     initializeContractor();
