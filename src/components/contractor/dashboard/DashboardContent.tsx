@@ -66,6 +66,13 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     request.status === 'in-progress' || request.status === 'completed'
   ).filter(request => request.status === 'completed');
 
+  console.log('DashboardContent - Raw filteredActiveJobs received:', filteredActiveJobs.map(r => ({
+    id: r.id.substring(0, 8),
+    title: r.title,
+    status: r.status,
+    contractorId: r.contractorId
+  })));
+
   console.log('DashboardContent - Final QUOTE REQUESTS (after filtering):', displayQuoteRequests.length);
   console.log('DashboardContent - Final ACTIVE JOBS (after table filtering):', displayActiveJobs.length);
   console.log('DashboardContent - Final COMPLETED JOBS (after table filtering):', displayCompletedJobs.length);
