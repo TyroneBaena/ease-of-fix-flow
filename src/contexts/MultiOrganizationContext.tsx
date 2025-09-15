@@ -90,6 +90,8 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         return;
       }
 
+      console.log('Fetched user organizations:', userOrgs?.length || 0, userOrgs);
+
       // Handle case where user has no organizations yet
       if (!userOrgs || userOrgs.length === 0) {
         console.log('User has no organizations, checking if they have an organization_id in profile');
@@ -149,14 +151,21 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         return;
       }
 
-      // Fetch organization details separately
+      // Fetch organization details separately  
       const orgIds = (userOrgs || []).map(uo => uo.organization_id);
+      console.log('Fetching organization details for IDs:', orgIds);
       const { data: organizations, error: orgsError } = await supabase
         .from('organizations')
         .select('*')
         .in('id', orgIds);
 
-      if (orgsError) throw orgsError;
+      if (orgsError) {
+        console.error('Error fetching organizations:', orgsError);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetched organizations:', organizations?.length || 0, organizations);
 
       const mappedUserOrganizations = (userOrgs || []).map(uo => {
         const organization = organizations?.find(org => org.id === uo.organization_id);
@@ -167,6 +176,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
       }).filter(uo => uo.organization);
 
       setUserOrganizations(mappedUserOrganizations);
+      console.log('Mapped user organizations:', mappedUserOrganizations.length, mappedUserOrganizations);
 
       // Set current organization
       if (mappedUserOrganizations.length > 0) {
@@ -185,29 +195,41 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
 
         // Try to find the session organization
         if (profile?.session_organization_id) {
+          console.log('Looking for session organization:', profile.session_organization_id);
           const sessionOrg = mappedUserOrganizations.find(
             uo => uo.organization_id === profile.session_organization_id
           );
           if (sessionOrg) {
             targetOrg = sessionOrg.organization;
+            console.log('Found session organization:', targetOrg.name);
+          } else {
+            console.log('Session organization not found in user organizations');
           }
         }
 
         // Fallback to default organization
         if (!targetOrg) {
+          console.log('No session org, looking for default organization');
           const defaultOrg = mappedUserOrganizations.find(uo => uo.is_default);
           if (defaultOrg) {
             targetOrg = defaultOrg.organization;
+            console.log('Found default organization:', targetOrg.name);
+          } else {
+            console.log('No default organization found');
           }
         }
 
         // Final fallback to first organization
         if (!targetOrg && mappedUserOrganizations.length > 0) {
+          console.log('Using first organization as fallback');
           targetOrg = mappedUserOrganizations[0].organization;
+          console.log('Selected first organization:', targetOrg.name);
         }
 
+        console.log('Setting current organization:', targetOrg?.name || 'null');
         setCurrentOrganization(targetOrg);
       } else {
+        console.log('No user organizations found, setting current organization to null');
         setCurrentOrganization(null);
       }
     } catch (err) {
