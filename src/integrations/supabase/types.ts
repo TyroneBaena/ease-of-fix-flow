@@ -1189,15 +1189,6 @@ export type Database = {
           profile_exists: boolean
         }[]
       }
-      debug_user_auth_status: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          can_create_org: boolean
-          current_user_id: string
-          email_confirmed: boolean
-          is_authenticated: boolean
-        }[]
-      }
       get_contractor_id: {
         Args: Record<PropertyKey, never>
         Returns: string
