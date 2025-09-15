@@ -22,10 +22,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   
   console.log('🔒 ProtectedRoute - State:', { 
     currentUser: !!currentUser, 
+    currentUserEmail: currentUser?.email,
     loading, 
     currentOrganization: !!currentOrganization,
     orgLoading,
-    isCheckingAccess
+    isCheckingAccess,
+    timestamp: new Date().toISOString()
   });
   
   // Check organization access
@@ -73,7 +75,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   
   // Show loading state while checking authentication or organization
   if (loading || orgLoading || (isCheckingAccess && currentUser)) {
-    console.log('🔒 ProtectedRoute - Showing loading state');
+    console.log('🔒 ProtectedRoute - Showing loading state:', {
+      loading,
+      orgLoading, 
+      isCheckingAccess,
+      hasCurrentUser: !!currentUser,
+      timestamp: new Date().toISOString()
+    });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
@@ -83,7 +91,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   
   // Only redirect to login if auth loading is complete and no user found
   if (!loading && !currentUser) {
-    console.log("🔒 ProtectedRoute: No user found, showing Navigate component");
+    console.log("🔒 ProtectedRoute: REDIRECTING TO LOGIN - No user found after auth loading complete", {
+      loading,
+      currentUser: !!currentUser,
+      orgLoading,
+      isCheckingAccess,
+      timestamp: new Date().toISOString()
+    });
     return <Navigate to="/login" replace />;
   }
 

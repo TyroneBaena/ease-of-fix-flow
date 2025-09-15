@@ -55,11 +55,22 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
 
   const fetchUserOrganizations = async (user?: any) => {
     const targetUser = user || currentUser;
+    console.log('fetchUserOrganizations called with:', {
+      hasUser: !!user,
+      hasCurrentUser: !!currentUser,
+      targetUserId: targetUser?.id,
+      targetUserEmail: targetUser?.email
+    });
+    
     if (!targetUser?.id) {
-      console.log('No current user for organization fetch:', { user: !!user, currentUser: !!currentUser });
+      console.log('No current user for organization fetch - NOT setting loading to false yet:', { 
+        user: !!user, 
+        currentUser: !!currentUser,
+        targetUser: !!targetUser 
+      });
       setUserOrganizations([]);
       setCurrentOrganization(null);
-      setLoading(false);
+      // Don't immediately set loading to false - let the auth process complete
       return;
     }
 
@@ -319,9 +330,10 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
       if (event === 'SIGNED_IN' && session?.user) {
         try {
           const appUser = await convertToAppUser(session.user);
-          console.log('User converted:', appUser.email);
+          console.log('User converted:', appUser?.email);
           setCurrentUser(appUser);
           // Fetch organizations immediately with the user data
+          console.log('About to fetch organizations for converted user:', appUser?.email);
           setTimeout(() => fetchUserOrganizations(appUser), 100);
           isProcessingAuth = false; // Auth processing complete
         } catch (error) {
@@ -356,6 +368,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
             const appUser = await convertToAppUser(session.user);
             console.log('Initial session user:', appUser.email);
             setCurrentUser(appUser);
+            console.log('About to fetch organizations for initial session user:', appUser?.email);
             setTimeout(() => fetchUserOrganizations(appUser), 100);
             isProcessingAuth = false; // Auth processing complete
           } catch (error) {
@@ -383,6 +396,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           const appUser = await convertToAppUser(session.user);
           console.log('Initial session user:', appUser.email);
           setCurrentUser(appUser);
+          console.log('About to fetch organizations for manual session check user:', appUser?.email);
           fetchUserOrganizations(appUser);
           isProcessingAuth = false; // Auth processing complete
         } catch (error) {
