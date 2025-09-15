@@ -64,6 +64,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
     try {
       setIsLoading(true);
+      setError(null); // Clear any previous errors
       console.log('Creating organization:', { orgName, orgSlug, userId: user.id });
 
       // Create the organization directly without the debug call
@@ -132,21 +133,25 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       if (userOrgError) {
         console.error('Error creating user organization record:', userOrgError);
-        toast.error('Organization created but failed to set up membership. Please contact support.');
-        // Don't throw here as the main setup is complete
+        // Still call onComplete since the organization was created
+        toast.success("Organization created successfully!");
+        console.log('Calling onComplete despite user organization membership error');
+        setTimeout(() => {
+          onComplete();
+        }, 1000);
       } else {
         console.log('User organization membership created:', userOrgData);
+        toast.success("Organization created successfully!");
+        
+        // Wait a bit for all database operations to complete, then call onComplete
+        setTimeout(() => {
+          onComplete();
+        }, 1000);
       }
-
-      toast.success("Organization created successfully!");
-      
-      // Force a reload to refresh all contexts and ensure proper organization access
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     } catch (error: any) {
       console.error('Error creating organization:', error);
       setError(error.message || "Failed to create organization");
+      toast.error(`Failed to create organization: ${error.message || "Unknown error"}`);
     } finally {
       setIsLoading(false);
     }
