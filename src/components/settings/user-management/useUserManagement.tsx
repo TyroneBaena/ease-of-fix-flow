@@ -17,6 +17,31 @@ export const useUserManagement = () => {
   const [ready, setReady] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
   
+  // Function to safely fetch users - moved here to be available to useUserActions
+  const fetchUsers = useCallback(async () => {
+    if (!isAdmin) {
+      console.log("Not fetching users because user is not admin");
+      setIsLoadingUsers(false);
+      setFetchedOnce(true);
+      return;
+    }
+
+    try {
+      console.log("Fetching users from useUserManagement");
+      setIsLoadingUsers(true);
+      setFetchError(null);
+      await fetchUsersFromContext();
+      setFetchedOnce(true);
+      setLastRefreshTime(Date.now());
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setFetchError(error as Error);
+      toast.error("Failed to load users. Please try again.");
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, [isAdmin, fetchUsersFromContext]);
+
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
   
@@ -54,7 +79,8 @@ export const useUserManagement = () => {
     newUser,
     currentPage,
     handlePageChange,
-    USERS_PER_PAGE
+    USERS_PER_PAGE,
+    fetchUsers // Pass the fetchUsers function to the actions hook
   );
   
   // Clean form error management - no need for window object
@@ -73,30 +99,7 @@ export const useUserManagement = () => {
     }
   }, [isDialogOpen, setFormError]);
   
-  // Function to safely fetch users
-  const fetchUsers = useCallback(async () => {
-    if (!isAdmin) {
-      console.log("Not fetching users because user is not admin");
-      setIsLoadingUsers(false);
-      setFetchedOnce(true);
-      return;
-    }
-
-    try {
-      console.log("Fetching users from useUserManagement");
-      setIsLoadingUsers(true);
-      setFetchError(null);
-      await fetchUsersFromContext();
-      setFetchedOnce(true);
-      setLastRefreshTime(Date.now());
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      setFetchError(error as Error);
-      toast.error("Failed to load users. Please try again.");
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  }, [isAdmin, fetchUsersFromContext]);
+  // Clean form error management - no need for window object
 
   // Fetch users when component mounts or when needed
   useEffect(() => {

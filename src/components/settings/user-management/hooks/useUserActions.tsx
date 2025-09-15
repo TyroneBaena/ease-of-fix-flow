@@ -15,9 +15,10 @@ export const useUserActions = (
   newUser: NewUserFormState,
   currentPage: number,
   setCurrentPage: (page: number) => void,
-  usersPerPage: number
+  usersPerPage: number,
+  fetchUsers: () => Promise<void>
 ) => {
-  const { addUser, updateUser, removeUser, resetPassword, adminResetPassword, fetchUsers } = useUserContext();
+  const { addUser, updateUser, removeUser, resetPassword, adminResetPassword } = useUserContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isManualResetOpen, setIsManualResetOpen] = useState(false);
@@ -63,6 +64,16 @@ export const useUserActions = (
         await updateUser(updatedUser);
         toast.success(`User ${updatedUser.name} updated successfully`);
         setIsDialogOpen(false);
+        
+        // Explicitly refresh the user list after successful update
+        console.log("User update successful, refreshing user list");
+        try {
+          await fetchUsers();
+          console.log("User list refreshed successfully after update");
+        } catch (refreshError) {
+          console.error("Error refreshing user list after update:", refreshError);
+          toast.warning("User updated but list may not be up to date. Please refresh the page.");
+        }
       } else {
         console.log("Adding new user:", {
           email: newUser.email,
@@ -87,14 +98,23 @@ export const useUserActions = (
             
             setIsDialogOpen(false);
             
+            // Explicitly refresh the user list after successful creation
+            console.log("User creation successful, refreshing user list");
+            try {
+              await fetchUsers();
+              console.log("User list refreshed successfully");
+            } catch (refreshError) {
+              console.error("Error refreshing user list:", refreshError);
+              // Still show success for the creation, just warn about refresh
+              toast.warning("User created but list may not be up to date. Please refresh the page.");
+            }
+            
             // For test mode emails, show additional information
             if (result.testMode && result.testModeInfo) {
               setTimeout(() => {
                 toast.info(result.testModeInfo);
               }, 1000);
             }
-            
-            // UI refresh will happen automatically when dialog closes
           } else {
             // This message is for failures like "user already exists"
             console.error("User creation failed:", result.message);
