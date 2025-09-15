@@ -3,15 +3,44 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 
 export async function fetchAllUsers(): Promise<User[]> {
+  console.log("📋 fetchAllUsers: Getting current user's organization");
+  
+  // First, get the current user's organization ID
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    console.error("❌ Error getting current user for organization filtering:", authError);
+    throw new Error("Authentication required to fetch users");
+  }
+
+  // Get the current user's profile to find their organization
+  const { data: currentUserProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('organization_id, role')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !currentUserProfile) {
+    console.error("❌ Error fetching current user profile:", profileError);
+    throw new Error("Unable to determine user organization");
+  }
+
+  console.log("📋 Current user organization:", currentUserProfile.organization_id);
+  console.log("📋 Current user role:", currentUserProfile.role);
+
+  // Fetch users from the same organization
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
     .select('*')
-    .in('role', ['admin', 'manager']);
+    .in('role', ['admin', 'manager'])
+    .eq('organization_id', currentUserProfile.organization_id);
     
   if (profilesError) {
-    console.error("Error fetching profiles:", profilesError);
+    console.error("❌ Error fetching profiles:", profilesError);
     throw profilesError;
   }
+
+  console.log("📋 Found users in organization:", profiles?.length || 0);
   
   return (profiles || []).map(profile => ({
     id: profile.id,
