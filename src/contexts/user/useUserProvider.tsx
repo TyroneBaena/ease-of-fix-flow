@@ -109,13 +109,15 @@ export const useUserProvider = () => {
     }
   }, [canFetchUsers, currentUser?.role, currentUser?.organization_id, currentUser?.session_organization_id]);
 
-  // Only fetch users when the component mounts and user is admin or manager
+  // Force fetch users when component mounts and user is admin or manager
   useEffect(() => {
     if (canFetchUsers && !fetchInProgress.current) {
       console.log("Auto-fetching users since user is admin or manager");
+      // Force refresh by clearing any existing data
+      setUsers([]);
       fetchUsers().catch(console.error);
     }
-  }, [canFetchUsers, fetchUsers]);
+  }, [canFetchUsers, currentUser?.organization_id]); // Add organization_id as dependency
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
