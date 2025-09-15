@@ -342,10 +342,26 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           console.error('Error converting updated user:', error);
           setLoading(false);
         }
-      } else if (event === 'INITIAL_SESSION' && !session?.user) {
-        console.log('Initial session with no user');
-        setCurrentUser(null);
-        setLoading(false);
+      } else if (event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          // Handle initial session with user
+          try {
+            const appUser = await convertToAppUser(session.user);
+            console.log('Initial session user:', appUser.email);
+            setCurrentUser(appUser);
+            setTimeout(() => fetchUserOrganizations(appUser), 100);
+          } catch (error) {
+            console.error('Error converting initial session user:', error);
+            setCurrentUser(null);
+            setLoading(false);
+          }
+        } else {
+          // Initial session with no user - don't immediately set loading to false
+          // Let the session restoration process complete first
+          console.log('Initial session with no user - waiting for session restoration');
+          setCurrentUser(null);
+          // Don't set loading to false here - let the session check handle it
+        }
       }
     });
 
@@ -363,26 +379,29 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           setLoading(false);
         }
       } else {
-        console.log('No initial session found');
+        console.log('No initial session found - session might still be restoring');
         setCurrentUser(null);
-        setLoading(false);
+        // Don't immediately set loading to false - let timeout handle it if needed
+        // This allows time for session restoration to complete
       }
     });
 
-    // Safety timeout to prevent infinite loading
+    // Safety timeout to prevent infinite loading - give enough time for session restoration
     const timeoutId = setTimeout(() => {
       if (loading) {
         console.warn('Organization loading timeout reached, setting loading to false');
+        console.log('Current auth state when timeout hit:', {
+          hasCurrentUser: !!currentUser,
+          currentUserEmail: currentUser?.email
+        });
         setLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 5000); // 5 second timeout should be sufficient
 
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeoutId);
     };
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const value: MultiOrganizationContextType = {

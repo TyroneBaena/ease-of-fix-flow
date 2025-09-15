@@ -31,13 +31,35 @@ export const useSupabaseAuth = () => {
         try {
           if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
-              const appUser = await convertToAppUser(session.user);
-              setCurrentUser(appUser);
-              setSession(session);
-              console.log('User authenticated successfully:', session.user.email);
-              setLoading(false);
-              isInitialized = true;
+              console.log('Converting user to app user...');
+              try {
+                const appUser = await convertToAppUser(session.user);
+                console.log('User conversion result:', {
+                  original: session.user.email,
+                  converted: appUser ? appUser.email : 'null',
+                  hasAppUser: !!appUser
+                });
+                
+                if (appUser) {
+                  setCurrentUser(appUser);
+                  setSession(session);
+                  console.log('User authenticated successfully:', session.user.email);
+                  setLoading(false);
+                  isInitialized = true;
+                } else {
+                  console.error('convertToAppUser returned null for user:', session.user.email);
+                  setCurrentUser(null);
+                  setSession(null);
+                  setLoading(false);
+                }
+              } catch (conversionError) {
+                console.error('Error converting user:', conversionError);
+                setCurrentUser(null);
+                setSession(null);
+                setLoading(false);
+              }
             } else {
+              console.log('Session exists but no user found');
               setCurrentUser(null);
               setSession(null);
               if (event !== 'TOKEN_REFRESHED') {
