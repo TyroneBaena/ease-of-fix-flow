@@ -133,22 +133,15 @@ useEffect(() => {
       setIsLoading(true);
       console.log(`Starting signup process for: ${email}`);
       
-      // Clean up any existing auth state first
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.log('Could not clear existing session:', err);
-      }
-      
       const redirectUrl = `${window.location.origin}/email-confirm`;
       console.log(`Email confirmation redirect URL: ${redirectUrl}`);
       
-      // Sign up with proper email confirmation - DISABLE Supabase's built-in emails
+      // Sign up with proper email confirmation
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Remove emailRedirectTo to prevent Supabase from sending its own email
+          emailRedirectTo: redirectUrl,
           data: {
             name,
             role: 'manager',
@@ -168,49 +161,24 @@ useEffect(() => {
         
         // Check if email confirmation is required
         if (!data.user.email_confirmed_at) {
-          console.log("Email confirmation required - sending custom confirmation email");
-          
-          // Send confirmation email via edge function
-          try {
-            const { error: emailError } = await supabase.functions.invoke('send-auth-email', {
-              body: {
-                user: {
-                  email: data.user.email,
-                  id: data.user.id
-                },
-                email_data: {
-                  token_hash: data.user.id, // Use user ID as token for now
-                  token: data.user.id,
-                  type: 'signup',
-                  redirect_to: `${window.location.origin}/email-confirm`
-                }
-              }
-            });
-            
-            if (emailError) {
-              console.error('Error sending confirmation email:', emailError);
-              toast.error('Account created but failed to send confirmation email. Please contact support.');
-            } else {
-              console.log('Confirmation email sent successfully');
-              toast.success("Account created! Please check your email for confirmation.");
-            }
-          } catch (emailErr) {
-            console.error('Exception sending confirmation email:', emailErr);
-            toast.error('Account created but failed to send confirmation email. Please contact support.');
-          }
-          
+          console.log("Email confirmation required - user will be automatically signed in for organization setup");
           setEmailConfirmationRequired(true);
-          setInfo("Account created! Please check your email for a confirmation link. After confirming, you'll be able to choose your subscription plan.");
+          setInfo("Account created! Please check your email for a confirmation link. You can proceed with setup while we verify your email.");
+          toast.success("Account created! Check your email for confirmation.");
         } else {
           // User is immediately confirmed (email confirmation disabled in Supabase)
-          console.log("Email confirmation not required - proceeding to plan selection");
-          setIsAuthed(true);
-          toast.success("Account created successfully! You can now choose your plan.");
+          console.log("Email confirmation not required - proceeding to organization setup");
+          toast.success("Account created successfully!");
         }
         
-        // Don't auto-create organization anymore - user will do it in onboarding
+        // User is now signed in - auth state change will trigger organization setup
+        setCurrentUser(data.user);
+        setIsAuthed(true);
       } else {
-        toast.info("Account created successfully. Please check your email for confirmation.");
+        // This case should rarely happen with the current Supabase setup
+        console.log("Signup completed but no user returned - this may indicate email confirmation is required");
+        setInfo("Account created successfully. Please check your email for confirmation.");
+        toast.info("Account created! Please check your email for confirmation.");
       }
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -259,26 +227,57 @@ return (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium">Full Name</label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" required />
+              <Input 
+                id="name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="John Doe" 
+                required 
+                disabled={isLoading}
+              />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">Email</label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="name@example.com" 
+                required 
+                disabled={isLoading}
+              />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">Password</label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a password (min 6 characters)" required />
+              <Input 
+                id="password" 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="Create a password (min 6 characters)" 
+                required 
+                disabled={isLoading}
+              />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
-              <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm your password" required />
+              <Input 
+                id="confirmPassword" 
+                type="password" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                placeholder="Confirm your password" 
+                required 
+                disabled={isLoading}
+              />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || emailConfirmationRequired}>
-              {isLoading ? "Creating Account..." : emailConfirmationRequired ? "Check Your Email" : "Sign Up"}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating Account..." : "Sign Up"}
             </Button>
             
             {emailConfirmationRequired && (
