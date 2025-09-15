@@ -41,11 +41,16 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
     // Check if slug exists and keep incrementing until we find a unique one
     while (true) {
-      const { data: existing } = await supabase
+      const { data: existing, error } = await supabase
         .from('organizations')
         .select('slug')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking slug availability:', error);
+        throw error;
+      }
 
       if (!existing) {
         return slug; // This slug is available
@@ -66,18 +71,11 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     return slug;
   };
 
-  const handleOrgNameChange = async (value: string) => {
+  const handleOrgNameChange = (value: string) => {
     setOrgName(value);
     if (value.trim()) {
-      // Generate unique slug when name changes
-      try {
-        const uniqueSlug = await generateUniqueSlug(value);
-        setOrgSlug(uniqueSlug);
-      } catch (error) {
-        console.error('Error generating unique slug:', error);
-        // Fallback to basic slug
-        setOrgSlug(generateSlug(value));
-      }
+      // Generate basic slug immediately for UI feedback
+      setOrgSlug(generateSlug(value));
     } else {
       setOrgSlug('');
     }
@@ -107,12 +105,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       setError(null); // Clear any previous errors
       console.log('Creating organization:', { orgName, orgSlug, userId: user.id });
 
-      // Double-check that slug is unique before attempting creation
+      // Generate final unique slug before creation
       const finalSlug = await generateUniqueSlug(orgName.trim());
-      if (finalSlug !== orgSlug) {
-        setOrgSlug(finalSlug);
-        console.log('Slug updated to ensure uniqueness:', finalSlug);
-      }
 
       // Create the organization
       const { data: orgData, error: orgError } = await supabase
