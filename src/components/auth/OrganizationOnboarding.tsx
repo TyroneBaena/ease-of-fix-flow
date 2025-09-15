@@ -34,10 +34,50 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       .replace(/^-+|-+$/g, ''); // Remove leading and trailing dashes
   };
 
-  const handleOrgNameChange = (value: string) => {
+  const generateUniqueSlug = async (baseName: string): Promise<string> => {
+    const baseSlug = generateSlug(baseName);
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Check if slug exists and keep incrementing until we find a unique one
+    while (true) {
+      const { data: existing } = await supabase
+        .from('organizations')
+        .select('slug')
+        .eq('slug', slug)
+        .single();
+
+      if (!existing) {
+        return slug; // This slug is available
+      }
+
+      // Try next variation
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+
+      // Safety limit to prevent infinite loops
+      if (counter > 100) {
+        // Fallback with timestamp
+        slug = `${baseSlug}-${Date.now()}`;
+        break;
+      }
+    }
+
+    return slug;
+  };
+
+  const handleOrgNameChange = async (value: string) => {
     setOrgName(value);
     if (value.trim()) {
-      setOrgSlug(generateSlug(value));
+      // Generate unique slug when name changes
+      try {
+        const uniqueSlug = await generateUniqueSlug(value);
+        setOrgSlug(uniqueSlug);
+      } catch (error) {
+        console.error('Error generating unique slug:', error);
+        // Fallback to basic slug
+        setOrgSlug(generateSlug(value));
+      }
     } else {
       setOrgSlug('');
     }
@@ -67,12 +107,19 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       setError(null); // Clear any previous errors
       console.log('Creating organization:', { orgName, orgSlug, userId: user.id });
 
-      // Create the organization directly without the debug call
+      // Double-check that slug is unique before attempting creation
+      const finalSlug = await generateUniqueSlug(orgName.trim());
+      if (finalSlug !== orgSlug) {
+        setOrgSlug(finalSlug);
+        console.log('Slug updated to ensure uniqueness:', finalSlug);
+      }
+
+      // Create the organization
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .insert({
           name: orgName.trim(),
-          slug: orgSlug.trim(),
+          slug: finalSlug,
           created_by: user.id,
           settings: {}
         })
@@ -84,7 +131,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       if (orgError) {
         console.error('Organization creation error:', orgError);
         if (orgError.code === '23505') {
-          setError("Organization name or identifier already exists. Please choose a different name.");
+          // This should rarely happen now due to our uniqueness check, but just in case
+          setError("Organization identifier conflict. Please try again with a different name.");
         } else if (orgError.message?.includes('permission denied')) {
           setError("Permission denied. Please make sure you're logged in and try again.");
         } else if (orgError.message?.includes('violates row-level security')) {
@@ -136,17 +184,30 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         // Still call onComplete since the organization was created
         toast.success("Organization created successfully!");
         console.log('Calling onComplete despite user organization membership error');
-        setTimeout(() => {
+        // Force a re-evaluation of user organization access
+        setTimeout(async () => {
+          try {
+            // Trigger a session refresh to update organization context
+            await supabase.auth.refreshSession();
+          } catch (refreshError) {
+            console.error('Error refreshing session:', refreshError);
+          }
           onComplete();
-        }, 1000);
+        }, 1500);
       } else {
         console.log('User organization membership created:', userOrgData);
         toast.success("Organization created successfully!");
         
-        // Wait a bit for all database operations to complete, then call onComplete
-        setTimeout(() => {
+        // Force a re-evaluation of user organization access
+        setTimeout(async () => {
+          try {
+            // Trigger a session refresh to update organization context
+            await supabase.auth.refreshSession();
+          } catch (refreshError) {
+            console.error('Error refreshing session:', refreshError);
+          }
           onComplete();
-        }, 1000);
+        }, 1500);
       }
     } catch (error: any) {
       console.error('Error creating organization:', error);
@@ -222,7 +283,16 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                   <Input
                     id="orgName"
                     value={orgName}
-                    onChange={(e) => handleOrgNameChange(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setOrgName(value);
+                      // Use a simple slug generation for immediate feedback
+                      if (value.trim()) {
+                        setOrgSlug(generateSlug(value));
+                      } else {
+                        setOrgSlug('');
+                      }
+                    }}
                     placeholder="Acme Property Management"
                     required
                   />
