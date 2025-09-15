@@ -28,6 +28,7 @@ const UserManagement = () => {
     USERS_PER_PAGE,
     isDeleteConfirmOpen,
     setIsDeleteConfirmOpen,
+    formError,
     handleOpenDialog,
     handleUserChange,
     handlePropertySelection,
@@ -118,6 +119,7 @@ const UserManagement = () => {
         onUserChange={handleUserChange}
         onPropertySelection={handlePropertySelection}
         onSave={handleSaveUser}
+        formError={formError}
       />
       
       <DeleteUserDialog

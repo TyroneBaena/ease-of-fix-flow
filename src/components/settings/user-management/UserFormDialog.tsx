@@ -45,7 +45,11 @@ interface UserFormDialogProps {
   onSave: () => Promise<void>;
 }
 
-const UserFormDialog: React.FC<UserFormDialogProps> = ({
+interface UserFormDialogPropsWithError extends UserFormDialogProps {
+  formError?: string | null;
+}
+
+const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   isOpen,
   onOpenChange,
   isEditMode,
@@ -56,10 +60,9 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
   isLoading,
   onUserChange,
   onPropertySelection,
-  onSave
+  onSave,
+  formError
 }) => {
-  // Import formError from useUserActions in the parent component
-  const formError = (window as any).__formErrorForUser__;
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

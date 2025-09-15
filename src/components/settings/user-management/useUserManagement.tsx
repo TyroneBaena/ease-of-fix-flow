@@ -57,17 +57,7 @@ export const useUserManagement = () => {
     USERS_PER_PAGE
   );
   
-  // Store formError in window for dialog component access
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).__formErrorForUser__ = formError;
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        delete (window as any).__formErrorForUser__;
-      }
-    };
-  }, [formError]);
+  // Clean form error management - no need for window object
   
   // Update fetchError if there's an error in the user context
   useEffect(() => {
