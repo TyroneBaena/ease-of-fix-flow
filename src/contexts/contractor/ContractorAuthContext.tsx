@@ -67,18 +67,18 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .from('contractors')
         .select('id, company_name, contact_name, user_id, email')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
         
       console.log('ContractorAuth - Contractor query by user_id result:', { contractorData, contractorError });
 
       // If not found by user_id, try by email as fallback
-      if (contractorError?.code === 'PGRST116') {
+      if (!contractorData && !contractorError) {
         console.log('ContractorAuth - Trying contractor lookup by email...');
         const { data: contractorByEmail, error: emailError } = await supabase
           .from('contractors')
           .select('id, company_name, contact_name, user_id, email')
           .eq('email', 'jijezu@forexzig.com')
-          .single();
+          .maybeSingle();
           
         if (!emailError && contractorByEmail) {
           console.log('ContractorAuth - Found contractor by email:', contractorByEmail);
@@ -92,6 +92,8 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
               
             if (updateError) {
               console.error('ContractorAuth - Error updating contractor user_id:', updateError);
+            } else {
+              contractorByEmail.user_id = userId;
             }
           }
           contractorData = contractorByEmail;
@@ -102,62 +104,63 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('ContractorAuth - Contractor query result:', { contractorData, contractorError });
 
       if (contractorError) {
-        if (contractorError.code === 'PGRST116') {
-          // No contractor profile found - let's try to create one for John Doe
-          console.log('ContractorAuth - No contractor profile found for user:', userId);
-          console.log('ContractorAuth - Attempting to create contractor profile...');
-          
-          // Check if this is John Doe's email
-          const { data: currentUserData } = await supabase
-            .from('profiles')
-            .select('email, name, organization_id')
-            .eq('id', userId)
-            .single();
-            
-          if (currentUserData?.email === 'jijezu@forexzig.com') {
-            // Create contractor profile for John Doe
-            const { data: newContractor, error: createError } = await supabase
-              .from('contractors')
-              .insert({
-                user_id: userId,
-                company_name: 'John Doe Contracting',
-                contact_name: 'John Doe',
-                email: 'jijezu@forexzig.com',
-                phone: '+1234567890',
-                organization_id: currentUserData.organization_id
-              })
-              .select('id, company_name, contact_name')
-              .single();
-              
-            if (!createError && newContractor) {
-              console.log('ContractorAuth - Created contractor profile:', newContractor);
-              setContractorId(newContractor.id);
-              setIsContractor(true);
-              toast.success(`Welcome, ${newContractor.contact_name}! Contractor profile created.`);
-              await fetchJobsData(newContractor.id);
-              return;
-            } else {
-              console.error('ContractorAuth - Error creating contractor profile:', createError);
-            }
-          }
-          
-          // User is not a contractor
-          console.log('ContractorAuth - User is not a contractor (no profile found)');
-          setIsContractor(false);
-          setContractorId(null);
-          setError(null); // Clear any previous errors
-          return;
-        } else if (contractorError.code === '42501') {
-          // Permission denied - likely RLS policy blocking access
-          console.log('ContractorAuth - Access denied to contractor profile');
-          setIsContractor(false);
-          setContractorId(null);
-          setError('Access denied. Please ensure you have contractor permissions.');
-          return;
-        }
         console.error('ContractorAuth - Database error:', contractorError);
         throw new Error(`Failed to load contractor profile: ${contractorError.message}`);
       }
+
+      if (!contractorData) {
+        // No contractor profile found - let's try to create one for John Doe
+        console.log('ContractorAuth - No contractor profile found for user:', userId);
+        console.log('ContractorAuth - Attempting to create contractor profile...');
+        
+        // Check if this is John Doe's email
+        const { data: currentUserData } = await supabase
+          .from('profiles')
+          .select('email, name, organization_id')
+          .eq('id', userId)
+          .maybeSingle();
+          
+        if (currentUserData?.email === 'jijezu@forexzig.com') {
+          // Create contractor profile for John Doe
+          const { data: newContractor, error: createError } = await supabase
+            .from('contractors')
+            .insert({
+              user_id: userId,
+              company_name: 'John Doe Contracting',
+              contact_name: 'John Doe',
+              email: 'jijezu@forexzig.com',
+              phone: '+1234567890',
+              organization_id: currentUserData.organization_id
+            })
+            .select('id, company_name, contact_name')
+            .single();
+            
+          if (!createError && newContractor) {
+            console.log('ContractorAuth - Created contractor profile:', newContractor);
+            setContractorId(newContractor.id);
+            setIsContractor(true);
+            toast.success(`Welcome, ${newContractor.contact_name}! Contractor profile created.`);
+            await fetchJobsData(newContractor.id);
+            return;
+          } else {
+            console.error('ContractorAuth - Error creating contractor profile:', createError);
+          }
+        }
+        
+        // User is not a contractor
+        console.log('ContractorAuth - User is not a contractor (no profile found)');
+        setIsContractor(false);
+        setContractorId(null);
+        setError('No contractor profile found. Please contact your administrator to set up your contractor account.');
+        return;
+      }
+      console.log('ContractorAuth - Found contractor profile:', contractorData);
+      setContractorId(contractorData.id);
+      setIsContractor(true);
+      toast.success(`Welcome, ${contractorData.contact_name}!`);
+
+      // Fetch contractor's jobs
+      await fetchJobsData(contractorData.id);
 
       console.log('ContractorAuth - Found contractor profile:', contractorData);
       setContractorId(contractorData.id);
