@@ -96,7 +96,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       console.log('Organization created:', orgData);
 
-      // Update user's profile with organization_id
+      // Update user's profile with organization_id and session organization
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -107,11 +107,18 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       if (profileError) {
         console.error('Error updating user profile:', profileError);
-        throw profileError;
+        if (profileError.message?.includes('violates row-level security')) {
+          setError("Failed to update user profile. Please try signing out and back in.");
+        } else {
+          setError(`Failed to update profile: ${profileError.message}`);
+        }
+        return;
       }
 
-      // Create user_organizations record
-      const { error: userOrgError } = await supabase
+      console.log('User profile updated with organization info');
+
+      // Create user_organizations record for the new organization
+      const { data: userOrgData, error: userOrgError } = await supabase
         .from('user_organizations')
         .insert({
           user_id: user.id,
@@ -119,15 +126,24 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
           role: 'admin',
           is_active: true,
           is_default: true
-        });
+        })
+        .select()
+        .single();
 
       if (userOrgError) {
         console.error('Error creating user organization record:', userOrgError);
+        toast.error('Organization created but failed to set up membership. Please contact support.');
         // Don't throw here as the main setup is complete
+      } else {
+        console.log('User organization membership created:', userOrgData);
       }
 
       toast.success("Organization created successfully!");
-      onComplete();
+      
+      // Force a small delay to ensure everything is set up before proceeding
+      setTimeout(() => {
+        onComplete();
+      }, 500);
     } catch (error: any) {
       console.error('Error creating organization:', error);
       setError(error.message || "Failed to create organization");
