@@ -24,7 +24,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     currentUser: !!currentUser, 
     loading, 
     currentOrganization: !!currentOrganization,
-    orgLoading
+    orgLoading,
+    isCheckingAccess
   });
   
   // Check organization access

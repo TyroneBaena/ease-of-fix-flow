@@ -84,7 +84,11 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true });
 
-      if (userOrgsError) throw userOrgsError;
+      if (userOrgsError) {
+        console.error('Error fetching user organizations:', userOrgsError);
+        setLoading(false);
+        return;
+      }
 
       // Handle case where user has no organizations yet
       if (!userOrgs || userOrgs.length === 0) {
@@ -211,6 +215,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
       setError(err instanceof Error ? err.message : 'Failed to fetch organizations');
       setUserOrganizations([]);
       setCurrentOrganization(null);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -295,6 +300,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         } catch (error) {
           console.error('Error converting user:', error);
           setCurrentUser(null);
+          setLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out, clearing organization context');
@@ -310,7 +316,12 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           setTimeout(() => fetchUserOrganizations(), 100);
         } catch (error) {
           console.error('Error converting updated user:', error);
+          setLoading(false);
         }
+      } else if (event === 'INITIAL_SESSION' && !session?.user) {
+        console.log('Initial session with no user');
+        setCurrentUser(null);
+        setLoading(false);
       }
     });
 
@@ -328,9 +339,24 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           setLoading(false);
         }
       } else {
+        console.log('No initial session found');
+        setCurrentUser(null);
         setLoading(false);
       }
     });
+
+    // Safety timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('Organization loading timeout reached, setting loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
 
     return () => subscription.unsubscribe();
   }, []);

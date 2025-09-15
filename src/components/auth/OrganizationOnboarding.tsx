@@ -139,12 +139,13 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       console.log('Organization created:', orgData);
 
-      // Update user's profile with organization_id and session organization
+      // Update user's profile with organization_id, session organization, and admin role
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           organization_id: orgData.id,
-          session_organization_id: orgData.id
+          session_organization_id: orgData.id,
+          role: 'admin'
         })
         .eq('id', user.id);
 
@@ -178,15 +179,24 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         // Still call onComplete since the organization was created
         toast.success("Organization created successfully!");
         console.log('Calling onComplete despite user organization membership error');
-        onComplete();
       } else {
         console.log('User organization membership created:', userOrgData);
         toast.success("Organization created successfully!");
         
-        // Call onComplete immediately to trigger context refresh
         console.log('Calling onComplete to refresh organization context');
-        onComplete();
       }
+
+      // Force a user metadata update to trigger auth state change
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { last_organization_update: Date.now() }
+      });
+
+      if (updateError) {
+        console.warn('Failed to update user metadata:', updateError);
+      }
+
+      // Always call onComplete to refresh
+      onComplete();
     } catch (error: any) {
       console.error('Error creating organization:', error);
       setError(error.message || "Failed to create organization");
