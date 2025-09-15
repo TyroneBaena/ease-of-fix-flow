@@ -310,9 +310,11 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
 
   useEffect(() => {
     console.log('Setting up auth listener in MultiOrganizationProvider');
+    let isProcessingAuth = false; // Track if we're actively processing authentication
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
+      isProcessingAuth = true; // Mark that we're processing auth
       
       if (event === 'SIGNED_IN' && session?.user) {
         try {
@@ -321,10 +323,12 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           setCurrentUser(appUser);
           // Fetch organizations immediately with the user data
           setTimeout(() => fetchUserOrganizations(appUser), 100);
+          isProcessingAuth = false; // Auth processing complete
         } catch (error) {
           console.error('Error converting user:', error);
           setCurrentUser(null);
           setLoading(false);
+          isProcessingAuth = false; // Auth processing complete (failed)
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out, clearing organization context');
@@ -332,15 +336,18 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         setUserOrganizations([]);
         setCurrentOrganization(null);
         setLoading(false);
+        isProcessingAuth = false; // Auth processing complete
       } else if (event === 'USER_UPDATED' && session?.user) {
         try {
           const appUser = await convertToAppUser(session.user);
           setCurrentUser(appUser);
           // Refresh organizations with the user data
           setTimeout(() => fetchUserOrganizations(appUser), 100);
+          isProcessingAuth = false; // Auth processing complete
         } catch (error) {
           console.error('Error converting updated user:', error);
           setLoading(false);
+          isProcessingAuth = false; // Auth processing complete (failed)
         }
       } else if (event === 'INITIAL_SESSION') {
         if (session?.user) {
@@ -350,10 +357,12 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
             console.log('Initial session user:', appUser.email);
             setCurrentUser(appUser);
             setTimeout(() => fetchUserOrganizations(appUser), 100);
+            isProcessingAuth = false; // Auth processing complete
           } catch (error) {
             console.error('Error converting initial session user:', error);
             setCurrentUser(null);
             setLoading(false);
+            isProcessingAuth = false; // Auth processing complete (failed)
           }
         } else {
           // Initial session with no user - don't immediately set loading to false
@@ -361,42 +370,50 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           console.log('Initial session with no user - waiting for session restoration');
           setCurrentUser(null);
           // Don't set loading to false here - let the session check handle it
+          isProcessingAuth = false; // No auth to process
         }
       }
     });
 
     // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      isProcessingAuth = true; // Mark that we're processing initial session
       if (session?.user) {
         try {
           const appUser = await convertToAppUser(session.user);
           console.log('Initial session user:', appUser.email);
           setCurrentUser(appUser);
           fetchUserOrganizations(appUser);
+          isProcessingAuth = false; // Auth processing complete
         } catch (error) {
           console.error('Error converting initial session user:', error);
           setCurrentUser(null);
           setLoading(false);
+          isProcessingAuth = false; // Auth processing complete (failed)
         }
       } else {
         console.log('No initial session found - session might still be restoring');
         setCurrentUser(null);
         // Don't immediately set loading to false - let timeout handle it if needed
         // This allows time for session restoration to complete
+        isProcessingAuth = false; // No session to process
       }
     });
 
-    // Safety timeout to prevent infinite loading - give enough time for session restoration
+    // Smart timeout - only fire if we're not actively processing auth and still loading
     const timeoutId = setTimeout(() => {
-      if (loading) {
+      if (loading && !isProcessingAuth) {
         console.warn('Organization loading timeout reached, setting loading to false');
         console.log('Current auth state when timeout hit:', {
           hasCurrentUser: !!currentUser,
-          currentUserEmail: currentUser?.email
+          currentUserEmail: currentUser?.email,
+          isProcessingAuth
         });
         setLoading(false);
+      } else if (loading && isProcessingAuth) {
+        console.log('Timeout reached but auth is still processing, waiting longer...');
       }
-    }, 5000); // 5 second timeout should be sufficient
+    }, 8000); // 8 second timeout - give more time for auth processing
 
     return () => {
       subscription.unsubscribe();
