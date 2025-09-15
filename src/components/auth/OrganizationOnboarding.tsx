@@ -84,13 +84,14 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.error('Organization creation error:', orgError);
         if (orgError.code === '23505') {
           setError("Organization name or identifier already exists. Please choose a different name.");
-          return;
-        }
-        if (orgError.message) {
+        } else if (orgError.message?.includes('permission denied')) {
+          setError("Permission denied. Please make sure you're logged in and try again.");
+        } else if (orgError.message?.includes('violates row-level security')) {
+          setError("Authentication error. Please sign out and sign in again.");
+        } else {
           setError(`Failed to create organization: ${orgError.message}`);
-          return;
         }
-        throw orgError;
+        return;
       }
 
       console.log('Organization created:', orgData);
