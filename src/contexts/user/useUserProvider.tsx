@@ -65,6 +65,15 @@ export const useUserProvider = () => {
       return;
     }
 
+    // Don't fetch if organization context is not ready
+    if (!currentUser?.organization_id) {
+      console.log("👥 Fetch skipped: organization not set", {
+        hasCurrentUser: !!currentUser,
+        organization_id: currentUser?.organization_id
+      });
+      return;
+    }
+
     try {
       console.log("👥 Starting user fetch for role:", currentUser?.role);
       console.log("👥 Current user org:", currentUser?.organization_id);

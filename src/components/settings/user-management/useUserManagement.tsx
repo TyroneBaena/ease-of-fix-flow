@@ -101,76 +101,40 @@ export const useUserManagement = () => {
   
   // Clean form error management - no need for window object
 
-  // Fetch users when component mounts or when needed
+  // Fetch users when component mounts - simplified approach
   useEffect(() => {
-    let isMounted = true;
-    
-    const shouldFetch = isAdmin && (
-      !fetchedOnce || 
-      (Date.now() - lastRefreshTime > 60000) // Refresh if data is older than 1 minute
-    ); 
-    
-    if (shouldFetch && !isLoadingUsers) {
-      fetchUsers().then(() => {
-        if (isMounted) {
-          setFetchedOnce(true);
-          setLastRefreshTime(Date.now());
-        }
-      });
-    }
-    
-    return () => { isMounted = false };
-  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers, lastRefreshTime]);
-
-  // Better loading state management with retries
-  useEffect(() => {
-    // Primary timer to check if data is loaded
-    const timer = setTimeout(() => {
-      if ((users.length > 0 || fetchedOnce) && !isLoadingUsers) {
-        console.log("UserManagement: Data is ready");
-        setReady(true);
-      } else if (isAdmin && !fetchedOnce && !isLoadingUsers) {
-        console.log("UserManagement: Attempting to fetch users again");
-        fetchUsers();
-      }
-    }, 500);
-    
-    // Backup timer to force ready state after a timeout
-    const backupTimer = setTimeout(() => {
-      if (!ready) {
-        console.log("UserManagement: Backup timer triggering ready state");
-        setReady(true);
-      }
-    }, 3000);
-    
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(backupTimer);
-    };
-  }, [users, fetchedOnce, isLoadingUsers, isAdmin, fetchUsers, ready]);
-
-  // Refresh user list whenever the dialog is closed or after certain operations
-  useEffect(() => {
-    if (!isDialogOpen && isAdmin && fetchedOnce) {
-      // Immediate refresh when dialog closes after successful operation
-      console.log("Dialog closed, refreshing user list");
+    if (isAdmin && !fetchedOnce && !isLoadingUsers) {
+      console.log("Initial fetch for admin user");
       fetchUsers();
     }
-  }, [isDialogOpen, isAdmin, fetchedOnce, fetchUsers]);
+  }, [isAdmin]); // Only depend on isAdmin to avoid loops
 
-  // Force a refresh occasionally in case we miss updates
+  // Improved loading state management - less aggressive
   useEffect(() => {
-    if (!isAdmin) return;
-    
-    const periodicRefresh = setInterval(() => {
-      if (!isLoadingUsers && !isDialogOpen) {
-        console.log("UserManagement: Periodic refresh");
+    if ((users.length > 0 || fetchedOnce) && !isLoadingUsers) {
+      console.log("UserManagement: Data is ready");
+      setReady(true);
+    } else if (isAdmin && !fetchedOnce && !isLoadingUsers) {
+      console.log("UserManagement: No data yet, will fetch");
+      // Don't immediately fetch here to avoid loops, let the other effect handle it
+      setReady(true); // Set ready anyway to prevent infinite loading
+    }
+  }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
+
+  // Refresh user list when dialog is closed after successful operation - but only once
+  useEffect(() => {
+    if (!isDialogOpen && isAdmin && fetchedOnce && !isLoadingUsers) {
+      // Add a small delay to ensure any pending operations complete
+      const refreshTimeout = setTimeout(() => {
+        console.log("Dialog closed, refreshing user list");
         fetchUsers();
-      }
-    }, 60000); // Refresh every minute
-    
-    return () => clearInterval(periodicRefresh);
-  }, [isAdmin, isLoadingUsers, isDialogOpen, fetchUsers]);
+      }, 500);
+      
+      return () => clearTimeout(refreshTimeout);
+    }
+  }, [isDialogOpen, isAdmin]);
+
+  // Remove the overly aggressive periodic refresh that was causing constant refreshes
 
   return {
     users,

@@ -65,15 +65,17 @@ export const useUserActions = (
         toast.success(`User ${updatedUser.name} updated successfully`);
         setIsDialogOpen(false);
         
-        // Explicitly refresh the user list after successful update
-        console.log("User update successful, refreshing user list");
-        try {
-          await fetchUsers();
-          console.log("User list refreshed successfully after update");
-        } catch (refreshError) {
-          console.error("Error refreshing user list after update:", refreshError);
-          toast.warning("User updated but list may not be up to date. Please refresh the page.");
-        }
+        // Wait a moment before refreshing to ensure the backend is updated
+        setTimeout(async () => {
+          console.log("User update successful, refreshing user list");
+          try {
+            await fetchUsers();
+            console.log("User list refreshed successfully after update");
+          } catch (refreshError) {
+            console.error("Error refreshing user list after update:", refreshError);
+            toast.warning("User updated but list may not be up to date. Please refresh the page.");
+          }
+        }, 1000);
       } else {
         console.log("Adding new user:", {
           email: newUser.email,
@@ -98,16 +100,18 @@ export const useUserActions = (
             
             setIsDialogOpen(false);
             
-            // Explicitly refresh the user list after successful creation
-            console.log("User creation successful, refreshing user list");
-            try {
-              await fetchUsers();
-              console.log("User list refreshed successfully");
-            } catch (refreshError) {
-              console.error("Error refreshing user list:", refreshError);
-              // Still show success for the creation, just warn about refresh
-              toast.warning("User created but list may not be up to date. Please refresh the page.");
-            }
+            // Wait a moment before refreshing to ensure the backend is updated
+            setTimeout(async () => {
+              console.log("User creation successful, refreshing user list");
+              try {
+                await fetchUsers();
+                console.log("User list refreshed successfully");
+              } catch (refreshError) {
+                console.error("Error refreshing user list:", refreshError);
+                // Still show success for the creation, just warn about refresh
+                toast.warning("User created but list may not be up to date. Please refresh the page.");
+              }
+            }, 1000); // Wait 1 second to ensure backend operations complete
             
             // For test mode emails, show additional information
             if (result.testMode && result.testModeInfo) {
