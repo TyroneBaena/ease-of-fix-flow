@@ -118,12 +118,14 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       }
       
       if (contractorByUserId) {
-        console.log('ContractorAuth - Found contractor by user_id:', contractorByUserId.id);
+        console.log('ContractorAuth - Found contractor profile:', contractorByUserId.id);
         setContractorId(contractorByUserId.id);
         setIsContractor(true);
         setError(null);
         toast.success(`Welcome back, ${contractorByUserId.contact_name}!`);
+        console.log('ContractorAuth - About to fetch jobs for contractor:', contractorByUserId.id);
         await fetchJobsData(contractorByUserId.id);
+        console.log('ContractorAuth - Finished fetching jobs for contractor:', contractorByUserId.id);
         return;
       }
 
@@ -161,7 +163,9 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         setIsContractor(true);
         setError(null);
         toast.success(`Welcome, ${contractorByEmail.contact_name}! Profile linked successfully.`);
+        console.log('ContractorAuth - About to fetch jobs for linked contractor:', contractorByEmail.id);
         await fetchJobsData(contractorByEmail.id);
+        console.log('ContractorAuth - Finished fetching jobs for linked contractor:', contractorByEmail.id);
         return;
       }
       
@@ -211,7 +215,8 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       const activeJobsData = allJobs.filter(job => job.status === 'in_progress');
       const completedJobsData = allJobs.filter(job => job.status === 'completed');
       
-      console.log('ContractorAuth - Active jobs:', activeJobsData);
+      console.log('ContractorAuth - Jobs separated by status:');
+      console.log('ContractorAuth - Active jobs (in_progress):', activeJobsData);
       console.log('ContractorAuth - Completed jobs:', completedJobsData);
 
       // Process data
@@ -222,12 +227,18 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       const activeRequests = activeJobsData.map(mapRequestFromDb);
       const completedRequests = completedJobsData.map(mapRequestFromDb);
 
+      console.log('ContractorAuth - Mapped requests:');
+      console.log('ContractorAuth - Pending from quotes:', pendingFromQuotes);
+      console.log('ContractorAuth - Active requests:', activeRequests);
+      console.log('ContractorAuth - Completed requests:', completedRequests);
+
       // Update state
       setPendingQuoteRequests(pendingFromQuotes);
       setActiveJobs(activeRequests);
       setCompletedJobs(completedRequests);
 
       console.log(`ContractorAuth - Final counts: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+      console.log('ContractorAuth - State updated successfully');
 
     } catch (err: any) {
       console.error('ContractorAuth - Error fetching jobs:', err);
@@ -265,7 +276,9 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       setError(null);
 
       try {
+        console.log('ContractorAuth - Calling fetchContractorData for:', currentUser.id);
         await fetchContractorData(currentUser.id);
+        console.log('ContractorAuth - fetchContractorData completed for:', currentUser.id);
       } catch (error) {
         console.error('ContractorAuth - Error in initialization:', error);
         if (!isCancelled) {
