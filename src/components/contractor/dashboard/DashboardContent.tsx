@@ -103,7 +103,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             
             <TabsContent value="active">
               <RequestsTable 
-                requests={filteredActiveJobs}
+                requests={displayActiveJobs}
                 onSelectRequest={onSelectRequest}
                 filterQuoteRequests={false}
               />
@@ -111,7 +111,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             
             <TabsContent value="completed">
               <RequestsTable 
-                requests={filteredCompletedJobs} 
+                requests={displayCompletedJobs} 
                 onSelectRequest={onSelectRequest}
                 filterQuoteRequests={false}
               />
