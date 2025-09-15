@@ -54,31 +54,46 @@ useEffect(() => {
   };
 
   supabase.auth.getSession().then(async ({ data }) => {
-    // Only set as authenticated if user exists AND email is confirmed
-    const isConfirmedUser = data.session?.user && data.session.user.email_confirmed_at;
-    
-    if (isConfirmedUser) {
+    // Check if user exists (confirmed or unconfirmed)
+    if (data.session?.user) {
       setCurrentUser(data.session.user);
-      const hasOrg = await checkUserOrganization(data.session.user);
-      setHasOrganization(hasOrg);
-      setIsAuthed(true);
-    } else if (data.session?.user && !data.session.user.email_confirmed_at) {
-      setEmailConfirmationRequired(true);
-      setInfo("Please check your email and click the confirmation link to complete your registration.");
+      
+      if (data.session.user.email_confirmed_at) {
+        // Email is confirmed - proceed to organization check
+        const hasOrg = await checkUserOrganization(data.session.user);
+        setHasOrganization(hasOrg);
+        setIsAuthed(true);
+        setEmailConfirmationRequired(false);
+      } else {
+        // Email not confirmed - show confirmation message but allow org creation
+        setEmailConfirmationRequired(true);
+        setIsAuthed(true); // Allow user to proceed to org creation
+        setInfo("Please check your email and click the confirmation link to complete your registration.");
+      }
     }
   });
 
   const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
     console.log(`Auth state changed: ${event}`, session?.user?.email_confirmed_at);
     
-    // Only show organization/plan selection for confirmed users
-    if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+    // Allow organization/plan selection for any signed-in user
+    if (event === 'SIGNED_IN' && session?.user) {
       setCurrentUser(session.user);
-      const hasOrg = await checkUserOrganization(session.user);
-      setHasOrganization(hasOrg);
+      
+      if (session.user.email_confirmed_at) {
+        // Email confirmed - proceed normally
+        const hasOrg = await checkUserOrganization(session.user);
+        setHasOrganization(hasOrg);
+        setEmailConfirmationRequired(false);
+        setInfo(null);
+      } else {
+        // Email not confirmed but allow org creation
+        setHasOrganization(false);
+        setEmailConfirmationRequired(true);
+        setInfo("Please check your email and click the confirmation link to complete your registration.");
+      }
+      
       setIsAuthed(true);
-      setEmailConfirmationRequired(false);
-      setInfo(null);
     } else if (event === 'SIGNED_OUT') {
       setIsAuthed(false);
       setHasOrganization(false);

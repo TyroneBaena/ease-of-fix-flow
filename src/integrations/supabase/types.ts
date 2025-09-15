@@ -1180,6 +1180,15 @@ export type Database = {
           user_role: string
         }[]
       }
+      debug_organization_creation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auth_uid: string
+          current_org_id: string
+          is_authenticated: boolean
+          profile_exists: boolean
+        }[]
+      }
       get_contractor_id: {
         Args: Record<PropertyKey, never>
         Returns: string
