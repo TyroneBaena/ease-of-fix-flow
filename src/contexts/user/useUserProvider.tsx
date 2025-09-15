@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, UserRole } from '@/types/user';
-import { useMultiOrganizationAuth } from '@/hooks/useMultiOrganizationAuth';
+import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
 import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
@@ -20,7 +20,15 @@ export interface AddUserResult {
 }
 
 export const useUserProvider = () => {
-  const { currentUser, session, loading: authLoading, signOut } = useMultiOrganizationAuth();
+  const multiOrgContext = useMultiOrganizationContext();
+  const { currentUser, loading: authLoading } = multiOrgContext;
+  
+  // Create a simple sign out function that doesn't require the full auth context
+  const signOut = async () => {
+    const { signOutUser } = await import('@/hooks/auth/authOperations');
+    await signOutUser();
+  };
+  
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
@@ -40,12 +48,11 @@ export const useUserProvider = () => {
         role: currentUser.role,
         organization_id: currentUser.organization_id
       } : null,
-      session: session ? 'exists' : 'null',
       authLoading,
       isAdmin,
       canFetchUsers
     });
-  }, [currentUser, session, authLoading, isAdmin, canFetchUsers]);
+  }, [currentUser, authLoading, isAdmin, canFetchUsers]);
 
   const fetchUsers = useCallback(async () => {
     // Prevent concurrent fetches and only allow admins and managers

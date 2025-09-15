@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserContext } from './UserContext';
+import { convertToAppUser } from '@/hooks/auth/userConverter';
 import { toast } from '@/lib/toast';
 
 interface Organization {
@@ -33,6 +33,7 @@ interface MultiOrganizationContextType {
   switchOrganization: (organizationId: string) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
   getCurrentUserRole: () => string;
+  currentUser: any;
 }
 
 const MultiOrganizationContext = createContext<MultiOrganizationContextType | undefined>(undefined);
@@ -46,7 +47,7 @@ export const useMultiOrganizationContext = () => {
 };
 
 export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useUserContext();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching organizations for user:', currentUser.id);
 
       // Fetch all organizations the user belongs to
       const { data: userOrgs, error: userOrgsError } = await supabase
@@ -158,7 +160,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           ...uo,
           organization: organization as Organization
         };
-      }).filter(uo => uo.organization); // Filter out any without organization data
+      }).filter(uo => uo.organization);
 
       setUserOrganizations(mappedUserOrganizations);
 
@@ -265,7 +267,6 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     await fetchUserOrganizations();
   };
 
-
   const getCurrentUserRole = (): string => {
     if (!currentOrganization || !currentUser?.id) {
       return 'manager';
@@ -279,8 +280,60 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
   };
 
   useEffect(() => {
-    fetchUserOrganizations();
-  }, [currentUser?.id]);
+    console.log('Setting up auth listener in MultiOrganizationProvider');
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          const appUser = await convertToAppUser(session.user);
+          console.log('User converted:', appUser.email);
+          setCurrentUser(appUser);
+          // Delay organization fetch to prevent race conditions
+          setTimeout(() => fetchUserOrganizations(), 100);
+        } catch (error) {
+          console.error('Error converting user:', error);
+          setCurrentUser(null);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out, clearing organization context');
+        setCurrentUser(null);
+        setUserOrganizations([]);
+        setCurrentOrganization(null);
+        setLoading(false);
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        try {
+          const appUser = await convertToAppUser(session.user);
+          setCurrentUser(appUser);
+          // Refresh organizations on user update
+          setTimeout(() => fetchUserOrganizations(), 100);
+        } catch (error) {
+          console.error('Error converting updated user:', error);
+        }
+      }
+    });
+
+    // Initial session check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        try {
+          const appUser = await convertToAppUser(session.user);
+          console.log('Initial session user:', appUser.email);
+          setCurrentUser(appUser);
+          fetchUserOrganizations();
+        } catch (error) {
+          console.error('Error converting initial session user:', error);
+          setCurrentUser(null);
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const value: MultiOrganizationContextType = {
     currentOrganization,
@@ -289,7 +342,8 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     error,
     switchOrganization,
     refreshOrganizations,
-    getCurrentUserRole
+    getCurrentUserRole,
+    currentUser
   };
 
   return (

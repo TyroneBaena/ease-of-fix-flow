@@ -191,26 +191,14 @@ useEffect(() => {
   };
 
   const handleOrganizationComplete = async () => {
-    console.log('Organization setup completed - checking user organization status');
+    console.log('Organization setup completed - redirecting to dashboard');
     
-    // Refetch user organization status to make sure it's properly set
-    if (currentUser) {
-      const hasOrg = await checkUserOrganization(currentUser);
-      console.log('Organization check result:', hasOrg);
-      
-      if (hasOrg) {
-        setHasOrganization(true);
-        toast.success("Organization setup complete! Redirecting to dashboard...");
-        
-        // Navigate directly to dashboard
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1000);
-      } else {
-        console.error('Organization creation appears to have failed');
-        toast.error("Organization setup incomplete. Please try again.");
-      }
-    }
+    // Simply redirect to dashboard - the context refresh will be handled by ProtectedRoute
+    toast.success("Organization setup complete! Redirecting to dashboard...");
+    
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 1000);
   };
 
 return (

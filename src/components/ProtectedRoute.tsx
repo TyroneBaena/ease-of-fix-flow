@@ -2,6 +2,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useUserContext } from '@/contexts/UserContext';
+import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { Loader2, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,62 +16,53 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useUserContext();
+  const { currentOrganization, loading: orgLoading, refreshOrganizations } = useMultiOrganizationContext();
   const navigate = useNavigate();
-  const [checkingOrganization, setCheckingOrganization] = useState(true);
-  const [hasOrganization, setHasOrganization] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   
-  console.log('🔒 ProtectedRoute - State:', { currentUser: !!currentUser, loading, hasOrganization });
+  console.log('🔒 ProtectedRoute - State:', { 
+    currentUser: !!currentUser, 
+    loading, 
+    currentOrganization: !!currentOrganization,
+    orgLoading
+  });
   
-  // Check if user has organization membership
+  // Check organization access
   useEffect(() => {
-    const checkUserOrganization = async () => {
+    const checkAccess = async () => {
+      if (loading || orgLoading) {
+        return; // Still loading auth or organization data
+      }
+
       if (!currentUser) {
-        setCheckingOrganization(false);
+        console.log("🔒 ProtectedRoute: No user found, redirecting to login");
+        navigate('/login', { replace: true });
         return;
       }
 
-      try {
-        console.log('🔒 Checking organization for user:', currentUser.id);
-        
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('id', currentUser.id)
-          .single();
+      console.log('🔒 Checking user organization access:', {
+        userId: currentUser.id,
+        email: currentUser.email,
+        hasCurrentOrg: !!currentOrganization,
+        orgId: currentUser.organization_id
+      });
 
-        if (error) {
-          console.error('🔒 Error checking organization:', error);
-          setHasOrganization(false);
-        } else {
-          const hasOrg = !!profile?.organization_id;
-          console.log('🔒 Organization check result:', { hasOrg, orgId: profile?.organization_id });
-          setHasOrganization(hasOrg);
-        }
-      } catch (error) {
-        console.error('🔒 Exception checking organization:', error);
-        setHasOrganization(false);
-      } finally {
-        setCheckingOrganization(false);
+      // If user has no current organization, they need to go through onboarding
+      if (!currentOrganization) {
+        console.log("🔒 User has no organization access, showing onboarding");
+        setIsCheckingAccess(false);
+        return;
       }
+
+      console.log("🔒 User has organization access, allowing access to protected route");
+      setIsCheckingAccess(false);
     };
 
-    if (currentUser && !loading) {
-      checkUserOrganization();
-    } else if (!currentUser && !loading) {
-      setCheckingOrganization(false);
-    }
-  }, [currentUser, loading]);
-  
-  // Handle redirect when user is not authenticated (only when loading is complete)
-  useEffect(() => {
-    if (!loading && !currentUser) {
-      console.log("🔒 ProtectedRoute: User not authenticated, redirecting to login");
-      navigate('/login', { replace: true });
-    }
-  }, [loading, currentUser, navigate]);
+    checkAccess();
+  }, [currentUser, loading, currentOrganization, orgLoading, navigate]);
   
   // Show loading state while checking authentication or organization
-  if (loading || checkingOrganization) {
+  if (loading || orgLoading || isCheckingAccess) {
     console.log('🔒 ProtectedRoute - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -86,15 +78,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   // If user doesn't have organization, show organization onboarding
-  if (!hasOrganization) {
+  if (!currentOrganization) {
     console.log("🔒 ProtectedRoute: User missing organization, showing onboarding");
     return (
       <OrganizationOnboarding 
         user={currentUser} 
         onComplete={() => {
-          // Force re-check of organization status
-          setCheckingOrganization(true);
-          setHasOrganization(false);
+          console.log('Organization onboarding completed, refreshing organization data');
+          refreshOrganizations();
         }} 
       />
     );

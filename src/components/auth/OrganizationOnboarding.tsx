@@ -178,30 +178,14 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         // Still call onComplete since the organization was created
         toast.success("Organization created successfully!");
         console.log('Calling onComplete despite user organization membership error');
-        // Force a re-evaluation of user organization access
-        setTimeout(async () => {
-          try {
-            // Trigger a session refresh to update organization context
-            await supabase.auth.refreshSession();
-          } catch (refreshError) {
-            console.error('Error refreshing session:', refreshError);
-          }
-          onComplete();
-        }, 1500);
+        onComplete();
       } else {
         console.log('User organization membership created:', userOrgData);
         toast.success("Organization created successfully!");
         
-        // Force a re-evaluation of user organization access
-        setTimeout(async () => {
-          try {
-            // Trigger a session refresh to update organization context
-            await supabase.auth.refreshSession();
-          } catch (refreshError) {
-            console.error('Error refreshing session:', refreshError);
-          }
-          onComplete();
-        }, 1500);
+        // Call onComplete immediately to trigger context refresh
+        console.log('Calling onComplete to refresh organization context');
+        onComplete();
       }
     } catch (error: any) {
       console.error('Error creating organization:', error);

@@ -5,9 +5,9 @@ import { UserProvider } from './contexts/UserContext'
 import { MultiOrganizationProvider } from './contexts/MultiOrganizationContext'
 
 createRoot(document.getElementById("root")!).render(
-  <UserProvider>
-    <MultiOrganizationProvider>
+  <MultiOrganizationProvider>
+    <UserProvider>
       <App />
-    </MultiOrganizationProvider>
-  </UserProvider>
+    </UserProvider>
+  </MultiOrganizationProvider>
 );
