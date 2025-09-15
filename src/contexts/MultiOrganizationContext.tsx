@@ -53,8 +53,10 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserOrganizations = async () => {
-    if (!currentUser?.id) {
+  const fetchUserOrganizations = async (user?: any) => {
+    const targetUser = user || currentUser;
+    if (!targetUser?.id) {
+      console.log('No current user for organization fetch:', { user: !!user, currentUser: !!currentUser });
       setUserOrganizations([]);
       setCurrentOrganization(null);
       setLoading(false);
@@ -64,7 +66,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching organizations for user:', currentUser.id);
+      console.log('Fetching organizations for user:', targetUser.id);
 
       // Fetch all organizations the user belongs to
       const { data: userOrgs, error: userOrgsError } = await supabase
@@ -79,7 +81,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           created_at,
           updated_at
         `)
-        .eq('user_id', currentUser.id)
+        .eq('user_id', targetUser.id)
         .eq('is_active', true)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true });
@@ -97,14 +99,14 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         console.log('User has no organizations, checking if they have an organization_id in profile');
         
         // If user has an organization_id but no user_organizations record, create one
-        if (currentUser.organization_id) {
+        if (targetUser.organization_id) {
           console.log('Creating user organization membership for existing organization');
           
           // Fetch the organization details
           const { data: org, error: orgError } = await supabase
             .from('organizations')
             .select('*')
-            .eq('id', currentUser.organization_id)
+            .eq('id', targetUser.organization_id)
             .single();
           
           if (!orgError && org) {
@@ -112,9 +114,9 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
             const { data: newUserOrg, error: createError } = await supabase
               .from('user_organizations')
               .insert({
-                user_id: currentUser.id,
-                organization_id: currentUser.organization_id,
-                role: currentUser.role || 'manager',
+                user_id: targetUser.id,
+                organization_id: targetUser.organization_id,
+                role: targetUser.role || 'manager',
                 is_active: true,
                 is_default: true
               })
@@ -184,7 +186,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('session_organization_id')
-          .eq('id', currentUser.id)
+          .eq('id', targetUser.id)
           .single();
 
         if (profileError) {
@@ -317,8 +319,8 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           const appUser = await convertToAppUser(session.user);
           console.log('User converted:', appUser.email);
           setCurrentUser(appUser);
-          // Delay organization fetch to prevent race conditions
-          setTimeout(() => fetchUserOrganizations(), 100);
+          // Fetch organizations immediately with the user data
+          setTimeout(() => fetchUserOrganizations(appUser), 100);
         } catch (error) {
           console.error('Error converting user:', error);
           setCurrentUser(null);
@@ -334,8 +336,8 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
         try {
           const appUser = await convertToAppUser(session.user);
           setCurrentUser(appUser);
-          // Refresh organizations on user update
-          setTimeout(() => fetchUserOrganizations(), 100);
+          // Refresh organizations with the user data
+          setTimeout(() => fetchUserOrganizations(appUser), 100);
         } catch (error) {
           console.error('Error converting updated user:', error);
           setLoading(false);
@@ -354,7 +356,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           const appUser = await convertToAppUser(session.user);
           console.log('Initial session user:', appUser.email);
           setCurrentUser(appUser);
-          fetchUserOrganizations();
+          fetchUserOrganizations(appUser);
         } catch (error) {
           console.error('Error converting initial session user:', error);
           setCurrentUser(null);
