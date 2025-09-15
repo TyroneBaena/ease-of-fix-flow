@@ -140,10 +140,10 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       toast.success("Organization created successfully!");
       
-      // Force a small delay to ensure everything is set up before proceeding
+      // Force a reload to refresh all contexts and ensure proper organization access
       setTimeout(() => {
-        onComplete();
-      }, 500);
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       console.error('Error creating organization:', error);
       setError(error.message || "Failed to create organization");
