@@ -14,7 +14,7 @@ export const useSupabaseAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     console.log('Setting up auth state listener');
     let isInitialized = false;
     
@@ -22,24 +22,28 @@ useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log(`Auth state changed: ${event}`, {
-          _type: typeof session,
-          value: session ? 'session_exists' : 'undefined'
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email
         });
 
         // Handle session persistence and user conversion synchronously where possible
         try {
-          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
               const appUser = await convertToAppUser(session.user);
               setCurrentUser(appUser);
               setSession(session);
               console.log('User authenticated successfully:', session.user.email);
+              setLoading(false);
+              isInitialized = true;
             } else {
               setCurrentUser(null);
               setSession(null);
+              if (event !== 'TOKEN_REFRESHED') {
+                setLoading(false);
+              }
             }
-            setLoading(false);
-            isInitialized = true;
           } else if (event === 'SIGNED_OUT') {
             setCurrentUser(null);
             setSession(null);
@@ -60,12 +64,6 @@ useEffect(() => {
               setSession(null);
             }
             setLoading(false);
-          } else if (event === 'TOKEN_REFRESHED') {
-            // Handle token refresh without changing user state
-            if (session) {
-              setSession(session);
-              console.log('Token refreshed successfully');
-            }
           }
         } catch (error) {
           console.error(`Error handling auth event ${event}:`, error);
@@ -76,38 +74,43 @@ useEffect(() => {
       }
     );
 
-    // THEN check for existing session - but only if not already initialized
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting initial session:', error);
-        setLoading(false);
-        return;
-      }
-
-      // If auth state change already handled this, skip
-      if (isInitialized) {
-        console.log('Session already handled by auth state change');
-        return;
-      }
-
-      console.log('Manual session check - session found:', !!session);
+    // THEN check for existing session - this ensures proper loading on refresh
+    const checkInitialSession = async () => {
       try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+          setLoading(false);
+          return;
+        }
+
+        // If auth state change already handled this, skip
+        if (isInitialized) {
+          console.log('Session already handled by auth state change');
+          return;
+        }
+
+        console.log('Manual session check - session found:', !!session);
         if (session?.user) {
           const appUser = await convertToAppUser(session.user);
           setCurrentUser(appUser);
           setSession(session);
+          console.log('Session restored on page load for:', session.user.email);
         } else {
           setCurrentUser(null);
           setSession(null);
         }
       } catch (error) {
-        console.error('Error converting user from manual session check:', error);
+        console.error('Error in initial session check:', error);
         setCurrentUser(null);
         setSession(null);
       } finally {
         setLoading(false);
       }
-    });
+    };
+
+    checkInitialSession();
 
     return () => {
       console.log('Cleaning up auth state listener');

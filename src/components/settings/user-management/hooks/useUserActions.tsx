@@ -30,6 +30,7 @@ export const useUserActions = (
   const handleSaveUser = async () => {
     if (!newUser.name || !newUser.email) {
       toast.error("Name and email are required");
+      setFormError("Name and email are required");
       return;
     }
     
@@ -40,12 +41,14 @@ export const useUserActions = (
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newUser.email)) {
       toast.error("Please enter a valid email address");
+      setFormError("Please enter a valid email address");
       return;
     }
     
     try {
       setIsLoading(true);
       console.log("Starting user save operation:", isEditMode ? "update" : "invite");
+      console.log("User data:", { name: newUser.name, email: newUser.email, role: newUser.role });
       
       if (isEditMode && selectedUser) {
         const updatedUser: User = {
