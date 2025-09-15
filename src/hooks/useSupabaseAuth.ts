@@ -77,35 +77,47 @@ export const useSupabaseAuth = () => {
     // THEN check for existing session - this ensures proper loading on refresh
     const checkInitialSession = async () => {
       try {
+        console.log('Checking for existing session on page load...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting initial session:', error);
-          setLoading(false);
+          if (!isInitialized) {
+            console.log('Initial session with no user');
+            setCurrentUser(null);
+            setSession(null);
+            setLoading(false);
+          }
           return;
         }
 
-        // If auth state change already handled this, skip
-        if (isInitialized) {
-          console.log('Session already handled by auth state change');
-          return;
-        }
+        console.log('Session check result:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email,
+          isInitialized
+        });
 
-        console.log('Manual session check - session found:', !!session);
         if (session?.user) {
+          console.log('Found existing session, converting user...');
           const appUser = await convertToAppUser(session.user);
           setCurrentUser(appUser);
           setSession(session);
           console.log('Session restored on page load for:', session.user.email);
+          setLoading(false);
+          isInitialized = true;
         } else {
+          console.log('No initial session found');
           setCurrentUser(null);
           setSession(null);
+          if (!isInitialized) {
+            setLoading(false);
+          }
         }
       } catch (error) {
         console.error('Error in initial session check:', error);
         setCurrentUser(null);
         setSession(null);
-      } finally {
         setLoading(false);
       }
     };
