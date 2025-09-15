@@ -11,6 +11,7 @@ import { DashboardContent } from '@/components/contractor/dashboard/DashboardCon
 import { useDashboardFilters } from '@/hooks/contractor/useDashboardFilters';
 import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
 import { AuthDebugComponent } from '@/components/contractor/AuthDebugComponent';
+import { SessionDebugger } from '@/components/contractor/SessionDebugger';
 import { Toaster } from "sonner";
 
 const ContractorDashboard = () => {
@@ -79,7 +80,6 @@ const ContractorDashboard = () => {
           />
         </main>
       ) : (
-        /* Show main content when no critical errors */
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Contractor Dashboard</h1>
@@ -111,6 +111,14 @@ const ContractorDashboard = () => {
           />
         </main>
       )}
+      
+      {/* Debug Components */}
+      <div className="space-y-4 mt-8">
+        <SessionDebugger />
+        <AuthDebugComponent />
+      </div>
+      
+      <Toaster />
     </div>
   );
 };

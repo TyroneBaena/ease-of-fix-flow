@@ -50,91 +50,126 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       console.log('ContractorAuth - Fetching contractor profile for user:', userId);
       
-      // Debug: Let's see the current session state
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('ContractorAuth - Current session:', {
+      // Debug: Check if we have an active session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('ContractorAuth - Session check:', {
         hasSession: !!session,
         sessionUserId: session?.user?.id,
         sessionEmail: session?.user?.email,
-        paramUserId: userId
+        paramUserId: userId,
+        sessionError
       });
       
+      // If no session, force re-authentication
+      if (!session || !session.user) {
+        console.error('ContractorAuth - No active session found!');
+        setIsContractor(false);
+        setContractorId(null);
+        setError('Authentication session expired. Please log in again.');
+        return;
+      }
+      
+      // Verify the session user matches the param
+      if (session.user.id !== userId) {
+        console.error('ContractorAuth - Session user ID mismatch:', {
+          sessionUserId: session.user.id,
+          paramUserId: userId
+        });
+        setIsContractor(false);
+        setContractorId(null);
+        setError('Session user ID mismatch. Please log in again.');
+        return;
+      }
+      
       // Get current user's profile info for email lookup
-      const { data: currentUserProfile } = await supabase
+      const { data: currentUserProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id, email, name, organization_id')
         .eq('id', userId)
         .maybeSingle();
       
-      console.log('ContractorAuth - Current user profile:', currentUserProfile);
+      console.log('ContractorAuth - Current user profile:', { currentUserProfile, profileError });
+      
+      if (profileError) {
+        console.error('ContractorAuth - Error fetching user profile:', profileError);
+        throw profileError;
+      }
       
       if (!currentUserProfile) {
         console.error('ContractorAuth - No profile found for user:', userId);
-        throw new Error('User profile not found');
+        setIsContractor(false);
+        setContractorId(null);
+        setError('User profile not found. Please contact administrator.');
+        return;
       }
       
       // Try to find contractor by user_id first
-      let { data: contractorData, error: contractorError } = await supabase
+      const { data: contractorByUserId, error: userIdError } = await supabase
         .from('contractors')
         .select('id, company_name, contact_name, user_id, email, organization_id')
         .eq('user_id', userId)
         .maybeSingle();
         
-      console.log('ContractorAuth - Contractor query by user_id result:', { contractorData, contractorError });
+      console.log('ContractorAuth - Contractor query by user_id result:', { contractorByUserId, userIdError });
+
+      if (userIdError && userIdError.code !== 'PGRST116') {
+        console.error('ContractorAuth - Database error in user_id query:', userIdError);
+        throw userIdError;
+      }
+      
+      if (contractorByUserId) {
+        console.log('ContractorAuth - Found contractor by user_id:', contractorByUserId.id);
+        setContractorId(contractorByUserId.id);
+        setIsContractor(true);
+        setError(null);
+        toast.success(`Welcome back, ${contractorByUserId.contact_name}!`);
+        await fetchJobsData(contractorByUserId.id);
+        return;
+      }
 
       // If not found by user_id, try by email as fallback
-      if (!contractorData && !contractorError) {
-        console.log('ContractorAuth - Trying contractor lookup by email:', currentUserProfile.email);
-        const { data: contractorByEmail, error: emailError } = await supabase
+      console.log('ContractorAuth - Trying contractor lookup by email:', currentUserProfile.email);
+      const { data: contractorByEmail, error: emailError } = await supabase
+        .from('contractors')
+        .select('id, company_name, contact_name, user_id, email, organization_id')
+        .eq('email', currentUserProfile.email)
+        .maybeSingle();
+        
+      console.log('ContractorAuth - Contractor query by email result:', { contractorByEmail, emailError });
+        
+      if (emailError && emailError.code !== 'PGRST116') {
+        console.error('ContractorAuth - Database error in email query:', emailError);
+        throw emailError;
+      }
+      
+      if (contractorByEmail) {
+        console.log('ContractorAuth - Found contractor by email, linking to current user');
+        
+        // Update the contractor record with correct user_id
+        const { error: updateError } = await supabase
           .from('contractors')
-          .select('id, company_name, contact_name, user_id, email, organization_id')
-          .eq('email', currentUserProfile.email)
-          .maybeSingle();
+          .update({ user_id: userId })
+          .eq('id', contractorByEmail.id);
           
-        console.log('ContractorAuth - Contractor query by email result:', { contractorByEmail, emailError });
-          
-        if (!emailError && contractorByEmail) {
-          console.log('ContractorAuth - Found contractor by email, linking to current user');
-          
-          // Update the contractor record with correct user_id
-          const { error: updateError } = await supabase
-            .from('contractors')
-            .update({ user_id: userId })
-            .eq('id', contractorByEmail.id);
-            
-          if (updateError) {
-            console.error('ContractorAuth - Error updating contractor user_id:', updateError);
-            throw updateError;
-          }
-          
-          console.log('ContractorAuth - Successfully linked contractor to user');
-          contractorData = { ...contractorByEmail, user_id: userId };
-          contractorError = null;
+        if (updateError) {
+          console.error('ContractorAuth - Error updating contractor user_id:', updateError);
+          throw updateError;
         }
-      }
-
-      if (contractorError) {
-        console.error('ContractorAuth - Database error:', contractorError);
-        throw new Error(`Failed to load contractor profile: ${contractorError.message}`);
-      }
-
-      if (!contractorData) {
-        // User is not a contractor
-        console.log('ContractorAuth - No contractor profile found for user:', userId, 'email:', currentUserProfile.email);
-        setIsContractor(false);
-        setContractorId(null);
-        setError('No contractor profile found. Please contact your administrator to set up your contractor account.');
+        
+        console.log('ContractorAuth - Successfully linked contractor to user');
+        setContractorId(contractorByEmail.id);
+        setIsContractor(true);
+        setError(null);
+        toast.success(`Welcome, ${contractorByEmail.contact_name}! Profile linked successfully.`);
+        await fetchJobsData(contractorByEmail.id);
         return;
       }
       
-      console.log('ContractorAuth - Found contractor profile:', contractorData);
-      setContractorId(contractorData.id);
-      setIsContractor(true);
-      setError(null);
-      toast.success(`Welcome, ${contractorData.contact_name}!`);
-
-      // Fetch contractor's jobs
-      await fetchJobsData(contractorData.id);
+      // No contractor profile found
+      console.log('ContractorAuth - No contractor profile found for user:', userId, 'email:', currentUserProfile.email);
+      setIsContractor(false);
+      setContractorId(null);
+      setError('No contractor profile found. Please contact your administrator to set up your contractor account.');
 
     } catch (err: any) {
       console.error('ContractorAuth - Error fetching contractor data:', err);
