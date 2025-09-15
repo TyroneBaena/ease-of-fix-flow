@@ -60,50 +60,69 @@ export const userService: UserService = {
       console.log("Session access token available:", !!session.access_token);
       console.log("User ID from session:", session.user?.id);
       
-      // Call the edge function (Supabase automatically adds auth headers)
-      const { data, error } = await supabase.functions.invoke('send-invite', {
-        body: requestBody
-      });
-      
-      console.log("Supabase function call completed. Response:", { data, error });
-      
-      // Handle edge function errors (network, timeout, etc.)
-      if (error) {
-        console.error('Edge function error:', error);
-        const errorMessage = error.message || "Failed to send invitation due to network error";
-        return {
-          success: false,
-          message: errorMessage,
-          email: normalizedEmail
-        };
-      }
-
-      // Handle business logic failures from the edge function
-      if (!data?.success) {
-        console.error('Edge function returned failure:', data);
-        const errorMessage = data?.message || "Failed to send invitation";
-        return {
-          success: false,
-          message: errorMessage,
-          email: normalizedEmail
-        };
-      }
-      
-      // Check if tenant schema was created properly
-      if (data.success && data.userId) {
-        const schemaExists = await tenantService.verifyUserSchema(data.userId);
-        if (!schemaExists) {
-          console.warn(`Schema was not created automatically for user ${data.userId}, but invitation was successful`);
-        } else {
-          console.log(`Schema was successfully created for user ${data.userId}`);
+      try {
+        console.log("Making edge function call NOW...");
+        // Call the edge function (Supabase automatically adds auth headers)
+        const { data, error } = await supabase.functions.invoke('send-invite', {
+          body: requestBody
+        });
+        
+        console.log("Supabase function call completed. Response:", { data, error });
+        console.log("Edge function data received:", data);
+        console.log("Edge function error received:", error);
+        
+        // Handle edge function errors (network, timeout, etc.)
+        if (error) {
+          console.error('Edge function error:', error);
+          const errorMessage = error.message || "Failed to send invitation due to network error";
+          return {
+            success: false,
+            message: errorMessage,
+            email: normalizedEmail
+          };
         }
+
+        // Handle business logic failures from the edge function
+        if (!data?.success) {
+          console.error('Edge function returned failure:', data);
+          const errorMessage = data?.message || "Failed to send invitation";
+          return {
+            success: false,
+            message: errorMessage,
+            email: normalizedEmail
+          };
+        }
+        
+        // Check if tenant schema was created properly
+        if (data.success && data.userId) {
+          const schemaExists = await tenantService.verifyUserSchema(data.userId);
+          if (!schemaExists) {
+            console.warn(`Schema was not created automatically for user ${data.userId}, but invitation was successful`);
+          } else {
+            console.log(`Schema was successfully created for user ${data.userId}`);
+          }
+        }
+        
+        // Properly handle the response from the edge function
+        console.log("Edge function response:", data);
+        
+        // Return the edge function response directly
+        return data as InviteUserResult;
+        
+      } catch (functionCallError: any) {
+        console.error("CRITICAL ERROR: Edge function invocation failed:", functionCallError);
+        console.error("Error details:", {
+          message: functionCallError.message,
+          stack: functionCallError.stack,
+          name: functionCallError.name
+        });
+        
+        return {
+          success: false,
+          message: `Failed to invoke invitation function: ${functionCallError.message}`,
+          email: normalizedEmail
+        };
       }
-      
-      // Properly handle the response from the edge function
-      console.log("Edge function response:", data);
-      
-      // Return the edge function response directly
-      return data as InviteUserResult;
     } catch (error: any) {
       console.error("Error in inviteUser:", error);
       return {
