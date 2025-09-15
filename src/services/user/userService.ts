@@ -36,6 +36,15 @@ export const userService: UserService = {
       // Ensure we have a valid session before making the request
       console.log("Checking session before invitation...");
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log("Session check result:", {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        sessionError: sessionError?.message,
+        accessToken: session?.access_token ? "Present" : "Missing"
+      });
+      
       if (sessionError || !session) {
         console.error('No valid session found for user invitation:', sessionError);
         return {
