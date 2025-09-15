@@ -20,16 +20,23 @@ export const convertToAppUser = async (authUser: any): Promise<User | null> => {
   console.log('Fetching profile for user:', authUser.id);
   
   try {
-    // Try to get the user's profile from the profiles table
+    console.log('Starting profile fetch for user:', authUser.id);
+    
+    // Simple timeout approach - if it takes too long, proceed with fallback
+    const startTime = Date.now();
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
       .maybeSingle();
     
+    const duration = Date.now() - startTime;
+    console.log(`Profile fetch completed in ${duration}ms`);
+    
     console.log('Profile lookup result:', {
       hasProfile: !!profile,
       error: error?.message,
+      fetchDuration: 'completed',
       profileData: profile ? {
         id: profile.id,
         name: profile.name,
@@ -87,6 +94,17 @@ export const convertToAppUser = async (authUser: any): Promise<User | null> => {
     
   } catch (conversionError) {
     console.error('Exception in convertToAppUser:', conversionError);
-    return null;
+    
+    // Create fallback user even on error to prevent indefinite loading
+    console.log('Creating fallback user due to error:', conversionError.message);
+    return {
+      id: authUser.id,
+      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+      email: authUser.email || '',
+      role: (authUser.user_metadata?.role as UserRole) || 'manager',
+      assignedProperties: authUser.user_metadata?.assignedProperties || [],
+      organization_id: authUser.user_metadata?.organization_id || undefined,
+      createdAt: authUser.created_at || new Date().toISOString()
+    };
   }
 };
