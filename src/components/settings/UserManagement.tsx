@@ -42,8 +42,18 @@ const UserManagement = () => {
     fetchUsers
   } = useUserManagement();
   
+  // Debug logging to see what's happening with auth state
+  console.log('UserManagement Debug:', {
+    hasCurrentUser: !!currentUser,
+    currentUserRole: currentUser?.role,
+    isAdmin,
+    isLoading,
+    usersCount: users.length,
+    fetchError: !!fetchError
+  });
+  
   // If not admin, show access denied message
-  if (!isAdmin) {
+  if (!isAdmin && !isLoading) {
     return <AccessDeniedMessage />;
   }
   
@@ -91,6 +101,25 @@ const UserManagement = () => {
   
   return (
     <div>
+      {/* Add debug info and manual refresh button for testing */}
+      <div className="mb-4 p-4 bg-gray-100 rounded text-sm">
+        <p><strong>Debug Info:</strong></p>
+        <p>Current User: {currentUser?.email || 'None'}</p>
+        <p>Role: {currentUser?.role || 'None'}</p>
+        <p>Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
+        <p>Users Count: {users.length}</p>
+        <p>Organization ID: {currentUser?.organization_id || 'None'}</p>
+        <Button 
+          onClick={() => fetchUsers()} 
+          variant="outline" 
+          size="sm"
+          className="mt-2"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Loading...' : 'Manual Refresh'}
+        </Button>
+      </div>
+      
       <UserManagementHeader onInviteUser={() => handleOpenDialog()} />
       
       <UserTable 
