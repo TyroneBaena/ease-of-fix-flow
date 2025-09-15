@@ -46,6 +46,18 @@ export const userService: UserService = {
       }
       
       console.log(`Proceeding with invitation for: ${normalizedEmail} with valid session`);
+      console.log("Session details:", {
+        userId: session.user?.id,
+        email: session.user?.email,
+        accessToken: session.access_token ? "Present" : "Missing",
+        refreshToken: session.refresh_token ? "Present" : "Missing"
+      });
+      
+      console.log("Supabase client status check:");
+      console.log("Supabase object:", !!supabase);
+      console.log("Supabase functions:", !!supabase.functions);
+      console.log("Supabase functions invoke:", typeof supabase.functions.invoke);
+      
       console.log("About to call supabase.functions.invoke('send-invite')...");
       
       const requestBody = {
@@ -57,8 +69,6 @@ export const userService: UserService = {
       };
       
       console.log("Request body to be sent:", JSON.stringify(requestBody, null, 2));
-      console.log("Session access token available:", !!session.access_token);
-      console.log("User ID from session:", session.user?.id);
       
       try {
         console.log("Making edge function call NOW...");
