@@ -49,23 +49,34 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
   const fetchContractorData = async (userId: string) => {
     try {
       console.log('ContractorAuth - Fetching contractor profile for user:', userId);
-      console.log('ContractorAuth - About to query contractors table...');
       
       // Debug: Let's see the current session state
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('ContractorAuth - Current session:', session?.user?.id, session?.user?.email);
+      console.log('ContractorAuth - Current session:', {
+        hasSession: !!session,
+        sessionUserId: session?.user?.id,
+        sessionEmail: session?.user?.email,
+        paramUserId: userId
+      });
       
-      // Debug: Let's see what users exist with this email
-      const { data: debugUser } = await supabase
+      // Get current user's profile info for email lookup
+      const { data: currentUserProfile } = await supabase
         .from('profiles')
-        .select('id, email, name')
-        .eq('email', 'jijezu@forexzig.com');
-      console.log('ContractorAuth - Debug user lookup:', debugUser);
+        .select('id, email, name, organization_id')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      console.log('ContractorAuth - Current user profile:', currentUserProfile);
+      
+      if (!currentUserProfile) {
+        console.error('ContractorAuth - No profile found for user:', userId);
+        throw new Error('User profile not found');
+      }
       
       // Try to find contractor by user_id first
       let { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
-        .select('id, company_name, contact_name, user_id, email')
+        .select('id, company_name, contact_name, user_id, email, organization_id')
         .eq('user_id', userId)
         .maybeSingle();
         
@@ -73,35 +84,34 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
       // If not found by user_id, try by email as fallback
       if (!contractorData && !contractorError) {
-        console.log('ContractorAuth - Trying contractor lookup by email...');
+        console.log('ContractorAuth - Trying contractor lookup by email:', currentUserProfile.email);
         const { data: contractorByEmail, error: emailError } = await supabase
           .from('contractors')
-          .select('id, company_name, contact_name, user_id, email')
-          .eq('email', 'jijezu@forexzig.com')
+          .select('id, company_name, contact_name, user_id, email, organization_id')
+          .eq('email', currentUserProfile.email)
           .maybeSingle();
           
+        console.log('ContractorAuth - Contractor query by email result:', { contractorByEmail, emailError });
+          
         if (!emailError && contractorByEmail) {
-          console.log('ContractorAuth - Found contractor by email:', contractorByEmail);
-          // Update the contractor record with correct user_id if needed
-          if (contractorByEmail.user_id !== userId) {
-            console.log('ContractorAuth - Updating contractor user_id to match current session');
-            const { error: updateError } = await supabase
-              .from('contractors')
-              .update({ user_id: userId })
-              .eq('id', contractorByEmail.id);
-              
-            if (updateError) {
-              console.error('ContractorAuth - Error updating contractor user_id:', updateError);
-            } else {
-              contractorByEmail.user_id = userId;
-            }
+          console.log('ContractorAuth - Found contractor by email, linking to current user');
+          
+          // Update the contractor record with correct user_id
+          const { error: updateError } = await supabase
+            .from('contractors')
+            .update({ user_id: userId })
+            .eq('id', contractorByEmail.id);
+            
+          if (updateError) {
+            console.error('ContractorAuth - Error updating contractor user_id:', updateError);
+            throw updateError;
           }
-          contractorData = contractorByEmail;
+          
+          console.log('ContractorAuth - Successfully linked contractor to user');
+          contractorData = { ...contractorByEmail, user_id: userId };
           contractorError = null;
         }
       }
-
-      console.log('ContractorAuth - Contractor query result:', { contractorData, contractorError });
 
       if (contractorError) {
         console.error('ContractorAuth - Database error:', contractorError);
@@ -109,62 +119,18 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       }
 
       if (!contractorData) {
-        // No contractor profile found - let's try to create one for John Doe
-        console.log('ContractorAuth - No contractor profile found for user:', userId);
-        console.log('ContractorAuth - Attempting to create contractor profile...');
-        
-        // Check if this is John Doe's email
-        const { data: currentUserData } = await supabase
-          .from('profiles')
-          .select('email, name, organization_id')
-          .eq('id', userId)
-          .maybeSingle();
-          
-        if (currentUserData?.email === 'jijezu@forexzig.com') {
-          // Create contractor profile for John Doe
-          const { data: newContractor, error: createError } = await supabase
-            .from('contractors')
-            .insert({
-              user_id: userId,
-              company_name: 'John Doe Contracting',
-              contact_name: 'John Doe',
-              email: 'jijezu@forexzig.com',
-              phone: '+1234567890',
-              organization_id: currentUserData.organization_id
-            })
-            .select('id, company_name, contact_name')
-            .single();
-            
-          if (!createError && newContractor) {
-            console.log('ContractorAuth - Created contractor profile:', newContractor);
-            setContractorId(newContractor.id);
-            setIsContractor(true);
-            toast.success(`Welcome, ${newContractor.contact_name}! Contractor profile created.`);
-            await fetchJobsData(newContractor.id);
-            return;
-          } else {
-            console.error('ContractorAuth - Error creating contractor profile:', createError);
-          }
-        }
-        
         // User is not a contractor
-        console.log('ContractorAuth - User is not a contractor (no profile found)');
+        console.log('ContractorAuth - No contractor profile found for user:', userId, 'email:', currentUserProfile.email);
         setIsContractor(false);
         setContractorId(null);
         setError('No contractor profile found. Please contact your administrator to set up your contractor account.');
         return;
       }
+      
       console.log('ContractorAuth - Found contractor profile:', contractorData);
       setContractorId(contractorData.id);
       setIsContractor(true);
-      toast.success(`Welcome, ${contractorData.contact_name}!`);
-
-      // Fetch contractor's jobs
-      await fetchJobsData(contractorData.id);
-
-      console.log('ContractorAuth - Found contractor profile:', contractorData);
-      setContractorId(contractorData.id);
-      setIsContractor(true);
+      setError(null);
       toast.success(`Welcome, ${contractorData.contact_name}!`);
 
       // Fetch contractor's jobs
@@ -172,7 +138,9 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
     } catch (err: any) {
       console.error('ContractorAuth - Error fetching contractor data:', err);
-      setError('Failed to load contractor profile');
+      setIsContractor(false);
+      setContractorId(null);
+      setError(err.message || 'Failed to load contractor profile');
       toast.error('Failed to load contractor profile');
     }
   };
@@ -182,8 +150,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       console.log('ContractorAuth - Fetching jobs for contractor:', contractorIdParam);
 
-      // Debug: Let's check what data we're getting
-      console.log('ContractorAuth - About to fetch quotes, active jobs, and completed jobs...');
+      // Fetch quotes (pending requests needing quotes)
       const { data: quotes, error: quotesError } = await supabase
         .from('quotes')
         .select(`
@@ -196,25 +163,21 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       if (quotesError) throw quotesError;
       console.log('ContractorAuth - Quotes data:', quotes);
 
-      // Fetch active jobs
-      const { data: activeJobsData, error: activeJobsError } = await supabase
+      // Fetch ALL jobs assigned to this contractor (regardless of status)
+      const { data: allJobs, error: allJobsError } = await supabase
         .from('maintenance_requests')
         .select('*')
-        .eq('contractor_id', contractorIdParam)
-        .eq('status', 'in-progress');
+        .eq('contractor_id', contractorIdParam);
 
-      if (activeJobsError) throw activeJobsError;
-      console.log('ContractorAuth - Active jobs data:', activeJobsData);
+      if (allJobsError) throw allJobsError;
+      console.log('ContractorAuth - All assigned jobs:', allJobs);
 
-      // Fetch completed jobs
-      const { data: completedJobsData, error: completedJobsError } = await supabase
-        .from('maintenance_requests')
-        .select('*')
-        .eq('contractor_id', contractorIdParam)
-        .eq('status', 'completed');
-
-      if (completedJobsError) throw completedJobsError;
-      console.log('ContractorAuth - Completed jobs data:', completedJobsData);
+      // Separate jobs by status
+      const activeJobsData = allJobs.filter(job => job.status === 'in_progress');
+      const completedJobsData = allJobs.filter(job => job.status === 'completed');
+      
+      console.log('ContractorAuth - Active jobs:', activeJobsData);
+      console.log('ContractorAuth - Completed jobs:', completedJobsData);
 
       // Process data
       const pendingFromQuotes = quotes
@@ -229,7 +192,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       setActiveJobs(activeRequests);
       setCompletedJobs(completedRequests);
 
-      console.log(`ContractorAuth - Loaded jobs: ${pendingFromQuotes.length} pending, ${activeRequests.length} active, ${completedRequests.length} completed`);
+      console.log(`ContractorAuth - Final counts: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
 
     } catch (err: any) {
       console.error('ContractorAuth - Error fetching jobs:', err);
