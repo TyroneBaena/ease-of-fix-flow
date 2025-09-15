@@ -92,42 +92,51 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
   try {
     console.log(`🔄 Updating user role to: ${role} for user: ${userId}`);
     
-    // Update both user metadata AND profile table
-    const { data: authData, error: metadataError } = await supabase.auth.updateUser({
-      data: { role }
-    });
+    // First update the profiles table directly
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId);
     
-    if (metadataError) {
-      console.error("❌ Error updating user metadata:", metadataError);
-      toast.error("Failed to update role: " + metadataError.message);
-      throw metadataError;
+    if (profileError) {
+      console.error("❌ Error updating profile table:", profileError);
+      toast.error("Failed to update role: " + profileError.message);
+      throw profileError;
     }
     
-    console.log("✅ User metadata updated successfully to:", role);
+    console.log("✅ Profile table updated successfully to:", role);
     
-    // Also update the profiles table (best effort - may fail due to RLS)
+    // Also update user metadata for consistency
     try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', userId);
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { role }
+      });
       
-      if (profileError) {
-        console.warn("⚠️ Could not update profile table (RLS restriction):", profileError.message);
-        // Don't throw - metadata update was successful
+      if (metadataError) {
+        console.warn("⚠️ Could not update user metadata:", metadataError.message);
+        // Don't throw - profile update was successful
       } else {
-        console.log("✅ Profile table updated successfully");
+        console.log("✅ User metadata updated successfully");
       }
-    } catch (profileErr) {
-      console.warn("⚠️ Profile update failed (continuing with metadata-only update):", profileErr);
+    } catch (metadataErr) {
+      console.warn("⚠️ Metadata update failed (continuing with profile-only update):", metadataErr);
     }
     
     toast.success(`Role updated to ${role}`);
     
-    // Return the updated user
-    if (authData.user) {
-      return await convertToAppUser(authData.user);
+    // Get the updated user profile
+    const { data: updatedProfile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (fetchError) {
+      console.error("❌ Error fetching updated profile:", fetchError);
+      throw fetchError;
     }
+    
+    return updatedProfile;
   } catch (error) {
     console.error("❌ Error updating role:", error);
     toast.error("Failed to update role: " + (error.message || 'Unknown error'));

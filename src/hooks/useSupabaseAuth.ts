@@ -180,9 +180,20 @@ useEffect(() => {
     
     setLoading(true);
     try {
-      await updateUserRole(currentUser.id, role);
-      // Update the role locally since the function doesn't return a user
-      setCurrentUser(prev => prev ? { ...prev, role } : null);
+      const updatedProfile = await updateUserRole(currentUser.id, role);
+      if (updatedProfile) {
+        // Update the current user with the returned profile data
+        setCurrentUser(prev => prev ? { 
+          ...prev, 
+          role: updatedProfile.role as UserRole,
+          name: updatedProfile.name,
+          email: updatedProfile.email,
+          phone: updatedProfile.phone || prev.phone
+        } : null);
+      } else {
+        // Fallback to local update if no profile returned
+        setCurrentUser(prev => prev ? { ...prev, role } : null);
+      }
       console.log("✅ useSupabaseAuth: Role updated successfully");
     } finally {
       setLoading(false);
