@@ -411,7 +411,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     // Set up ONE auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🚀 UnifiedAuth v5.0 - Auth state changed:', event, 'Session exists:', !!session);
+      console.log('🚀 UnifiedAuth v6.0 - Auth state changed:', event, 'Session exists:', !!session);
       
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('🚀 UnifiedAuth v6.0 - SIGNED_IN event, user email:', session.user.email);
@@ -425,16 +425,22 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const user = await convertSupabaseUser(session.user);
           console.log('🚀 UnifiedAuth v6.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
           
-          // Set user BEFORE setting loading to false
+          // Set user immediately to clear ProtectedRoute loading
           setCurrentUser(user);
-          console.log('🚀 UnifiedAuth v6.0 - Current user state set, now fetching organizations...');
+          console.log('🚀 UnifiedAuth v6.0 - Current user state set, clearing loading state...');
           
-          // Fetch organizations for this user
-          await fetchUserOrganizations(user);
-          console.log('🚀 UnifiedAuth v6.0 - Organizations fetched, setting loading to false');
-          
-          // Set loading false only after everything is ready
+          // Set loading false FIRST to prevent loading loop
           setLoading(false);
+          
+          // Fetch organizations in background - don't block loading state
+          console.log('🚀 UnifiedAuth v6.0 - Fetching organizations in background...');
+          try {
+            await fetchUserOrganizations(user);
+            console.log('🚀 UnifiedAuth v6.0 - Organizations fetched successfully');
+          } catch (orgError) {
+            console.error('🚀 UnifiedAuth v6.0 - Non-critical error fetching organizations:', orgError);
+            // Don't fail the whole auth process for org errors
+          }
           
           // Force session to be recognized by the database by making a test query
           console.log('🚀 UnifiedAuth v6.0 - Testing database session...');
