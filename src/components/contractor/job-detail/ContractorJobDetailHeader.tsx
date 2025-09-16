@@ -42,7 +42,7 @@ export const ContractorJobDetailHeader = ({ job, onUpdateProgress }: ContractorJ
         {getStatusBadge(job.status)}
       </div>
       
-      {job.status === 'in-progress' && (
+      {(job.status === 'in-progress' || job.status === 'pending') && (
         <Button onClick={onUpdateProgress}>Update Progress</Button>
       )}
     </div>

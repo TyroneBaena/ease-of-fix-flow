@@ -134,7 +134,8 @@ const ContractorJobDetail = () => {
             currentProgress={job.completionPercentage || 0}
             onProgressUpdate={() => {
               // Refresh job details after update
-              window.location.reload();
+              refetch();
+              setRefreshCounter(prev => prev + 1);
             }}
           />
         </ContractorProvider>
