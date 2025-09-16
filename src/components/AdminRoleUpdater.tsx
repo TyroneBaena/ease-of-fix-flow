@@ -1,12 +1,13 @@
 
+import { supabase } from '@/integrations/supabase/client';
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
 
 const AdminRoleUpdater = () => {
-  const { currentUser, updateUserRole } = useSupabaseAuth();
+  const { currentUser } = useUnifiedAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleMakeAdmin = async () => {
@@ -24,7 +25,13 @@ const AdminRoleUpdater = () => {
         throw new Error("No current user found");
       }
       
-      await updateUserRole('admin');
+      // Update via database directly since UnifiedAuth doesn't have updateUserRole
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: 'admin' })
+        .eq('id', currentUser.id);
+        
+      if (error) throw error;
       console.log("✅ AdminRoleUpdater: Successfully updated role to admin");
       toast.success("You are now an admin! Refreshing page...");
       

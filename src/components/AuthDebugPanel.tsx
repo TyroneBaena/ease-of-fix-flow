@@ -1,11 +1,10 @@
 import React from 'react';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const AuthDebugPanel = () => {
   const { currentUser, loading: userContextLoading } = useUserContext();
-  const { currentUser: authUser, loading: authLoading } = useSupabaseAuth();
 
   return (
     <Card className="mb-6 border-yellow-200 bg-yellow-50">
@@ -18,13 +17,10 @@ export const AuthDebugPanel = () => {
             <strong>UserContext:</strong> {userContextLoading ? 'Loading...' : currentUser ? `${currentUser.name} (${currentUser.role})` : 'No user'}
           </div>
           <div>
-            <strong>SupabaseAuth:</strong> {authLoading ? 'Loading...' : authUser ? `${authUser.name} (${authUser.role})` : 'No user'}
-          </div>
-          <div>
             <strong>Current URL:</strong> {window.location.pathname}
           </div>
           <div>
-            <strong>Loading States:</strong> UserContext: {userContextLoading.toString()}, Auth: {authLoading.toString()}
+            <strong>Loading State:</strong> {userContextLoading.toString()}
           </div>
           {currentUser && (
             <div>

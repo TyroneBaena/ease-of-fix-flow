@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -11,14 +11,14 @@ import { Toaster } from "sonner";
 import { ensureUserOrganization } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
 import { supabase } from '@/integrations/supabase/client';
-import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTempPasswordNote, setShowTempPasswordNote] = useState(false);
-  const { signIn, currentUser } = useSupabaseAuth();
+  const { currentUser } = useUnifiedAuth();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,15 +58,22 @@ const Login = () => {
     try {
       setIsLoading(true);
       console.log(`Attempting to sign in with email: ${email}`);
-      const result = await signIn(email, password);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
       
       // Check if the user has organization setup
-      if (result?.user) {
+      if (data?.user) {
         console.log("Login successful, verifying organization...");
         
-        
         // Verify user has organization setup
-        const hasOrganization = await ensureUserOrganization(result.user.id);
+        const hasOrganization = await ensureUserOrganization(data.user.id);
         
         if (!hasOrganization) {
           console.log("User missing organization, but continuing login");
@@ -84,9 +91,9 @@ const Login = () => {
         // Don't navigate here - let the useLayoutEffect handle it
         console.log('Login successful, auth state listener will handle navigation');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      // Don't add another toast here since signInWithEmailPassword already shows one
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }

@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/user';
 import { toast } from '@/lib/toast';
-import { convertToAppUser } from './userConverter';
+
 import { cleanupAuthState, forcePageRefresh } from '@/utils/authCleanup';
 
 /**
