@@ -52,9 +52,9 @@ export const useDashboardFilters = ({
     })));
     
     const filtered = activeJobs.filter(request => {
-      // Show all jobs that are in 'in-progress' status (data mapper converts in_progress to in-progress)
-      // This includes both assigned jobs and jobs with approved quotes
-      const isActive = request.status === 'in-progress';
+      // Show all jobs that are assigned to contractor, regardless of status
+      // This includes both 'requested' (newly assigned) and 'in-progress' jobs
+      const isActive = ['requested', 'in-progress'].includes(request.status);
       console.log(`Dashboard Filters - Job ${request.id?.substring(0, 8) || 'no-id'}: status=${request.status}, isActive=${isActive}`);
       return isActive;
     });

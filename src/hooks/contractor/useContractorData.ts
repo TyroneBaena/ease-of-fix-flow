@@ -44,13 +44,9 @@ export const useContractorData = (
         
         console.log('useContractorData - Fetching contractor data for contractor ID:', contractorId);
         
-        // Debug: Check what contractor ID we're using
         console.log('useContractorData - Current contractor ID:', contractorId);
-        
-        // Debug: Let's check what contractor ID we're actually using
         console.log('useContractorData - About to fetch data for contractor ID:', contractorId);
         console.log('useContractorData - Contractor ID type:', typeof contractorId);
-        console.log('useContractorData - Expected contractor ID: 11db078b-6121-4d53-b319-5ae7f22a70a2');
         
         // Fetch all quotes for this contractor to check which requests they're involved in
         const { data: quotes, error: quotesError } = await supabase
