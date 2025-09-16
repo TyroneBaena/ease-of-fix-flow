@@ -138,23 +138,22 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         .maybeSingle();
         
       console.log('ContractorAuth - Contractor query by email result:', { contractorByEmail, emailError });
-        
+
       if (emailError && emailError.code !== 'PGRST116') {
         console.error('ContractorAuth - Database error in email query:', emailError);
         throw emailError;
       }
       
       if (contractorByEmail) {
-        console.log('ContractorAuth - Found contractor by email, linking to current user');
-        
-        // Update the contractor record with correct user_id
+        console.log('ContractorAuth - Found contractor by email, linking user_id...');
+        // Link the user_id to the contractor record
         const { error: updateError } = await supabase
           .from('contractors')
           .update({ user_id: userId })
           .eq('id', contractorByEmail.id);
           
         if (updateError) {
-          console.error('ContractorAuth - Error updating contractor user_id:', updateError);
+          console.error('ContractorAuth - Error linking contractor to user:', updateError);
           throw updateError;
         }
         
@@ -174,7 +173,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       setIsContractor(false);
       setContractorId(null);
       setError('No contractor profile found. Please contact your administrator to set up your contractor account.');
-
+      
     } catch (err: any) {
       console.error('ContractorAuth - Error fetching contractor data:', err);
       setIsContractor(false);
@@ -184,156 +183,136 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     }
   };
 
-  // Fetch jobs data for contractor with memoization
+  // SIMPLE, BULLETPROOF FETCH FUNCTION
   const fetchJobsData = useCallback(async (contractorIdParam: string) => {
     try {
-      console.log('ContractorAuth - Starting fetchJobsData for contractor:', contractorIdParam);
+      console.log('🔥 SIMPLE LOGIC - Starting fetchJobsData for contractor:', contractorIdParam?.substring(0, 8));
       setLoading(true);
 
-      // Fetch quotes (pending requests needing quotes)
-      console.log('ContractorAuth - Fetching quotes...');
-      const { data: quotes, error: quotesError } = await supabase
-        .from('quotes')
-        .select(`
-          *,
-          maintenance_requests(*)
-        `)
-        .eq('contractor_id', contractorIdParam)
-        .in('status', ['requested', 'pending', 'submitted']);
-
-      if (quotesError) throw quotesError;
-      console.log('ContractorAuth - Quotes data:', quotes);
-
-      // Fetch ALL jobs assigned to this contractor (regardless of status)
-      const { data: allJobs, error: allJobsError } = await supabase
+      // Step 1: Get ALL requests assigned to this contractor
+      console.log('🔥 STEP 1: Fetching ALL assigned requests...');
+      const { data: assignedRequests, error: assignedError } = await supabase
         .from('maintenance_requests')
         .select('*')
         .eq('contractor_id', contractorIdParam);
 
-      if (allJobsError) throw allJobsError;
-      console.log('ContractorAuth - Contractor ID being searched:', contractorIdParam);
-      console.log('ContractorAuth - All assigned jobs raw data:', allJobs);
-      console.log('ContractorAuth - Jobs with contractor assignments:', allJobs?.map(job => ({
-        id: job.id.substring(0, 8),
-        title: job.title,
-        status: job.status,
-        contractor_id: job.contractor_id,
-        matches: job.contractor_id === contractorIdParam
-      })));
-
-      // Separate jobs by status - FIXED: Include 'requested' status as active jobs
-      // When a job is assigned to a contractor, it becomes an active job regardless of status
-      const activeJobsData = allJobs.filter(job => 
-        job.status === 'in_progress' || job.status === 'requested'
-      );
-      const completedJobsData = allJobs.filter(job => job.status === 'completed');
+      if (assignedError) {
+        console.error('🔥 Error fetching assigned requests:', assignedError);
+        throw assignedError;
+      }
       
-      console.log('ContractorAuth - Jobs separated by status (FIXED):');
-      console.log('ContractorAuth - Active jobs (requested + in_progress):', activeJobsData.length);
-      console.log('ContractorAuth - Active jobs details:', activeJobsData.map(job => ({
-        id: job.id.substring(0, 8),
-        title: job.title,
-        status: job.status
-      })));
-      console.log('ContractorAuth - Completed jobs:', completedJobsData.length);
+      console.log('🔥 Found assigned requests:', assignedRequests?.length || 0);
+      assignedRequests?.forEach(req => {
+        console.log(`🔥 Assigned: ${req.id?.substring(0, 8)} - ${req.title} - Status: ${req.status}`);
+      });
 
-      // Process data - FIXED: Only show quotes for unassigned requests
-      // If a request is assigned to this contractor, it should be in active jobs, not quote requests
-      const pendingFromQuotes = quotes
-        .filter(quote => {
-          // Only include quotes for requests that are NOT assigned to this contractor
-          const request = quote.maintenance_requests;
-          const isAssignedToThisContractor = request && request.contractor_id === contractorIdParam;
-          const shouldInclude = !isAssignedToThisContractor && ['requested', 'pending', 'submitted'].includes(quote.status);
-          
-          console.log(`ContractorAuth - Quote ${quote.id?.substring(0, 8)}: request assigned to contractor = ${isAssignedToThisContractor}, including = ${shouldInclude}`);
-          return shouldInclude;
-        })
-        .map((quote: any) => mapRequestFromQuote(quote));
+      // Step 2: Get quotes for UNassigned requests only
+      console.log('🔥 STEP 2: Fetching quotes for UNASSIGNED requests...');
+      const { data: quotes, error: quotesError } = await supabase
+        .from('quotes')
+        .select(`
+          *,
+          maintenance_requests!inner(*)
+        `)
+        .eq('contractor_id', contractorIdParam)
+        .is('maintenance_requests.contractor_id', null); // Only unassigned requests
 
-      const activeRequests = activeJobsData.map(mapRequestFromDb);
-      const completedRequests = completedJobsData.map(mapRequestFromDb);
-
-      console.log('ContractorAuth - Mapped requests (FIXED LOGIC):');
-      console.log('ContractorAuth - Pending from quotes (unassigned only):', pendingFromQuotes.length);
-      console.log('ContractorAuth - Active requests (assigned with requested/in_progress status):', activeRequests.length);
-      console.log('ContractorAuth - Completed requests:', completedRequests.length);
+      if (quotesError) {
+        console.error('🔥 Error fetching quotes:', quotesError);
+        throw quotesError;
+      }
       
-      console.log('ContractorAuth - Quote requests details:', pendingFromQuotes.map(r => ({
-        id: r.id?.substring(0, 8),
-        title: r.title,
-        status: r.status,
-        contractorId: r.contractorId?.substring(0, 8) || 'none'
-      })));
-      console.log('ContractorAuth - Active jobs details:', activeRequests.map(r => ({
-        id: r.id?.substring(0, 8),
-        title: r.title,
-        status: r.status,
-        contractorId: r.contractorId?.substring(0, 8) || 'none'
-      })));
+      console.log('🔥 Found quotes for unassigned requests:', quotes?.length || 0);
+      quotes?.forEach(quote => {
+        console.log(`🔥 Quote: ${quote.id?.substring(0, 8)} for unassigned request: ${quote.maintenance_requests?.id?.substring(0, 8)}`);
+      });
 
-      // Update state
-      setPendingQuoteRequests(pendingFromQuotes);
-      setActiveJobs(activeRequests);
-      setCompletedJobs(completedRequests);
+      // Step 3: SIMPLE categorization
+      const activeJobs = assignedRequests?.filter(req => 
+        req.status === 'requested' || req.status === 'in-progress'
+      ) || [];
+      
+      const completedJobs = assignedRequests?.filter(req => 
+        req.status === 'completed'
+      ) || [];
 
-      console.log(`ContractorAuth - Final counts (FIXED): ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
-      console.log('ContractorAuth - State updated successfully');
+      const quoteRequests = quotes?.filter(quote => 
+        ['requested', 'pending', 'submitted'].includes(quote.status)
+      ) || [];
+
+      console.log('🔥 SIMPLE CATEGORIZATION RESULTS:');
+      console.log(`🔥 Active Jobs (assigned with requested/in-progress): ${activeJobs.length}`);
+      console.log(`🔥 Completed Jobs (assigned with completed): ${completedJobs.length}`);
+      console.log(`🔥 Quote Requests (unassigned only): ${quoteRequests.length}`);
+
+      // Step 4: Map the data
+      const mappedActiveJobs = activeJobs.map(mapRequestFromDb);
+      const mappedCompletedJobs = completedJobs.map(mapRequestFromDb);
+      const mappedQuoteRequests = quoteRequests.map((quote: any) => mapRequestFromQuote(quote));
+
+      // Step 5: Update state
+      setPendingQuoteRequests(mappedQuoteRequests);
+      setActiveJobs(mappedActiveJobs);
+      setCompletedJobs(mappedCompletedJobs);
+
+      console.log('🔥 FINAL STATE UPDATE:');
+      console.log(`🔥 Quote Requests: ${mappedQuoteRequests.length}`);
+      console.log(`🔥 Active Jobs: ${mappedActiveJobs.length}`);
+      console.log(`🔥 Completed Jobs: ${mappedCompletedJobs.length}`);
 
     } catch (err: any) {
-      console.error('ContractorAuth - Error fetching jobs:', err);
+      console.error('🔥 Error in fetchJobsData:', err);
       setError('Failed to load jobs data');
     } finally {
-      console.log('ContractorAuth - fetchJobsData completed, setting loading to false');
+      console.log('🔥 fetchJobsData completed');
       setLoading(false);
     }
-  }, []); // No dependencies needed since contractorIdParam is passed as parameter
+  }, []);
 
   // Initialize contractor data when user changes - with proper dependency management
   useEffect(() => {
     let isCancelled = false;
     
     const initializeContractor = async () => {
-      console.log('ContractorAuth - useEffect triggered:', { currentUser: currentUser?.id, userLoading });
+      console.log('ContractorAuth - useEffect triggered:', {
+        hasCurrentUser: !!currentUser,
+        userId: currentUser?.id,
+        userLoading,
+        isCancelled
+      });
       
       if (userLoading) {
-        setLoading(true);
+        console.log('ContractorAuth - User still loading, waiting...');
         return;
       }
-
-      if (!currentUser) {
-        // No user - reset all state
-        console.log('ContractorAuth - No current user, resetting state');
-        setContractorId(null);
-        setIsContractor(false);
-        setPendingQuoteRequests([]);
-        setActiveJobs([]);
-        setCompletedJobs([]);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-
-      console.log('ContractorAuth - Initializing contractor for user:', currentUser.id, currentUser.email);
-      setLoading(true);
-      setError(null);
-
-      try {
-        console.log('ContractorAuth - Calling fetchContractorData for:', currentUser.id);
-        await fetchContractorData(currentUser.id);
-        console.log('ContractorAuth - fetchContractorData completed for:', currentUser.id);
-      } catch (error) {
-        console.error('ContractorAuth - Error in initialization:', error);
+      
+      if (!currentUser?.id) {
+        console.log('ContractorAuth - No current user, resetting contractor state');
         if (!isCancelled) {
-          setError('Failed to initialize contractor data');
+          setIsContractor(false);
+          setContractorId(null);
+          setError(null);
           setLoading(false);
+          setPendingQuoteRequests([]);
+          setActiveJobs([]);
+          setCompletedJobs([]);
         }
+        return;
+      }
+      
+      console.log('ContractorAuth - Initializing contractor for user:', currentUser.id);
+      
+      if (!isCancelled) {
+        setLoading(true);
+        setError(null);
+        await fetchContractorData(currentUser.id);
       }
     };
-
+    
     initializeContractor();
     
     return () => {
+      console.log('ContractorAuth - Cleanup: cancelling ongoing requests');
       isCancelled = true;
     };
   }, [currentUser?.id, userLoading]); // Only depend on stable values
@@ -346,7 +325,7 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     await fetchJobsData(contractorId);
     setLoading(false);
     toast.success('Data refreshed');
-  }, [contractorId]);
+  }, [contractorId, fetchJobsData]);
 
   const value: ContractorAuthContextType = {
     // Auth state
