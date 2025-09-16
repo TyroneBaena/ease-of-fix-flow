@@ -512,11 +512,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (session?.user) {
         try {
           const user = await convertSupabaseUser(session.user);
-          console.log('🚀 UnifiedAuth v6.0 - Initial user converted:', user.email, 'Org ID:', user.organization_id);
+          console.log('🚀 UnifiedAuth v7.0 - Initial user converted:', user.email, 'Org ID:', user.organization_id);
           setCurrentUser(user);
           setSession(session);
+          
+          // Set loading false IMMEDIATELY after setting user - CRITICAL FIX
+          setLoading(false);
+          console.log('🚀 UnifiedAuth v7.0 - Initial loading set to false');
+          
           // Fetch organizations in background
-          await fetchUserOrganizations(user);
+          try {
+            await fetchUserOrganizations(user);
+            console.log('🚀 UnifiedAuth v7.0 - Initial organizations fetched');
+          } catch (orgError) {
+            console.error('🚀 UnifiedAuth v7.0 - Non-critical org error on initial load:', orgError);
+          }
           
           // Test database session for initial load
           const { data: testData, error: testError } = await supabase
@@ -526,25 +536,26 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             .single();
           
           if (testError) {
-            console.error('🚀 UnifiedAuth v6.0 - Initial database session test failed:', testError);
+            console.error('🚀 UnifiedAuth v7.0 - Initial database session test failed:', testError);
           } else {
-            console.log('🚀 UnifiedAuth v6.0 - Initial database session test successful:', testData);
+            console.log('🚀 UnifiedAuth v7.0 - Initial database session test successful:', testData);
           }
           
         } catch (error) {
-          console.error('🚀 UnifiedAuth v6.0 - Error converting initial user:', error);
+          console.error('🚀 UnifiedAuth v7.0 - Error converting initial user:', error);
           setCurrentUser(null);
           setSession(null);
+          setLoading(false);
         }
       } else {
         setCurrentUser(null);
         setSession(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
-      console.log('🚀 UnifiedAuth v5.0 - Cleaning up auth listener');
+      console.log('🚀 UnifiedAuth v7.0 - Cleaning up auth listener');
       subscription.unsubscribe();
     };
   }, []);
