@@ -414,33 +414,33 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('🚀 UnifiedAuth v6.0 - Auth state changed:', event, 'Session exists:', !!session);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🚀 UnifiedAuth v6.0 - SIGNED_IN event, user email:', session.user.email);
+        console.log('🚀 UnifiedAuth v8.0 - SIGNED_IN event, user email:', session.user.email);
         
         // Set session immediately
         setSession(session);
         
         // Convert user and fetch organizations
         try {
-          console.log('🚀 UnifiedAuth v6.0 - Converting user...');
+          console.log('🚀 UnifiedAuth v8.0 - Converting user...');
           const user = await convertSupabaseUser(session.user);
-          console.log('🚀 UnifiedAuth v6.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
+          console.log('🚀 UnifiedAuth v8.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
           
-          // Set user immediately to clear ProtectedRoute loading
+          // Set user and clear loading state IMMEDIATELY
+          console.log('🚀 UnifiedAuth v8.0 - Setting user and clearing loading state...');
           setCurrentUser(user);
-          console.log('🚀 UnifiedAuth v6.0 - Current user state set, clearing loading state...');
-          
-          // Set loading false FIRST to prevent loading loop
           setLoading(false);
+          console.log('🚀 UnifiedAuth v8.0 - Auth state updated - user:', user.email, 'loading: false');
           
-          // Fetch organizations in background - don't block loading state
-          console.log('🚀 UnifiedAuth v6.0 - Fetching organizations in background...');
-          try {
-            await fetchUserOrganizations(user);
-            console.log('🚀 UnifiedAuth v6.0 - Organizations fetched successfully');
-          } catch (orgError) {
-            console.error('🚀 UnifiedAuth v6.0 - Non-critical error fetching organizations:', orgError);
-            // Don't fail the whole auth process for org errors
-          }
+          // Fetch organizations asynchronously after state is set
+          setTimeout(async () => {
+            try {
+              console.log('🚀 UnifiedAuth v8.0 - Fetching organizations in background...');
+              await fetchUserOrganizations(user);
+              console.log('🚀 UnifiedAuth v8.0 - Organizations fetched successfully');
+            } catch (orgError) {
+              console.error('🚀 UnifiedAuth v8.0 - Non-critical error fetching organizations:', orgError);
+            }
+          }, 0);
           
           // Force session to be recognized by the database by making a test query
           console.log('🚀 UnifiedAuth v6.0 - Testing database session...');
@@ -581,12 +581,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     adminResetPassword
   };
 
-  console.log('UnifiedAuth - Provider render:', { 
+  console.log('🚀 UnifiedAuth v8.0 - Provider render:', { 
     hasCurrentUser: !!currentUser, 
     currentUserEmail: currentUser?.email,
     loading,
     hasOrganization: !!currentOrganization,
-    organizationName: currentOrganization?.name
+    organizationName: currentOrganization?.name,
+    timestamp: new Date().toISOString()
   });
 
   return (
