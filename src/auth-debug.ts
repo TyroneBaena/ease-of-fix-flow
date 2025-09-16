@@ -1,6 +1,6 @@
 // This file exists to force cache refresh and debug auth issues
-console.log('🧨 AUTH DEBUG: Cache refresh marker - v10.0 - ISOLATED LOADING ISSUE');
+console.log('🧨 AUTH DEBUG: Cache refresh marker - v11.0 - TIMEOUT PROTECTION');
 console.log('🧨 If you see convertToAppUser being called, there is a cache issue');
-console.log('🧨 v10.0: Isolated loading issue by removing organization fetch');
+console.log('🧨 v11.0: Added timeout protection to prevent hanging on profile queries');
 
-export const authDebugMarker = 'v10.0-isolated-loading-issue';
+export const authDebugMarker = 'v11.0-timeout-protection';

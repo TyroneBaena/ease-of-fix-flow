@@ -127,34 +127,42 @@ export const useUserContext = () => {
   };
 };
 
-// Simple user conversion without complex queries or timeouts
+// Simple user conversion with timeout and better error handling
 const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
   try {
-    console.log('🔄 UnifiedAuth v6.0 - convertSupabaseUser called for:', supabaseUser.email);
+    console.log('🔄 UnifiedAuth v11.0 - convertSupabaseUser called for:', supabaseUser.email);
     
-    // Try to get profile from database with a shorter timeout
-    const { data: profile, error } = await supabase
+    // Create a promise with timeout for the database query
+    const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', supabaseUser.id)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
-      console.warn('🔄 UnifiedAuth v6.0 - Profile query error (non-critical):', error.message);
-    }
-
-    console.log('🔄 UnifiedAuth v6.0 - Profile query result:', { 
-      hasProfile: !!profile, 
-      error: error?.message,
-      profileData: profile ? {
-        id: profile.id,
-        email: profile.email,
-        role: profile.role,
-        organization_id: profile.organization_id
-      } : null
+    // Create timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Profile query timeout')), 3000);
     });
 
-    // Create user object with fallbacks
+    let profile = null;
+    let profileError = null;
+
+    try {
+      // Race between profile query and timeout
+      const result = await Promise.race([profilePromise, timeoutPromise]);
+      profile = (result as any).data;
+      profileError = (result as any).error;
+      
+      console.log('🔄 UnifiedAuth v11.0 - Profile query completed:', { 
+        hasProfile: !!profile, 
+        error: profileError?.message 
+      });
+    } catch (timeoutError) {
+      console.warn('🔄 UnifiedAuth v11.0 - Profile query timed out, using fallback');
+      profileError = timeoutError;
+    }
+
+    // Create user object with fallbacks - always succeed
     const user: User = {
       id: supabaseUser.id,
       email: supabaseUser.email || '',
@@ -166,7 +174,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       session_organization_id: profile?.session_organization_id || null
     };
 
-    console.log('🔄 UnifiedAuth v6.0 - User converted successfully:', {
+    console.log('🔄 UnifiedAuth v11.0 - User converted successfully:', {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -420,32 +428,35 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setSession(session);
         console.log('🚀 UnifiedAuth v10.0 - Session set');
         
-        // Convert user and fetch organizations
+        // Convert user with timeout protection
         try {
-          console.log('🚀 UnifiedAuth v10.0 - About to convert user...');
-          const user = await convertSupabaseUser(session.user);
-          console.log('🚀 UnifiedAuth v10.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
+          console.log('🚀 UnifiedAuth v11.0 - About to convert user with timeout protection...');
           
-          // Set user and clear loading state IMMEDIATELY
-          console.log('🚀 UnifiedAuth v10.0 - About to set user and clear loading...');
-          setCurrentUser(user);
-          console.log('🚀 UnifiedAuth v10.0 - User set successfully');
+          // Set loading to false immediately to prevent infinite loading
           setLoading(false);
-          console.log('🚀 UnifiedAuth v10.0 - Loading set to FALSE successfully');
+          console.log('🚀 UnifiedAuth v11.0 - Loading set to FALSE preemptively');
           
-          // Force immediate re-render to ensure state updates are applied
-          console.log('🚀 UnifiedAuth v10.0 - Auth state should now be: user =', user.email, ', loading = false');
+          const user = await convertSupabaseUser(session.user);
+          console.log('🚀 UnifiedAuth v11.0 - User converted successfully:', user.email);
           
-          // Safety mechanism: Force loading to false after a short delay if still true
-          setTimeout(() => {
-            if (loading) {
-              console.log('🚀 UnifiedAuth v10.0 - SAFETY: Loading still true, forcing to false');
-              setLoading(false);
+          // Set user
+          setCurrentUser(user);
+          console.log('🚀 UnifiedAuth v11.0 - User set successfully');
+          
+          // Ensure loading stays false
+          setLoading(false);
+          console.log('🚀 UnifiedAuth v11.0 - Loading confirmed FALSE');
+          
+          // Fetch organizations in background (non-blocking)
+          console.log('🚀 UnifiedAuth v11.0 - Starting background organization fetch...');
+          setTimeout(async () => {
+            try {
+              await fetchUserOrganizations(user);
+              console.log('🚀 UnifiedAuth v11.0 - Organizations fetched in background');
+            } catch (orgError) {
+              console.warn('🚀 UnifiedAuth v11.0 - Non-critical org fetch error:', orgError);
             }
-          }, 100);
-          
-          // Skip organization fetch for now to isolate the loading issue
-          console.log('🚀 UnifiedAuth v10.0 - Skipping organization fetch to isolate loading issue');
+          }, 0);
           
           // Force session to be recognized by the database by making a test query
           console.log('🚀 UnifiedAuth v6.0 - Testing database session...');
