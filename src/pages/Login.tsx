@@ -24,11 +24,14 @@ const Login = () => {
   const location = useLocation();
 
   // Effect to check if user is already logged in and redirect
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (currentUser) {
-      console.log("User is already logged in, redirecting to appropriate dashboard");
+      console.log("Login: User is already logged in, redirecting to appropriate dashboard. User:", currentUser.email, "Role:", currentUser.role);
       const redirectPath = getRedirectPathByRole(currentUser.role);
+      console.log("Login: Redirecting to:", redirectPath);
       navigate(redirectPath, { replace: true });
+    } else {
+      console.log("Login: No current user found");
     }
   }, [currentUser, navigate]);
 
@@ -87,9 +90,11 @@ const Login = () => {
           return;
         }
         
-        // The auth state listener will handle navigation automatically
-        // Don't navigate here - let the useLayoutEffect handle it
-        console.log('Login successful, auth state listener will handle navigation');
+        // Wait a moment for auth context to update, then let it handle navigation
+        console.log('Login successful - waiting for auth context to update and handle navigation');
+        setTimeout(() => {
+          console.log('Login: Checking currentUser after login:', !!currentUser);
+        }, 1000);
       }
     } catch (error: any) {
       console.error('Login error:', error);

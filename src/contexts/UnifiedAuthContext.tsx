@@ -390,13 +390,61 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     console.log('UnifiedAuth - Setting up auth listener');
     
-    // Get initial session
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('UnifiedAuth - Auth state changed:', event, 'Session exists:', !!session);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('UnifiedAuth - SIGNED_IN event, user email:', session.user.email);
+        // Set loading to false immediately when user signs in
+        setLoading(false);
+        setSession(session);
+        
+        // Convert user in background - don't block UI
+        try {
+          const user = await convertSupabaseUser(session.user);
+          console.log('UnifiedAuth - User converted successfully:', user.email);
+          setCurrentUser(user);
+          // Fetch organizations in background
+          fetchUserOrganizations(user);
+        } catch (error) {
+          console.error('UnifiedAuth - Error converting signed in user:', error);
+          setCurrentUser(null);
+          setSession(null);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        console.log('UnifiedAuth - SIGNED_OUT event');
+        setLoading(false);
+        setCurrentUser(null);
+        setSession(null);
+        setUserOrganizations([]);
+        setCurrentOrganization(null);
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        console.log('UnifiedAuth - USER_UPDATED event');
+        // Don't set loading for USER_UPDATED - it's just an update
+        try {
+          const user = await convertSupabaseUser(session.user);
+          setCurrentUser(user);
+          setSession(session);
+          fetchUserOrganizations(user);
+        } catch (error) {
+          console.error('UnifiedAuth - Error converting updated user:', error);
+        }
+      } else {
+        console.log('UnifiedAuth - Other auth event:', event);
+        // For any other event, ensure loading is false
+        setLoading(false);
+      }
+    });
+
+    // THEN get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('UnifiedAuth - Initial session:', session ? 'Found' : 'None');
+      console.log('UnifiedAuth - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
       
       if (session?.user) {
         try {
           const user = await convertSupabaseUser(session.user);
+          console.log('UnifiedAuth - Initial user converted:', user.email);
           setCurrentUser(user);
           setSession(session);
           // Fetch organizations in background
@@ -414,7 +462,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('UnifiedAuth - Auth state changed:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
@@ -456,7 +504,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     return () => {
-      subscription.unsubscribe();
+      authSubscription.unsubscribe();
     };
   }, []);
 
