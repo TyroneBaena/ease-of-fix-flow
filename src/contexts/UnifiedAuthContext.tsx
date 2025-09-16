@@ -507,18 +507,25 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // THEN get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('🚀 UnifiedAuth v6.0 - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
+      console.log('🚀 UnifiedAuth v9.0 - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
       
       if (session?.user) {
+        // Check if we already processed this user via SIGNED_IN event
+        if (currentUser && currentUser.id === session.user.id) {
+          console.log('🚀 UnifiedAuth v9.0 - User already processed by SIGNED_IN event, skipping initial session processing');
+          return;
+        }
+        
         try {
+          console.log('🚀 UnifiedAuth v9.0 - Processing initial session for:', session.user.email);
           const user = await convertSupabaseUser(session.user);
-          console.log('🚀 UnifiedAuth v7.0 - Initial user converted:', user.email, 'Org ID:', user.organization_id);
+          console.log('🚀 UnifiedAuth v9.0 - Initial user converted:', user.email, 'Org ID:', user.organization_id);
           setCurrentUser(user);
           setSession(session);
           
           // Set loading false IMMEDIATELY after setting user - CRITICAL FIX
           setLoading(false);
-          console.log('🚀 UnifiedAuth v7.0 - Initial loading set to false');
+          console.log('🚀 UnifiedAuth v9.0 - Initial loading set to false');
           
           // Fetch organizations in background
           try {
