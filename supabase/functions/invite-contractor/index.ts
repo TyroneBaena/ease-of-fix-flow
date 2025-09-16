@@ -190,6 +190,26 @@ serve(async (req: Request) => {
 
     console.log("Contractor profile created successfully:", contractorData.id);
 
+    // Create organization membership for the contractor
+    if (currentUserOrgId) {
+      const { error: membershipError } = await supabaseClient
+        .from('user_organizations')
+        .upsert({
+          user_id: authUserId,
+          organization_id: currentUserOrgId,
+          role: 'contractor',
+          is_active: true,
+          is_default: true
+        });
+
+      if (membershipError) {
+        console.error("Error creating organization membership:", membershipError);
+        // Don't fail the whole process, but log the error
+      } else {
+        console.log("Organization membership created successfully for contractor");
+      }
+    }
+
     // Send invitation email
     const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY');
     const applicationUrl = Deno.env.get('APPLICATION_URL') || 'http://localhost:5173';
