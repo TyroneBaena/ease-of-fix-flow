@@ -21,6 +21,7 @@ export const useContractorData = (
   useEffect(() => {
     console.log('🚨 useContractorData - useEffect TRIGGERED');
     console.log('🚨 useContractorData - contractorId:', contractorId);
+    console.log('🚨 useContractorData - contractorId type:', typeof contractorId);
     console.log('🚨 useContractorData - loading:', loading);
     console.log('🚨 useContractorData - refreshTrigger:', refreshTrigger);
     
@@ -121,32 +122,36 @@ export const useContractorData = (
         console.log('useContractorData - Fetched completed jobs:', completedJobsData);
         console.log('useContractorData - Completed jobs count:', completedJobsData?.length || 0);
         
-        // CRITICAL BUG FIX: Separate quotes based on whether the REQUEST has a contractor assigned
-        // NOT whether the quote contractor matches this contractor
-        const quotesWithAssignedRequests = quotes.filter(quote => 
-          quote.maintenance_requests && quote.maintenance_requests.contractor_id !== null
+        // FIXED: Separate quotes based on whether the REQUEST has a contractor assigned specifically to THIS contractor
+        // Quotes should only show for unassigned requests OR requests assigned to other contractors
+        const quotesForThisContractor = quotes.filter(quote => 
+          quote.maintenance_requests && 
+          quote.maintenance_requests.contractor_id === contractorId
         );
-        const quotesWithUnassignedRequests = quotes.filter(quote => 
-          quote.maintenance_requests && quote.maintenance_requests.contractor_id === null
+        const quotesForUnassignedRequests = quotes.filter(quote => 
+          quote.maintenance_requests && 
+          quote.maintenance_requests.contractor_id === null
         );
         
-        console.log('useContractorData - Quotes for requests with ANY contractor assigned:', quotesWithAssignedRequests.length);
-        console.log('useContractorData - Quotes for requests with NO contractor assigned:', quotesWithUnassignedRequests.length);
+        console.log('🔍 useContractorData - Quotes for requests assigned to THIS contractor:', quotesForThisContractor.length);
+        console.log('🔍 useContractorData - Quotes for unassigned requests:', quotesForUnassignedRequests.length);
         
-        // Process pending quote requests - only those with NO contractor assigned to the request
-        const pendingFromQuotes = quotesWithUnassignedRequests
+        // Process pending quote requests - only those with NO contractor assigned
+        // Requests assigned to this contractor should NOT appear in quote requests
+        const pendingFromQuotes = quotesForUnassignedRequests
           .filter(quote => ['requested', 'pending', 'submitted'].includes(quote.status))
           .map((quote: any) => mapRequestFromQuote(quote));
         
-        console.log('useContractorData - Pending quote requests (no contractor assigned):', pendingFromQuotes.length);
+        console.log('🔍 useContractorData - Pending quote requests (no contractor assigned):', pendingFromQuotes.length);
         
         // Active jobs come ONLY from maintenance_requests table where contractor_id matches this contractor
         // This ensures that assigned jobs don't appear in quote requests
-        const activeRequests = activeJobsData.map(mapRequestFromDb);
-        const completedRequests = completedJobsData.map(mapRequestFromDb);
+        const activeRequests = activeJobsData?.map(mapRequestFromDb) || [];
+        const completedRequests = completedJobsData?.map(mapRequestFromDb) || [];
         
-        console.log('useContractorData - Mapped active requests:', activeRequests);
-        console.log('useContractorData - Mapped completed requests:', completedRequests);
+        console.log('🔍 useContractorData - Active jobs raw data:', activeJobsData);
+        console.log('🔍 useContractorData - Active jobs mapped:', activeRequests);
+        console.log('🔍 useContractorData - Completed jobs mapped:', completedRequests);
         
         // Update state only if we have a valid response
         setPendingQuoteRequests(pendingFromQuotes);
