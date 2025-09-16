@@ -96,10 +96,12 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('SimpleAuth - Initial session check:', session ? 'Found session' : 'No session');
+      console.log('SimpleAuth - Session user:', session?.user?.email);
       
       if (session?.user) {
         try {
           const user = await convertSupabaseUser(session.user);
+          console.log('SimpleAuth - Setting user from initial session:', user.email);
           setCurrentUser(user);
           setSession(session);
         } catch (error) {
@@ -107,17 +109,23 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setCurrentUser(null);
           setSession(null);
         }
+      } else {
+        console.log('SimpleAuth - No initial session found');
       }
+      console.log('SimpleAuth - Setting loading to false');
       setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('SimpleAuth - Auth state changed:', event, session ? 'Has session' : 'No session');
+      console.log('SimpleAuth - Auth event user:', session?.user?.email);
       
       if (event === 'SIGNED_IN' && session?.user) {
+        console.log('SimpleAuth - User signed in:', session.user.email);
         try {
           const user = await convertSupabaseUser(session.user);
+          console.log('SimpleAuth - Setting user from sign in:', user.email);
           setCurrentUser(user);
           setSession(session);
         } catch (error) {
@@ -126,17 +134,21 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setSession(null);
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('SimpleAuth - User signed out');
         setCurrentUser(null);
         setSession(null);
       } else if (event === 'USER_UPDATED' && session?.user) {
+        console.log('SimpleAuth - User updated:', session.user.email);
         try {
           const user = await convertSupabaseUser(session.user);
+          console.log('SimpleAuth - Setting updated user:', user.email);
           setCurrentUser(user);
           setSession(session);
         } catch (error) {
           console.error('SimpleAuth - Error converting updated user:', error);
         }
       }
+      console.log('SimpleAuth - Auth state change complete, setting loading to false');
       setLoading(false);
     });
 
