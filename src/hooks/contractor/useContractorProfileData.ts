@@ -55,7 +55,7 @@ export const useContractorProfileData = () => {
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (contractorError) {
         console.error('useContractorProfileData - Error fetching contractor data:', contractorError);
@@ -68,9 +68,67 @@ export const useContractorProfileData = () => {
         throw contractorError;
       }
 
+      // If no contractor profile exists, create one automatically
       if (!contractorData) {
-        console.log('useContractorProfileData - No contractor profile found for user');
-        setError('No contractor profile found');
+        console.log('useContractorProfileData - No contractor profile found, creating one...');
+        
+        const newContractorData = {
+          user_id: currentUser.id,
+          email: currentUser.email,
+          contact_name: currentUser.name || '',
+          company_name: `${currentUser.name || 'Contractor'} Services`,
+          phone: currentUser.phone || '',
+          address: '',
+          specialties: [],
+          organization_id: currentUser.organization_id
+        };
+
+        const { data: createdContractor, error: createError } = await supabase
+          .from('contractors')
+          .insert(newContractorData)
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('useContractorProfileData - Error creating contractor profile:', createError);
+          setError('Failed to create contractor profile');
+          return;
+        }
+
+        console.log('useContractorProfileData - Created new contractor profile:', createdContractor);
+        
+        // Use the newly created contractor data
+        const contractorDataToUse = createdContractor;
+        
+        // Continue with the rest of the logic using the created contractor
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('maintenance_requests')
+          .select('id')
+          .eq('contractor_id', contractorDataToUse.id)
+          .eq('status', 'completed');
+
+        if (jobsError) {
+          console.error('useContractorProfileData - Error fetching jobs data:', jobsError);
+        }
+
+        const rating = 4.8;
+
+        const profile: ContractorProfile = {
+          id: contractorDataToUse.id,
+          companyName: contractorDataToUse.company_name,
+          contactName: contractorDataToUse.contact_name,
+          email: contractorDataToUse.email,
+          phone: contractorDataToUse.phone,
+          address: contractorDataToUse.address,
+          specialties: contractorDataToUse.specialties || [],
+          createdAt: contractorDataToUse.created_at,
+          jobsCompleted: jobsData?.length || 0,
+          rating: rating,
+          accountStatus: 'active'
+        };
+
+        console.log('useContractorProfileData - Final contractor profile object (newly created):', profile);
+        setContractor(profile);
         return;
       }
 
