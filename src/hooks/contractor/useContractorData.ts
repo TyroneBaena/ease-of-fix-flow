@@ -49,6 +49,8 @@ export const useContractorData = (
         console.log('useContractorData - Contractor ID type:', typeof contractorId);
         
         // Fetch all quotes for this contractor to check which requests they're involved in
+        console.log('🔍 useContractorData - Fetching quotes for contractor:', contractorId);
+        
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -58,27 +60,46 @@ export const useContractorData = (
           .eq('contractor_id', contractorId)
           .in('status', ['requested', 'pending', 'submitted']);
           
+        console.log('🔍 useContractorData - Quotes query result:');
+        console.log('  - Data:', quotes);
+        console.log('  - Error:', quotesError);
+        console.log('  - Count:', quotes?.length || 0);
+        quotes?.forEach((quote, index) => {
+          console.log(`  - Quote ${index}:`, {
+            quoteId: quote.id,
+            quoteStatus: quote.status,
+            requestId: quote.maintenance_requests?.id,
+            requestStatus: quote.maintenance_requests?.status,
+            requestContractorId: quote.maintenance_requests?.contractor_id,
+            isAssignedToThisContractor: quote.maintenance_requests?.contractor_id === contractorId
+          });
+        });
+          
         if (quotesError) {
-          console.error('useContractorData - Error fetching quotes:', quotesError);
+          console.error('🔍 useContractorData - Error fetching quotes:', quotesError);
           throw quotesError;
         }
-        console.log('useContractorData - Fetched quote requests for contractor:', quotes);
         
         // Fetch active jobs assigned to this contractor
         // Jobs assigned to contractor should be active regardless of status (requested, in-progress)
-        console.log('useContractorData - Fetching active jobs for contractor:', contractorId);
+        console.log('🔍 useContractorData - Fetching active jobs for contractor:', contractorId);
+        console.log('🔍 useContractorData - Query parameters: contractor_id =', contractorId, 'status IN', ['requested', 'in-progress']);
+        
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
           .in('status', ['requested', 'in-progress']);
           
+        console.log('🔍 useContractorData - Active jobs query result:');
+        console.log('  - Data:', activeJobsData);
+        console.log('  - Error:', activeJobsError);
+        console.log('  - Count:', activeJobsData?.length || 0);
+          
         if (activeJobsError) {
-          console.error('useContractorData - Error fetching active jobs:', activeJobsError);
+          console.error('🔍 useContractorData - Error fetching active jobs:', activeJobsError);
           throw activeJobsError;
         }
-        console.log('useContractorData - Fetched active jobs:', activeJobsData);
-        console.log('useContractorData - Active jobs count:', activeJobsData?.length || 0);
         
         // Fetch completed jobs
         console.log('useContractorData - About to query maintenance_requests for completed jobs with contractor_id:', contractorId);
