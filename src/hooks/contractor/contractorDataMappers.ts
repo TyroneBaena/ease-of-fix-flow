@@ -2,7 +2,14 @@
 import { MaintenanceRequest } from '@/types/maintenance';
 
 // Helper function to map database objects to MaintenanceRequest type
-export const mapRequestFromDb = (job: any): MaintenanceRequest => ({
+export const mapRequestFromDb = (job: any): MaintenanceRequest => {
+  console.log('🔥 mapRequestFromDb - Processing job:', {
+    jobId: job.id?.substring(0, 8),
+    contractorId: job.contractor_id?.substring(0, 8),
+    status: job.status,
+    title: job.title
+  });
+  return {
   id: job.id,
   title: job.title || job.issue_nature || 'Untitled request',
   description: job.description || job.explanation || '',
@@ -38,11 +45,19 @@ export const mapRequestFromDb = (job: any): MaintenanceRequest => ({
   quoteRequested: job.quote_requested || false,
   quotedAmount: job.quoted_amount,
   userId: job.user_id || 'unknown-user'
-});
+  };
+};
 
 // Helper function to map quote objects to MaintenanceRequest type
 export const mapRequestFromQuote = (quote: any): MaintenanceRequest => {
   const request = quote.maintenance_requests;
+  console.log('🔥 mapRequestFromQuote - Processing quote:', {
+    quoteId: quote.id?.substring(0, 8),
+    requestId: request.id?.substring(0, 8),
+    requestContractorId: request.contractor_id?.substring(0, 8),
+    requestStatus: request.status,
+    quoteStatus: quote.status
+  });
   return {
     id: request.id,
     title: request.title || request.issue_nature || 'Untitled request',

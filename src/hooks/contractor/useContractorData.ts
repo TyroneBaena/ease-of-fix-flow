@@ -133,6 +133,11 @@ export const useContractorData = (
           quote.maintenance_requests.contractor_id === null
         );
         
+        console.log('🔍 useContractorData - ALL quotes received:', quotes?.length || 0);
+        quotes?.forEach(quote => {
+          console.log(`🔍 Quote ${quote.id?.substring(0, 8)}: request ${quote.maintenance_requests?.id?.substring(0, 8)} has contractor_id: ${quote.maintenance_requests?.contractor_id?.substring(0, 8) || 'NULL'}, this contractor: ${contractorId?.substring(0, 8)}`);
+        });
+        
         console.log('🔍 useContractorData - Quotes for requests assigned to THIS contractor:', quotesForThisContractor.length);
         console.log('🔍 useContractorData - Quotes for unassigned requests:', quotesForUnassignedRequests.length);
         
@@ -154,6 +159,22 @@ export const useContractorData = (
         console.log('🔍 useContractorData - Completed jobs mapped:', completedRequests);
         
         // Update state only if we have a valid response
+        console.log('🔥 CRITICAL DEBUG - Final data before setState:');
+        console.log('🔥 pendingFromQuotes (should be unassigned only):', pendingFromQuotes.map(r => ({
+          id: r.id?.substring(0, 8),
+          title: r.title,
+          status: r.status,
+          contractorId: r.contractorId,
+          isAssigned: !!r.contractorId
+        })));
+        console.log('🔥 activeRequests (should be assigned to this contractor):', activeRequests.map(r => ({
+          id: r.id?.substring(0, 8),
+          title: r.title,
+          status: r.status,
+          contractorId: r.contractorId,
+          isAssigned: !!r.contractorId
+        })));
+        
         setPendingQuoteRequests(pendingFromQuotes);
         setActiveJobs(activeRequests);
         setCompletedJobs(completedRequests);
