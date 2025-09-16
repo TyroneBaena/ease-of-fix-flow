@@ -110,9 +110,16 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setSession(null);
         }
       } else {
-        console.log('SimpleAuth - No initial session found');
+        console.log('SimpleAuth - No initial session found, clearing user');
+        setCurrentUser(null);
+        setSession(null);
       }
-      console.log('SimpleAuth - Setting loading to false');
+      console.log('SimpleAuth - Setting loading to false after initial check');
+      setLoading(false);
+    }).catch(error => {
+      console.error('SimpleAuth - Error getting initial session:', error);
+      setCurrentUser(null);
+      setSession(null);
       setLoading(false);
     });
 
@@ -147,9 +154,20 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         } catch (error) {
           console.error('SimpleAuth - Error converting updated user:', error);
         }
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        console.log('SimpleAuth - Token refreshed:', session.user.email);
+        try {
+          const user = await convertSupabaseUser(session.user);
+          console.log('SimpleAuth - Setting refreshed user:', user.email);
+          setCurrentUser(user);
+          setSession(session);
+        } catch (error) {
+          console.error('SimpleAuth - Error converting refreshed user:', error);
+        }
       }
-      console.log('SimpleAuth - Auth state change complete, setting loading to false');
-      setLoading(false);
+      
+      // Only set loading to false here if we're not in initial load
+      console.log('SimpleAuth - Auth state change complete');
     });
 
     return () => {
@@ -163,6 +181,12 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     loading,
     signOut
   };
+
+  console.log('SimpleAuth - Provider render:', { 
+    hasCurrentUser: !!currentUser, 
+    currentUserEmail: currentUser?.email,
+    loading 
+  });
 
   return (
     <SimpleAuthContext.Provider value={value}>
