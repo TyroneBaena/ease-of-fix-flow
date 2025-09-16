@@ -28,7 +28,7 @@ export const useContractorData = (
       return;
     }
     
-    console.log('useContractorData - Starting fetch for contractor ID:', contractorId);
+    console.log('🔍 DEBUG: useContractorData called with contractor ID:', contractorId, 'type:', typeof contractorId);
     
     const fetchContractorData = async () => {
       try {
@@ -68,6 +68,8 @@ export const useContractorData = (
         // Jobs assigned to contractor should be active regardless of status (requested, in-progress)
         console.log('useContractorData - Fetching active jobs for contractor:', contractorId);
         console.log('useContractorData - About to query maintenance_requests table with contractor_id:', contractorId);
+        console.log('🔍 DEBUG: Query params - contractor_id:', contractorId, 'type:', typeof contractorId);
+        
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
@@ -78,6 +80,7 @@ export const useContractorData = (
           console.error('useContractorData - Error fetching active jobs:', activeJobsError);
           throw activeJobsError;
         }
+        console.log('🔍 DEBUG: Raw active jobs result:', activeJobsData);
         console.log('useContractorData - Fetched active jobs:', activeJobsData);
         console.log('useContractorData - Active jobs count:', activeJobsData?.length || 0);
         

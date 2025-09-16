@@ -23,8 +23,9 @@ export const useContractorDashboard = () => {
     refreshData
   } = useContractorData(contractorId, loading, setLoading, setError);
 
-  console.log('useContractorDashboard - Hook state:', {
+  console.log('🔍 DEBUG: useContractorDashboard - Hook state:', {
     contractorId,
+    contractorIdType: typeof contractorId,
     pendingQuoteRequestsCount: pendingQuoteRequests?.length || 0,
     activeJobsCount: activeJobs?.length || 0,
     completedJobsCount: completedJobs?.length || 0,
