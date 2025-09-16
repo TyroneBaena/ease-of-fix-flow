@@ -25,17 +25,22 @@ const Login = () => {
   const location = useLocation();
 
   // Effect to check if user is already logged in and redirect
+  // ONLY redirect if user is actually on the login page
   useEffect(() => {
-    console.log("🔑 Login v7.0: useEffect triggered - currentUser:", !!currentUser, currentUser?.email);
-    if (currentUser) {
-      console.log("🔑 Login v7.0: User is already logged in, redirecting to appropriate dashboard. User:", currentUser.email, "Role:", currentUser.role);
+    console.log("🔑 Login v8.0: useEffect triggered - currentUser:", !!currentUser, currentUser?.email, "on path:", location.pathname);
+    
+    // Only redirect if we're actually on the login page
+    if (currentUser && location.pathname === '/login') {
+      console.log("🔑 Login v8.0: User is already logged in on login page, redirecting to appropriate dashboard. User:", currentUser.email, "Role:", currentUser.role);
       const redirectPath = getRedirectPathByRole(currentUser.role);
-      console.log("🔑 Login v7.0: Redirecting to:", redirectPath);
+      console.log("🔑 Login v8.0: Redirecting to:", redirectPath);
       navigate(redirectPath, { replace: true });
+    } else if (currentUser) {
+      console.log("🔑 Login v8.0: User is logged in but not on login page, no redirect needed");
     } else {
-      console.log("🔑 Login v7.0: No current user found");
+      console.log("🔑 Login v8.0: No current user found");
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, location.pathname]);
 
   useEffect(() => {
     // Check if we have email and setupPassword in query params
