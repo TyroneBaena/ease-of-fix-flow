@@ -40,7 +40,7 @@ export const convertToAppUser = async (authUser: any): Promise<User> => {
       .maybeSingle();
     
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Profile fetch timeout after 2 seconds')), 2000)
+      setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
     );
     
     const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
@@ -63,7 +63,18 @@ export const convertToAppUser = async (authUser: any): Promise<User> => {
     
     if (error) {
       console.error("Error fetching user profile:", error);
-      // Continue to fallback logic
+      // For timeout errors, create a basic fallback immediately
+      if (error.message.includes('timeout')) {
+        console.warn("Profile fetch timed out, creating fallback user");
+        return {
+          id: authUser.id,
+          name: authUser.email?.split('@')[0] || 'User',
+          email: authUser.email || '',
+          role: 'manager' as UserRole,
+          assignedProperties: [],
+          createdAt: authUser.created_at || new Date().toISOString()
+        };
+      }
     } 
     
     // If no profile exists or there was an error, fall back to metadata

@@ -52,6 +52,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUserOrganizations = async (user?: any) => {
@@ -71,7 +72,11 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
       });
       setUserOrganizations([]);
       setCurrentOrganization(null);
-      // Don't immediately set loading to false - let the auth process complete
+      // Only set loading to false if this is a final state (no auth processing)
+      if (!user && !currentUser) {
+        console.log('No user at all, setting loading to false');
+        setLoading(false);
+      }
       return;
     }
 
@@ -324,6 +329,19 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     console.log('Setting up auth listener in MultiOrganizationProvider');
     let isProcessingAuth = false; // Track if we're actively processing authentication
     
+    // Set up timeout to prevent infinite loading
+    const authTimeout = setTimeout(() => {
+      if (loading && !currentUser) {
+        console.warn('Organization loading timeout reached, setting loading to false');
+        console.info('Current auth state when timeout hit:', {
+          hasCurrentUser: !!currentUser,
+          currentUserEmail: { _type: typeof currentUser?.email, value: String(currentUser?.email || 'undefined') },
+          isProcessingAuth
+        });
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
       isProcessingAuth = true; // Mark that we're processing auth
@@ -401,7 +419,13 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
           // Let the session restoration process complete first
           console.log('Initial session with no user - waiting for session restoration');
           setCurrentUser(null);
-          // Don't set loading to false here - let the session check handle it
+          // Give some time for session restoration, then set loading to false if no user found
+          setTimeout(() => {
+            if (!currentUser && !isProcessingAuth) {
+              console.log('No initial session found - session might still be restoring');
+              setLoading(false);
+            }
+          }, 3000);
           isProcessingAuth = false; // No auth to process
         }
       }
@@ -436,8 +460,13 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
       } else {
         console.log('No initial session found - session might still be restoring');
         setCurrentUser(null);
-        // Don't immediately set loading to false - let timeout handle it if needed
-        // This allows time for session restoration to complete
+        // For no session case, set loading to false after a short delay
+        setTimeout(() => {
+          if (!currentUser) {
+            console.log('No session found after delay, setting loading to false');
+            setLoading(false);
+          }
+        }, 2000);
         isProcessingAuth = false; // No session to process
       }
     });
@@ -460,6 +489,7 @@ export const MultiOrganizationProvider: React.FC<{ children: React.ReactNode }> 
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeoutId);
+      clearTimeout(authTimeout);
     };
   }, []);
 

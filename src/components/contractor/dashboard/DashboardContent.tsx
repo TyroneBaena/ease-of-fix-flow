@@ -22,6 +22,16 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   loading,
   onSelectRequest
 }) => {
+  // Debug dashboard content state
+  console.log('DashboardContent - Props received:', {
+    activeJobsFromProps: filteredActiveJobs.length,
+    activeJobStatuses: filteredActiveJobs.map(j => ({ 
+      id: j.id?.substring(0, 8), 
+      status: j.status, 
+      title: j.title 
+    })),
+    completedJobsFromProps: filteredCompletedJobs.length
+  });
   console.log('DashboardContent - Raw Quote Requests received:', filteredQuoteRequests.length);
   console.log('DashboardContent - Raw Quote Requests data:', filteredQuoteRequests.map(r => ({
     id: r.id.substring(0, 8),
@@ -57,14 +67,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     return isLegacyRequest;
   });
 
-  // Apply the same filtering logic as RequestsTable for accurate counts
-  const displayActiveJobs = filteredActiveJobs.filter(request => 
-    request.status === 'in-progress' || request.status === 'completed'
-  ).filter(request => request.status === 'in-progress');
-  
-  const displayCompletedJobs = filteredCompletedJobs.filter(request => 
-    request.status === 'in-progress' || request.status === 'completed'
-  ).filter(request => request.status === 'completed');
+  // Just use the filtered jobs directly - no additional filtering needed since 
+  // the filtering should happen in useDashboardFilters
+  const displayActiveJobs = filteredActiveJobs;
+  const displayCompletedJobs = filteredCompletedJobs;
 
   console.log('DashboardContent - Raw filteredActiveJobs received:', filteredActiveJobs.map(r => ({
     id: r.id.substring(0, 8),
@@ -82,8 +88,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       <div className="lg:col-span-3 space-y-6">
         <ContractorMetrics 
           pendingQuotes={displayQuoteRequests}
-          activeJobs={filteredActiveJobs}
-          completedJobs={filteredCompletedJobs}
+          activeJobs={displayActiveJobs}
+          completedJobs={displayCompletedJobs}
           loading={loading}
         />
         

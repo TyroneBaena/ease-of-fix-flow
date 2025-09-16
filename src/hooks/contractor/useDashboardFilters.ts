@@ -60,6 +60,7 @@ export const useDashboardFilters = ({
     });
     
     console.log('Dashboard Filters - Filtered active jobs result:', filtered);
+    console.log('Dashboard Filters - Final filtered count:', filtered.length);
     return filtered;
   }, [activeJobs]);
 
