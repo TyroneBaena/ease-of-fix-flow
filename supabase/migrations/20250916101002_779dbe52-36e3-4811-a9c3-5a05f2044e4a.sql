@@ -1,0 +1,47 @@
+-- Fix security linter warnings from the previous migration
+
+-- Fix function search paths for security definer functions
+ALTER FUNCTION public.add_new_comment(text, text, text, text, text) SET search_path = 'public';
+ALTER FUNCTION public.can_manage_organization(uuid) SET search_path = 'public';
+ALTER FUNCTION public.create_comment_notifications(uuid, text, text) SET search_path = 'public';
+ALTER FUNCTION public.debug_organization_context() SET search_path = 'public';
+ALTER FUNCTION public.debug_organization_creation() SET search_path = 'public';
+ALTER FUNCTION public.ensure_activity_log_organization() SET search_path = 'public';
+ALTER FUNCTION public.ensure_contractor_assignment_organization() SET search_path = 'public';
+ALTER FUNCTION public.ensure_user_organization_access() SET search_path = 'public';
+ALTER FUNCTION public.get_contractor_id() SET search_path = 'public';
+ALTER FUNCTION public.get_contractor_user_id(uuid) SET search_path = 'public';
+ALTER FUNCTION public.get_current_user_organization() SET search_path = 'public';
+ALTER FUNCTION public.get_current_user_role() SET search_path = 'public';
+ALTER FUNCTION public.get_property_maintenance_spend(uuid, integer) SET search_path = 'public';
+ALTER FUNCTION public.get_security_compliance_status() SET search_path = 'public';
+ALTER FUNCTION public.get_user_default_organization(uuid) SET search_path = 'public';
+ALTER FUNCTION public.handle_new_comment() SET search_path = 'public';
+ALTER FUNCTION public.handle_new_comment_v2() SET search_path = 'public';
+ALTER FUNCTION public.handle_new_organization() SET search_path = 'public';
+ALTER FUNCTION public.handle_new_user() SET search_path = 'public';
+ALTER FUNCTION public.insert_activity_log_secure(uuid, text, text, text, text, jsonb) SET search_path = 'public';
+ALTER FUNCTION public.is_admin() SET search_path = 'public';
+ALTER FUNCTION public.is_contractor() SET search_path = 'public';
+ALTER FUNCTION public.is_contractor_user() SET search_path = 'public';
+ALTER FUNCTION public.log_contractor_access(uuid) SET search_path = 'public';
+ALTER FUNCTION public.log_organization_access(text, text, uuid, jsonb) SET search_path = 'public';
+ALTER FUNCTION public.log_organization_creation_simple() SET search_path = 'public';
+ALTER FUNCTION public.meta_to_array(jsonb) SET search_path = 'public';
+ALTER FUNCTION public.send_comment_email_notification(uuid, text, text, text) SET search_path = 'public';
+ALTER FUNCTION public.send_comment_email_notifications_v2(uuid) SET search_path = 'public';
+ALTER FUNCTION public.set_budget_category_organization() SET search_path = 'public';
+ALTER FUNCTION public.set_organization_id() SET search_path = 'public';
+ALTER FUNCTION public.set_updated_at() SET search_path = 'public';
+ALTER FUNCTION public.set_user_id() SET search_path = 'public';
+ALTER FUNCTION public.switch_user_organization(uuid) SET search_path = 'public';
+ALTER FUNCTION public.user_has_property_access(uuid) SET search_path = 'public';
+ALTER FUNCTION public.validate_contractor_request_organization() SET search_path = 'public';
+ALTER FUNCTION public.validate_job_schedule_organization() SET search_path = 'public';
+ALTER FUNCTION public.validate_notification_organization() SET search_path = 'public';
+ALTER FUNCTION public.validate_quote_organization() SET search_path = 'public';
+ALTER FUNCTION public.verify_multi_tenancy_health() SET search_path = 'public';
+ALTER FUNCTION public.create_user_organization_membership() SET search_path = 'public';
+ALTER FUNCTION public.create_organization_for_new_user() SET search_path = 'public';
+ALTER FUNCTION public.auto_assign_property_to_creator() SET search_path = 'public';
+ALTER FUNCTION public.create_default_budget_categories(uuid) SET search_path = 'public';
