@@ -49,7 +49,7 @@ export const useContractorProfileData = () => {
       console.log('useContractorProfileData - User organization:', currentUser.organization_id);
 
       // First check if contractor exists by email as well, in case user_id doesn't match
-      const { data: contractorData, error: contractorError } = await supabase
+      let { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
         .select('*')
         .or(`user_id.eq.${currentUser.id},email.eq.${currentUser.email}`)
@@ -84,56 +84,64 @@ export const useContractorProfileData = () => {
           organization_id: currentUser.organization_id
         };
 
+        // Use upsert to handle cases where contractor might already exist
         const { data: createdContractor, error: createError } = await supabase
           .from('contractors')
-          .insert(newContractorData)
+          .upsert(newContractorData, { 
+            onConflict: 'user_id',
+            ignoreDuplicates: false 
+          })
           .select()
-          .single();
+          .maybeSingle();
 
         if (createError) {
-          console.error('useContractorProfileData - Error creating contractor profile:', createError);
-          setError('Failed to create contractor profile');
-          return;
+          console.error('useContractorProfileData - Error creating/updating contractor profile:', createError);
+          // If it's a conflict error, try to fetch the existing contractor
+          if (createError.message?.includes('duplicate') || createError.code === '23505') {
+            console.log('useContractorProfileData - Duplicate detected, fetching existing contractor...');
+            const { data: existingContractor, error: fetchError } = await supabase
+              .from('contractors')
+              .select('*')
+              .or(`user_id.eq.${currentUser.id},email.eq.${currentUser.email}`)
+              .limit(1)
+              .maybeSingle();
+
+            if (fetchError || !existingContractor) {
+              console.error('useContractorProfileData - Error fetching existing contractor:', fetchError);
+              setError('Failed to load contractor profile');
+              return;
+            }
+
+            // Use the existing contractor data
+            contractorData = existingContractor;
+          } else {
+            setError('Failed to create contractor profile');
+            return;
+          }
+        } else if (createdContractor) {
+          console.log('useContractorProfileData - Created/updated contractor profile:', createdContractor);
+          contractorData = createdContractor;
+        } else {
+          // If upsert didn't return data, try to fetch the existing contractor
+          console.log('useContractorProfileData - Upsert completed, fetching existing contractor...');
+          const { data: existingContractor, error: fetchError } = await supabase
+            .from('contractors')
+            .select('*')
+            .or(`user_id.eq.${currentUser.id},email.eq.${currentUser.email}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (fetchError || !existingContractor) {
+            console.error('useContractorProfileData - Error fetching existing contractor:', fetchError);
+            setError('Failed to load contractor profile');
+            return;
+          }
+
+          contractorData = existingContractor;
         }
-
-        console.log('useContractorProfileData - Created new contractor profile:', createdContractor);
-        
-        // Use the newly created contractor data
-        const contractorDataToUse = createdContractor;
-        
-        // Continue with the rest of the logic using the created contractor
-        const { data: jobsData, error: jobsError } = await supabase
-          .from('maintenance_requests')
-          .select('id')
-          .eq('contractor_id', contractorDataToUse.id)
-          .eq('status', 'completed');
-
-        if (jobsError) {
-          console.error('useContractorProfileData - Error fetching jobs data:', jobsError);
-        }
-
-        const rating = 4.8;
-
-        const profile: ContractorProfile = {
-          id: contractorDataToUse.id,
-          companyName: contractorDataToUse.company_name,
-          contactName: contractorDataToUse.contact_name,
-          email: contractorDataToUse.email,
-          phone: contractorDataToUse.phone,
-          address: contractorDataToUse.address,
-          specialties: contractorDataToUse.specialties || [],
-          createdAt: contractorDataToUse.created_at,
-          jobsCompleted: jobsData?.length || 0,
-          rating: rating,
-          accountStatus: 'active'
-        };
-
-        console.log('useContractorProfileData - Final contractor profile object (newly created):', profile);
-        setContractor(profile);
-        return;
       }
 
-      console.log('useContractorProfileData - Raw contractor data from database:', contractorData);
+      console.log('useContractorProfileData - Using contractor data:', contractorData);
 
       // Fetch completed jobs count
       const { data: jobsData, error: jobsError } = await supabase
