@@ -96,31 +96,30 @@ export const useContractorData = (
         console.log('useContractorData - Completed jobs count:', completedJobsData?.length || 0);
         
         // Separate quotes into active jobs vs quote requests based on request assignment
+        // CRITICAL: Check if the request itself is assigned to this contractor, not just if it has a contractor_id
         const quotesWithAssignedRequests = quotes.filter(quote => 
           quote.maintenance_requests && quote.maintenance_requests.contractor_id === contractorId
         );
         const quotesWithUnassignedRequests = quotes.filter(quote => 
-          quote.maintenance_requests && !quote.maintenance_requests.contractor_id
+          quote.maintenance_requests && quote.maintenance_requests.contractor_id !== contractorId
         );
         
-        // Process pending quote requests - only those without contractor assignment
+        console.log('useContractorData - Quotes with assigned requests (to this contractor):', quotesWithAssignedRequests.length);
+        console.log('useContractorData - Quotes with unassigned requests (not assigned to this contractor):', quotesWithUnassignedRequests.length);
+        
+        // Process pending quote requests - only those NOT assigned to this contractor
         const pendingFromQuotes = quotesWithUnassignedRequests
           .filter(quote => ['requested', 'pending', 'submitted'].includes(quote.status))
           .map((quote: any) => mapRequestFromQuote(quote));
         
-        // Process active jobs from quotes (requests assigned to this contractor)
-        const activeFromQuotes = quotesWithAssignedRequests
-          .map((quote: any) => mapRequestFromQuote(quote));
+        // Process active jobs from quotes (requests assigned to this contractor) - NO LONGER NEEDED
+        // Active jobs should only come from maintenance_requests table queries, not quotes
+        // const activeFromQuotes = quotesWithAssignedRequests
+        //   .map((quote: any) => mapRequestFromQuote(quote));
         
-        // Combine active jobs from maintenance_requests table and from quotes, removing duplicates
-        const activeRequestsFromDb = activeJobsData.map(mapRequestFromDb);
-        const activeRequestIds = new Set(activeRequestsFromDb.map(req => req.id));
-        const uniqueActiveFromQuotes = activeFromQuotes.filter(req => !activeRequestIds.has(req.id));
-        
-        const activeRequests = [
-          ...activeRequestsFromDb,
-          ...uniqueActiveFromQuotes
-        ];
+        // Active jobs come ONLY from maintenance_requests table, not from quotes
+        // This ensures that assigned jobs don't appear in quote requests
+        const activeRequests = activeJobsData.map(mapRequestFromDb);
         const completedRequests = completedJobsData.map(mapRequestFromDb);
         
         console.log('useContractorData - Mapped active requests:', activeRequests);
