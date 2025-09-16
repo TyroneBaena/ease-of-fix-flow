@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useUserContext } from '@/contexts/UserContext';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { Loader2 } from 'lucide-react';
 
 interface ContractorRouteGuardProps {
@@ -8,7 +8,7 @@ interface ContractorRouteGuardProps {
 }
 
 export const ContractorRouteGuard: React.FC<ContractorRouteGuardProps> = ({ children }) => {
-  const { currentUser, loading } = useUserContext();
+  const { currentUser, loading } = useSimpleAuth();
 
   console.log('🔒 ContractorRouteGuard - State:', { 
     currentUser: !!currentUser, 

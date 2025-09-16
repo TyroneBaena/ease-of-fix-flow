@@ -1,13 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { UserProvider } from './contexts/UserContext'
-import { MultiOrganizationProvider } from './contexts/MultiOrganizationContext'
+import { SimpleAuthProvider } from './contexts/SimpleAuthContext'
 
 createRoot(document.getElementById("root")!).render(
-  <MultiOrganizationProvider>
-    <UserProvider>
-      <App />
-    </UserProvider>
-  </MultiOrganizationProvider>
+  <SimpleAuthProvider>
+    <App />
+  </SimpleAuthProvider>
 );

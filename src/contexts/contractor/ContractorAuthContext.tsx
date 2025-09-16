@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useUserContext } from '@/contexts/UserContext';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
 import { mapRequestFromQuote, mapRequestFromDb } from '@/hooks/contractor/contractorDataMappers';
@@ -32,7 +32,7 @@ export const useContractorAuth = () => {
 };
 
 export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, loading: userLoading } = useUserContext();
+  const { currentUser, loading: userLoading } = useSimpleAuth();
   
   // Auth state
   const [contractorId, setContractorId] = useState<string | null>(null);
