@@ -74,18 +74,28 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
     }
 
     try {
+      // Get default budget category for organization
+      const { data: defaultCategory } = await supabase
+        .from('budget_categories')
+        .select('id')
+        .eq('organization_id', currentUser.organization_id)
+        .eq('name', 'General Maintenance')
+        .maybeSingle();
+
       // Prepare the data for insertion
       const insertData = {
         title: requestData.title || requestData.issueNature || 'Untitled Request',
         description: requestData.explanation || '',
         category: requestData.site || 'Unknown',
         location: requestData.location || 'Unknown',
-        priority: 'medium',
+        priority: requestData.priority || 'medium',
         status: 'pending',
         site: requestData.site || '',
         submitted_by: requestData.submittedBy || '',
         user_id: currentUser.id,
+        organization_id: currentUser.organization_id,
         property_id: requestData.propertyId,
+        budget_category_id: defaultCategory?.id || null,
         is_participant_related: requestData.isParticipantRelated || false,
         participant_name: requestData.participantName || 'N/A',
         attempted_fix: requestData.attemptedFix || '',

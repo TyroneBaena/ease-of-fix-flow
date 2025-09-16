@@ -37,19 +37,24 @@ export function validateRequest(body: InviteRequest) {
 }
 
 export function validateEnvironment(): Environment {
-  const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY');
+  // Try multiple potential API key names
+  const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY') || 
+                       Deno.env.get('RESEND_API_KEY') || 
+                       Deno.env.get('RESEND_API_KEY_1');
   const applicationUrl = Deno.env.get('APPLICATION_URL');
   const ownerEmail = Deno.env.get('RESEND_OWNER_EMAIL') || 'tyronebaena@gmail.com';
 
   console.log('Environment Checks:', {
-    NEW_RESEND_API_KEY: resendApiKey ? 'Present' : 'Missing',
+    NEW_RESEND_API_KEY: Deno.env.get('NEW_RESEND_API_KEY') ? 'Present' : 'Missing',
+    RESEND_API_KEY: Deno.env.get('RESEND_API_KEY') ? 'Present' : 'Missing',
+    RESEND_API_KEY_1: Deno.env.get('RESEND_API_KEY_1') ? 'Present' : 'Missing',
     APPLICATION_URL: applicationUrl ? 'Present' : 'Missing',
     APPLICATION_URL_VALUE: applicationUrl,
     RESEND_OWNER_EMAIL: ownerEmail
   });
 
   if (!resendApiKey) {
-    throw new Error("NEW_RESEND_API_KEY is not set in the environment variables");
+    throw new Error("No Resend API key found. Checked: NEW_RESEND_API_KEY, RESEND_API_KEY, RESEND_API_KEY_1");
   }
 
   if (!applicationUrl) {
