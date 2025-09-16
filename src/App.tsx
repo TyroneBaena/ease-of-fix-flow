@@ -174,51 +174,63 @@ function App() {
             
             <Route path="/contractor-jobs" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorJobs />
-                </ContractorProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorJobs />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-jobs/:id" element={
               <ProtectedRoute>
                 <MaintenanceRequestProvider>
-                  <ContractorProvider>
-                    <ContractorJobDetail />
-                  </ContractorProvider>
+                  <ContractorAuthProvider>
+                    <ContractorRouteGuard>
+                      <ContractorJobDetail />
+                    </ContractorRouteGuard>
+                  </ContractorAuthProvider>
                 </MaintenanceRequestProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-profile" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorProfile />
-                </ContractorProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorProfile />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-schedule" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorSchedule />
-                </ContractorProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorSchedule />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-settings" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorSettings />
-                </ContractorProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorSettings />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
             <Route path="/contractor-notifications" element={
               <ProtectedRoute>
-                <ContractorProvider>
-                  <ContractorNotifications />
-                </ContractorProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorNotifications />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
