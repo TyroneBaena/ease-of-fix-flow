@@ -60,37 +60,31 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      console.log(`🔑 Login v3.0: Attempting to sign in with email: ${email}`);
+      console.log(`🔑 Login v4.0: Attempting to sign in with email: ${email}`);
       
-      // First, let's clear any existing session to avoid conflicts
-      await supabase.auth.signOut();
-      console.log('🔑 Login v3.0: Cleared any existing session');
+      // Direct sign in without clearing session first - this was causing the issue
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      // Wait a moment then sign in fresh
-      setTimeout(async () => {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) {
-          console.error('🔑 Login v3.0: Auth error:', error);
-          toast.error(error.message || 'Failed to sign in');
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('🔑 Login v3.0: Auth successful, user:', data.user?.email);
-        console.log('🔑 Login v3.0: Session:', !!data.session);
-        
-        // Don't do anything else - let the UnifiedAuth context handle everything
-        console.log('🔑 Login v3.0: Letting UnifiedAuth context handle the rest...');
-        
+      if (error) {
+        console.error('🔑 Login v4.0: Auth error:', error);
+        toast.error(error.message || 'Failed to sign in');
         setIsLoading(false);
-      }, 100);
+        return;
+      }
+      
+      console.log('🔑 Login v4.0: Auth successful, user:', data.user?.email);
+      console.log('🔑 Login v4.0: Session:', !!data.session);
+      
+      // Session will be handled by UnifiedAuth context automatically
+      console.log('🔑 Login v4.0: Letting UnifiedAuth context handle session...');
+      
+      setIsLoading(false);
       
     } catch (error: any) {
-      console.error('🔑 Login v3.0: Login error:', error);
+      console.error('🔑 Login v4.0: Login error:', error);
       toast.error(error.message || 'Failed to sign in');
       setIsLoading(false);
     }
