@@ -18,6 +18,8 @@ export const ContractorJobDetailHeader = ({ job, onUpdateProgress }: ContractorJ
     switch (status) {
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'requested':
+        return <Badge className="bg-yellow-100 text-yellow-800">Requested</Badge>;
       case 'in-progress':
         return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
       case 'completed':
@@ -42,7 +44,7 @@ export const ContractorJobDetailHeader = ({ job, onUpdateProgress }: ContractorJ
         {getStatusBadge(job.status)}
       </div>
       
-      {(job.status === 'in-progress' || job.status === 'pending') && (
+      {(job.status === 'in-progress' || job.status === 'pending' || job.status === 'requested') && (
         <Button onClick={onUpdateProgress}>Update Progress</Button>
       )}
     </div>

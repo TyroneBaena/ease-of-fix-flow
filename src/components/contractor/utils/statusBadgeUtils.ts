@@ -1,7 +1,9 @@
 
-export const getStatusBadgeColor = (status: "pending" | "in-progress" | "completed" | "open") => {
+export const getStatusBadgeColor = (status: "pending" | "in-progress" | "completed" | "open" | "requested") => {
   switch (status) {
     case "pending":
+      return "bg-yellow-100 text-yellow-800";
+    case "requested":
       return "bg-yellow-100 text-yellow-800";
     case "in-progress":
       return "bg-blue-100 text-blue-800";

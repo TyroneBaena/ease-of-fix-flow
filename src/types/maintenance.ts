@@ -3,7 +3,7 @@ export interface MaintenanceRequest {
   id: string;
   title: string;  
   description?: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'open';
+  status: 'pending' | 'in-progress' | 'completed' | 'open' | 'requested';
   location: string; 
   priority?: 'low' | 'medium' | 'high' | 'critical';
   site: string;  
