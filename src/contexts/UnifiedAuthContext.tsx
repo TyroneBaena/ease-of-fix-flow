@@ -418,10 +418,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('UnifiedAuth - Auth state changed:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
+        // Set loading to false immediately when user signs in
+        setLoading(false);
+        setSession(session);
+        
+        // Convert user in background - don't block UI
         try {
           const user = await convertSupabaseUser(session.user);
           setCurrentUser(user);
-          setSession(session);
+          // Fetch organizations in background
           fetchUserOrganizations(user);
         } catch (error) {
           console.error('UnifiedAuth - Error converting signed in user:', error);
@@ -429,11 +434,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           setSession(null);
         }
       } else if (event === 'SIGNED_OUT') {
+        setLoading(false);
         setCurrentUser(null);
         setSession(null);
         setUserOrganizations([]);
         setCurrentOrganization(null);
       } else if (event === 'USER_UPDATED' && session?.user) {
+        // Don't set loading for USER_UPDATED - it's just an update
         try {
           const user = await convertSupabaseUser(session.user);
           setCurrentUser(user);
@@ -442,8 +449,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         } catch (error) {
           console.error('UnifiedAuth - Error converting updated user:', error);
         }
+      } else {
+        // For any other event, ensure loading is false
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
