@@ -52,16 +52,17 @@ export const useContractorData = (
         console.log('useContractorData - Contractor ID type:', typeof contractorId);
         console.log('useContractorData - Expected contractor ID: 11db078b-6121-4d53-b319-5ae7f22a70a2');
         
-        // Fetch quote requests for this contractor - include 'requested', 'pending', and 'submitted' statuses
-        // These represent: contractor needs to submit, quote submitted awaiting review, quote under admin review
+        // Fetch quote requests for this contractor (only requests without contractor assignment)
+        // Get requests where quote is requested but no contractor is assigned yet
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
             *,
-            maintenance_requests(*)
+            maintenance_requests!inner(*)
           `)
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'pending', 'submitted']); // Include all quote request statuses
+          .in('status', ['requested', 'pending', 'submitted'])
+          .is('maintenance_requests.contractor_id', null); // Only unassigned requests
           
         if (quotesError) {
           console.error('useContractorData - Error fetching quotes:', quotesError);
@@ -69,15 +70,15 @@ export const useContractorData = (
         }
         console.log('useContractorData - Fetched quote requests for contractor:', quotes);
         
-        // Fetch active jobs assigned to this contractor (in-progress with approved quotes)
-        // These should NOT appear in quote requests
+        // Fetch active jobs assigned to this contractor
+        // Jobs assigned to contractor should be active regardless of status (requested, in-progress)
         console.log('useContractorData - Fetching active jobs for contractor:', contractorId);
         console.log('useContractorData - About to query maintenance_requests table with contractor_id:', contractorId);
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
-          .eq('status', 'in-progress');
+          .in('status', ['requested', 'in-progress']);
           
         if (activeJobsError) {
           console.error('useContractorData - Error fetching active jobs:', activeJobsError);
@@ -101,9 +102,13 @@ export const useContractorData = (
         console.log('useContractorData - Fetched completed jobs:', completedJobsData);
         console.log('useContractorData - Completed jobs count:', completedJobsData?.length || 0);
         
-        // Process pending quote requests - include all relevant statuses
+        // Process pending quote requests - only those without contractor assignment
         const pendingFromQuotes = quotes
-          .filter(quote => quote.maintenance_requests && ['requested', 'pending', 'submitted'].includes(quote.status))
+          .filter(quote => 
+            quote.maintenance_requests && 
+            ['requested', 'pending', 'submitted'].includes(quote.status) &&
+            !quote.maintenance_requests.contractor_id // Only unassigned requests
+          )
           .map((quote: any) => mapRequestFromQuote(quote));
         
         const activeRequests = activeJobsData.map(mapRequestFromDb);
