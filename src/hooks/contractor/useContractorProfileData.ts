@@ -46,13 +46,13 @@ export const useContractorProfileData = () => {
 
       console.log('useContractorProfileData - Starting fetch for user:', currentUser.id);
       console.log('useContractorProfileData - User role:', currentUser.role);
+      console.log('useContractorProfileData - User organization:', currentUser.organization_id);
 
-      // Fetch contractor data with fresh query (no cache)
-      // Handle potential duplicate records by getting the most recent one
+      // First check if contractor exists by email as well, in case user_id doesn't match
       const { data: contractorData, error: contractorError } = await supabase
         .from('contractors')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .or(`user_id.eq.${currentUser.id},email.eq.${currentUser.email}`)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -65,7 +65,8 @@ export const useContractorProfileData = () => {
           details: contractorError.details,
           hint: contractorError.hint
         });
-        throw contractorError;
+        // Don't throw the error immediately, try to create a new contractor
+        console.log('useContractorProfileData - Continuing to create contractor despite error');
       }
 
       // If no contractor profile exists, create one automatically
