@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useSimpleAuth();
 
-  console.log('🔒 ProtectedRoute - State:', { 
+  console.log('🔒 ProtectedRoute v2.0 - State (LATEST VERSION):', { 
     currentUser: !!currentUser, 
     currentUserEmail: currentUser?.email,
     loading

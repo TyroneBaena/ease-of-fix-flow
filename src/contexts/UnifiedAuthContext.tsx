@@ -126,7 +126,7 @@ export const useUserContext = () => {
 // Simple user conversion without complex queries or timeouts
 const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
   try {
-    console.log('UnifiedAuth - Converting user:', supabaseUser.email);
+    console.log('🔄 UnifiedAuth - convertSupabaseUser called for:', supabaseUser.email);
     
     // Try to get profile from database with a shorter timeout
     const { data: profile, error } = await supabase
@@ -136,8 +136,10 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.warn('UnifiedAuth - Profile query error (non-critical):', error.message);
+      console.warn('🔄 UnifiedAuth - Profile query error (non-critical):', error.message);
     }
+
+    console.log('🔄 UnifiedAuth - Profile query result:', { hasProfile: !!profile, error: error?.message });
 
     // Create user object with fallbacks
     const user: User = {
@@ -151,7 +153,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       session_organization_id: profile?.session_organization_id || null
     };
 
-    console.log('UnifiedAuth - User converted:', {
+    console.log('🔄 UnifiedAuth - User converted successfully:', {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -161,7 +163,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
 
     return user;
   } catch (error) {
-    console.error('UnifiedAuth - Error converting user:', error);
+    console.error('🔄 UnifiedAuth - Error converting user:', error);
     // Return basic user on error
     return {
       id: supabaseUser.id,
@@ -388,7 +390,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   useEffect(() => {
-    console.log('UnifiedAuth - Setting up auth listener');
+    console.log('🚀 UnifiedAuth v2.0 - Setting up auth listener (LATEST VERSION)');
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {

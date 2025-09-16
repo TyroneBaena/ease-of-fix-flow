@@ -60,7 +60,7 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      console.log(`Attempting to sign in with email: ${email}`);
+      console.log(`🔑 Login: Attempting to sign in with email: ${email}`);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -68,12 +68,16 @@ const Login = () => {
       });
       
       if (error) {
+        console.error('🔑 Login: Auth error:', error);
         throw error;
       }
       
+      console.log('🔑 Login: Auth successful, user:', data.user?.email);
+      console.log('🔑 Login: Session:', !!data.session);
+      
       // Check if the user has organization setup
       if (data?.user) {
-        console.log("Login successful, verifying organization...");
+        console.log("🔑 Login: Login successful, verifying organization for user:", data.user.email);
         
         // Verify user has organization setup
         const hasOrganization = await ensureUserOrganization(data.user.id);
@@ -91,10 +95,10 @@ const Login = () => {
         }
         
         // Wait a moment for auth context to update, then let it handle navigation
-        console.log('Login successful - waiting for auth context to update and handle navigation');
+        console.log('🔑 Login: Login successful - waiting for auth context to update and handle navigation');
         setTimeout(() => {
-          console.log('Login: Checking currentUser after login:', !!currentUser);
-        }, 1000);
+          console.log('🔑 Login: Checking currentUser after login timeout:', !!currentUser, currentUser?.email);
+        }, 2000);
       }
     } catch (error: any) {
       console.error('Login error:', error);
