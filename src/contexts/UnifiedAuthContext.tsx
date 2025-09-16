@@ -391,14 +391,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   useEffect(() => {
-    console.log('🚀 UnifiedAuth v4.0 - Setting up auth listener (LATEST VERSION)', { authDebugMarker });
+    console.log('🚀 UnifiedAuth v5.0 - Setting up SINGLE auth listener (FIXED VERSION)', { authDebugMarker });
     
-    // Set up auth state listener FIRST
+    // Set up ONE auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🚀 UnifiedAuth v4.0 - Auth state changed:', event, 'Session exists:', !!session);
+      console.log('🚀 UnifiedAuth v5.0 - Auth state changed:', event, 'Session exists:', !!session);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🚀 UnifiedAuth v4.0 - SIGNED_IN event, user email:', session.user.email);
+        console.log('🚀 UnifiedAuth v5.0 - SIGNED_IN event, user email:', session.user.email);
         
         // Set session immediately
         setSession(session);
@@ -407,14 +407,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Convert user and fetch organizations
         try {
           const user = await convertSupabaseUser(session.user);
-          console.log('🚀 UnifiedAuth v4.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
+          console.log('🚀 UnifiedAuth v5.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
           setCurrentUser(user);
           
           // Fetch organizations for this user
-          fetchUserOrganizations(user);
+          await fetchUserOrganizations(user);
           
           // Force session to be recognized by the database by making a test query
-          console.log('🚀 UnifiedAuth v4.0 - Testing database session...');
+          console.log('🚀 UnifiedAuth v5.0 - Testing database session...');
           const { data: testData, error: testError } = await supabase
             .from('profiles')
             .select('id, email, organization_id')
@@ -422,25 +422,25 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             .single();
           
           if (testError) {
-            console.error('🚀 UnifiedAuth v4.0 - Database session test failed:', testError);
+            console.error('🚀 UnifiedAuth v5.0 - Database session test failed:', testError);
           } else {
-            console.log('🚀 UnifiedAuth v4.0 - Database session test successful:', testData);
+            console.log('🚀 UnifiedAuth v5.0 - Database session test successful:', testData);
           }
           
         } catch (error) {
-          console.error('🚀 UnifiedAuth v4.0 - Error converting signed in user:', error);
+          console.error('🚀 UnifiedAuth v5.0 - Error converting signed in user:', error);
           setCurrentUser(null);
           setSession(null);
         }
       } else if (event === 'SIGNED_OUT') {
-        console.log('🚀 UnifiedAuth v4.0 - SIGNED_OUT event');
+        console.log('🚀 UnifiedAuth v5.0 - SIGNED_OUT event');
         setLoading(false);
         setCurrentUser(null);
         setSession(null);
         setUserOrganizations([]);
         setCurrentOrganization(null);
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🚀 UnifiedAuth v4.0 - TOKEN_REFRESHED event');
+        console.log('🚀 UnifiedAuth v5.0 - TOKEN_REFRESHED event');
         setSession(session);
         
         // Re-test database connection on token refresh
@@ -452,24 +452,24 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             .single();
           
           if (testError) {
-            console.error('🚀 UnifiedAuth v4.0 - Database session test failed after token refresh:', testError);
+            console.error('🚀 UnifiedAuth v5.0 - Database session test failed after token refresh:', testError);
           } else {
-            console.log('🚀 UnifiedAuth v4.0 - Database session test successful after token refresh:', testData);
+            console.log('🚀 UnifiedAuth v5.0 - Database session test successful after token refresh:', testData);
           }
         }
       } else if (event === 'USER_UPDATED' && session?.user) {
-        console.log('🚀 UnifiedAuth v4.0 - USER_UPDATED event');
+        console.log('🚀 UnifiedAuth v5.0 - USER_UPDATED event');
         // Don't set loading for USER_UPDATED - it's just an update
         try {
           const user = await convertSupabaseUser(session.user);
           setCurrentUser(user);
           setSession(session);
-          fetchUserOrganizations(user);
+          await fetchUserOrganizations(user);
         } catch (error) {
-          console.error('🚀 UnifiedAuth v4.0 - Error converting updated user:', error);
+          console.error('🚀 UnifiedAuth v5.0 - Error converting updated user:', error);
         }
       } else {
-        console.log('🚀 UnifiedAuth v4.0 - Other auth event:', event);
+        console.log('🚀 UnifiedAuth v5.0 - Other auth event:', event);
         // For any other event, ensure loading is false
         setLoading(false);
       }
@@ -477,18 +477,32 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // THEN get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('UnifiedAuth - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
+      console.log('🚀 UnifiedAuth v5.0 - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
       
       if (session?.user) {
         try {
           const user = await convertSupabaseUser(session.user);
-          console.log('UnifiedAuth - Initial user converted:', user.email);
+          console.log('🚀 UnifiedAuth v5.0 - Initial user converted:', user.email, 'Org ID:', user.organization_id);
           setCurrentUser(user);
           setSession(session);
           // Fetch organizations in background
-          fetchUserOrganizations(user);
+          await fetchUserOrganizations(user);
+          
+          // Test database session for initial load
+          const { data: testData, error: testError } = await supabase
+            .from('profiles')
+            .select('id, email, organization_id')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (testError) {
+            console.error('🚀 UnifiedAuth v5.0 - Initial database session test failed:', testError);
+          } else {
+            console.log('🚀 UnifiedAuth v5.0 - Initial database session test successful:', testData);
+          }
+          
         } catch (error) {
-          console.error('UnifiedAuth - Error converting initial user:', error);
+          console.error('🚀 UnifiedAuth v5.0 - Error converting initial user:', error);
           setCurrentUser(null);
           setSession(null);
         }
@@ -499,50 +513,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('UnifiedAuth - Auth state changed:', event);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Set loading to false immediately when user signs in
-        setLoading(false);
-        setSession(session);
-        
-        // Convert user in background - don't block UI
-        try {
-          const user = await convertSupabaseUser(session.user);
-          setCurrentUser(user);
-          // Fetch organizations in background
-          fetchUserOrganizations(user);
-        } catch (error) {
-          console.error('UnifiedAuth - Error converting signed in user:', error);
-          setCurrentUser(null);
-          setSession(null);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setLoading(false);
-        setCurrentUser(null);
-        setSession(null);
-        setUserOrganizations([]);
-        setCurrentOrganization(null);
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        // Don't set loading for USER_UPDATED - it's just an update
-        try {
-          const user = await convertSupabaseUser(session.user);
-          setCurrentUser(user);
-          setSession(session);
-          fetchUserOrganizations(user);
-        } catch (error) {
-          console.error('UnifiedAuth - Error converting updated user:', error);
-        }
-      } else {
-        // For any other event, ensure loading is false
-        setLoading(false);
-      }
-    });
-
     return () => {
-      authSubscription.unsubscribe();
+      console.log('🚀 UnifiedAuth v5.0 - Cleaning up auth listener');
+      subscription.unsubscribe();
     };
   }, []);
 
