@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { validateAllContractorsInOrganization } from '@/utils/contractorValidation';
 import { quickContractorHealthCheck, runContractorWorkflowTests } from '@/utils/contractorWorkflowTester';
 

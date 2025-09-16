@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { tenantService } from '@/services/user/tenantService';
 import { toast } from "sonner";
 

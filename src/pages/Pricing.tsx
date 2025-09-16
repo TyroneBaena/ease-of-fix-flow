@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUserContext } from "@/contexts/UserContext";
+import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";

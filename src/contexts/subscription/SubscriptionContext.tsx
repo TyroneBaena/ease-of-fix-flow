@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserContext } from "@/contexts/UserContext";
+import { useUserContext } from "@/contexts/UnifiedAuthContext";
 
 interface SubscriptionContextValue {
   subscribed: boolean | null;

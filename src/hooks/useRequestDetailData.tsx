@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
 import { useContractorStatus } from './request-detail/useContractorStatus';

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 export const useContractorRequests = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);

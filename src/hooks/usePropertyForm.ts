@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
 import { PropertyFormData, UsePropertyFormProps } from '@/types/propertyForm';
 import { User } from '@/types/user';

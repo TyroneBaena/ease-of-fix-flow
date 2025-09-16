@@ -4,6 +4,20 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types/user';
 import { toast } from '@/lib/toast';
 
+// Import the full AddUserResult interface
+export interface AddUserResult {
+  success: boolean;
+  message: string;
+  userId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+  testMode?: boolean;
+  testModeInfo?: string;
+  isNewUser?: boolean;
+  isExistingUserAddedToOrg?: boolean;
+  email?: string;
+}
+
 // Organization types
 interface Organization {
   id: string;
@@ -44,6 +58,15 @@ interface UnifiedAuthContextType {
   // Admin helper
   isAdmin: boolean;
   canAccessProperty: (propertyId: string) => boolean;
+  
+  // User management
+  users: User[];
+  fetchUsers: () => Promise<void>;
+  addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<AddUserResult>;
+  updateUser: (user: User) => Promise<void>;
+  removeUser: (userId: string) => Promise<void>;
+  resetPassword: (userId: string, email: string) => Promise<{success: boolean; message: string}>;
+  adminResetPassword: (userId: string, email: string) => Promise<{success: boolean; message: string}>;
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(undefined);
@@ -85,24 +108,15 @@ export const useUserContext = () => {
   const context = useUnifiedAuth();
   return {
     currentUser: context.currentUser,
-    users: [], // Stub for now
+    users: context.users,
     loading: context.loading,
     loadingError: null,
-    fetchUsers: async () => {},
-    addUser: async (email: string, name: string, role: UserRole, assignedProperties?: string[]) => ({
-      success: false,
-      message: 'Not implemented'
-    }),
-    updateUser: async (user: User) => {},
-    removeUser: async (userId: string) => {},
-    resetPassword: async (userId: string, email: string) => ({
-      success: false,
-      message: 'Not implemented'
-    }),
-    adminResetPassword: async (userId: string, email: string) => ({
-      success: false,
-      message: 'Not implemented'
-    }),
+    fetchUsers: context.fetchUsers,
+    addUser: context.addUser,
+    updateUser: context.updateUser,
+    removeUser: context.removeUser,
+    resetPassword: context.resetPassword,
+    adminResetPassword: context.adminResetPassword,
     isAdmin: context.isAdmin,
     canAccessProperty: context.canAccessProperty,
     signOut: context.signOut
@@ -170,6 +184,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
+  
+  // User management state
+  const [users, setUsers] = useState<User[]>([]);
 
   const signOut = async () => {
     try {
@@ -336,6 +353,40 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return currentUser.assignedProperties?.includes(propertyId) || false;
   };
 
+  // User management functions (stubs for now)
+  const fetchUsers = async () => {
+    // Implementation would go here
+    console.log('fetchUsers called');
+  };
+
+  const addUser = async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
+    // Basic implementation - would be replaced with actual service call
+    console.log('addUser called:', { email, name, role, assignedProperties });
+    return {
+      success: false,
+      message: 'User management not fully implemented yet',
+      email
+    };
+  };
+
+  const updateUser = async (user: User) => {
+    console.log('updateUser called:', user);
+  };
+
+  const removeUser = async (userId: string) => {
+    console.log('removeUser called:', userId);
+  };
+
+  const resetPassword = async (userId: string, email: string) => {
+    console.log('resetPassword called:', { userId, email });
+    return { success: false, message: 'Not implemented' };
+  };
+
+  const adminResetPassword = async (userId: string, email: string) => {
+    console.log('adminResetPassword called:', { userId, email });
+    return { success: false, message: 'Not implemented' };
+  };
+
   useEffect(() => {
     console.log('UnifiedAuth - Setting up auth listener');
     
@@ -411,7 +462,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     refreshOrganizations,
     getCurrentUserRole,
     isAdmin,
-    canAccessProperty
+    canAccessProperty,
+    users,
+    fetchUsers,
+    addUser,
+    updateUser,
+    removeUser,
+    resetPassword,
+    adminResetPassword
   };
 
   console.log('UnifiedAuth - Provider render:', { 

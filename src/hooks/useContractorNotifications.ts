@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { NotificationClient } from '@/types/notification';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from 'sonner';
 import { notificationService } from '@/services/notificationService';
 import { 

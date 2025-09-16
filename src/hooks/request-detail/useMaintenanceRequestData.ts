@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from 'sonner';
 import { formatRequestData } from './formatRequestData';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 /**
  * Hook to fetch and manage maintenance request data
