@@ -187,9 +187,11 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
   // Fetch jobs data for contractor with memoization
   const fetchJobsData = useCallback(async (contractorIdParam: string) => {
     try {
-      console.log('ContractorAuth - Fetching jobs for contractor:', contractorIdParam);
+      console.log('ContractorAuth - Starting fetchJobsData for contractor:', contractorIdParam);
+      setLoading(true);
 
       // Fetch quotes (pending requests needing quotes)
+      console.log('ContractorAuth - Fetching quotes...');
       const { data: quotes, error: quotesError } = await supabase
         .from('quotes')
         .select(`
@@ -251,6 +253,9 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     } catch (err: any) {
       console.error('ContractorAuth - Error fetching jobs:', err);
       setError('Failed to load jobs data');
+    } finally {
+      console.log('ContractorAuth - fetchJobsData completed, setting loading to false');
+      setLoading(false);
     }
   }, []); // No dependencies needed since contractorIdParam is passed as parameter
 
