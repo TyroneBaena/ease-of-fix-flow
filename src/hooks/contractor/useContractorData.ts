@@ -52,8 +52,7 @@ export const useContractorData = (
         console.log('useContractorData - Contractor ID type:', typeof contractorId);
         console.log('useContractorData - Expected contractor ID: 11db078b-6121-4d53-b319-5ae7f22a70a2');
         
-        // Fetch quote requests for this contractor (only requests without contractor assignment)
-        // Get requests where quote is requested but no contractor is assigned yet
+        // Fetch all quotes for this contractor to check which requests they're involved in
         const { data: quotes, error: quotesError } = await supabase
           .from('quotes')
           .select(`
@@ -61,8 +60,7 @@ export const useContractorData = (
             maintenance_requests!inner(*)
           `)
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'pending', 'submitted'])
-          .is('maintenance_requests.contractor_id', null); // Only unassigned requests
+          .in('status', ['requested', 'pending', 'submitted']);
           
         if (quotesError) {
           console.error('useContractorData - Error fetching quotes:', quotesError);
@@ -102,16 +100,32 @@ export const useContractorData = (
         console.log('useContractorData - Fetched completed jobs:', completedJobsData);
         console.log('useContractorData - Completed jobs count:', completedJobsData?.length || 0);
         
+        // Separate quotes into active jobs vs quote requests based on request assignment
+        const quotesWithAssignedRequests = quotes.filter(quote => 
+          quote.maintenance_requests && quote.maintenance_requests.contractor_id === contractorId
+        );
+        const quotesWithUnassignedRequests = quotes.filter(quote => 
+          quote.maintenance_requests && !quote.maintenance_requests.contractor_id
+        );
+        
         // Process pending quote requests - only those without contractor assignment
-        const pendingFromQuotes = quotes
-          .filter(quote => 
-            quote.maintenance_requests && 
-            ['requested', 'pending', 'submitted'].includes(quote.status) &&
-            !quote.maintenance_requests.contractor_id // Only unassigned requests
-          )
+        const pendingFromQuotes = quotesWithUnassignedRequests
+          .filter(quote => ['requested', 'pending', 'submitted'].includes(quote.status))
           .map((quote: any) => mapRequestFromQuote(quote));
         
-        const activeRequests = activeJobsData.map(mapRequestFromDb);
+        // Process active jobs from quotes (requests assigned to this contractor)
+        const activeFromQuotes = quotesWithAssignedRequests
+          .map((quote: any) => mapRequestFromQuote(quote));
+        
+        // Combine active jobs from maintenance_requests table and from quotes, removing duplicates
+        const activeRequestsFromDb = activeJobsData.map(mapRequestFromDb);
+        const activeRequestIds = new Set(activeRequestsFromDb.map(req => req.id));
+        const uniqueActiveFromQuotes = activeFromQuotes.filter(req => !activeRequestIds.has(req.id));
+        
+        const activeRequests = [
+          ...activeRequestsFromDb,
+          ...uniqueActiveFromQuotes
+        ];
         const completedRequests = completedJobsData.map(mapRequestFromDb);
         
         console.log('useContractorData - Mapped active requests:', activeRequests);
