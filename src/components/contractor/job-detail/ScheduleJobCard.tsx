@@ -27,7 +27,14 @@ export const ScheduleJobCard: React.FC<ScheduleJobCardProps> = ({
     }
   };
 
-  const isSchedulable = (request.status === 'in-progress' || request.status === 'pending' || request.status === 'requested') && request.contractorId;
+  const isSchedulable = request.status !== 'completed';
+
+  console.log('ScheduleJobCard - Debug info:', {
+    jobId: request.id,
+    status: request.status,
+    contractorId: request.contractorId,
+    isSchedulable
+  });
 
   if (!isSchedulable) {
     return null;
