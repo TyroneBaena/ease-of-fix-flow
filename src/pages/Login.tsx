@@ -60,50 +60,38 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      console.log(`🔑 Login: Attempting to sign in with email: ${email}`);
+      console.log(`🔑 Login v3.0: Attempting to sign in with email: ${email}`);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // First, let's clear any existing session to avoid conflicts
+      await supabase.auth.signOut();
+      console.log('🔑 Login v3.0: Cleared any existing session');
       
-      if (error) {
-        console.error('🔑 Login: Auth error:', error);
-        throw error;
-      }
-      
-      console.log('🔑 Login: Auth successful, user:', data.user?.email);
-      console.log('🔑 Login: Session:', !!data.session);
-      
-      // Check if the user has organization setup
-      if (data?.user) {
-        console.log("🔑 Login: Login successful, verifying organization for user:", data.user.email);
+      // Wait a moment then sign in fresh
+      setTimeout(async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         
-        // Verify user has organization setup
-        const hasOrganization = await ensureUserOrganization(data.user.id);
-        
-        if (!hasOrganization) {
-          console.log("User missing organization, but continuing login");
-          toast.warning("Your account setup may be incomplete. Please contact support if you experience issues.");
-        }
-        
-        // Check if this is a first-time login (using temporary password)
-        const params = new URLSearchParams(location.search);
-        if (params.get('setupPassword') === 'true') {
-          navigate(`/setup-password?email=${encodeURIComponent(email)}`);
+        if (error) {
+          console.error('🔑 Login v3.0: Auth error:', error);
+          toast.error(error.message || 'Failed to sign in');
+          setIsLoading(false);
           return;
         }
         
-        // Wait a moment for auth context to update, then let it handle navigation
-        console.log('🔑 Login: Login successful - waiting for auth context to update and handle navigation');
-        setTimeout(() => {
-          console.log('🔑 Login: Checking currentUser after login timeout:', !!currentUser, currentUser?.email);
-        }, 2000);
-      }
+        console.log('🔑 Login v3.0: Auth successful, user:', data.user?.email);
+        console.log('🔑 Login v3.0: Session:', !!data.session);
+        
+        // Don't do anything else - let the UnifiedAuth context handle everything
+        console.log('🔑 Login v3.0: Letting UnifiedAuth context handle the rest...');
+        
+        setIsLoading(false);
+      }, 100);
+      
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('🔑 Login v3.0: Login error:', error);
       toast.error(error.message || 'Failed to sign in');
-    } finally {
       setIsLoading(false);
     }
   };

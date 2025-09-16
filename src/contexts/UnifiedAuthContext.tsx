@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types/user';
 import { toast } from '@/lib/toast';
+import { authDebugMarker } from '@/auth-debug';
 
 // Import the full AddUserResult interface
 export interface AddUserResult {
@@ -390,7 +391,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   useEffect(() => {
-    console.log('🚀 UnifiedAuth v2.0 - Setting up auth listener (LATEST VERSION)');
+    console.log('🚀 UnifiedAuth v3.0 - Setting up auth listener (LATEST VERSION)', { authDebugMarker });
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
