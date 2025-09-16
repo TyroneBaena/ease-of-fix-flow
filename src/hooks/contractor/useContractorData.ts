@@ -95,29 +95,26 @@ export const useContractorData = (
         console.log('useContractorData - Fetched completed jobs:', completedJobsData);
         console.log('useContractorData - Completed jobs count:', completedJobsData?.length || 0);
         
-        // Separate quotes into active jobs vs quote requests based on request assignment
-        // CRITICAL: Check if the request itself is assigned to this contractor, not just if it has a contractor_id
+        // CRITICAL BUG FIX: Separate quotes based on whether the REQUEST has a contractor assigned
+        // NOT whether the quote contractor matches this contractor
         const quotesWithAssignedRequests = quotes.filter(quote => 
-          quote.maintenance_requests && quote.maintenance_requests.contractor_id === contractorId
+          quote.maintenance_requests && quote.maintenance_requests.contractor_id !== null
         );
         const quotesWithUnassignedRequests = quotes.filter(quote => 
-          quote.maintenance_requests && quote.maintenance_requests.contractor_id !== contractorId
+          quote.maintenance_requests && quote.maintenance_requests.contractor_id === null
         );
         
-        console.log('useContractorData - Quotes with assigned requests (to this contractor):', quotesWithAssignedRequests.length);
-        console.log('useContractorData - Quotes with unassigned requests (not assigned to this contractor):', quotesWithUnassignedRequests.length);
+        console.log('useContractorData - Quotes for requests with ANY contractor assigned:', quotesWithAssignedRequests.length);
+        console.log('useContractorData - Quotes for requests with NO contractor assigned:', quotesWithUnassignedRequests.length);
         
-        // Process pending quote requests - only those NOT assigned to this contractor
+        // Process pending quote requests - only those with NO contractor assigned to the request
         const pendingFromQuotes = quotesWithUnassignedRequests
           .filter(quote => ['requested', 'pending', 'submitted'].includes(quote.status))
           .map((quote: any) => mapRequestFromQuote(quote));
         
-        // Process active jobs from quotes (requests assigned to this contractor) - NO LONGER NEEDED
-        // Active jobs should only come from maintenance_requests table queries, not quotes
-        // const activeFromQuotes = quotesWithAssignedRequests
-        //   .map((quote: any) => mapRequestFromQuote(quote));
+        console.log('useContractorData - Pending quote requests (no contractor assigned):', pendingFromQuotes.length);
         
-        // Active jobs come ONLY from maintenance_requests table, not from quotes
+        // Active jobs come ONLY from maintenance_requests table where contractor_id matches this contractor
         // This ensures that assigned jobs don't appear in quote requests
         const activeRequests = activeJobsData.map(mapRequestFromDb);
         const completedRequests = completedJobsData.map(mapRequestFromDb);

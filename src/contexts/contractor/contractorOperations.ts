@@ -26,16 +26,33 @@ export const fetchContractors = async (): Promise<Contractor[]> => {
 };
 
 export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
-  const { error } = await supabase
+  console.log('🔧 assignContractorToRequest - Starting assignment:', { requestId, contractorId });
+  
+  const { data, error } = await supabase
     .from('maintenance_requests')
     .update({
       contractor_id: contractorId,
       assigned_at: new Date().toISOString(),
       status: 'in-progress'
     })
-    .eq('id', requestId);
+    .eq('id', requestId)
+    .select(); // Add select to see what was updated
 
-  if (error) throw error;
+  console.log('🔧 assignContractorToRequest - Update result:', { data, error });
+
+  if (error) {
+    console.error('🔧 assignContractorToRequest - Update failed:', error);
+    throw error;
+  }
+
+  // Verify the update worked
+  const { data: verifyData } = await supabase
+    .from('maintenance_requests')
+    .select('id, status, contractor_id, assigned_at')
+    .eq('id', requestId)
+    .single();
+    
+  console.log('🔧 assignContractorToRequest - Post-update verification:', verifyData);
 };
 
 export const requestQuoteForJob = async (requestId: string, contractorId: string) => {
