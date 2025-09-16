@@ -414,33 +414,38 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('🚀 UnifiedAuth v6.0 - Auth state changed:', event, 'Session exists:', !!session);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🚀 UnifiedAuth v8.0 - SIGNED_IN event, user email:', session.user.email);
+        console.log('🚀 UnifiedAuth v10.0 - SIGNED_IN event, user email:', session.user.email);
         
         // Set session immediately
         setSession(session);
+        console.log('🚀 UnifiedAuth v10.0 - Session set');
         
         // Convert user and fetch organizations
         try {
-          console.log('🚀 UnifiedAuth v8.0 - Converting user...');
+          console.log('🚀 UnifiedAuth v10.0 - About to convert user...');
           const user = await convertSupabaseUser(session.user);
-          console.log('🚀 UnifiedAuth v8.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
+          console.log('🚀 UnifiedAuth v10.0 - User converted successfully:', user.email, 'Org ID:', user.organization_id);
           
           // Set user and clear loading state IMMEDIATELY
-          console.log('🚀 UnifiedAuth v8.0 - Setting user and clearing loading state...');
+          console.log('🚀 UnifiedAuth v10.0 - About to set user and clear loading...');
           setCurrentUser(user);
+          console.log('🚀 UnifiedAuth v10.0 - User set successfully');
           setLoading(false);
-          console.log('🚀 UnifiedAuth v8.0 - Auth state updated - user:', user.email, 'loading: false');
+          console.log('🚀 UnifiedAuth v10.0 - Loading set to FALSE successfully');
           
-          // Fetch organizations asynchronously after state is set
-          setTimeout(async () => {
-            try {
-              console.log('🚀 UnifiedAuth v8.0 - Fetching organizations in background...');
-              await fetchUserOrganizations(user);
-              console.log('🚀 UnifiedAuth v8.0 - Organizations fetched successfully');
-            } catch (orgError) {
-              console.error('🚀 UnifiedAuth v8.0 - Non-critical error fetching organizations:', orgError);
+          // Force immediate re-render to ensure state updates are applied
+          console.log('🚀 UnifiedAuth v10.0 - Auth state should now be: user =', user.email, ', loading = false');
+          
+          // Safety mechanism: Force loading to false after a short delay if still true
+          setTimeout(() => {
+            if (loading) {
+              console.log('🚀 UnifiedAuth v10.0 - SAFETY: Loading still true, forcing to false');
+              setLoading(false);
             }
-          }, 0);
+          }, 100);
+          
+          // Skip organization fetch for now to isolate the loading issue
+          console.log('🚀 UnifiedAuth v10.0 - Skipping organization fetch to isolate loading issue');
           
           // Force session to be recognized by the database by making a test query
           console.log('🚀 UnifiedAuth v6.0 - Testing database session...');
@@ -457,10 +462,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
           
         } catch (error) {
-          console.error('🚀 UnifiedAuth v6.0 - Error converting signed in user:', error);
+          console.error('🚀 UnifiedAuth v10.0 - Error in SIGNED_IN handler:', error);
           setCurrentUser(null);
           setSession(null);
           setLoading(false);
+          console.log('🚀 UnifiedAuth v10.0 - Loading set to false in error handler');
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('🚀 UnifiedAuth v6.0 - SIGNED_OUT event');
