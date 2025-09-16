@@ -4,6 +4,9 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types/user';
 import { toast } from '@/lib/toast';
 import { authDebugMarker } from '@/auth-debug';
+import '@/auth-debug'; // Force import to trigger debug logs
+
+console.log('🚀 UnifiedAuth Context loading with debug marker:', authDebugMarker);
 
 // Import the full AddUserResult interface
 export interface AddUserResult {

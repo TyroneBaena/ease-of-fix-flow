@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { ensureUserOrganization } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
 import { supabase } from '@/integrations/supabase/client';
+import '@/auth-debug'; // Force import to ensure debug logs appear
 
 
 const Login = () => {
@@ -25,13 +26,14 @@ const Login = () => {
 
   // Effect to check if user is already logged in and redirect
   useEffect(() => {
+    console.log("🔑 Login v7.0: useEffect triggered - currentUser:", !!currentUser, currentUser?.email);
     if (currentUser) {
-      console.log("Login: User is already logged in, redirecting to appropriate dashboard. User:", currentUser.email, "Role:", currentUser.role);
+      console.log("🔑 Login v7.0: User is already logged in, redirecting to appropriate dashboard. User:", currentUser.email, "Role:", currentUser.role);
       const redirectPath = getRedirectPathByRole(currentUser.role);
-      console.log("Login: Redirecting to:", redirectPath);
+      console.log("🔑 Login v7.0: Redirecting to:", redirectPath);
       navigate(redirectPath, { replace: true });
     } else {
-      console.log("Login: No current user found");
+      console.log("🔑 Login v7.0: No current user found");
     }
   }, [currentUser, navigate]);
 
@@ -60,31 +62,34 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      console.log(`🔑 Login v4.0: Attempting to sign in with email: ${email}`);
+      console.log(`🔑 Login v7.0: Attempting to sign in with email: ${email}`);
       
-      // Direct sign in without clearing session first - this was causing the issue
+      // Direct sign in without clearing session first
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
-        console.error('🔑 Login v4.0: Auth error:', error);
+        console.error('🔑 Login v7.0: Auth error:', error);
         toast.error(error.message || 'Failed to sign in');
         setIsLoading(false);
         return;
       }
       
-      console.log('🔑 Login v4.0: Auth successful, user:', data.user?.email);
-      console.log('🔑 Login v4.0: Session:', !!data.session);
+      console.log('🔑 Login v7.0: Auth successful, user:', data.user?.email);
+      console.log('🔑 Login v7.0: Session:', !!data.session);
+      console.log('🔑 Login v7.0: Full auth data:', data);
       
-      // Session will be handled by UnifiedAuth context automatically
-      console.log('🔑 Login v4.0: Letting UnifiedAuth context handle session...');
-      
-      setIsLoading(false);
+      // Wait a moment for the auth state listener to fire
+      console.log('🔑 Login v7.0: Waiting for auth state listener to fire...');
+      setTimeout(() => {
+        console.log('🔑 Login v7.0: Auth state should have been updated by now');
+        setIsLoading(false);
+      }, 2000);
       
     } catch (error: any) {
-      console.error('🔑 Login v4.0: Login error:', error);
+      console.error('🔑 Login v7.0: Login error:', error);
       toast.error(error.message || 'Failed to sign in');
       setIsLoading(false);
     }
