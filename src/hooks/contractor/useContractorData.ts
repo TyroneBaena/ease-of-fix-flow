@@ -19,8 +19,13 @@ export const useContractorData = (
   const hasInitializedRef = useRef(false); // Track initial data load
 
   useEffect(() => {
+    console.log('🚨 useContractorData - useEffect TRIGGERED');
+    console.log('🚨 useContractorData - contractorId:', contractorId);
+    console.log('🚨 useContractorData - loading:', loading);
+    console.log('🚨 useContractorData - refreshTrigger:', refreshTrigger);
+    
     if (!contractorId) {
-      console.log('useContractorData - No contractor ID, clearing data');
+      console.log('🚨 useContractorData - No contractor ID, clearing data');
       setPendingQuoteRequests([]);
       setActiveJobs([]);
       setCompletedJobs([]);
