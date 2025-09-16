@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, UserRole } from '@/types/user';
-import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
 import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';

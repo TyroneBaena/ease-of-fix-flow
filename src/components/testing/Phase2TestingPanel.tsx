@@ -13,8 +13,7 @@ import {
   Database,
   RefreshCw
 } from 'lucide-react';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { useOrganizationContext } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';

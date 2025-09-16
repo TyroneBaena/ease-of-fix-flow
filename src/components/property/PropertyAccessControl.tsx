@@ -1,7 +1,6 @@
 
 import React, { ReactNode, useState, useEffect } from 'react';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { OrganizationAccessError } from '@/components/errors/OrganizationAccessError';
 import { supabase } from '@/integrations/supabase/client';
 

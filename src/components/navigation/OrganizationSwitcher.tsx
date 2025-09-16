@@ -14,7 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { cn } from '@/lib/utils';
 
 export const OrganizationSwitcher = () => {

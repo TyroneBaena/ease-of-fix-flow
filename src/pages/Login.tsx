@@ -11,7 +11,7 @@ import { Toaster } from "sonner";
 import { ensureUserOrganization } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
 import { supabase } from '@/integrations/supabase/client';
-import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');

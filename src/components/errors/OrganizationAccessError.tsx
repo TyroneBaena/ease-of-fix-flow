@@ -3,7 +3,7 @@ import { AlertTriangle, Building2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
-import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
+import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 
 interface OrganizationAccessErrorProps {
   message?: string;
