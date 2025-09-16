@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { updateJobProgressStatus } from '../operations';
+import { updateJobProgressStatus } from '../operations/progressOperations';
 
 /**
  * Hook for job progress operations
