@@ -4,7 +4,7 @@ import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RequestsTable } from '@/components/contractor/requests/RequestsTable';
-import { useContractorDashboard } from '@/hooks/useContractorDashboard';
+import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Toaster } from "sonner";
@@ -19,7 +19,7 @@ const ContractorJobs = () => {
     error,
     refreshData,
     contractorId
-  } = useContractorDashboard();
+  } = useContractorAuth();
 
   console.log('ContractorJobs - Current data state:', {
     contractorId,

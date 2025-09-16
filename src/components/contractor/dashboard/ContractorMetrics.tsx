@@ -25,6 +25,8 @@ export const ContractorMetrics: React.FC<ContractorMetricsProps> = ({
     pendingQuotes.forEach(request => {
       if (request.quote && typeof request.quote !== 'string' && request.quote.amount) {
         total += Number(request.quote.amount);
+      } else if (request.quotedAmount) {
+        total += Number(request.quotedAmount);
       }
     });
     
@@ -32,6 +34,8 @@ export const ContractorMetrics: React.FC<ContractorMetricsProps> = ({
     activeJobs.forEach(job => {
       if (job.quotedAmount) {
         total += Number(job.quotedAmount);
+      } else if (job.quote && typeof job.quote !== 'string' && job.quote.amount) {
+        total += Number(job.quote.amount);
       }
     });
     
@@ -39,6 +43,8 @@ export const ContractorMetrics: React.FC<ContractorMetricsProps> = ({
     completedJobs.forEach(job => {
       if (job.quotedAmount) {
         total += Number(job.quotedAmount);
+      } else if (job.quote && typeof job.quote !== 'string' && job.quote.amount) {
+        total += Number(job.quote.amount);
       }
     });
     
