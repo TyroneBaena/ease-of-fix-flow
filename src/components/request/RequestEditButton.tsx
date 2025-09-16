@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Edit } from 'lucide-react';
 import { EditRequestDialog } from './EditRequestDialog';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 interface RequestEditButtonProps {
   request: MaintenanceRequest;

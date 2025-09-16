@@ -16,7 +16,7 @@ import {
 import { createTestUsers, checkTestUsersExist } from '@/utils/createTestUsers';
 import { TEST_CREDENTIALS, displayTestCredentials } from '@/utils/testCredentials';
 import { toast } from 'sonner';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 const DevToolsPanel = () => {
   const { isAdmin } = useUserContext();

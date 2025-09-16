@@ -13,7 +13,7 @@ import {
   TestTube
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
 import { validateUserOrganizationAccess, checkUserHasOrganization } from '@/utils/organizationValidation';
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
 import { Loader2, Building2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

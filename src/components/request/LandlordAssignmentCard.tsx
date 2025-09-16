@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { logActivity } from '@/contexts/contractor/operations/helpers/activityHelpers';

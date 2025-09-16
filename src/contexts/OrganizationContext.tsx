@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserContext } from './UserContext';
-import { useMultiOrganizationContext } from './MultiOrganizationContext';
+import { useUserContext, useMultiOrganizationContext } from './UnifiedAuthContext';
 
 interface Organization {
   id: string;

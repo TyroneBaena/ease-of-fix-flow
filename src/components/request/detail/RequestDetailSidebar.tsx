@@ -9,7 +9,7 @@ import { ContractorAssignment } from '@/components/request/ContractorAssignment'
 import { EditRequestDialog } from '@/components/request/EditRequestDialog';
 import { JobProgressCard } from '@/components/contractor/JobProgressCard';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { LandlordAssignmentCard } from '@/components/request/LandlordAssignmentCard';
 import { LandlordReportDialog } from '@/components/request/LandlordReportDialog';
 import { Card } from '@/components/ui/card';

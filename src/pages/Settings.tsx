@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/settings/UserManagement';
 import ContractorManagement from '@/components/settings/ContractorManagement';
 import { Card } from '@/components/ui/card';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";

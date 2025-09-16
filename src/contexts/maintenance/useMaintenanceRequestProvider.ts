@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
 import { formatRequestData } from '@/hooks/request-detail/formatRequestData';
 import { toast } from '@/lib/toast';

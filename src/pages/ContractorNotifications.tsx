@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import NotificationsList from '@/components/notifications/NotificationsList';
 import { useContractorNotifications } from '@/hooks/useContractorNotifications';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ContractorNotifications = () => {

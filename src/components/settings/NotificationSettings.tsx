@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { User, NotificationSettings as NotificationSettingsType } from '@/types/user';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 

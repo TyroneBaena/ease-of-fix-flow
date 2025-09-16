@@ -7,7 +7,7 @@ import StatsOverview from '@/components/dashboard/StatsOverview';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import RequestsList from '@/components/dashboard/RequestsList';
 import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSidebar';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
 import { MaintenanceRequest } from '@/types/maintenance';

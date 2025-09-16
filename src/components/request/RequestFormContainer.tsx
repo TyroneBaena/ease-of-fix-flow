@@ -6,7 +6,7 @@ import { useRequestForm } from "@/hooks/useRequestForm";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from "@/lib/toast";
 import { RequestFormFields } from './RequestFormFields';
 import { RequestFormActions } from './RequestFormActions';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePropertyContext } from '@/contexts/property';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { filterMaintenanceRequests } from './utils/reportHelpers';
 import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/property';

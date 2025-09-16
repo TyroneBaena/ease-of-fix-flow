@@ -17,7 +17,7 @@ import {
   UserCheck,
   ArrowLeftRight
 } from 'lucide-react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMultiOrganizationContext } from '@/contexts/MultiOrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';

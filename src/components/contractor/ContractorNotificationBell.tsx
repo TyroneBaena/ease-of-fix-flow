@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Bell, BellDot } from 'lucide-react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useContractorNotifications } from '@/hooks/useContractorNotifications';
 

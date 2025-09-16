@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
 import { mapRequestFromQuote, mapRequestFromDb } from '@/hooks/contractor/contractorDataMappers';

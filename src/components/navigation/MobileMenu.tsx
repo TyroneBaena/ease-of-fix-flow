@@ -12,7 +12,7 @@ import {
   SheetClose
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 export const MobileMenu = () => {
   const location = useLocation();

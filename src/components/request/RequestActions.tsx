@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, RefreshCcw, Edit } from 'lucide-react';
 import { useContractorContext } from '@/contexts/contractor/ContractorContext';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
 
 interface RequestActionsProps {

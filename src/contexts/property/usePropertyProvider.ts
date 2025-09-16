@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Property } from '@/types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-import { useUserContext } from '../UserContext';
+import { useUserContext } from '../UnifiedAuthContext';
 import { PropertyContextType } from './PropertyContextTypes';
 import { fetchProperties } from './propertyOperations';
 

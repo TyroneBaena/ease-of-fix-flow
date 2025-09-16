@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Menu, Home, ClipboardList, Calendar, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ContractorNavigation } from './ContractorNavigation';
 import ContractorNotificationBell from './ContractorNotificationBell';

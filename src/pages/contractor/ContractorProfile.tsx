@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ContractorHeader } from '@/components/contractor/ContractorHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUserContext } from '@/contexts/UserContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from "sonner";
 import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';

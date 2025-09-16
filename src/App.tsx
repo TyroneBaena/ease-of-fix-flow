@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/ui/error-boundary';
+import { UnifiedAuthProvider } from '@/contexts/UnifiedAuthContext';
 
 // Import all pages
 import Index from '@/pages/Index';
@@ -53,6 +54,7 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <UnifiedAuthProvider>
         <Router>
           <div className="App">
           <Routes>
@@ -257,6 +259,7 @@ function App() {
           </div>
           <Toaster />
         </Router>
+        </UnifiedAuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
