@@ -17,6 +17,24 @@ export const ContractorMetrics: React.FC<ContractorMetricsProps> = ({
   completedJobs,
   loading
 }) => {
+  // Debug the metrics props to see what data is being received
+  console.log('🔍 DEBUG: ContractorMetrics received props:', {
+    pendingQuotesCount: pendingQuotes?.length || 0,
+    activeJobsCount: activeJobs?.length || 0,
+    completedJobsCount: completedJobs?.length || 0,
+    loading,
+    pendingQuotesData: pendingQuotes?.map(r => ({ 
+      id: r.id.substring(0, 8), 
+      title: r.title, 
+      status: r.status,
+      quoteStatus: r.quote && typeof r.quote !== 'string' ? r.quote.status : 'no quote'
+    })),
+    activeJobsData: activeJobs?.map(r => ({ 
+      id: r.id.substring(0, 8), 
+      title: r.title, 
+      status: r.status 
+    }))
+  });
   // Calculate the total quoted amount across all jobs
   const calculateTotalQuoted = () => {
     let total = 0;
@@ -54,8 +72,11 @@ export const ContractorMetrics: React.FC<ContractorMetricsProps> = ({
   const totalRequests = pendingQuotes.length + activeJobs.length + completedJobs.length;
   const totalQuoted = calculateTotalQuoted();
 
+  // Force re-render by creating a unique key when data changes
+  const metricsKey = `metrics-${pendingQuotes.length}-${activeJobs.length}-${completedJobs.length}-${Date.now()}`;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" key={metricsKey}>
       <Card className="p-4">
         <div className="flex items-center space-x-4">
           <div className="p-2 bg-blue-100 rounded-lg">

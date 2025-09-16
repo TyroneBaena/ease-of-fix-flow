@@ -22,18 +22,24 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   loading,
   onSelectRequest
 }) => {
+  // Force re-render check by adding a key based on data
+  const dataKey = React.useMemo(() => {
+    return `${filteredQuoteRequests.length}-${filteredActiveJobs.length}-${filteredCompletedJobs.length}-${Date.now()}`;
+  }, [filteredQuoteRequests.length, filteredActiveJobs.length, filteredCompletedJobs.length]);
+
   // Debug dashboard content state
-  console.log('DashboardContent - Props received:', {
+  console.log('🔍 DEBUG: DashboardContent - Props received (render key:', dataKey, '):', {
     activeJobsFromProps: filteredActiveJobs.length,
     activeJobStatuses: filteredActiveJobs.map(j => ({ 
       id: j.id?.substring(0, 8), 
       status: j.status, 
       title: j.title 
     })),
-    completedJobsFromProps: filteredCompletedJobs.length
+    completedJobsFromProps: filteredCompletedJobs.length,
+    quoteRequestsFromProps: filteredQuoteRequests.length
   });
-  console.log('DashboardContent - Raw Quote Requests received:', filteredQuoteRequests.length);
-  console.log('DashboardContent - Raw Quote Requests data:', filteredQuoteRequests.map(r => ({
+  console.log('🔍 DEBUG: DashboardContent - Raw Quote Requests received:', filteredQuoteRequests.length);
+  console.log('🔍 DEBUG: DashboardContent - Raw Quote Requests data:', filteredQuoteRequests.map(r => ({
     id: r.id.substring(0, 8),
     title: r.title,
     status: r.status,
@@ -84,9 +90,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   console.log('DashboardContent - Final COMPLETED JOBS (after table filtering):', displayCompletedJobs.length);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6" key={dataKey}>
       <div className="lg:col-span-3 space-y-6">
         <ContractorMetrics 
+          key={`metrics-${dataKey}`}
           pendingQuotes={displayQuoteRequests}
           activeJobs={displayActiveJobs}
           completedJobs={displayCompletedJobs}

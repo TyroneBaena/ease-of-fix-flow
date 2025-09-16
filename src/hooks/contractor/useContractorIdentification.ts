@@ -58,8 +58,7 @@ export const useContractorIdentification = () => {
         if (data && data.length > 0) {
           // Handle multiple contractors by taking the first one
           const contractor = data[0];
-          console.log('🔍 DEBUG: Found contractor, setting ID to:', contractor.id);
-          console.log('🔍 DEBUG: Contractor details:', { id: contractor.id, company_name: contractor.company_name, contact_name: contractor.contact_name });
+          console.log('useContractorIdentification - Found contractor, setting ID to:', contractor.id);
           setContractorId(contractor.id);
           
           if (data.length > 1) {
