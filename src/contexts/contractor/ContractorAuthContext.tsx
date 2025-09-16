@@ -221,33 +221,63 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         matches: job.contractor_id === contractorIdParam
       })));
 
-      // Separate jobs by status
-      const activeJobsData = allJobs.filter(job => job.status === 'in_progress');
+      // Separate jobs by status - FIXED: Include 'requested' status as active jobs
+      // When a job is assigned to a contractor, it becomes an active job regardless of status
+      const activeJobsData = allJobs.filter(job => 
+        job.status === 'in_progress' || job.status === 'requested'
+      );
       const completedJobsData = allJobs.filter(job => job.status === 'completed');
       
-      console.log('ContractorAuth - Jobs separated by status:');
-      console.log('ContractorAuth - Active jobs (in_progress):', activeJobsData);
-      console.log('ContractorAuth - Completed jobs:', completedJobsData);
+      console.log('ContractorAuth - Jobs separated by status (FIXED):');
+      console.log('ContractorAuth - Active jobs (requested + in_progress):', activeJobsData.length);
+      console.log('ContractorAuth - Active jobs details:', activeJobsData.map(job => ({
+        id: job.id.substring(0, 8),
+        title: job.title,
+        status: job.status
+      })));
+      console.log('ContractorAuth - Completed jobs:', completedJobsData.length);
 
-      // Process data
+      // Process data - FIXED: Only show quotes for unassigned requests
+      // If a request is assigned to this contractor, it should be in active jobs, not quote requests
       const pendingFromQuotes = quotes
-        .filter(quote => quote.maintenance_requests && ['requested', 'pending', 'submitted'].includes(quote.status))
+        .filter(quote => {
+          // Only include quotes for requests that are NOT assigned to this contractor
+          const request = quote.maintenance_requests;
+          const isAssignedToThisContractor = request && request.contractor_id === contractorIdParam;
+          const shouldInclude = !isAssignedToThisContractor && ['requested', 'pending', 'submitted'].includes(quote.status);
+          
+          console.log(`ContractorAuth - Quote ${quote.id?.substring(0, 8)}: request assigned to contractor = ${isAssignedToThisContractor}, including = ${shouldInclude}`);
+          return shouldInclude;
+        })
         .map((quote: any) => mapRequestFromQuote(quote));
 
       const activeRequests = activeJobsData.map(mapRequestFromDb);
       const completedRequests = completedJobsData.map(mapRequestFromDb);
 
-      console.log('ContractorAuth - Mapped requests:');
-      console.log('ContractorAuth - Pending from quotes:', pendingFromQuotes);
-      console.log('ContractorAuth - Active requests:', activeRequests);
-      console.log('ContractorAuth - Completed requests:', completedRequests);
+      console.log('ContractorAuth - Mapped requests (FIXED LOGIC):');
+      console.log('ContractorAuth - Pending from quotes (unassigned only):', pendingFromQuotes.length);
+      console.log('ContractorAuth - Active requests (assigned with requested/in_progress status):', activeRequests.length);
+      console.log('ContractorAuth - Completed requests:', completedRequests.length);
+      
+      console.log('ContractorAuth - Quote requests details:', pendingFromQuotes.map(r => ({
+        id: r.id?.substring(0, 8),
+        title: r.title,
+        status: r.status,
+        contractorId: r.contractorId?.substring(0, 8) || 'none'
+      })));
+      console.log('ContractorAuth - Active jobs details:', activeRequests.map(r => ({
+        id: r.id?.substring(0, 8),
+        title: r.title,
+        status: r.status,
+        contractorId: r.contractorId?.substring(0, 8) || 'none'
+      })));
 
       // Update state
       setPendingQuoteRequests(pendingFromQuotes);
       setActiveJobs(activeRequests);
       setCompletedJobs(completedRequests);
 
-      console.log(`ContractorAuth - Final counts: ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
+      console.log(`ContractorAuth - Final counts (FIXED): ${pendingFromQuotes.length} pending quotes, ${activeRequests.length} active jobs, ${completedRequests.length} completed jobs`);
       console.log('ContractorAuth - State updated successfully');
 
     } catch (err: any) {
