@@ -2,6 +2,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUserProvider } from './user/useUserProvider';
 import { UserContextType } from './user/UserContextTypes';
+import { isUserAdmin, canUserAccessProperty } from '@/utils/userRoles';
 
 // Create the context with undefined as default value
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -33,11 +34,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     removeUser,
     resetPassword,
     adminResetPassword,
-    // Use direct property for isAdmin
-    isAdmin: currentUser?.role === 'admin' || false,
-    // Use direct function for canAccessProperty
-    canAccessProperty: (propertyId: string) => 
-      currentUser?.role === 'admin' || currentUser?.assignedProperties?.includes(propertyId) || false,
+    // Use utility functions to avoid RLS recursion
+    isAdmin: isUserAdmin(currentUser),
+    // Use utility function for property access
+    canAccessProperty: (propertyId: string) => canUserAccessProperty(currentUser, propertyId),
     signOut
   };
 

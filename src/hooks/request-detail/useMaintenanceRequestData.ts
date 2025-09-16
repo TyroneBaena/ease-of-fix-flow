@@ -51,7 +51,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
           query.eq('user_id', currentUser.id);
         }
           
-        const { data: requestData, error } = await query.single();
+        const { data: requestData, error } = await query.maybeSingle();
         
         console.log("useMaintenanceRequestData - Database query result:");
         console.log("- Error:", error);
@@ -126,7 +126,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         query.eq('user_id', currentUser.id);
       }
         
-      const { data, error } = await query.single();
+      const { data, error } = await query.maybeSingle();
       
       console.log("useMaintenanceRequestData - Manual refresh result:");
       console.log("- Error:", error);

@@ -17,7 +17,7 @@ const sendQuoteRequestEmail = async (contractorId: string, requestId: string, pr
       .from('contractors')
       .select('email, contact_name')
       .eq('id', contractorId)
-      .single();
+      .maybeSingle();
 
     if (contractor?.email) {
       await supabase.functions.invoke('send-quote-notification', {
@@ -40,7 +40,7 @@ const sendQuoteApprovalEmail = async (contractorId: string, quoteId: string) => 
       .from('contractors')
       .select('email, contact_name')
       .eq('id', contractorId)
-      .single();
+      .maybeSingle();
 
     if (contractor?.email) {
       await supabase.functions.invoke('send-quote-notification', {
@@ -77,7 +77,7 @@ export const requestQuote = async (
       .from('maintenance_requests')
       .select('id, organization_id, title')
       .eq('id', requestId)
-      .single();
+      .maybeSingle();
 
     if (requestError) {
       console.error("SECURITY VIOLATION: Cannot access maintenance request:", requestError);

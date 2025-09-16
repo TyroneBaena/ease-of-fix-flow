@@ -104,7 +104,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
         .from('maintenance_requests')
         .insert(insertData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('useMaintenanceRequestOperations - Database insert error:', error);
