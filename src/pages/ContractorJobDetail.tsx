@@ -84,49 +84,49 @@ const ContractorJobDetail = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <ContractorHeader />
-      <main className="container mx-auto px-4 py-8">
-        <ContractorJobDetailHeader 
-          job={job} 
-          onUpdateProgress={() => setProgressDialogOpen(true)} 
-        />
-        
-        {/* Enhanced layout with better spacing and organization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main content - left side */}
-          <div className="lg:col-span-2 space-y-8">
-            <JobDetailsCard job={job} />
-            <IssueDetailsCard job={job} />
-            <AttachmentsCard attachments={job.attachments} />
-            {invoice && !loadingInvoice && <InvoiceCard invoice={invoice} />}
-            <ActivityTimeline request={job} activityLogs={activityLogs} />
-            <CommentSection requestId={job.id} />
+    <ContractorProvider>
+      <div className="min-h-screen bg-gray-50">
+        <ContractorHeader />
+        <main className="container mx-auto px-4 py-8">
+          <ContractorJobDetailHeader 
+            job={job} 
+            onUpdateProgress={() => setProgressDialogOpen(true)} 
+          />
+          
+          {/* Enhanced layout with better spacing and organization */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main content - left side */}
+            <div className="lg:col-span-2 space-y-8">
+              <JobDetailsCard job={job} />
+              <IssueDetailsCard job={job} />
+              <AttachmentsCard attachments={job.attachments} />
+              {invoice && !loadingInvoice && <InvoiceCard invoice={invoice} />}
+              <ActivityTimeline request={job} activityLogs={activityLogs} />
+              <CommentSection requestId={job.id} />
+            </div>
+            
+            {/* Sidebar - right side */}
+            <div className="space-y-8">
+              {job.status !== 'completed' && (
+                <ScheduleJobCard 
+                  request={job} 
+                  onScheduled={() => {
+                    // Refresh job details and activity logs after scheduling
+                    refetch();
+                    setRefreshCounter(prev => prev + 1);
+                  }}
+                />
+              )}
+              <ProgressCard request={job} />
+              <ContactCard 
+                practiceLeader={job.practiceLeader || ''}
+                practiceLeaderPhone={job.practiceLeaderPhone || ''}
+                practiceLeaderEmail={job.practiceLeaderEmail || ''}
+                address={job.address || ''}
+              />
+            </div>
           </div>
           
-          {/* Sidebar - right side */}
-          <div className="space-y-8">
-            {job.status !== 'completed' && (
-              <ScheduleJobCard 
-                request={job} 
-                onScheduled={() => {
-                  // Refresh job details and activity logs after scheduling
-                  refetch();
-                  setRefreshCounter(prev => prev + 1);
-                }}
-              />
-            )}
-            <ProgressCard request={job} />
-            <ContactCard 
-              practiceLeader={job.practiceLeader || ''}
-              practiceLeaderPhone={job.practiceLeaderPhone || ''}
-              practiceLeaderEmail={job.practiceLeaderEmail || ''}
-              address={job.address || ''}
-            />
-          </div>
-        </div>
-        
-        <ContractorProvider>
           <JobProgressDialog
             open={progressDialogOpen}
             onOpenChange={setProgressDialogOpen}
@@ -138,9 +138,9 @@ const ContractorJobDetail = () => {
               setRefreshCounter(prev => prev + 1);
             }}
           />
-        </ContractorProvider>
-      </main>
-    </div>
+        </main>
+      </div>
+    </ContractorProvider>
   );
 };
 
