@@ -13,6 +13,17 @@ const Security: React.FC = () => {
   const { currentUser, isAdmin } = useUserContext();
   const { metrics, loading, error, refetch } = useSecurityMetrics();
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🎯 [Security Page] Metrics updated:', {
+      failedLoginsToday: metrics.failedLoginsToday,
+      totalLoginsToday: metrics.totalLoginsToday,
+      activeSessionsCount: metrics.activeSessionsCount,
+      recentAttempts: metrics.recentLoginAttempts.length,
+      loading
+    });
+  }, [metrics, loading]);
+
   // Redirect non-admin users
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;

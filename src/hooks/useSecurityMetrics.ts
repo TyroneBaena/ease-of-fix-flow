@@ -298,7 +298,9 @@ export const useSecurityMetrics = () => {
         recentAttempts: recentAttempts.length
       });
       
+      console.log('🔄 [Security] Setting metrics state...', newMetrics);
       setMetrics(newMetrics);
+      console.log('✅ [Security] Metrics state updated!');
 
     } catch (err) {
       console.error('Error fetching security metrics:', err);
