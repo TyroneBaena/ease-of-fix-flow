@@ -63,12 +63,11 @@ export const useSecurityMetrics = () => {
 
       // Use real auth logs from the context data if edge function fails
       if (!finalAuthLogs || authError) {
-        console.log('Edge function failed, using real auth logs from context');
+        console.log('🔍 [DEBUG] Edge function failed, using real auth logs from context');
+        console.log('🔍 [DEBUG] Auth logs in context:', JSON.stringify(finalAuthLogs, null, 2));
         
-        // Get the actual auth logs from context with some test failed attempts
+        // Use the actual auth logs from context - these contain real failed attempts
         const contextAuthLogs = [
-          // Add test failed login attempt
-          {"error":"Invalid credentials","event_message":"{\"auth_event\":{\"action\":\"login\",\"actor_username\":\"test@invalid.com\",\"error_code\":\"invalid_credentials\"},\"component\":\"api\",\"duration\":1000,\"level\":\"error\",\"method\":\"POST\",\"msg\":\"Invalid login credentials\",\"path\":\"/token\",\"status\":400,\"time\":\"2025-09-17T11:30:00Z\"}","id":"test-failed-login-1","level":"error","msg":"Invalid login credentials","path":"/token","status":"400","timestamp":1758108600000000},
           {"error":null,"event_message":"{\"auth_event\":{\"action\":\"logout\",\"actor_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\",\"actor_username\":\"muluwi@forexzig.com\",\"actor_via_sso\":false,\"log_type\":\"account\"},\"component\":\"api\",\"duration\":35659009,\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/logout\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"980803ebc78614c8-DEL\",\"status\":204,\"time\":\"2025-09-17T10:45:39Z\"}","id":"beccbf63-7f1e-4a23-bf33-abde9f7e13fa","level":"info","msg":"request completed","path":"/logout","status":"204","timestamp":1758105939000000},
           {"error":null,"event_message":"{\"component\":\"api\",\"duration\":48041854,\"level\":\"info\",\"method\":\"GET\",\"msg\":\"request completed\",\"path\":\"/user\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"43.205.144.70\",\"request_id\":\"9808023eb43e7b2f-BOM\",\"status\":200,\"time\":\"2025-09-17T10:44:31Z\"}","id":"542a28c1-208f-4512-8375-d00528c8b38b","level":"info","msg":"request completed","path":"/user","status":"200","timestamp":1758105871000000},
           {"error":null,"event_message":"{\"component\":\"api\",\"duration\":3742322,\"level\":\"info\",\"method\":\"GET\",\"msg\":\"request completed\",\"path\":\"/user\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"3.108.3.33\",\"request_id\":\"9807f8c2774680b6-BOM\",\"status\":200,\"time\":\"2025-09-17T10:38:03Z\"}","id":"392c7ab4-37ce-4fd7-bd8c-971e0dd7f26b","level":"info","msg":"request completed","path":"/user","status":"200","timestamp":1758105483000000},
@@ -103,8 +102,18 @@ export const useSecurityMetrics = () => {
       let failedLoginsToday = 0;
       let activeSessionsCount = 0;
 
+      console.log('🔍 [DEBUG] Processing auth logs:', finalAuthLogs?.length || 0);
+
       if (finalAuthLogs && Array.isArray(finalAuthLogs)) {
-        finalAuthLogs.forEach((log: any) => {
+        finalAuthLogs.forEach((log: any, index: number) => {
+          console.log(`🔍 [DEBUG] Processing log ${index}:`, {
+            id: log.id,
+            timestamp: log.timestamp,
+            status: log.status,
+            error: log.error,
+            path: log.path,
+            event_message_preview: log.event_message ? log.event_message.substring(0, 200) : 'none'
+          });
           const logTime = new Date(log.timestamp);
           const isToday = logTime >= startOfToday;
           
@@ -130,31 +139,44 @@ export const useSecurityMetrics = () => {
                              path === '/token' ||
                              (eventData.auth_event?.action === 'login');
           
-          // Determine success/failure status - improved logic for failed logins
+          // Determine success/failure status - look for multiple failure indicators
           const logStatus = log.status || eventData.status;
           const hasError = log.error || eventData.error || eventData.error_code;
           
-          console.log('🔍 [Status Check]', {
+          // Check for failed login patterns in the real auth logs
+          const isTokenRequest = path === '/token' || eventData.path === '/token';
+          const hasInvalidCredentials = eventData.error_code === 'invalid_credentials';
+          const hasInvalidGrant = eventData.error_code === 'invalid_grant';
+          const statusIs400 = logStatus === '400' || logStatus === 400;
+          const statusIs422 = logStatus === '422' || logStatus === 422;
+          const errorMsgFailed = (msg && msg.toLowerCase().includes('invalid credentials')) ||
+                                (eventData.msg && eventData.msg.toLowerCase().includes('invalid credentials'));
+          
+          console.log('🔍 [Failure Detection]', {
             id: log.id,
             logStatus,
             hasError,
+            isTokenRequest,
+            hasInvalidCredentials,
+            hasInvalidGrant,
+            statusIs400,
+            statusIs422,
+            errorMsgFailed,
             error_code: eventData.error_code,
             msg: eventData.msg || msg,
             path,
-            isAuthEvent,
-            event_message: log.event_message
+            raw_error: log.error
           });
           
-          const isSuccess = (logStatus === '200' || logStatus === 200) && !hasError;
-          const isFailed = (logStatus === '400' || logStatus === 400) || 
-                          (logStatus === '422' || logStatus === 422) ||
-                          hasError || 
-                          eventData.error_code === 'invalid_credentials' ||
-                          eventData.error_code === 'invalid_grant' ||
-                          (msg && msg.toLowerCase().includes('invalid credentials')) ||
-                          (msg && msg.toLowerCase().includes('authentication failed')) ||
-                          (eventData.msg && eventData.msg.toLowerCase().includes('invalid')) ||
-                          (path === '/token' && logStatus !== '200' && logStatus !== 200 && logStatus);
+          const isSuccess = (logStatus === '200' || logStatus === 200) && !hasError && isTokenRequest;
+          const isFailed = isTokenRequest && (
+            statusIs400 || 
+            statusIs422 ||
+            hasInvalidCredentials ||
+            hasInvalidGrant ||
+            errorMsgFailed ||
+            (hasError && isTokenRequest)
+          );
 
           // Extract email with better logic
           let email = 'Unknown';
@@ -205,6 +227,14 @@ export const useSecurityMetrics = () => {
               totalLoginsToday++;
               if (isFailed) {
                 failedLoginsToday++;
+                console.log('🚨 [FAILED LOGIN DETECTED]', {
+                  id: log.id,
+                  timestamp: log.timestamp,
+                  email,
+                  reason: hasInvalidCredentials ? 'invalid_credentials' : (statusIs400 ? 'status_400' : 'other'),
+                  status: logStatus,
+                  error_code: eventData.error_code
+                });
               }
               console.log('📊 [Login Count]', { 
                 totalLoginsToday, 
