@@ -132,12 +132,39 @@ export const useSecurityMetrics = () => {
           const path = eventData.path || '';
           const status = eventData.status || log.status;
           
-          // Check for auth-related events - focus on login attempts
+          // Check for auth-related events - focus ONLY on actual login attempts, not logout
           const isAuthEvent = eventData.auth_event || 
                              eventData.action === 'login' || 
                              msg.toLowerCase().includes('login') || 
-                             path === '/token' ||
+                             (path === '/token' && eventData.grant_type === 'password') ||
                              (eventData.auth_event?.action === 'login');
+          
+          // Exclude logout events explicitly
+          const isLogoutEvent = eventData.action === 'logout' || 
+                               eventData.auth_event?.action === 'logout' ||
+                               path === '/logout' ||
+                               msg.toLowerCase().includes('logout');
+
+          // Only count actual login attempts - exclude logout, user info requests, etc.
+          const isLoginAttempt = isAuthEvent && 
+                                !isLogoutEvent && 
+                                (
+                                  (path === '/token' && eventData.grant_type === 'password') ||
+                                  eventData.action === 'login' ||
+                                  eventData.auth_event?.action === 'login' ||
+                                  (msg && msg.toLowerCase().includes('login') && !msg.toLowerCase().includes('logout'))
+                                );
+
+          console.log('🔍 [Login Detection]', {
+            id: log.id,
+            isAuthEvent,
+            isLogoutEvent,
+            isLoginAttempt,
+            action: eventData.action || eventData.auth_event?.action,
+            path,
+            grant_type: eventData.grant_type,
+            msg: eventData.msg || msg
+          });
           
           // Determine success/failure status - look for multiple failure indicators
           const logStatus = log.status || eventData.status;
@@ -217,12 +244,7 @@ export const useSecurityMetrics = () => {
               grant_type: eventData.grant_type
             });
 
-            // Count today's logins - count ALL login attempts including failed ones
-            const isLoginAttempt = (eventData.action === 'login') || 
-                                  (path === '/token') ||
-                                  (eventData.auth_event?.action === 'login') ||
-                                  (msg && msg.toLowerCase().includes('login'));
-            
+            // Count today's logins - count ONLY actual login attempts, not logout
             if (isToday && isLoginAttempt) {
               totalLoginsToday++;
               if (isFailed) {
@@ -241,13 +263,13 @@ export const useSecurityMetrics = () => {
                 failedLoginsToday, 
                 isLoginAttempt, 
                 isFailed,
-                action: eventData.action,
+                action: eventData.action || eventData.auth_event?.action,
                 path,
                 status: logStatus
               });
             }
 
-            // Add to recent attempts - include ALL login attempts
+            // Add to recent attempts - include ONLY actual login attempts
             if (isLoginAttempt) {
               const attemptType = eventData.action || 'login';
               
