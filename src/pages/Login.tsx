@@ -31,27 +31,43 @@ const Login = () => {
     if (!user?.id) return false;
     
     try {
-      // Check if user has organization_id in profile
-      const { data: profile } = await supabase
+      console.log('🔍 Checking organization for user:', user.id);
+      
+      // First check if user has any active organization membership
+      const { data: userOrgs, error: userOrgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id, is_active, is_default')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1);
+      
+      if (userOrgError) {
+        console.error('Error checking user organizations:', userOrgError);
+        return false;
+      }
+      
+      console.log('🔍 User organizations found:', userOrgs);
+      
+      if (userOrgs && userOrgs.length > 0) {
+        console.log('✅ User has active organization:', userOrgs[0].organization_id);
+        return true;
+      }
+      
+      // Fallback: check profile table
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('organization_id')
         .eq('id', user.id)
         .single();
       
-      if (profile?.organization_id) {
-        // Also check if user_organizations record exists
-        const { data: userOrg } = await supabase
-          .from('user_organizations')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('organization_id', profile.organization_id)
-          .eq('is_active', true)
-          .maybeSingle();
-        
-        return !!userOrg;
+      if (profileError) {
+        console.error('Error checking user profile:', profileError);
+        return false;
       }
       
-      return false;
+      const hasOrg = !!profile?.organization_id;
+      console.log('🔍 Profile organization_id:', profile?.organization_id, 'hasOrg:', hasOrg);
+      return hasOrg;
     } catch (error) {
       console.error('Error checking user organization:', error);
       return false;
