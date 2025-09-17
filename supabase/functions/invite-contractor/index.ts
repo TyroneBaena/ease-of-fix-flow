@@ -142,21 +142,31 @@ serve(async (req: Request) => {
       console.log("Auth user created successfully:", authUserId);
     }
 
-    // Get the current user's organization_id from the Authorization header
+    // Get the current user's organization details from the Authorization header
     const authHeader = req.headers.get('Authorization');
     let currentUserOrgId = null;
+    let organizationName = null;
+    let inviterName = null;
     
     if (authHeader) {
       try {
         const token = authHeader.replace('Bearer ', '');
         const { data: { user } } = await supabaseClient.auth.getUser(token);
         if (user) {
+          // Get user profile and organization details
           const { data: profile } = await supabaseClient
             .from('profiles')
-            .select('organization_id')
+            .select(`
+              organization_id,
+              name,
+              organizations!inner(name)
+            `)
             .eq('id', user.id)
             .single();
+          
           currentUserOrgId = profile?.organization_id;
+          organizationName = profile?.organizations?.name;
+          inviterName = profile?.name;
         }
       } catch (error) {
         console.warn("Could not get current user's organization:", error);
@@ -221,17 +231,52 @@ serve(async (req: Request) => {
         
         const loginUrl = `${applicationUrl}/login`;
         const emailHtml = `
-          <h1>Welcome to Property Manager</h1>
-          <p>Hello ${body.contactName},</p>
-          <p>You have been invited to join Property Manager as a contractor for ${body.companyName}.</p>
-          <p><strong>Your login credentials:</strong></p>
-          <ul>
-            <li>Email: ${normalizedEmail}</li>
-            <li>Temporary Password: ${tempPassword}</li>
-          </ul>
-          <p>Please log in at: <a href="${loginUrl}">${loginUrl}</a></p>
-          <p>You will be prompted to change your password on first login.</p>
-          <p>Best regards,<br>Property Manager Team</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to HousingHub</h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Contractor Invitation</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Hello ${body.contactName},</p>
+              
+              <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+                You have been invited by <strong>${inviterName || 'an administrator'}</strong> from 
+                <strong>${organizationName || 'an organization'}</strong> to join HousingHub as a contractor 
+                for <strong>${body.companyName}</strong>.
+              </p>
+              
+              <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 25px 0;">
+                <h3 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🔑 Your Login Credentials:</h3>
+                <p style="margin: 8px 0; color: #555;"><strong>Email:</strong> ${normalizedEmail}</p>
+                <p style="margin: 8px 0; color: #555;"><strong>Temporary Password:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace;">${tempPassword}</code></p>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${loginUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  Login to HousingHub
+                </a>
+              </div>
+              
+              <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                  ⚠️ <strong>Important:</strong> You will be prompted to change your password on first login for security.
+                </p>
+              </div>
+              
+              <p style="color: #666; font-size: 14px; line-height: 1.5; margin-top: 30px;">
+                If you have any questions about this invitation, please contact ${inviterName || 'your administrator'} 
+                or reply to this email.
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              
+              <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">
+                Best regards,<br>
+                <strong>${organizationName || 'HousingHub'} Team</strong>
+              </p>
+            </div>
+          </div>
         `;
 
         // Send email directly to contractor since domain is verified
@@ -239,9 +284,9 @@ serve(async (req: Request) => {
         const isTestMode = false;
         
         const { data: emailData, error: emailError } = await resend.emails.send({
-          from: 'Property Manager <noreply@housinghub.app>',
+          from: `${organizationName || 'HousingHub'} <noreply@housinghub.app>`,
           to: [emailRecipient],
-          subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager - Contractor Invitation`,
+          subject: `${isTestMode ? '[TEST] ' : ''}Welcome to ${organizationName || 'HousingHub'} - Contractor Invitation`,
           html: isTestMode 
             ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${normalizedEmail}</p>${emailHtml}` 
             : emailHtml,
