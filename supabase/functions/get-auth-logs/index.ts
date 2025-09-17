@@ -78,29 +78,7 @@ Deno.serve(async (req) => {
       
       // Get fresh auth logs from Supabase Analytics API with more comprehensive data
       const realTimeAuthLogs = [
-        // Add some test failed login attempts for debugging
-        {
-          "id": "test-failed-1",
-          "timestamp": new Date().toISOString(),
-          "event_message": JSON.stringify({
-            "auth_event": {
-              "action": "login",
-              "actor_username": "test@example.com",
-              "error_code": "invalid_credentials"
-            },
-            "component": "api",
-            "level": "error",
-            "method": "POST",
-            "msg": "Invalid login credentials",
-            "path": "/token",
-            "status": 400,
-            "error": "Invalid credentials"
-          }),
-          "level": "error",
-          "msg": "Invalid login credentials",
-          "path": "/token",
-          "status": "400"
-        },
+        // Use only real auth logs - no test data
         {
           "id": "beccbf63-7f1e-4a23-bf33-abde9f7e13fa",
           "timestamp": "2025-09-17T10:45:39Z",
