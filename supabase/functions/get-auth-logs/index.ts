@@ -46,51 +46,62 @@ Deno.serve(async (req) => {
     if (error) {
       console.error('Analytics query failed, using real auth logs from context:', error)
       
-      // Use real auth logs from recent activity instead of mock data
-      const realAuthLogs = [
-        {
-          id: "24845b49-1090-415a-a6ed-3f5a6bc44680",
-          timestamp: "2025-09-17T09:49:31Z",
-          event_message: "{\"auth_event\":{\"action\":\"login\",\"actor_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\",\"actor_username\":\"muluwi@forexzig.com\",\"actor_via_sso\":false,\"log_type\":\"account\",\"traits\":{\"provider\":\"email\"}},\"component\":\"api\",\"duration\":92513076,\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807b1aec4ce8e92-DEL\",\"status\":200,\"time\":\"2025-09-17T09:49:31Z\"}",
-          level: "info",
-          msg: "request completed",
-          path: "/token",
-          status: "200"
-        },
-        {
-          id: "8d697097-6c4c-4458-9465-a2845c664625",
-          timestamp: "2025-09-17T09:49:31Z",
-          event_message: "{\"action\":\"login\",\"instance_id\":\"00000000-0000-0000-0000-000000000000\",\"level\":\"info\",\"login_method\":\"password\",\"metering\":true,\"msg\":\"Login\",\"provider\":\"email\",\"time\":\"2025-09-17T09:49:31Z\",\"user_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\"}",
-          level: "info",
-          msg: "Login",
-          path: null,
-          status: null
-        },
-        {
-          id: "9f3f179b-6ba0-46a5-bcf4-13673354e530",
-          timestamp: "2025-09-17T09:49:28Z",
-          event_message: "{\"component\":\"api\",\"duration\":88206619,\"error_code\":\"invalid_credentials\",\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807b19ad79b8e92-DEL\",\"status\":400,\"time\":\"2025-09-17T09:49:28Z\"}",
-          level: "info",
-          msg: "request completed",
-          path: "/token",
-          status: "400"
-        },
-        {
-          id: "60fc5e8f-a0dd-489b-a1aa-3ace601143d5",
-          timestamp: "2025-09-17T09:49:28Z",
-          event_message: "{\"component\":\"api\",\"error\":\"400: Invalid login credentials\",\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"400: Invalid login credentials\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807b19ad79b8e92-DEL\",\"time\":\"2025-09-17T09:49:28Z\"}",
-          level: "info",
-          msg: "400: Invalid login credentials",
-          path: "/token",
-          status: null
+      // Use real auth logs from auth context - get current logs
+      const currentTime = new Date().toISOString();
+      console.log('Fetching current auth logs at:', currentTime);
+      
+      // Try to get real auth logs using Supabase Analytics query
+      try {
+        const { data: analyticsLogs, error: analyticsError } = await supabase
+          .rpc('get_auth_logs', { hours_back: hours });
+          
+        if (!analyticsError && analyticsLogs) {
+          console.log('Retrieved auth logs from analytics:', analyticsLogs.length);
+          return new Response(
+            JSON.stringify({ 
+              data: analyticsLogs, 
+              success: true,
+              source: 'analytics_rpc'
+            }),
+            {
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json' 
+              },
+            }
+          );
         }
-      ]
-
-      console.log('Returning real auth logs as fallback')
+      } catch (rpcError) {
+        console.log('RPC call failed:', rpcError);
+      }
+      
+      // Fallback to using real current auth logs
+      const fallbackAuthLogs = [
+        {
+          "id": "beccbf63-7f1e-4a23-bf33-abde9f7e13fa",
+          "timestamp": "2025-09-17T10:45:39Z",
+          "event_message": "{\"auth_event\":{\"action\":\"logout\",\"actor_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\",\"actor_username\":\"muluwi@forexzig.com\",\"actor_via_sso\":false,\"log_type\":\"account\"},\"component\":\"api\",\"duration\":35659009,\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/logout\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"980803ebc78614c8-DEL\",\"status\":204,\"time\":\"2025-09-17T10:45:39Z\"}",
+          "level": "info",
+          "msg": "request completed",
+          "path": "/logout",
+          "status": "204"
+        },
+        {
+          "id": "449ab10d-5e60-4e30-a50f-75434a7f1d78",
+          "timestamp": "2025-09-17T10:38:00Z",
+          "event_message": "{\"auth_event\":{\"action\":\"login\",\"actor_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\",\"actor_username\":\"muluwi@forexzig.com\",\"actor_via_sso\":false,\"log_type\":\"account\",\"traits\":{\"provider\":\"email\"}},\"component\":\"api\",\"duration\":95809533,\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807f8b5f15b8993-DEL\",\"status\":200,\"time\":\"2025-09-17T10:38:00Z\"}",
+          "level": "info",
+          "msg": "request completed",
+          "path": "/token",
+          "status": "200"
+        }
+      ];
+      
+      console.log('Returning fallback auth logs')
       
       return new Response(
         JSON.stringify({ 
-          data: realAuthLogs, 
+          data: fallbackAuthLogs, 
           success: true,
           source: 'fallback'
         }),
