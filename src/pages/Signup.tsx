@@ -145,6 +145,30 @@ useEffect(() => {
       setIsLoading(true);
       console.log(`Starting signup process for: ${email}`);
       
+      // Check if email is already associated with an organization
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, organization_id, email')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (existingProfile?.organization_id) {
+        // Check if they have an active organization membership
+        const { data: userOrg } = await supabase
+          .from('user_organizations')
+          .select('id')
+          .eq('user_id', existingProfile.id)
+          .eq('organization_id', existingProfile.organization_id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (userOrg) {
+          setError("This email is already associated with an organization. Please sign in instead.");
+          toast.error("Account already exists with an organization. Please sign in.");
+          return;
+        }
+      }
+      
       const redirectUrl = `${window.location.origin}/email-confirm`;
       console.log(`Email confirmation redirect URL: ${redirectUrl}`);
       
