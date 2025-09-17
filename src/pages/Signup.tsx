@@ -37,26 +37,32 @@ const Signup = () => {
     if (!user) return false;
     
     try {
-      // Check both profile organization and user_organizations table
+      console.log('Checking organization for user:', user.email);
+      
+      // Check if user has an organization_id in their profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('organization_id')
+        .select('organization_id, session_organization_id')
         .eq('id', user.id)
         .single();
       
+      console.log('Profile data:', profile);
+      
       if (profile?.organization_id) {
-        // Also check if user_organizations record exists
+        // Also check if user_organizations record exists and is active
         const { data: userOrg } = await supabase
           .from('user_organizations')
-          .select('id')
+          .select('id, is_active')
           .eq('user_id', user.id)
           .eq('organization_id', profile.organization_id)
           .eq('is_active', true)
           .maybeSingle();
         
+        console.log('User organization membership:', userOrg);
         return !!userOrg;
       }
       
+      console.log('User has no organization - needs onboarding');
       return false;
     } catch (error) {
       console.error('Error checking user organization:', error);
@@ -204,7 +210,9 @@ useEffect(() => {
 return (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
     <Toaster position="top-right" richColors />
+    
     {!isAuthed ? (
+      // Show signup form when user is not authenticated
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
@@ -292,13 +300,28 @@ return (
           </form>
         </CardContent>
       </Card>
-    ) : !hasOrganization ? (
+    ) : isAuthed && !hasOrganization && !emailConfirmationRequired ? (
+      // Show organization onboarding when user is authenticated but has no organization
       <OrganizationOnboarding 
         user={currentUser} 
         onComplete={handleOrganizationComplete} 
       />
-    ) : null // Skip billing section completely
-    }
+    ) : emailConfirmationRequired ? (
+      // Show email confirmation message
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle>Check Your Email</CardTitle>
+          <p className="text-sm text-gray-500 mt-2">
+            Please check your email and click the confirmation link to complete your registration.
+          </p>
+        </CardHeader>
+      </Card>
+    ) : (
+      // User is authenticated and has organization - redirect will happen via handleOrganizationComplete
+      <div className="text-center">
+        <p className="text-lg">Setting up your account...</p>
+      </div>
+    )}
   </div>
 );
 };
