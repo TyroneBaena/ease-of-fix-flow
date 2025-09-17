@@ -10,6 +10,7 @@ import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSideba
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
+import { ComprehensiveTestingPanel } from '@/components/testing/ComprehensiveTestingPanel';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 
@@ -110,6 +111,9 @@ const Dashboard = () => {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader title="Dashboard" />
+        
+        {/* Testing Panel for debugging Phase 1-3 */}
+        <ComprehensiveTestingPanel />
         
         <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
           <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>

@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { ensureUserOrganization } from '@/services/user/tenantService';
 import { getRedirectPathByRole } from '@/services/userService';
 import { supabase } from '@/integrations/supabase/client';
+import { OrganizationOnboarding } from '@/components/auth/OrganizationOnboarding';
 import '@/auth-debug'; // Force import to ensure debug logs appear
 
 
@@ -19,26 +20,70 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTempPasswordNote, setShowTempPasswordNote] = useState(false);
-  const { currentUser } = useUnifiedAuth();
+  const [needsOrganization, setNeedsOrganization] = useState(false);
+  const { currentUser, currentOrganization } = useUnifiedAuth();
   
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Effect to check if user is already logged in and redirect
-  // ONLY redirect if user is actually on the login page
-  useEffect(() => {
-    console.log("🔑 Login v8.0: useEffect triggered - currentUser:", !!currentUser, currentUser?.email, "on path:", location.pathname);
+  // Function to check if user needs organization setup
+  const checkUserOrganization = async (user: any) => {
+    if (!user?.id) return false;
     
-    // Only redirect if we're actually on the login page
+    try {
+      // Check if user has organization_id in profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.organization_id) {
+        // Also check if user_organizations record exists
+        const { data: userOrg } = await supabase
+          .from('user_organizations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('organization_id', profile.organization_id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        return !!userOrg;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking user organization:', error);
+      return false;
+    }
+  };
+
+  // Effect to check if user is already logged in and redirect
+  useEffect(() => {
+    console.log("🔑 Login v9.0: useEffect triggered - currentUser:", !!currentUser, currentUser?.email, "on path:", location.pathname);
+    
     if (currentUser && location.pathname === '/login') {
-      console.log("🔑 Login v8.0: User is already logged in on login page, redirecting to appropriate dashboard. User:", currentUser.email, "Role:", currentUser.role);
-      const redirectPath = getRedirectPathByRole(currentUser.role);
-      console.log("🔑 Login v8.0: Redirecting to:", redirectPath);
-      navigate(redirectPath, { replace: true });
+      console.log("🔑 Login v9.0: User is already logged in on login page, checking organization status");
+      
+      // Check if user needs organization setup
+      checkUserOrganization(currentUser).then(hasOrg => {
+        console.log("🔑 Login v9.0: User has organization:", hasOrg);
+        
+        if (!hasOrg) {
+          console.log("🔑 Login v9.0: User needs organization setup");
+          setNeedsOrganization(true);
+        } else {
+          console.log("🔑 Login v9.0: User has organization, redirecting to dashboard");
+          const redirectPath = getRedirectPathByRole(currentUser.role);
+          console.log("🔑 Login v9.0: Redirecting to:", redirectPath);
+          navigate(redirectPath, { replace: true });
+        }
+      });
     } else if (currentUser) {
-      console.log("🔑 Login v8.0: User is logged in but not on login page, no redirect needed");
+      console.log("🔑 Login v9.0: User is logged in but not on login page, no redirect needed");
     } else {
-      console.log("🔑 Login v8.0: No current user found");
+      console.log("🔑 Login v9.0: No current user found");
+      setNeedsOrganization(false);
     }
   }, [currentUser, navigate, location.pathname]);
 
@@ -86,12 +131,22 @@ const Login = () => {
       console.log('🔑 Login v7.0: Session:', !!data.session);
       console.log('🔑 Login v7.0: Full auth data:', data);
       
-      // Wait a moment for the auth state listener to fire
-      console.log('🔑 Login v7.0: Waiting for auth state listener to fire...');
-      setTimeout(() => {
-        console.log('🔑 Login v7.0: Auth state should have been updated by now');
+      // Check if user needs organization setup
+      const hasOrg = await checkUserOrganization(data.user);
+      console.log('🔑 Login v9.0: User has organization after login:', hasOrg);
+      
+      if (!hasOrg) {
+        console.log('🔑 Login v9.0: User needs organization setup after login');
+        setNeedsOrganization(true);
         setIsLoading(false);
-      }, 2000);
+      } else {
+        console.log('🔑 Login v9.0: User has organization, waiting for auth state update');
+        // Wait a moment for the auth state listener to fire
+        setTimeout(() => {
+          console.log('🔑 Login v9.0: Auth state should have been updated by now');
+          setIsLoading(false);
+        }, 2000);
+      }
       
     } catch (error: any) {
       console.error('🔑 Login v7.0: Login error:', error);
@@ -99,6 +154,34 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  const handleOrganizationComplete = async () => {
+    console.log('🔑 Login v9.0: Organization setup completed - redirecting to dashboard');
+    
+    // Simply redirect to dashboard - the context refresh will be handled by ProtectedRoute
+    toast.success("Organization setup complete! Redirecting to dashboard...");
+    setNeedsOrganization(false);
+    
+    setTimeout(() => {
+      if (currentUser) {
+        const redirectPath = getRedirectPathByRole(currentUser.role);
+        navigate(redirectPath, { replace: true });
+      }
+    }, 1000);
+  };
+
+  // Show organization onboarding if user needs it
+  if (currentUser && needsOrganization) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <Toaster position="top-right" richColors />
+        <OrganizationOnboarding 
+          user={currentUser} 
+          onComplete={handleOrganizationComplete} 
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
