@@ -130,15 +130,28 @@ export const useSecurityMetrics = () => {
                              path === '/token' ||
                              (path === '/logout' && eventData.auth_event?.action === 'logout');
           
-          // Determine success/failure status
+          // Determine success/failure status - improved logic for failed logins
           const logStatus = log.status || eventData.status;
           const hasError = log.error || eventData.error || eventData.error_code;
           
+          console.log('🔍 [Status Check]', {
+            id: log.id,
+            logStatus,
+            hasError,
+            error_code: eventData.error_code,
+            msg: eventData.msg,
+            path
+          });
+          
           const isSuccess = (logStatus === '200' || logStatus === 200) && !hasError;
           const isFailed = (logStatus === '400' || logStatus === 400) || 
+                          (logStatus === '422' || logStatus === 422) ||
                           hasError || 
                           eventData.error_code === 'invalid_credentials' ||
-                          msg.toLowerCase().includes('invalid credentials');
+                          eventData.error_code === 'invalid_grant' ||
+                          msg.toLowerCase().includes('invalid credentials') ||
+                          msg.toLowerCase().includes('authentication failed') ||
+                          (path === '/token' && logStatus !== '200' && logStatus !== 200);
 
           // Extract email with better logic
           let email = 'Unknown';
