@@ -362,23 +362,48 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const getCurrentUserRole = (): string => {
     if (!currentOrganization || !currentUser?.id) {
-      return 'manager';
+      return currentUser?.role || 'manager';
     }
 
     const userOrg = userOrganizations.find(
       uo => uo.organization_id === currentOrganization.id
     );
 
-    return userOrg?.role || 'manager';
+    return userOrg?.role || currentUser?.role || 'manager';
   };
 
-  const isAdmin = currentUser?.role === 'admin' || false;
+  // Use organization role when available, fallback to profile role
+  const getUserEffectiveRole = (): string => {
+    if (!currentUser) return 'manager';
+    
+    // If user has organizations, use the organization role
+    if (currentOrganization && userOrganizations.length > 0) {
+      const userOrg = userOrganizations.find(
+        uo => uo.organization_id === currentOrganization.id
+      );
+      if (userOrg) {
+        return userOrg.role;
+      }
+    }
+    
+    // Fallback to profile role
+    return currentUser.role || 'manager';
+  };
+
+  const effectiveRole = getUserEffectiveRole();
+  const isAdmin = effectiveRole === 'admin' || false;
 
   const canAccessProperty = (propertyId: string): boolean => {
     if (!currentUser) return false;
-    if (currentUser.role === 'admin') return true;
+    if (effectiveRole === 'admin') return true;
     return currentUser.assignedProperties?.includes(propertyId) || false;
   };
+
+  // Create enhanced currentUser with effective role
+  const enhancedCurrentUser = currentUser ? {
+    ...currentUser,
+    role: effectiveRole as UserRole
+  } : null;
 
   // User management functions (stubs for now)
   const fetchUsers = async () => {
@@ -530,7 +555,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const value: UnifiedAuthContextType = {
-    currentUser,
+    currentUser: enhancedCurrentUser,
     session,
     loading,
     signOut,
@@ -551,8 +576,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   console.log('🚀 UnifiedAuth v8.0 - Provider render:', { 
-    hasCurrentUser: !!currentUser, 
-    currentUserEmail: currentUser?.email,
+    hasCurrentUser: !!enhancedCurrentUser, 
+    currentUserEmail: enhancedCurrentUser?.email,
+    currentUserRole: enhancedCurrentUser?.role,
+    effectiveRole: effectiveRole,
+    profileRole: currentUser?.role,
     loading,
     hasOrganization: !!currentOrganization,
     organizationName: currentOrganization?.name,
