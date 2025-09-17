@@ -47,6 +47,7 @@ import { ContractorRouteGuard } from './components/contractor/ContractorRouteGua
 // New pages
 import Pricing from '@/pages/Pricing';
 import Billing from '@/pages/Billing';
+import Security from '@/pages/Security';
 
 const queryClient = new QueryClient();
 
@@ -243,6 +244,13 @@ function App() {
                     <QuoteSubmission />
                   </ContractorProvider>
                 </MaintenanceRequestProvider>
+              </ProtectedRoute>
+            } />
+
+            {/* Security Dashboard (admin only) */}
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <Security />
               </ProtectedRoute>
             } />
 

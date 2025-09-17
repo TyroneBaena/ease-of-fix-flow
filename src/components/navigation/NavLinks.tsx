@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ClipboardList, FileText, Settings, Building } from 'lucide-react';
+import { Home, ClipboardList, FileText, Settings, Building, Shield } from 'lucide-react';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 type NavItem = {
@@ -29,6 +29,11 @@ export const NavLinks = () => {
     // Add Settings for admin and manager - updated to use isAdmin as boolean
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
+    }
+    
+    // Add Security for admin only
+    if (isAdmin) {
+      items.push({ name: 'Security', icon: <Shield className="h-5 w-5" />, path: '/security' });
     }
     
     return items;
