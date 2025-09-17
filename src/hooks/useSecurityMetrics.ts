@@ -104,8 +104,22 @@ export const useSecurityMetrics = () => {
       let activeSessionsCount = 0;
 
       console.log('🔍 [DEBUG] Processing auth logs:', finalAuthLogs?.length || 0);
+      console.log('🔍 [DEBUG] Sample auth log structure:', finalAuthLogs?.[0]);
 
       if (finalAuthLogs && Array.isArray(finalAuthLogs)) {
+        console.log('🔍 [DEBUG] All auth logs:');
+        finalAuthLogs.forEach((log: any, index: number) => {
+          console.log(`🔍 [DEBUG] Log ${index}:`, {
+            id: log.id,
+            timestamp: log.timestamp,
+            status: log.status,
+            error: log.error,
+            path: log.path,
+            msg: log.msg,
+            event_message_preview: log.event_message ? log.event_message.substring(0, 100) + '...' : 'none'
+          });
+        });
+        
         finalAuthLogs.forEach((log: any, index: number) => {
           console.log(`🔍 [DEBUG] Processing log ${index}:`, {
             id: log.id,
@@ -127,6 +141,27 @@ export const useSecurityMetrics = () => {
           } catch (e) {
             eventData = { msg: log.msg || 'Unknown event' };
           }
+
+          console.log(`🔍 [DEBUG] Log ${index} detailed analysis:`, {
+            id: log.id,
+            raw_log: {
+              status: log.status,
+              error: log.error,
+              path: log.path,
+              msg: log.msg
+            },
+            parsed_event: {
+              status: eventData.status,
+              error_code: eventData.error_code,
+              path: eventData.path,
+              grant_type: eventData.grant_type,
+              method: eventData.method,
+              msg: eventData.msg,
+              action: eventData.action,
+              auth_event: eventData.auth_event
+            },
+            isToday
+          });
 
           // Identify login attempts and sessions with better logic
           const msg = eventData.msg || log.msg || '';
