@@ -15,6 +15,13 @@ export const useContractorManagement = () => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
+  console.log('🔧 useContractorManagement - Hook state:', {
+    isAdmin,
+    currentUserRole: currentUser?.role,
+    hasCurrentUser: !!currentUser,
+    loading
+  });
+
   const {
     isDialogOpen,
     setIsDialogOpen,

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 
 const ContractorManagement = () => {
+  console.log('🏗️ ContractorManagement - Component render');
+  
   const {
     contractors,
     currentUser,
@@ -37,6 +39,15 @@ const ContractorManagement = () => {
     fetchContractors,
     selectedContractorForDeletion
   } = useContractorManagement();
+  
+  console.log('🏗️ ContractorManagement - Debug state:', {
+    isAdmin,
+    currentUserRole: currentUser?.role,
+    hasCurrentUser: !!currentUser,
+    contractorsCount: contractors.length,
+    isLoading,
+    fetchError: !!fetchError
+  });
   
   // Block managers from accessing contractor management
   if (!isAdmin && currentUser?.role === 'manager') {
