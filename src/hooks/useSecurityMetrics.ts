@@ -143,13 +143,13 @@ export const useSecurityMetrics = () => {
                              (path === '/logout' && eventData.auth_event?.action === 'logout');
           
           // Determine success/failure status
-          const isSuccess = (log.level === 'info' && status === '200') || 
-                           (eventData.action === 'login' && !eventData.error);
-          const isFailed = log.level === 'error' || 
-                          status === '400' || 
+          const isSuccess = (status === '200' || status === 200) || 
+                           (eventData.action === 'login' && !eventData.error && !eventData.error_code);
+          const isFailed = (status === '400' || status === 400) || 
                           eventData.error_code === 'invalid_credentials' ||
                           msg.toLowerCase().includes('invalid') ||
-                          msg.toLowerCase().includes('failed');
+                          msg.toLowerCase().includes('failed') ||
+                          eventData.error;
 
           // Extract email with better logic
           let email = 'Unknown';
