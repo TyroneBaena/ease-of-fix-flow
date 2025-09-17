@@ -192,13 +192,27 @@ export const useSecurityMetrics = () => {
             const attemptType = eventData.action || 
                                (path === '/token' ? 'login' : 
                                 path === '/logout' ? 'logout' : 'auth');
-                                
+            
+            // Create meaningful message based on success/failure
+            let displayMessage;
+            if (isFailed) {
+              if (eventData.error_code === 'invalid_credentials') {
+                displayMessage = `${attemptType} - Invalid login credentials`;
+              } else if (hasError) {
+                displayMessage = `${attemptType} - ${hasError}`;
+              } else {
+                displayMessage = `${attemptType} - Authentication failed`;
+              }
+            } else {
+              displayMessage = `${attemptType} - ${eventData.action === 'login' ? 'Login successful' : 'Request completed'}`;
+            }
+                                 
             recentAttempts.push({
               id: log.id,
               timestamp: log.timestamp,
               email: email,
               status: isFailed ? 'failed' : 'success',
-              msg: `${attemptType} - ${msg}`,
+              msg: displayMessage,
               level: log.level || 'info'
             });
           }
