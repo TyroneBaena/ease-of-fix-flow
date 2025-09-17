@@ -202,44 +202,29 @@ export const useSecurityMetrics = () => {
             msg: eventData.msg || msg
           });
           
-          // Determine success/failure status - look for multiple failure indicators
+          // SIMPLIFIED failure detection - focus only on /token requests with errors
           const logStatus = log.status || eventData.status;
           const hasError = log.error || eventData.error || eventData.error_code;
-          
-          // Check for failed login patterns in the real auth logs
           const isTokenRequest = path === '/token' || eventData.path === '/token';
-          const hasInvalidCredentials = eventData.error_code === 'invalid_credentials';
-          const hasInvalidGrant = eventData.error_code === 'invalid_grant';
-          const statusIs400 = logStatus === '400' || logStatus === 400;
-          const statusIs422 = logStatus === '422' || logStatus === 422;
-          const errorMsgFailed = (msg && msg.toLowerCase().includes('invalid credentials')) ||
-                                (eventData.msg && eventData.msg.toLowerCase().includes('invalid credentials'));
           
-          console.log('🔍 [Failure Detection]', {
+          // Simple logic: if it's a /token request with status 400 or any error, it's a failed login
+          const isFailed = isTokenRequest && (
+            logStatus === '400' || 
+            logStatus === 400 ||
+            eventData.error_code === 'invalid_credentials' ||
+            hasError
+          );
+          const isSuccess = isTokenRequest && (logStatus === '200' || logStatus === 200) && !hasError;
+
+          console.log(`🔍 [SIMPLIFIED Detection] Log ${index}:`, {
             id: log.id,
+            isTokenRequest,
             logStatus,
             hasError,
-            isTokenRequest,
-            hasInvalidCredentials,
-            hasInvalidGrant,
-            statusIs400,
-            statusIs422,
-            errorMsgFailed,
-            error_code: eventData.error_code,
-            msg: eventData.msg || msg,
-            path,
-            raw_error: log.error
+            isFailed,
+            isSuccess,
+            decision: isFailed ? 'FAILED' : (isSuccess ? 'SUCCESS' : 'NOT_LOGIN')
           });
-          
-          const isSuccess = (logStatus === '200' || logStatus === 200) && !hasError && isTokenRequest;
-          const isFailed = isTokenRequest && (
-            statusIs400 || 
-            statusIs422 ||
-            hasInvalidCredentials ||
-            hasInvalidGrant ||
-            errorMsgFailed ||
-            (hasError && isTokenRequest)
-          );
 
           // Extract email with better logic
           let email = 'Unknown';
@@ -280,7 +265,19 @@ export const useSecurityMetrics = () => {
               grant_type: eventData.grant_type
             });
 
-            // Count today's logins - count ONLY actual login attempts, not logout
+            // SIMPLIFIED: Count only /token requests as login attempts
+            const isTokenRequest = path === '/token' || eventData.path === '/token';
+            const isLoginAttempt = isTokenRequest && eventData.grant_type === 'password';
+            
+            console.log(`🔍 [SIMPLIFIED Login Check] Log ${index}:`, {
+              id: log.id,
+              isTokenRequest,
+              grant_type: eventData.grant_type,
+              isLoginAttempt,
+              status: logStatus,
+              isFailed
+            });
+            
             if (isToday && isLoginAttempt) {
               totalLoginsToday++;
               if (isFailed) {
@@ -289,18 +286,14 @@ export const useSecurityMetrics = () => {
                   id: log.id,
                   timestamp: log.timestamp,
                   email,
-                  reason: hasInvalidCredentials ? 'invalid_credentials' : (statusIs400 ? 'status_400' : 'other'),
                   status: logStatus,
-                  error_code: eventData.error_code
+                  error: hasError
                 });
               }
-              console.log('📊 [Login Count]', { 
+              console.log('📊 [Login Count Updated]', { 
                 totalLoginsToday, 
                 failedLoginsToday, 
-                isLoginAttempt, 
                 isFailed,
-                action: eventData.action || eventData.auth_event?.action,
-                path,
                 status: logStatus
               });
             }
