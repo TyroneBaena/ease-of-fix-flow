@@ -9,10 +9,19 @@ export const updateJobProgressStatus = async (
   notes?: string,
   completionPhotos?: Array<{ url: string }>
 ) => {
-  console.log(`updateJobProgressStatus - Starting update for request ${requestId}`);
-  console.log(`updateJobProgressStatus - Progress: ${progress}%`);
-  console.log(`updateJobProgressStatus - Notes:`, notes);
-  console.log(`updateJobProgressStatus - Completion photos:`, completionPhotos);
+  console.log(`🚀 updateJobProgressStatus - STARTING UPDATE for request ${requestId}`);
+  console.log(`🚀 updateJobProgressStatus - Progress: ${progress}%`);
+  console.log(`🚀 updateJobProgressStatus - Notes:`, notes);
+  console.log(`🚀 updateJobProgressStatus - Completion photos:`, completionPhotos);
+  
+  // First, let's check current status in database
+  const { data: currentData } = await supabase
+    .from('maintenance_requests')
+    .select('id, status, completion_percentage')
+    .eq('id', requestId)
+    .single();
+  
+  console.log(`🚀 BEFORE UPDATE - Current status: ${currentData?.status}, Current progress: ${currentData?.completion_percentage}%`);
 
   const updates: any = {
     completion_percentage: progress
@@ -68,8 +77,17 @@ export const updateJobProgressStatus = async (
     throw error;
   }
 
-  console.log(`updateJobProgressStatus - Database update successful:`, data);
-  console.log(`updateJobProgressStatus - Updated status in database:`, data?.[0]?.status);
+  console.log(`🚀 updateJobProgressStatus - Database update successful:`, data);
+  console.log(`🚀 AFTER UPDATE - New status: ${data?.[0]?.status}, New progress: ${data?.[0]?.completion_percentage}%`);
+  
+  // Verify the update took effect by fetching again
+  const { data: verifyData } = await supabase
+    .from('maintenance_requests')
+    .select('id, status, completion_percentage')
+    .eq('id', requestId)
+    .single();
+  
+  console.log(`🚀 VERIFICATION - Actual status in DB: ${verifyData?.status}, Actual progress: ${verifyData?.completion_percentage}%`);
 
   // Get contractor information for activity logging
   console.log('updateJobProgressStatus - Getting contractor information for activity logging');
