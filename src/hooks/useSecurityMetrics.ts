@@ -168,41 +168,63 @@ export const useSecurityMetrics = () => {
           console.log('Extracted email:', email);
 
           if (isAuthEvent) {
-            // Add to recent attempts (all auth events for visibility)
-            const attemptType = eventData.action || 
-                               (path === '/token' ? 'login' : 
-                                path === '/logout' ? 'logout' : 'auth');
-            
-            // Create meaningful message based on success/failure
-            let displayMessage;
-            if (isFailed) {
-              if (eventData.error_code === 'invalid_credentials') {
-                displayMessage = `${attemptType} - Invalid login credentials`;
-              } else if (hasError) {
-                displayMessage = `${attemptType} - ${hasError}`;
-              } else {
-                displayMessage = `${attemptType} - Authentication failed`;
-              }
-            } else {
-              displayMessage = `${attemptType} - ${eventData.action === 'login' ? 'Login successful' : 'Request completed'}`;
-            }
-                                 
-            recentAttempts.push({
+            console.log('🔄 [Auth Event]', {
               id: log.id,
+              action: eventData.action,
+              path: path,
+              status: logStatus,
+              isSuccess,
+              isFailed,
               timestamp: log.timestamp,
-              email: email,
-              status: isFailed ? 'failed' : 'success',
-              msg: displayMessage,
-              level: log.level || 'info'
+              grant_type: eventData.grant_type
             });
 
-            // Count today's logins - count only actual login attempts (not logout or /user calls)
-            // For "Total Logins Today", count both successful and failed login attempts
-            if (isToday && (eventData.action === 'login' || (path === '/token' && eventData.grant_type === 'password'))) {
+            // Count today's logins ONLY for actual login attempts  
+            // We count both successful and failed login attempts, but NOT logout events
+            const isLoginAttempt = (eventData.action === 'login') || 
+                                  (path === '/token' && eventData.grant_type === 'password');
+            
+            if (isToday && isLoginAttempt) {
               totalLoginsToday++;
               if (isFailed) {
                 failedLoginsToday++;
               }
+              console.log('📊 [Login Count]', { 
+                totalLoginsToday, 
+                failedLoginsToday, 
+                isLoginAttempt, 
+                action: eventData.action,
+                path,
+                grant_type: eventData.grant_type 
+              });
+            }
+
+            // Add to recent attempts ONLY login attempts (not logout or other auth events)
+            if (isLoginAttempt) {
+              const attemptType = eventData.action || 'login';
+              
+              // Create meaningful message based on success/failure
+              let displayMessage;
+              if (isFailed) {
+                if (eventData.error_code === 'invalid_credentials') {
+                  displayMessage = `${attemptType} - Invalid login credentials`;
+                } else if (hasError) {
+                  displayMessage = `${attemptType} - ${hasError}`;
+                } else {
+                  displayMessage = `${attemptType} - Authentication failed`;
+                }
+              } else {
+                displayMessage = `${attemptType} - Login successful`;
+              }
+                                   
+              recentAttempts.push({
+                id: log.id,
+                timestamp: log.timestamp,
+                email: email,
+                status: isFailed ? 'failed' : 'success',
+                msg: displayMessage,
+                level: log.level || 'info'
+              });
             }
           }
 
