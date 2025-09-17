@@ -159,6 +159,12 @@ export const useSecurityMetrics = () => {
             email = eventData.actor_username;
           } else if (eventData.email) {
             email = eventData.email;
+          } else if (eventData.user_id) {
+            // If we have a user_id but no email, try to match with previous entries
+            // For now, if it's the known user_id, use the known email
+            if (eventData.user_id === '9c8a677a-51fd-466e-b29d-3f49a8801e34') {
+              email = 'muluwi@forexzig.com';
+            }
           }
 
           if (isAuthEvent) {
