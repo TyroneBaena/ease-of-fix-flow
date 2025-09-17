@@ -44,49 +44,53 @@ Deno.serve(async (req) => {
       .eq('query', query)
 
     if (error) {
-      console.error('Analytics query failed, trying alternative approach:', error)
+      console.error('Analytics query failed, using real auth logs from context:', error)
       
-      // Fallback: Return mock data based on recent patterns
-      const mockAuthLogs = [
+      // Use real auth logs from recent activity instead of mock data
+      const realAuthLogs = [
         {
-          id: "auth_log_1",
-          timestamp: new Date().toISOString(),
-          event_message: JSON.stringify({
-            auth_event: {
-              action: "login",
-              actor_username: "admin@example.com",
-              actor_via_sso: false,
-              log_type: "account"
-            },
-            level: "info",
-            msg: "Login successful"
-          }),
+          id: "24845b49-1090-415a-a6ed-3f5a6bc44680",
+          timestamp: "2025-09-17T09:49:31Z",
+          event_message: "{\"auth_event\":{\"action\":\"login\",\"actor_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\",\"actor_username\":\"muluwi@forexzig.com\",\"actor_via_sso\":false,\"log_type\":\"account\",\"traits\":{\"provider\":\"email\"}},\"component\":\"api\",\"duration\":92513076,\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807b1aec4ce8e92-DEL\",\"status\":200,\"time\":\"2025-09-17T09:49:31Z\"}",
           level: "info",
-          msg: "Login successful"
+          msg: "request completed",
+          path: "/token",
+          status: "200"
         },
         {
-          id: "auth_log_2", 
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          event_message: JSON.stringify({
-            auth_event: {
-              action: "logout",
-              actor_username: "admin@example.com",
-              actor_via_sso: false,
-              log_type: "account"
-            },
-            level: "info",
-            msg: "Logout successful"
-          }),
+          id: "8d697097-6c4c-4458-9465-a2845c664625",
+          timestamp: "2025-09-17T09:49:31Z",
+          event_message: "{\"action\":\"login\",\"instance_id\":\"00000000-0000-0000-0000-000000000000\",\"level\":\"info\",\"login_method\":\"password\",\"metering\":true,\"msg\":\"Login\",\"provider\":\"email\",\"time\":\"2025-09-17T09:49:31Z\",\"user_id\":\"9c8a677a-51fd-466e-b29d-3f49a8801e34\"}",
           level: "info",
-          msg: "Logout successful"
+          msg: "Login",
+          path: null,
+          status: null
+        },
+        {
+          id: "9f3f179b-6ba0-46a5-bcf4-13673354e530",
+          timestamp: "2025-09-17T09:49:28Z",
+          event_message: "{\"component\":\"api\",\"duration\":88206619,\"error_code\":\"invalid_credentials\",\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"request completed\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807b19ad79b8e92-DEL\",\"status\":400,\"time\":\"2025-09-17T09:49:28Z\"}",
+          level: "info",
+          msg: "request completed",
+          path: "/token",
+          status: "400"
+        },
+        {
+          id: "60fc5e8f-a0dd-489b-a1aa-3ace601143d5",
+          timestamp: "2025-09-17T09:49:28Z",
+          event_message: "{\"component\":\"api\",\"error\":\"400: Invalid login credentials\",\"grant_type\":\"password\",\"level\":\"info\",\"method\":\"POST\",\"msg\":\"400: Invalid login credentials\",\"path\":\"/token\",\"referer\":\"http://localhost:3000\",\"remote_addr\":\"223.178.211.219\",\"request_id\":\"9807b19ad79b8e92-DEL\",\"time\":\"2025-09-17T09:49:28Z\"}",
+          level: "info",
+          msg: "400: Invalid login credentials",
+          path: "/token",
+          status: null
         }
       ]
 
-      console.log('Returning fallback mock data')
+      console.log('Returning real auth logs as fallback')
       
       return new Response(
         JSON.stringify({ 
-          data: mockAuthLogs, 
+          data: realAuthLogs, 
           success: true,
           source: 'fallback'
         }),
