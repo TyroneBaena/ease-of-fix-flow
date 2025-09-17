@@ -133,9 +133,13 @@ const ContractorJobDetail = () => {
             requestId={job.id}
             currentProgress={job.completionPercentage || 0}
             onProgressUpdate={() => {
-              // Refresh job details after update
-              refetch();
-              setRefreshCounter(prev => prev + 1);
+              console.log('ContractorJobDetail - Progress update callback triggered');
+              // Refresh job details after update with a small delay
+              setTimeout(() => {
+                console.log('ContractorJobDetail - Calling refetch');
+                refetch();
+                setRefreshCounter(prev => prev + 1);
+              }, 1000);
             }}
           />
         </main>

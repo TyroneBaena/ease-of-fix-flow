@@ -65,6 +65,7 @@ export const updateJobProgressStatus = async (
   }
 
   console.log(`updateJobProgressStatus - Database update successful:`, data);
+  console.log(`updateJobProgressStatus - Updated status in database:`, data?.[0]?.status);
 
   // Get contractor information for activity logging
   console.log('updateJobProgressStatus - Getting contractor information for activity logging');

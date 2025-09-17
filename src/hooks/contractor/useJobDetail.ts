@@ -77,6 +77,8 @@ export const useJobDetail = (jobId: string | undefined) => {
             }
           };
           
+          console.log('useJobDetail - Raw status from database:', data.status);
+          
           const formattedJob: MaintenanceRequest = {
             id: data.id,
             title: data.title,
