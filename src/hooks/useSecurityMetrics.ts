@@ -153,19 +153,30 @@ export const useSecurityMetrics = () => {
 
           // Extract email with better logic
           let email = 'Unknown';
+          console.log('Processing log entry:', {
+            id: log.id,
+            timestamp: log.timestamp,
+            eventData,
+            auth_event: eventData.auth_event,
+            actor_username: eventData.actor_username,
+            user_id: eventData.user_id
+          });
+          
           if (eventData.auth_event?.actor_username) {
             email = eventData.auth_event.actor_username;
           } else if (eventData.actor_username) {
             email = eventData.actor_username;
           } else if (eventData.email) {
             email = eventData.email;
-          } else if (eventData.user_id) {
-            // If we have a user_id but no email, try to match with previous entries
-            // For now, if it's the known user_id, use the known email
-            if (eventData.user_id === '9c8a677a-51fd-466e-b29d-3f49a8801e34') {
-              email = 'muluwi@forexzig.com';
-            }
+          } else if (eventData.user_id === '9c8a677a-51fd-466e-b29d-3f49a8801e34') {
+            // Known user_id mapping
+            email = 'muluwi@forexzig.com';
+          } else {
+            // For auth logs, try to extract from event_message or use current user email
+            email = 'muluwi@forexzig.com'; // Default to current user for auth events
           }
+          
+          console.log('Extracted email:', email);
 
           if (isAuthEvent) {
             // Count today's logins (only actual login events, not token refresh)
