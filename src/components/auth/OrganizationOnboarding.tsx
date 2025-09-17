@@ -139,7 +139,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       console.log('Organization created:', orgData);
 
-      // Update user's profile with organization_id, session organization, and admin role
+      // Update user's profile with organization_id, session organization, and admin role  
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -148,6 +148,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
           role: 'admin'
         })
         .eq('id', user.id);
+
+      console.log('Profile update result:', { profileError });
 
       if (profileError) {
         console.error('Error updating user profile:', profileError);
@@ -159,7 +161,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         return;
       }
 
-      console.log('User profile updated with organization info');
+      console.log('User profile updated with organization info and admin role');
 
       // Create user_organizations record for the new organization
       const { data: userOrgData, error: userOrgError } = await supabase
@@ -176,7 +178,23 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       if (userOrgError) {
         console.error('Error creating user organization record:', userOrgError);
-        // Still call onComplete since the organization was created
+        
+        // Even if user_organizations creation failed, try to fix the profile role
+        try {
+          const { error: roleFixError } = await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('id', user.id);
+          
+          if (roleFixError) {
+            console.error('Failed to set admin role in profile:', roleFixError);
+          } else {
+            console.log('Successfully set admin role in profile as fallback');
+          }
+        } catch (fixError) {
+          console.error('Exception while fixing role:', fixError);
+        }
+        
         toast.success("Organization created successfully!");
         console.log('Calling onComplete despite user organization membership error');
       } else {
