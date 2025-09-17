@@ -35,20 +35,18 @@ export const updateJobProgressStatus = async (
     updates.completion_photos = completionPhotos;
   }
 
-  // Update status based on progress
+  // Update status based on progress - simplified logic
+  console.log(`updateJobProgressStatus - Determining status update for progress: ${progress}%`);
+  
   if (progress === 100) {
+    console.log('updateJobProgressStatus - Setting status to completed');
     updates.status = 'completed';
   } else if (progress > 0) {
-    // If there's any progress made, change status from 'requested' to 'in-progress'
-    const { data: currentRequest } = await supabase
-      .from('maintenance_requests')
-      .select('status')
-      .eq('id', requestId)
-      .single();
-    
-    if (currentRequest?.status === 'requested' || currentRequest?.status === 'pending') {
-      updates.status = 'in-progress';
-    }
+    // Always set to in-progress if there's any progress > 0
+    console.log('updateJobProgressStatus - Progress > 0, setting status to in-progress');
+    updates.status = 'in-progress';
+  } else {
+    console.log('updateJobProgressStatus - Progress is 0, not updating status');
   }
 
   console.log(`updateJobProgressStatus - Database updates:`, updates);
