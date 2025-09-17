@@ -5,6 +5,11 @@ enabled = true
 site_url = "https://lovable.dev"
 additional_redirect_urls = ["https://lovable.dev", "https://lovable.dev/email-confirm", "https://ltjlswzrdgtoddyqmydo.supabase.co"]
 jwt_expiry = 3600
+enable_signup = true
+email_confirm = true
+# Auth webhook for custom email sending
+hook_send_auth_email_uri = "https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/send-auth-email"
+hook_send_auth_email_secrets = "NEW_RESEND_API_KEY"
 
 [database]
 password = "your-super-secret-and-long-postgres-password"
