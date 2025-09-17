@@ -168,14 +168,6 @@ export const useSecurityMetrics = () => {
           console.log('Extracted email:', email);
 
           if (isAuthEvent) {
-            // Count today's logins (only actual login events, not token refresh)
-            if (isToday && (eventData.action === 'login' || path === '/token')) {
-              totalLoginsToday++;
-              if (isFailed) {
-                failedLoginsToday++;
-              }
-            }
-
             // Add to recent attempts (all auth events for visibility)
             const attemptType = eventData.action || 
                                (path === '/token' ? 'login' : 
@@ -203,6 +195,15 @@ export const useSecurityMetrics = () => {
               msg: displayMessage,
               level: log.level || 'info'
             });
+
+            // Count today's logins - count only actual login attempts (not logout or /user calls)
+            // For "Total Logins Today", count both successful and failed login attempts
+            if (isToday && (eventData.action === 'login' || (path === '/token' && eventData.grant_type === 'password'))) {
+              totalLoginsToday++;
+              if (isFailed) {
+                failedLoginsToday++;
+              }
+            }
           }
 
           // Count active sessions (very rough estimate - successful auth events in last hour)
