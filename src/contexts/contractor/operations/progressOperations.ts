@@ -51,11 +51,17 @@ export const updateJobProgressStatus = async (
 
   console.log(`updateJobProgressStatus - Database updates:`, updates);
 
+  console.log(`updateJobProgressStatus - Attempting database update with requestId: ${requestId}`);
+  console.log(`updateJobProgressStatus - Update object:`, JSON.stringify(updates, null, 2));
+  
   const { data, error } = await supabase
     .from('maintenance_requests')
     .update(updates)
     .eq('id', requestId)
     .select('*');
+    
+  console.log(`updateJobProgressStatus - Database response data:`, data);
+  console.log(`updateJobProgressStatus - Database response error:`, error);
 
   if (error) {
     console.error('updateJobProgressStatus - Database update error:', error);
