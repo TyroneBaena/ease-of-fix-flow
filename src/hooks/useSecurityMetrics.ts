@@ -143,13 +143,14 @@ export const useSecurityMetrics = () => {
                              (path === '/logout' && eventData.auth_event?.action === 'logout');
           
           // Determine success/failure status
-          const isSuccess = (status === '200' || status === 200) || 
-                           (eventData.action === 'login' && !eventData.error && !eventData.error_code);
-          const isFailed = (status === '400' || status === 400) || 
+          const logStatus = log.status || eventData.status;
+          const hasError = log.error || eventData.error || eventData.error_code;
+          
+          const isSuccess = (logStatus === '200' || logStatus === 200) && !hasError;
+          const isFailed = (logStatus === '400' || logStatus === 400) || 
+                          hasError || 
                           eventData.error_code === 'invalid_credentials' ||
-                          msg.toLowerCase().includes('invalid') ||
-                          msg.toLowerCase().includes('failed') ||
-                          eventData.error;
+                          msg.toLowerCase().includes('invalid credentials');
 
           // Extract email with better logic
           let email = 'Unknown';
@@ -228,8 +229,8 @@ export const useSecurityMetrics = () => {
   useEffect(() => {
     fetchSecurityMetrics();
     
-    // Refresh metrics every 5 minutes
-    const interval = setInterval(fetchSecurityMetrics, 5 * 60 * 1000);
+    // Refresh metrics every minute for better responsiveness
+    const interval = setInterval(fetchSecurityMetrics, 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);
