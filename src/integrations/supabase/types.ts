@@ -1209,11 +1209,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_organization_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
       get_current_user_role_readonly: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role_safe: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
