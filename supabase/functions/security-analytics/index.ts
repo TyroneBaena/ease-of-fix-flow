@@ -13,11 +13,20 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client
+    // Initialize Supabase client with user's JWT token for auth context
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Get the Authorization header from the request
+    const authHeader = req.headers.get('Authorization')
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader || '',
+        },
+      },
+    })
 
     console.log('🔐 [Security Analytics] Starting security metrics fetch...')
 
