@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { User, UserRole } from '@/types/user';
 import { userService, InviteUserResult } from '@/services/userService';
-import { useSimpleAuth } from './SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 
 interface UserContextType {
   users: User[];

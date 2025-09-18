@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/settings/UserManagement';
 import ContractorManagement from '@/components/settings/ContractorManagement';
 import { Card } from '@/components/ui/card';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";

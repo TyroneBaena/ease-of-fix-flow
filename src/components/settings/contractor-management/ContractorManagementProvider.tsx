@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { fetchContractors } from '@/contexts/contractor/operations/contractorFetch';
 import { toast } from '@/lib/toast';
 

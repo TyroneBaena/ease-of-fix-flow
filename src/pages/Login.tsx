@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Info } from 'lucide-react';
 import { signInWithEmailPassword } from '@/hooks/auth/authOperations';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { getRedirectPathByRole } from '@/services/userService';
 
 const Login = () => {

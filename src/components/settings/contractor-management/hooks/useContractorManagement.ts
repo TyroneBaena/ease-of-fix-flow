@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { useContractorDialog } from './useContractorDialog';
 import { useContractorActions } from './useContractorActions';
 import { useContractorPagination } from './useContractorPagination';

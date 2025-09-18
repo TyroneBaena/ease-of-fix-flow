@@ -90,7 +90,11 @@ export const useSimpleAuth = () => {
     currentUser: context.currentUser,
     session: context.session,
     loading: context.loading,
-    signOut: context.signOut
+    signOut: context.signOut,
+    isAdmin: context.isAdmin,
+    switchOrganization: context.switchOrganization,
+    refreshUser: context.refreshOrganizations, // Map to available method
+    currentOrganization: context.currentOrganization
   };
 };
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, AlertCircle, User, Key, Database, Mail, RefreshCw } from 'lucide-react';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { signInWithEmailPassword, signOutUser } from '@/hooks/auth/authOperations';
 import { userService } from '@/services/userService';
 import { supabase } from '@/lib/supabase';
