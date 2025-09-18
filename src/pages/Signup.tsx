@@ -197,14 +197,14 @@ useEffect(() => {
   };
 
   const handleOrganizationComplete = async () => {
-    console.log('Organization setup completed - redirecting to dashboard');
+    console.log('🚀 Signup - Organization setup completed - redirecting to dashboard');
     
-    // Simply redirect to dashboard - the context refresh will be handled by ProtectedRoute
     toast.success("Organization setup complete! Redirecting to dashboard...");
     
+    // Shorter delay for better UX
     setTimeout(() => {
-      navigate('/dashboard');
-    }, 1000);
+      navigate('/dashboard', { replace: true });
+    }, 500);
   };
 
 return (

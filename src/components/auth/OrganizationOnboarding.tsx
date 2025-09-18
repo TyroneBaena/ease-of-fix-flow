@@ -124,16 +124,21 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       if (orgError) {
         console.error('Organization creation error:', orgError);
+        let errorMessage = 'Failed to create organization. ';
+        
         if (orgError.code === '23505') {
-          // This should rarely happen now due to our uniqueness check, but just in case
-          setError("Organization identifier conflict. Please try again with a different name.");
+          errorMessage += 'Organization name already exists. Please try a different name.';
         } else if (orgError.message?.includes('permission denied')) {
-          setError("Permission denied. Please make sure you're logged in and try again.");
+          errorMessage += 'Permission denied. Please refresh the page and try again.';
         } else if (orgError.message?.includes('violates row-level security')) {
-          setError("Authentication error. Please sign out and sign in again.");
+          errorMessage += 'Authentication error. Please sign out and sign in again.';
+        } else if (orgError.message?.includes('JWT')) {
+          errorMessage += 'Session expired. Please refresh the page and try again.';
         } else {
-          setError(`Failed to create organization: ${orgError.message}`);
+          errorMessage += orgError.message || 'Unknown error occurred.';
         }
+        
+        setError(errorMessage);
         return;
       }
 
@@ -205,12 +210,16 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       }
 
       // Force a user metadata update to trigger auth state change
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { last_organization_update: Date.now() }
-      });
+      try {
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { last_organization_update: Date.now() }
+        });
 
-      if (updateError) {
-        console.warn('Failed to update user metadata:', updateError);
+        if (updateError) {
+          console.warn('Failed to update user metadata:', updateError);
+        }
+      } catch (metaError) {
+        console.warn('Error updating user metadata:', metaError);
       }
 
       // Always call onComplete to refresh

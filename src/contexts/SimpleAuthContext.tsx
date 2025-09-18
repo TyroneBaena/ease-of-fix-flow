@@ -40,26 +40,31 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
   try {
     console.log('🔄 SimpleAuth - Converting user:', supabaseUser.email);
     
-    // Query user profile with timeout
-    const profilePromise = supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', supabaseUser.id)
-      .single();
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile query timeout')), 5000);
-    });
-
+    // Query user profile with shorter timeout and better error handling
     let profile = null;
     try {
-      const result = await Promise.race([profilePromise, timeoutPromise]) as any;
-      profile = result.data;
-      if (result.error) {
-        console.warn('Profile query error:', result.error);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+      
+      if (profileError) {
+        console.warn('🔄 SimpleAuth - Profile query error:', profileError.message);
+        // Continue with fallback values instead of failing
+      } else {
+        profile = profileData;
+        console.log('🔄 SimpleAuth - Profile loaded successfully');
       }
     } catch (error) {
-      console.warn('Profile query failed:', error);
+      console.warn('🔄 SimpleAuth - Profile query failed:', error);
+      // Continue with fallback values
+    }
+
+    // Determine role with better logic
+    let userRole: UserRole = 'admin'; // Default for safety
+    if (profile?.role) {
+      userRole = profile.role as UserRole;
     }
 
     // Create user with safe fallbacks
@@ -67,7 +72,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
       id: supabaseUser.id,
       email: supabaseUser.email || '',
       name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-      role: (profile?.role as UserRole) || 'admin', // Default to admin for first user
+      role: userRole,
       assignedProperties: profile?.assigned_properties || [],
       createdAt: profile?.created_at || supabaseUser.created_at,
       organization_id: profile?.organization_id || null,
@@ -80,42 +85,47 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
     
     if (orgId) {
       try {
-        const { data: orgData } = await supabase
+        const { data: orgData, error: orgError } = await supabase
           .from('organizations')
           .select('*')
           .eq('id', orgId)
           .single();
         
-        if (orgData) {
+        if (orgError) {
+          console.warn('🔄 SimpleAuth - Organization query error:', orgError.message);
+        } else if (orgData) {
           organization = orgData;
+          console.log('🔄 SimpleAuth - Organization loaded successfully');
         }
       } catch (error) {
-        console.warn('Failed to fetch organization:', error);
+        console.warn('🔄 SimpleAuth - Failed to fetch organization:', error);
       }
     }
 
-    console.log('🔄 SimpleAuth - User converted:', {
+    console.log('🔄 SimpleAuth - User converted successfully:', {
       email: user.email,
       role: user.role,
-      hasOrganization: !!organization
+      hasOrganization: !!organization,
+      organizationId: orgId
     });
 
     return { user, organization };
   } catch (error) {
-    console.error('🔄 SimpleAuth - Error converting user:', error);
+    console.error('🔄 SimpleAuth - Critical error converting user:', error);
     
-    // Fallback user
+    // Fallback user with admin role for safety
     const fallbackUser: User = {
       id: supabaseUser.id,
       email: supabaseUser.email || '',
       name: supabaseUser.email?.split('@')[0] || 'User',
-      role: 'admin', // Fallback should be admin for system recovery
+      role: 'admin', // Fallback to admin for system recovery
       assignedProperties: [],
       createdAt: supabaseUser.created_at,
       organization_id: null,
       session_organization_id: null
     };
     
+    console.log('🔄 SimpleAuth - Using fallback user with admin role');
     return { user: fallbackUser, organization: null };
   }
 };
@@ -181,51 +191,83 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.log('🚀 SimpleAuth - User signed in:', session.user.email);
         
         setSession(session);
-        setLoading(false);
         
-        // Convert user in background to avoid blocking
-        setTimeout(async () => {
+        // Convert user synchronously to avoid loading state issues
+        try {
+          const { user, organization } = await convertSupabaseUser(session.user);
+          setCurrentUser(user);
+          setCurrentOrganization(organization);
+          setLoading(false);
+          console.log('🚀 SimpleAuth - User conversion completed successfully');
+        } catch (error) {
+          console.error('🚀 SimpleAuth - Error converting user:', error);
+          setCurrentUser(null);
+          setCurrentOrganization(null);
+          setLoading(false);
+        }
+        
+      } else if (event === 'SIGNED_OUT') {
+        console.log('🚀 SimpleAuth - User signed out');
+        setCurrentUser(null);
+        setSession(null);
+        setCurrentOrganization(null);
+        setLoading(false);
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('🚀 SimpleAuth - Token refreshed');
+        setSession(session);
+        // Don't re-convert user on token refresh unless necessary
+        if (!currentUser) {
           try {
             const { user, organization } = await convertSupabaseUser(session.user);
             setCurrentUser(user);
             setCurrentOrganization(organization);
           } catch (error) {
-            console.error('🚀 SimpleAuth - Error converting user:', error);
-            setCurrentUser(null);
-            setCurrentOrganization(null);
+            console.error('🚀 SimpleAuth - Error converting user on token refresh:', error);
           }
-        }, 0);
-        
-      } else if (event === 'SIGNED_OUT') {
-        console.log('🚀 SimpleAuth - User signed out');
+        }
+      } else {
+        // Handle any other auth states
         setLoading(false);
-        setCurrentUser(null);
-        setSession(null);
-        setCurrentOrganization(null);
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🚀 SimpleAuth - Token refreshed');
-        setSession(session);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [currentUser]);
 
   // Check initial session
   useEffect(() => {
     const getInitialSession = async () => {
+      console.log('🚀 SimpleAuth - Checking initial session');
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('🚀 SimpleAuth - Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+        
         if (session?.user) {
+          console.log('🚀 SimpleAuth - Initial session found for:', session.user.email);
           setSession(session);
-          const { user, organization } = await convertSupabaseUser(session.user);
-          setCurrentUser(user);
-          setCurrentOrganization(organization);
+          
+          try {
+            const { user, organization } = await convertSupabaseUser(session.user);
+            setCurrentUser(user);
+            setCurrentOrganization(organization);
+            console.log('🚀 SimpleAuth - Initial user conversion completed');
+          } catch (userError) {
+            console.error('🚀 SimpleAuth - Error converting initial user:', userError);
+            setCurrentUser(null);
+            setCurrentOrganization(null);
+          }
+        } else {
+          console.log('🚀 SimpleAuth - No initial session found');
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('🚀 SimpleAuth - Unexpected error getting initial session:', error);
       } finally {
         setLoading(false);
       }

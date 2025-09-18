@@ -17,14 +17,26 @@ const Login = () => {
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useSimpleAuth();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated with improved logic
   useEffect(() => {
     if (!authLoading && currentUser) {
       const redirectPath = getRedirectPathByRole(currentUser.role);
-      console.log(`User already authenticated, redirecting to: ${redirectPath}`);
-      navigate(redirectPath);
+      console.log(`🚀 Login - User already authenticated (${currentUser.email}), redirecting to: ${redirectPath}`);
+      navigate(redirectPath, { replace: true });
     }
   }, [currentUser, authLoading, navigate]);
+
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (authLoading) {
+        console.warn('🚀 Login - Auth loading timeout, forcing completion');
+        setError('Authentication timeout. Please try refreshing the page.');
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,25 +49,33 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      console.log(`Attempting login for: ${email}`);
+      console.log(`🚀 Login - Attempting login for: ${email}`);
       
       const { user, error } = await signInWithEmailPassword(email, password);
       
       if (error) {
-        setError(error.message || 'Login failed');
+        console.error('🚀 Login - Sign in error:', error);
+        if (error.message?.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message?.includes('Email not confirmed')) {
+          setError('Please check your email and click the confirmation link before signing in.');
+        } else {
+          setError(error.message || 'Login failed');
+        }
         return;
       }
       
       if (user) {
-        console.log('Login successful, user will be redirected by auth context');
-        // The useEffect above will handle redirection
+        console.log('🚀 Login - Sign in successful, waiting for auth context to handle redirection');
+        // Don't set loading to false here - let the auth context handle it
+        // The useEffect above will handle redirection once currentUser is set
       } else {
         setError('Login failed - no user returned');
+        setIsLoading(false);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      setError(error.message || 'An unexpected error occurred');
-    } finally {
+      console.error('🚀 Login - Unexpected login error:', error);
+      setError(error.message || 'An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
   };

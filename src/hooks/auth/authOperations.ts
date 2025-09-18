@@ -9,15 +9,35 @@ export const signInWithEmailPassword = async (email: string, password: string) =
   try {
     console.log('🔐 Attempting sign in for:', email);
     
+    // Basic validation
+    if (!email || !password) {
+      const errorMsg = 'Email and password are required';
+      toast.error(errorMsg);
+      return { user: null, error: { message: errorMsg } };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
     if (error) {
       console.error('🔐 Sign in error:', error);
-      toast.error(error.message);
-      return { user: null, error };
+      
+      // Provide user-friendly error messages
+      let friendlyError = error.message;
+      if (error.message?.includes('Invalid login credentials')) {
+        friendlyError = 'Invalid email or password. Please check your credentials.';
+      } else if (error.message?.includes('Email not confirmed')) {
+        friendlyError = 'Please check your email and click the confirmation link.';
+      } else if (error.message?.includes('Too many requests')) {
+        friendlyError = 'Too many login attempts. Please wait a moment and try again.';
+      } else if (error.message?.includes('Network error')) {
+        friendlyError = 'Network error. Please check your connection.';
+      }
+      
+      toast.error(friendlyError);
+      return { user: null, error: { ...error, message: friendlyError } };
     }
 
     if (data.user) {
@@ -26,11 +46,14 @@ export const signInWithEmailPassword = async (email: string, password: string) =
       return { user: data.user, error: null };
     }
 
-    return { user: null, error: { message: 'Unknown sign in error' } };
+    const unknownError = { message: 'Unknown sign in error occurred' };
+    toast.error(unknownError.message);
+    return { user: null, error: unknownError };
   } catch (error: any) {
     console.error('🔐 Sign in exception:', error);
-    toast.error('An unexpected error occurred');
-    return { user: null, error };
+    const networkError = 'Network error. Please check your connection and try again.';
+    toast.error(networkError);
+    return { user: null, error: { message: networkError } };
   }
 };
 
