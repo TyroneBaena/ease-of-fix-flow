@@ -99,7 +99,14 @@ const Login = () => {
       
       if (user) {
         console.log('🚀 Login - Sign in successful, waiting for auth context to handle redirection');
-        // Note: Successful login events are logged automatically by the useSecurityAnalytics hook
+        
+        // Log successful login attempt
+        await logSecurityEvent('login_success', email, {
+          timestamp: new Date().toISOString(),
+          browser: navigator.userAgent.split(' ').pop(),
+          action: 'user_login'
+        });
+        
         // The useEffect above will handle redirection once currentUser is set
       } else {
         setError('Login failed - no user returned');
