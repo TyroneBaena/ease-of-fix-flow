@@ -67,7 +67,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
       id: supabaseUser.id,
       email: supabaseUser.email || '',
       name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-      role: (profile?.role as UserRole) || 'manager',
+      role: (profile?.role as UserRole) || 'admin', // Default to admin for first user
       assignedProperties: profile?.assigned_properties || [],
       createdAt: profile?.created_at || supabaseUser.created_at,
       organization_id: profile?.organization_id || null,
@@ -109,7 +109,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
       id: supabaseUser.id,
       email: supabaseUser.email || '',
       name: supabaseUser.email?.split('@')[0] || 'User',
-      role: 'manager',
+      role: 'admin', // Fallback should be admin for system recovery
       assignedProperties: [],
       createdAt: supabaseUser.created_at,
       organization_id: null,

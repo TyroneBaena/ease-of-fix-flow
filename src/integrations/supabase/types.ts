@@ -1189,6 +1189,10 @@ export type Database = {
           profile_exists: boolean
         }[]
       }
+      get_appropriate_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_contractor_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1268,6 +1272,10 @@ export type Database = {
         Returns: boolean
       }
       is_contractor_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_first_user_signup: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

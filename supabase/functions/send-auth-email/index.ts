@@ -28,14 +28,16 @@ serve(async (req: Request) => {
     const resend = new Resend(resendApiKey);
     console.log("Resend initialized");
     
-    // Extract email and create simple confirmation URL
+    // Extract email and create confirmation URL with proper token
     let userEmail = "";
     let confirmationUrl = "";
     
     if (body.user?.email) {
       userEmail = body.user.email;
       const token = body.email_data?.token_hash || body.email_data?.token || "";
-      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=signup&redirect_to=https://lovable.dev/email-confirm`;
+      const emailType = body.email_data?.email_action_type || "signup";
+      const redirectTo = body.email_data?.redirect_to || "https://lovable.dev/email-confirm";
+      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=${emailType}&redirect_to=${redirectTo}`;
     } else if (body.record?.email) {
       userEmail = body.record.email;
       confirmationUrl = body.record.confirmation_url || `https://lovable.dev/email-confirm`;

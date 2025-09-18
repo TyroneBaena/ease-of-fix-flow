@@ -1,145 +1,154 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/user';
+import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-
-import { cleanupAuthState, forcePageRefresh } from '@/utils/authCleanup';
+import { UserRole } from '@/types/user';
 
 /**
- * Sign in with email/password
+ * Sign in with email and password
  */
 export const signInWithEmailPassword = async (email: string, password: string) => {
   try {
-    console.log('🔑 Starting sign in process for:', email);
+    console.log('🔐 Attempting sign in for:', email);
     
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email, 
-      password 
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
-    
+
     if (error) {
-      console.error('🔑 Sign in error:', error);
-      toast.error("Failed to sign in: " + error.message);
-      throw error;
+      console.error('🔐 Sign in error:', error);
+      toast.error(error.message);
+      return { user: null, error };
     }
-    
+
     if (data.user) {
-      console.log('🔑 Sign in successful for user:', data.user.id);
-      console.log('🔑 User role from metadata:', data.user.user_metadata?.role);
-      
-      toast.success("Successfully signed in!");
-      
-      // Let the auth state listener handle the session and organization setup
-      // Don't force page refresh here - let React Router handle navigation
-      return data;
+      console.log('🔐 Sign in successful:', data.user.email);
+      toast.success('Signed in successfully!');
+      return { user: data.user, error: null };
     }
-    
-    throw new Error('No user data returned from sign in');
+
+    return { user: null, error: { message: 'Unknown sign in error' } };
   } catch (error: any) {
-    console.error('🔑 Error in signInWithEmailPassword:', error);
-    toast.error("Failed to sign in: " + (error.message || "Unknown error"));
-    throw error;
+    console.error('🔐 Sign in exception:', error);
+    toast.error('An unexpected error occurred');
+    return { user: null, error };
   }
 };
 
 /**
- * Sign out the current user with improved error handling and proper cleanup
+ * Sign out current user with comprehensive cleanup
  */
 export const signOutUser = async () => {
   try {
-    console.log('🚪 Starting sign out process');
+    console.log('🔐 Starting sign out process...');
     
-    // Check if there's an active session first
+    // Check if user is actually signed in
     const { data: { session } } = await supabase.auth.getSession();
+    
     if (!session) {
-      console.log('🚪 No active session found');
-      cleanupAuthState();
-      forcePageRefresh('/');
-      return;
+      console.log('🔐 No active session found');
+      toast.info('Already signed out');
+      return { error: null };
     }
 
-    console.log('🚪 Active session found, proceeding with sign out');
+    console.log('🔐 Active session found, proceeding with sign out...');
     
-    // Attempt global sign out
+    // Attempt global sign out (signs out from all sessions)
     const { error } = await supabase.auth.signOut({ scope: 'global' });
     
     if (error) {
-      console.error('🚪 Sign out error:', error);
-      toast.error('Sign out encountered an issue, but you have been logged out locally');
+      console.error('🔐 Sign out error:', error);
+      // Don't show error toast for certain expected errors
+      if (!error.message.includes('session_not_found') && !error.message.includes('invalid_token')) {
+        toast.error(`Sign out error: ${error.message}`);
+      }
     } else {
-      console.log('🚪 Sign out successful');
-      toast.success('Successfully signed out');
+      console.log('🔐 Sign out successful');
+      toast.success('Signed out successfully');
     }
-    
-  } catch (error: any) {
-    console.error('🚪 Error during sign out:', error);
-    toast.error('Sign out completed with warnings');
-  } finally {
-    // Always clean up auth state and refresh
-    cleanupAuthState();
-    
-    // Force page refresh to ensure completely clean state
+
+    // Force page refresh to clear any remaining state
     setTimeout(() => {
-      forcePageRefresh('/');
+      window.location.href = '/login';
     }, 100);
+
+    return { error };
+  } catch (error: any) {
+    console.error('🔐 Sign out exception:', error);
+    toast.error('An error occurred during sign out');
+    
+    // Force redirect anyway for recovery
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 500);
+    
+    return { error };
   }
 };
 
 /**
- * Update the role of the current user
+ * Update user role in both profiles and auth metadata
  */
 export const updateUserRole = async (userId: string, role: UserRole) => {
   try {
-    console.log(`🔄 Updating user role to: ${role} for user: ${userId}`);
+    console.log(`🔐 Updating user role: ${userId} -> ${role}`);
     
-    // First update the profiles table directly
-    const { error: profileError } = await supabase
+    // Update role in profiles table first
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .update({ role })
-      .eq('id', userId);
-    
+      .eq('id', userId)
+      .select()
+      .single();
+
     if (profileError) {
-      console.error("❌ Error updating profile table:", profileError);
-      toast.error("Failed to update role: " + profileError.message);
+      console.error('🔐 Profile update error:', profileError);
       throw profileError;
     }
-    
-    console.log("✅ Profile table updated successfully to:", role);
-    
-    // Also update user metadata for consistency
+
+    console.log('🔐 Profile updated successfully');
+
+    // Also update in auth.users metadata for consistency
     try {
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { role }
-      });
-      
-      if (metadataError) {
-        console.warn("⚠️ Could not update user metadata:", metadataError.message);
-        // Don't throw - profile update was successful
+      const { data: authData, error: authError } = await supabase.auth.admin.updateUserById(
+        userId,
+        { 
+          user_metadata: { 
+            role: role 
+          } 
+        }
+      );
+
+      if (authError) {
+        console.warn('🔐 Auth metadata update warning (non-critical):', authError);
+        // Don't throw here as profile update was successful
       } else {
-        console.log("✅ User metadata updated successfully");
+        console.log('🔐 Auth metadata updated successfully');
       }
-    } catch (metadataErr) {
-      console.warn("⚠️ Metadata update failed (continuing with profile-only update):", metadataErr);
+    } catch (authUpdateError) {
+      console.warn('🔐 Auth metadata update failed (non-critical):', authUpdateError);
+      // Continue as profile update was successful
     }
-    
-    toast.success(`Role updated to ${role}`);
-    
-    // Get the updated user profile
+
+    // Fetch updated profile to return
     const { data: updatedProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     if (fetchError) {
-      console.error("❌ Error fetching updated profile:", fetchError);
-      throw fetchError;
+      console.error('🔐 Updated profile fetch error:', fetchError);
+      // Return the profile we just updated
+      return { profile, error: null };
     }
+
+    console.log('🔐 User role update completed successfully');
+    toast.success(`User role updated to ${role}`);
     
-    return updatedProfile;
-  } catch (error) {
-    console.error("❌ Error updating role:", error);
-    toast.error("Failed to update role: " + (error.message || 'Unknown error'));
-    throw error;
+    return { profile: updatedProfile, error: null };
+  } catch (error: any) {
+    console.error('🔐 User role update error:', error);
+    toast.error(`Failed to update user role: ${error.message}`);
+    return { profile: null, error };
   }
 };

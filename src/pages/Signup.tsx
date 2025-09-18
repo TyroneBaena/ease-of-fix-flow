@@ -162,7 +162,7 @@ useEffect(() => {
           emailRedirectTo: redirectUrl,
           data: {
             name,
-            role: 'manager',
+            role: 'admin', // First user should be admin by default
             assignedProperties: []
           }
         }
