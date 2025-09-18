@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types/user';
@@ -410,7 +410,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   } : null;
 
   // User management functions
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    console.log('UnifiedAuth - fetchUsers called, isAdmin:', isAdmin, 'currentOrganization:', !!currentOrganization);
+    
     if (!isAdmin) {
       console.log('UnifiedAuth - Not fetching users (not admin)');
       return;
@@ -420,6 +422,8 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('UnifiedAuth - Fetching users for practice leader dropdown');
       const { fetchAllUsers } = await import('@/services/user/userQueries');
       const userData = await fetchAllUsers();
+      
+      console.log('UnifiedAuth - Raw user data received:', userData.length, 'users');
       
       // Convert to User type format
       const convertedUsers = userData.map(user => ({
@@ -432,12 +436,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         organization_id: user.organization_id
       }));
       
+      console.log('UnifiedAuth - Converted users:', convertedUsers);
       setUsers(convertedUsers);
-      console.log('UnifiedAuth - Users fetched for practice leaders:', convertedUsers.length);
+      console.log('UnifiedAuth - Users set for practice leaders:', convertedUsers.length);
     } catch (error) {
       console.error('UnifiedAuth - Error fetching users:', error);
     }
-  };
+  }, [isAdmin]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
     // Basic implementation - would be replaced with actual service call
@@ -584,11 +589,12 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Fetch users when user becomes admin
   useEffect(() => {
+    console.log('UnifiedAuth - useEffect triggered:', { isAdmin, loading, hasCurrentOrganization: !!currentOrganization });
     if (isAdmin && !loading && currentOrganization) {
-      console.log('UnifiedAuth - User is admin, fetching users for practice leader dropdown');
+      console.log('UnifiedAuth - Conditions met, calling fetchUsers');
       fetchUsers();
     }
-  }, [isAdmin, loading, currentOrganization]);
+  }, [isAdmin, loading, currentOrganization, fetchUsers]);
 
   const value: UnifiedAuthContextType = {
     currentUser: enhancedCurrentUser,
