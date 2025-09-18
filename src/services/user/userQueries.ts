@@ -13,16 +13,25 @@ export async function fetchAllUsers(): Promise<User[]> {
     throw new Error("Authentication required to fetch users");
   }
 
+  console.log("📋 Current authenticated user:", { id: user.id, email: user.email });
+
   // Get the current user's profile to find their organization
   const { data: currentUserProfile, error: profileError } = await supabase
     .from('profiles')
     .select('organization_id, role, session_organization_id')
     .eq('id', user.id)
-    .single();
+    .maybeSingle(); // Use maybeSingle instead of single to handle no rows
 
-  if (profileError || !currentUserProfile) {
+  console.log("📋 Profile query result:", { profile: currentUserProfile, error: profileError });
+
+  if (profileError) {
     console.error("❌ Error fetching current user profile:", profileError);
-    throw new Error("Unable to determine user organization");
+    throw new Error(`Database error while fetching user profile: ${profileError.message}`);
+  }
+
+  if (!currentUserProfile) {
+    console.error("❌ No profile found for current user");
+    throw new Error("User profile not found. Please complete your account setup or contact support.");
   }
 
   // Use session organization if available, otherwise use default organization
@@ -30,7 +39,7 @@ export async function fetchAllUsers(): Promise<User[]> {
 
   if (!userOrgId) {
     console.error("❌ User has no organization assigned");
-    throw new Error("User must be assigned to an organization to view users");
+    throw new Error("You must be assigned to an organization to view users. Please complete organization onboarding.");
   }
 
   console.log("📋 Current user organization:", userOrgId);

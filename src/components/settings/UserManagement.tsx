@@ -69,32 +69,54 @@ const UserManagement = () => {
   
   // Show error state with retry button
   if (fetchError) {
+    const isAuthError = fetchError.message?.includes('Authentication required') || 
+                       fetchError.message?.includes('profile not found') ||
+                       fetchError.message?.includes('account setup');
+    
     return (
       <div className="p-4">
         <Alert variant="destructive" className="mb-6">
-          <AlertTitle>Failed to load users</AlertTitle>
+          <AlertTitle>
+            {isAuthError ? 'Authentication Required' : 'Failed to load users'}
+          </AlertTitle>
           <AlertDescription>
-            There was an error loading the user data. Please try again.
+            {isAuthError ? 
+              'Please log out and log back in to refresh your session, then complete any required setup steps.' :
+              'There was an error loading the user data. Please try again.'
+            }
+            <br />
+            <strong>Error:</strong> {fetchError.message}
           </AlertDescription>
         </Alert>
-        <Button 
-          onClick={() => fetchUsers()} 
-          variant="outline"
-          className="mt-2"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Retrying...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Retry
-            </>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => fetchUsers()} 
+            variant="outline"
+            className="mt-2"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Retrying...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </>
+            )}
+          </Button>
+          {isAuthError && (
+            <Button 
+              onClick={() => window.location.href = '/login'} 
+              variant="default"
+              className="mt-2"
+            >
+              Go to Login
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
     );
   }
