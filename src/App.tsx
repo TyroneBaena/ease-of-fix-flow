@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import OrganizationGuard from '@/components/OrganizationGuard';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import { UnifiedAuthProvider } from '@/contexts/UnifiedAuthContext';
 import { UserProvider } from '@/contexts/UserContext';
@@ -73,63 +74,75 @@ function App() {
             {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <SubscriptionProvider>
-                  <MaintenanceRequestProvider>
-                    <PropertyProvider>
-                      <Dashboard />
-                    </PropertyProvider>
-                  </MaintenanceRequestProvider>
-                </SubscriptionProvider>
+                <OrganizationGuard>
+                  <SubscriptionProvider>
+                    <MaintenanceRequestProvider>
+                      <PropertyProvider>
+                        <Dashboard />
+                      </PropertyProvider>
+                    </MaintenanceRequestProvider>
+                  </SubscriptionProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/requests" element={
               <ProtectedRoute>
-                <MaintenanceRequestProvider>
-                  <PropertyProvider>
-                    <ContractorProvider>
-                      <AllRequests />
-                    </ContractorProvider>
-                  </PropertyProvider>
-                </MaintenanceRequestProvider>
+                <OrganizationGuard>
+                  <MaintenanceRequestProvider>
+                    <PropertyProvider>
+                      <ContractorProvider>
+                        <AllRequests />
+                      </ContractorProvider>
+                    </PropertyProvider>
+                  </MaintenanceRequestProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/new-request" element={
               <ProtectedRoute>
-                <MaintenanceRequestProvider>
-                  <PropertyProvider>
-                    <NewRequest />
-                  </PropertyProvider>
-                </MaintenanceRequestProvider>
+                <OrganizationGuard>
+                  <MaintenanceRequestProvider>
+                    <PropertyProvider>
+                      <NewRequest />
+                    </PropertyProvider>
+                  </MaintenanceRequestProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/requests/:id" element={
               <ProtectedRoute>
-                <MaintenanceRequestProvider>
-                  <ContractorProvider>
-                    <RequestDetail />
-                  </ContractorProvider>
-                </MaintenanceRequestProvider>
+                <OrganizationGuard>
+                  <MaintenanceRequestProvider>
+                    <ContractorProvider>
+                      <RequestDetail />
+                    </ContractorProvider>
+                  </MaintenanceRequestProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/properties" element={
               <ProtectedRoute>
-                <PropertyProvider>
-                  <Properties />
-                </PropertyProvider>
+                <OrganizationGuard>
+                  <PropertyProvider>
+                    <Properties />
+                  </PropertyProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/properties/:id" element={
               <ProtectedRoute>
-                <PropertyProvider>
-                  <MaintenanceRequestProvider>
-                    <PropertyDetail />
-                  </MaintenanceRequestProvider>
-                </PropertyProvider>
+                <OrganizationGuard>
+                  <PropertyProvider>
+                    <MaintenanceRequestProvider>
+                      <PropertyDetail />
+                    </MaintenanceRequestProvider>
+                  </PropertyProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
@@ -139,30 +152,38 @@ function App() {
             {/* Private property requests route - requires authentication */}
             <Route path="/private/property-requests/:id" element={
               <ProtectedRoute>
-                <PropertyRequestsView />
+                <OrganizationGuard>
+                  <PropertyRequestsView />
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             {/* Settings route - allow managers but restrict contractor access */}
             <Route path="/settings" element={
               <ProtectedRoute>
-                <PropertyProvider>
-                  <Settings />
-                </PropertyProvider>
+                <OrganizationGuard>
+                  <PropertyProvider>
+                    <Settings />
+                  </PropertyProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/reports" element={
               <ProtectedRoute>
-                <PropertyProvider>
-                  <Reports />
-                </PropertyProvider>
+                <OrganizationGuard>
+                  <PropertyProvider>
+                    <Reports />
+                  </PropertyProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             <Route path="/notifications" element={
               <ProtectedRoute>
-                <Notifications />
+                <OrganizationGuard>
+                  <Notifications />
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
@@ -252,14 +273,18 @@ function App() {
             {/* Security Dashboard (admin only) */}
             <Route path="/security" element={
               <ProtectedRoute>
-                <Security />
+                <OrganizationGuard>
+                  <Security />
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
 
             {/* Billing (protected) */}
             <Route path="/billing" element={
               <ProtectedRoute>
-                <Billing />
+                <OrganizationGuard>
+                  <Billing />
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
             
