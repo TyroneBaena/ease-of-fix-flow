@@ -113,11 +113,6 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardHeader title="Dashboard" />
         
-        {/* Testing Panels for debugging Phase 1-3 */}
-        <ComprehensiveTestingPanel />
-        
-        {/* Critical Workflow Testing Panel */}
-        <WorkflowTestingPanel />
         
         <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
           <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>
