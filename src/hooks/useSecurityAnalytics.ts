@@ -136,10 +136,31 @@ export const useSecurityAnalytics = () => {
   useEffect(() => {
     fetchSecurityMetrics();
     
-    // Refresh metrics every 30 seconds for real-time monitoring
-    const interval = setInterval(fetchSecurityMetrics, 30 * 1000);
+    // Refresh metrics every 1 minute for real-time monitoring (changed from 30 seconds)
+    const interval = setInterval(fetchSecurityMetrics, 60 * 1000);
     
-    return () => clearInterval(interval);
+    // Set up real-time subscription for security events
+    const channel = supabase
+      .channel('security-events-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'security_events'
+        },
+        (payload) => {
+          console.log('🔄 [Security Analytics] Real-time update:', payload);
+          // Refresh metrics when security events change
+          fetchSecurityMetrics();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {
