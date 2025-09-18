@@ -86,9 +86,9 @@ const Security: React.FC = () => {
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <SecurityMetricsCard
-            title="Active Sessions"
+            title="Active Users"
             value={loading ? '...' : metrics.activeSessionsCount}
-            description="Currently active user sessions"
+            description="Currently active users (last hour)"
             icon={Users}
             variant="default"
           />
