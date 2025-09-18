@@ -170,16 +170,11 @@ export const useSecurityMetrics = () => {
         authError = functionErr;
       }
 
-      // If no data from edge function, generate mock data for demonstration
+      // Only use mock data if absolutely no real data is available
       if (!finalAuthLogs || authError || finalAuthLogs.length === 0) {
-        console.log('⚠️ [Security] No auth logs available, generating mock data for today');
-        finalAuthLogs = generateMockAuthLogs();
-        console.log('📋 [Security] Generated mock auth logs:', finalAuthLogs.length, finalAuthLogs);
+        console.log('⚠️ [Security] No auth logs available, falling back to empty dataset');
+        finalAuthLogs = [];
       }
-
-      // Force mock data for debugging - remove this later
-      finalAuthLogs = generateMockAuthLogs();
-      console.log('🔧 [Security] Using mock data for debugging:', finalAuthLogs.length);
 
       if (authError) {
         console.error('Error fetching auth logs:', authError);
