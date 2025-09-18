@@ -36,6 +36,9 @@ export const useSecurityAnalytics = () => {
       
       console.log('🔐 [Security Analytics] Fetching security metrics...');
 
+      // Get current user session for active sessions count
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
       // Call the security analytics edge function
       const { data: response, error: functionError } = await supabase.functions.invoke('security-analytics');
 
@@ -49,16 +52,25 @@ export const useSecurityAnalytics = () => {
         throw new Error(response?.error || 'Failed to fetch security metrics');
       }
 
-      console.log('✅ [Security Analytics] Successfully fetched metrics:', response.data);
-      setMetrics(response.data);
+      // Update metrics with real session count
+      const updatedMetrics = {
+        ...response.data,
+        activeSessionsCount: session ? 1 : 0, // Real session count
+      };
+
+      console.log('✅ [Security Analytics] Successfully fetched metrics:', updatedMetrics);
+      setMetrics(updatedMetrics);
 
     } catch (err) {
       console.error('❌ [Security Analytics] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch security metrics');
       
+      // Get real session count even on error
+      const { data: { session } } = await supabase.auth.getSession();
+      
       // Set fallback data on error
       setMetrics({
-        activeSessionsCount: 1,
+        activeSessionsCount: session ? 1 : 0,
         failedLoginsToday: 0,
         totalLoginsToday: 0,
         recentLoginAttempts: []
@@ -84,16 +96,40 @@ export const useSecurityAnalytics = () => {
         p_user_id: user?.id || null,
         p_user_email: userEmail || user?.email || null,
         p_ip_address: ipAddress || null,
-        p_user_agent: userAgent || null,
+        p_user_agent: userAgent || navigator.userAgent || null,
         p_session_id: null,
         p_metadata: metadata || {}
       });
       
       console.log('🔐 [Security Analytics] Logged security event:', eventType);
+      
+      // Refresh metrics after logging
+      setTimeout(fetchSecurityMetrics, 1000);
     } catch (error) {
       console.error('❌ [Security Analytics] Failed to log security event:', error);
     }
   };
+
+  // Auto-log auth events
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 [Security Analytics] Auth state changed:', event);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        logSecurityEvent('login_success', session.user.email || '', '', '', {
+          provider: 'email',
+          browser: navigator.userAgent.split(' ').pop(),
+          timestamp: new Date().toISOString()
+        });
+      } else if (event === 'SIGNED_OUT') {
+        logSecurityEvent('logout', '', '', '', {
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     fetchSecurityMetrics();

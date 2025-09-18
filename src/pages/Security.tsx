@@ -119,8 +119,8 @@ const Security: React.FC = () => {
         {/* Additional Info */}
         <div className="mt-8 text-sm text-gray-500">
           <p>
-            <strong>Note:</strong> Security metrics are refreshed every 5 minutes. 
-            Data includes login attempts from the last 48 hours.
+            <strong>Note:</strong> Security metrics are refreshed every 30 seconds automatically. 
+            Data includes login attempts from the last 24 hours with real-time tracking of authentication events.
           </p>
         </div>
       </div>

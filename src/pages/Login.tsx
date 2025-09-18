@@ -8,6 +8,7 @@ import { AlertCircle, Info } from 'lucide-react';
 import { signInWithEmailPassword } from '@/hooks/auth/authOperations';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { getRedirectPathByRole } from '@/services/userService';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +17,24 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useSimpleAuth();
+
+  // Helper function to log security events
+  const logSecurityEvent = async (eventType: string, userEmail: string, metadata?: any) => {
+    try {
+      await supabase.rpc('log_security_event', {
+        p_event_type: eventType,
+        p_user_id: null,
+        p_user_email: userEmail,
+        p_ip_address: null,
+        p_user_agent: navigator.userAgent,
+        p_session_id: null,
+        p_metadata: metadata || {}
+      });
+      console.log('🔐 Logged security event:', eventType, 'for:', userEmail);
+    } catch (error) {
+      console.error('❌ Failed to log security event:', error);
+    }
+  };
 
   // Redirect if already authenticated with improved logic
   useEffect(() => {
@@ -55,6 +74,14 @@ const Login = () => {
       
       if (error) {
         console.error('🚀 Login - Sign in error:', error);
+        
+        // Log failed login attempt
+        await logSecurityEvent('login_failed', email, {
+          reason: error.message,
+          timestamp: new Date().toISOString(),
+          browser: navigator.userAgent.split(' ').pop()
+        });
+        
         if (error.message?.includes('Invalid login credentials')) {
           setError('Invalid email or password. Please check your credentials and try again.');
         } else if (error.message?.includes('Email not confirmed')) {
@@ -67,7 +94,7 @@ const Login = () => {
       
       if (user) {
         console.log('🚀 Login - Sign in successful, waiting for auth context to handle redirection');
-        // Don't set loading to false here - let the auth context handle it
+        // Note: Successful login events are logged automatically by the useSecurityAnalytics hook
         // The useEffect above will handle redirection once currentUser is set
       } else {
         setError('Login failed - no user returned');
@@ -75,6 +102,14 @@ const Login = () => {
       }
     } catch (error: any) {
       console.error('🚀 Login - Unexpected login error:', error);
+      
+      // Log unexpected login error
+      await logSecurityEvent('login_failed', email, {
+        reason: 'unexpected_error',
+        error_message: error.message,
+        timestamp: new Date().toISOString()
+      });
+      
       setError(error.message || 'An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
