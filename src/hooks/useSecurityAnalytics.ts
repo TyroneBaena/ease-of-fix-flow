@@ -112,24 +112,26 @@ export const useSecurityAnalytics = () => {
 
   // Auto-log auth events
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 [Security Analytics] Auth state changed:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        logSecurityEvent('login_success', session.user.email || '', '', '', {
+        await logSecurityEvent('login_success', session.user.email || '', '', '', {
           provider: 'email',
           browser: navigator.userAgent.split(' ').pop(),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          action: 'user_login'
         });
       } else if (event === 'SIGNED_OUT') {
-        logSecurityEvent('logout', '', '', '', {
-          timestamp: new Date().toISOString()
+        await logSecurityEvent('logout', '', '', '', {
+          timestamp: new Date().toISOString(),
+          action: 'user_logout'
         });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [logSecurityEvent]);
 
   useEffect(() => {
     fetchSecurityMetrics();
