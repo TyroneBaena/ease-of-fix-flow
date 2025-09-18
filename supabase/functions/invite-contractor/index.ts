@@ -200,6 +200,33 @@ serve(async (req: Request) => {
 
     console.log("Contractor profile created successfully:", contractorData.id);
 
+    // Create/update profile to ensure proper organization linkage
+    const { error: profileError } = await supabaseClient
+      .from('profiles')
+      .upsert({
+        id: authUserId,
+        email: normalizedEmail,
+        name: body.contactName,
+        role: 'contractor',
+        organization_id: currentUserOrgId,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false
+      });
+
+    if (profileError) {
+      console.error("Error creating/updating profile:", profileError);
+      // This is critical - if profile fails, rollback contractor
+      await supabaseClient.from('contractors').delete().eq('id', contractorData.id);
+      if (!existingAuthUser) {
+        await supabaseClient.auth.admin.deleteUser(authUserId);
+      }
+      throw new Error(`Failed to create profile: ${profileError.message}`);
+    }
+    
+    console.log("Profile created/updated successfully for contractor");
+
     // Create organization membership for the contractor
     if (currentUserOrgId) {
       const { error: membershipError } = await supabaseClient
@@ -214,11 +241,40 @@ serve(async (req: Request) => {
 
       if (membershipError) {
         console.error("Error creating organization membership:", membershipError);
-        // Don't fail the whole process, but log the error
+        // This is important but not critical enough to rollback everything
+        console.warn("Continuing despite membership error - user can be added to organization later");
       } else {
         console.log("Organization membership created successfully for contractor");
       }
     }
+
+    // Validate the complete setup before proceeding
+    const { data: validationData, error: validationError } = await supabaseClient
+      .from('contractors')
+      .select(`
+        id,
+        user_id,
+        email,
+        organization_id,
+        profiles!inner(id, email, organization_id)
+      `)
+      .eq('id', contractorData.id)
+      .single();
+
+    if (validationError || !validationData) {
+      console.error("Validation failed after contractor creation:", validationError);
+      throw new Error("Contractor created but validation failed");
+    }
+
+    if (validationData.organization_id !== validationData.profiles.organization_id) {
+      console.error("Organization mismatch detected:", {
+        contractorOrg: validationData.organization_id,
+        profileOrg: validationData.profiles.organization_id
+      });
+      throw new Error("Organization ID mismatch between contractor and profile");
+    }
+
+    console.log("Contractor setup validation passed successfully");
 
     // Send invitation email
     const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY');
