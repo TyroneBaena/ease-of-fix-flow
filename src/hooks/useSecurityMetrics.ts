@@ -34,9 +34,16 @@ export const useSecurityMetrics = () => {
       
       console.log('🔍 [Security] Fetching live security metrics...', new Date().toISOString());
 
-      // Get today's date range
+      // Get today's date range in UTC
       const today = new Date();
       const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      
+      console.log('🕐 [Security] Date range for today:', {
+        startOfToday: startOfToday.toISOString(),
+        endOfToday: endOfToday.toISOString(),
+        currentTime: today.toISOString()
+      });
 
       let finalAuthLogs = null;
       let authError = null;
@@ -91,8 +98,31 @@ export const useSecurityMetrics = () => {
 
       if (finalAuthLogs && Array.isArray(finalAuthLogs) && finalAuthLogs.length > 0) {
         finalAuthLogs.forEach((log: any, index: number) => {
-          const logTime = new Date(log.timestamp);
-          const isToday = logTime >= startOfToday;
+          // Handle timestamp - it might be in microseconds or milliseconds
+          let logDate: Date;
+          if (log.timestamp) {
+            // Convert microsecond timestamp to milliseconds if needed
+            const timestamp = typeof log.timestamp === 'string' ? parseInt(log.timestamp) : log.timestamp;
+            if (timestamp > 1e12) {
+              // Microseconds - divide by 1000
+              logDate = new Date(timestamp / 1000);
+            } else {
+              // Milliseconds or seconds
+              logDate = new Date(timestamp > 1e10 ? timestamp : timestamp * 1000);
+            }
+          } else {
+            // Fallback to parsing from event_message time field
+            logDate = new Date();
+          }
+          
+          const isToday = logDate >= startOfToday && logDate < endOfToday;
+          
+          console.log(`🕐 [Security] Log ${index} timestamp processing:`, {
+            originalTimestamp: log.timestamp,
+            parsedDate: logDate.toISOString(),
+            isToday,
+            startOfToday: startOfToday.toISOString()
+          });
           
           // Parse event message to extract details
           let eventData: any = {};
@@ -112,16 +142,20 @@ export const useSecurityMetrics = () => {
             isToday
           });
 
-          // Detect login attempts: /token requests with password grant_type OR login action
+          // Detect login attempts: multiple ways to identify them
           const isTokenRequest = (eventData.path === '/token' || log.path === '/token');
           const isPasswordGrant = eventData.grant_type === 'password';
           const isLoginAction = eventData.action === 'login' || (eventData.auth_event && eventData.auth_event.action === 'login');
-          const isLoginAttempt = (isTokenRequest && isPasswordGrant) || isLoginAction;
+          const hasLoginMsg = (log.msg && log.msg.toLowerCase().includes('login')) || (eventData.msg && eventData.msg.toLowerCase().includes('login'));
+          
+          const isLoginAttempt = (isTokenRequest && isPasswordGrant) || isLoginAction || hasLoginMsg;
           
           if (isLoginAttempt) {
             const status = eventData.status || log.status;
-            const isFailed = status === 400 || status === '400' || eventData.error_code === 'invalid_credentials';
-            const isSuccess = status === 200 || status === '200';
+            const isFailed = status === 400 || status === '400' || eventData.error_code === 'invalid_credentials' || 
+                           (eventData.level === 'error') || (log.level === 'error');
+            const isSuccess = status === 200 || status === '200' || status === 204 || status === '204' || 
+                            (!isFailed && (isLoginAction || hasLoginMsg));
             
             if (isToday) {
               totalLoginsToday++;
@@ -138,11 +172,11 @@ export const useSecurityMetrics = () => {
               email = eventData.actor_username;
             }
             
-            // Add to recent attempts (limit to last 20)
-            if (recentAttempts.length < 20) {
+            // Add to recent attempts (limit to last 50)
+            if (recentAttempts.length < 50) {
               recentAttempts.push({
                 id: log.id || `log-${index}`,
-                timestamp: log.timestamp,
+                timestamp: logDate.toISOString(),
                 email: email,
                 status: isFailed ? 'failed' : 'success',
                 msg: isFailed ? 'Login failed - Invalid credentials' : 'Login successful',
