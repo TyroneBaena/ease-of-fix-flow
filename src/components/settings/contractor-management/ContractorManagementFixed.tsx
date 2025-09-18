@@ -62,7 +62,12 @@ const ContractorManagementContent: React.FC = () => {
 
   // Check access permissions
   if (!currentUser) {
-    return <AccessDeniedMessage message="You must be logged in to access contractor management." />;
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+        <p className="text-gray-500">You must be logged in to access contractor management.</p>
+      </div>
+    );
   }
 
   if (!isAdmin) {
@@ -75,7 +80,12 @@ const ContractorManagementContent: React.FC = () => {
         </Alert>
       );
     }
-    return <AccessDeniedMessage message="You don't have permission to access contractor management." />;
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+        <p className="text-gray-500">You don't have permission to access contractor management.</p>
+      </div>
+    );
   }
 
   // Loading state
@@ -128,7 +138,7 @@ const ContractorManagementContent: React.FC = () => {
         currentPage={currentPage}
         contractorsPerPage={CONTRACTORS_PER_PAGE}
         totalPages={totalPages}
-        loading={actionLoading}
+        isLoading={actionLoading}
         onPageChange={handlePageChange}
         onEditContractor={(contractor) => handleOpenDialog(true, contractor)}
         onDeleteContractor={confirmDeleteContractor}
@@ -137,21 +147,21 @@ const ContractorManagementContent: React.FC = () => {
 
       <ContractorFormDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
+        onOpenChange={setIsDialogOpen}
         onSave={handleSave}
         isEditMode={isEditMode}
         contractor={isEditMode ? selectedContractor : newContractor}
         onContractorChange={handleContractorChange}
         onSpecialtiesChange={handleSpecialtiesChange}
-        loading={actionLoading}
+        isLoading={actionLoading}
       />
 
       <DeleteContractorDialog
         isOpen={isDeleteConfirmOpen}
-        onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={handleDeleteContractor}
-        contractor={selectedContractorForDeletion}
-        loading={actionLoading}
+        onOpenChange={setIsDeleteConfirmOpen}
+        onConfirmDelete={handleDeleteContractor}
+        selectedContractor={selectedContractorForDeletion}
+        isLoading={actionLoading}
       />
     </div>
   );
