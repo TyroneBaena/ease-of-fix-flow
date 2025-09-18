@@ -30,6 +30,12 @@ serve(async (req) => {
 
     console.log('🔐 [Security Analytics] Starting security metrics fetch...')
 
+    // Debug: Check user authentication
+    const { data: debugData, error: debugError } = await supabase
+      .rpc('debug_current_user_for_security')
+    
+    console.log('🔍 [Security Analytics] Debug user info:', debugData, debugError)
+
     // Get security metrics from database
     const { data: metricsData, error: metricsError } = await supabase
       .rpc('get_security_metrics', { hours_back: 24 })

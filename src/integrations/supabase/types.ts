@@ -1212,6 +1212,15 @@ export type Database = {
         Args: { org_id: string }
         Returns: undefined
       }
+      debug_current_user_for_security: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_authenticated: boolean
+          user_email: string
+          user_id: string
+          user_role: string
+        }[]
+      }
       debug_organization_context: {
         Args: Record<PropertyKey, never>
         Returns: {
