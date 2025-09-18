@@ -1047,6 +1047,42 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          session_id: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
@@ -1248,6 +1284,16 @@ export type Database = {
           violation_count: number
         }[]
       }
+      get_security_metrics: {
+        Args: { hours_back?: number }
+        Returns: {
+          failed_logins: number
+          recent_events: Json
+          successful_logins: number
+          total_events: number
+          unique_users: number
+        }[]
+      }
       get_user_default_organization: {
         Args: { user_uuid: string }
         Returns: string
@@ -1304,6 +1350,18 @@ export type Database = {
           table_name: string
         }
         Returns: undefined
+      }
+      log_security_event: {
+        Args: {
+          p_event_type: string
+          p_ip_address?: string
+          p_metadata?: Json
+          p_session_id?: string
+          p_user_agent?: string
+          p_user_email?: string
+          p_user_id?: string
+        }
+        Returns: string
       }
       meta_to_array: {
         Args: { meta: Json }
