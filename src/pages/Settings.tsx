@@ -95,8 +95,6 @@ const Settings = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
         
-        <DevToolsPanel />
-        
         <Tabs defaultValue={isAdmin ? "users" : "account"}>
           <TabsList className="mb-4">
             {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
