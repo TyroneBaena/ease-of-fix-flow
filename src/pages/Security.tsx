@@ -6,12 +6,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Navbar from '@/components/Navbar';
 import { SecurityMetricsCard } from '@/components/security/SecurityMetricsCard';
 import { RecentLoginAttempts } from '@/components/security/RecentLoginAttempts';
-import { useSecurityMetrics } from '@/hooks/useSecurityMetrics';
+import { useSecurityAnalytics } from '@/hooks/useSecurityAnalytics';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 const Security: React.FC = () => {
   const { currentUser, isAdmin } = useUserContext();
-  const { metrics, loading, error, refetch } = useSecurityMetrics();
+  const { metrics, loading, error, refetch } = useSecurityAnalytics();
 
   // Debug logging
   React.useEffect(() => {
