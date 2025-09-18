@@ -110,18 +110,38 @@ export const useSecurityMetrics = () => {
               // Milliseconds or seconds
               logDate = new Date(timestamp > 1e10 ? timestamp : timestamp * 1000);
             }
+          } else if (log.event_message) {
+            // Try to extract time from event_message
+            try {
+              const eventData = typeof log.event_message === 'string' 
+                ? JSON.parse(log.event_message) 
+                : log.event_message;
+              if (eventData.time) {
+                logDate = new Date(eventData.time);
+              } else {
+                logDate = new Date();
+              }
+            } catch (e) {
+              logDate = new Date();
+            }
           } else {
-            // Fallback to parsing from event_message time field
             logDate = new Date();
           }
           
-          const isToday = logDate >= startOfToday && logDate < endOfToday;
+          // Check if the log is from today using local timezone
+          const logDateString = logDate.toDateString();
+          const todayString = today.toDateString();
+          const isToday = logDateString === todayString;
           
           console.log(`🕐 [Security] Log ${index} timestamp processing:`, {
             originalTimestamp: log.timestamp,
+            convertedTimestamp: log.timestamp ? (log.timestamp > 1e12 ? log.timestamp / 1000 : log.timestamp) : 'none',
             parsedDate: logDate.toISOString(),
+            logDateString,
+            todayString,
             isToday,
-            startOfToday: startOfToday.toISOString()
+            logTime: logDate.getTime(),
+            todayTime: today.getTime()
           });
           
           // Parse event message to extract details
@@ -199,7 +219,7 @@ export const useSecurityMetrics = () => {
         activeSessionsCount: Math.max(activeSessionsCount, 1), // At least 1 (current user)
         failedLoginsToday,
         totalLoginsToday,
-        recentLoginAttempts: recentAttempts.slice(0, 20) // Limit to 20 most recent
+        recentLoginAttempts: recentAttempts.slice(0, 50) // Limit to 50 most recent
       };
       
       console.log('🔢 [Security] Computed metrics:', {
