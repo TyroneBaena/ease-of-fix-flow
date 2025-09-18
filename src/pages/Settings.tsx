@@ -5,7 +5,8 @@ import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/settings/UserManagement';
 import ContractorManagement from '@/components/settings/ContractorManagement';
 import { Card } from '@/components/ui/card';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useUserContext } from '@/contexts/UserContext';
 import AdminRoleUpdater from '@/components/AdminRoleUpdater';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -15,7 +16,9 @@ import { Toaster } from "sonner";
 import DevToolsPanel from '@/components/DevToolsPanel';
 
 const Settings = () => {
-  const { currentUser, isAdmin, loading } = useUserContext();
+  const { currentUser, loading } = useSimpleAuth();
+  const { users } = useUserContext();
+  const isAdmin = currentUser?.role === 'admin';
   const [stableLoadingState, setStableLoadingState] = useState(true);
   const [error, setError] = useState<string | null>(null);
   

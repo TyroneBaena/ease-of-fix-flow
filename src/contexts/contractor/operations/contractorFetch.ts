@@ -5,8 +5,8 @@ import { Contractor } from '@/types/contractor';
 export const fetchContractors = async (): Promise<Contractor[]> => {
   console.log("fetchContractors - Starting fetch from database (organization-filtered)");
   
-  // SECURITY FIX: Only fetch contractors from the current user's organization
-  // This query relies on RLS policies to enforce organization boundaries
+  // SECURITY: RLS policies now handle organization filtering automatically
+  // Use the safe organization function to prevent read-only transaction errors
   const { data, error } = await supabase
     .from('contractors')
     .select('*')
