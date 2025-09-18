@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Navbar from '@/components/Navbar';
 import { SecurityMetricsCard } from '@/components/security/SecurityMetricsCard';
 import { RecentLoginAttempts } from '@/components/security/RecentLoginAttempts';
-import { useSecurityMetrics } from '@/hooks/useSecurityMetrics';
+import { useSecurityMetrics } from '@/hooks/useSecurityMetricsFixed';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 const Security: React.FC = () => {
