@@ -16,7 +16,7 @@ export async function fetchAllUsers(): Promise<User[]> {
   // Get the current user's profile to find their organization
   const { data: currentUserProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('organization_id, role')
+    .select('organization_id, role, session_organization_id')
     .eq('id', user.id)
     .single();
 
@@ -25,7 +25,15 @@ export async function fetchAllUsers(): Promise<User[]> {
     throw new Error("Unable to determine user organization");
   }
 
-  console.log("📋 Current user organization:", currentUserProfile.organization_id);
+  // Use session organization if available, otherwise use default organization
+  const userOrgId = currentUserProfile.session_organization_id || currentUserProfile.organization_id;
+
+  if (!userOrgId) {
+    console.error("❌ User has no organization assigned");
+    throw new Error("User must be assigned to an organization to view users");
+  }
+
+  console.log("📋 Current user organization:", userOrgId);
   console.log("📋 Current user role:", currentUserProfile.role);
 
   // Fetch users from the same organization
@@ -33,7 +41,7 @@ export async function fetchAllUsers(): Promise<User[]> {
     .from('profiles')
     .select('*')
     .in('role', ['admin', 'manager'])
-    .eq('organization_id', currentUserProfile.organization_id);
+    .eq('organization_id', userOrgId);
     
   if (profilesError) {
     console.error("❌ Error fetching profiles:", profilesError);
