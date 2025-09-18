@@ -184,13 +184,39 @@ export const useSecurityMetrics = () => {
               }
             }
 
-            // Extract email for display
+            // Extract email for display - check multiple possible fields
             let email = 'Unknown User';
+            
+            // Try multiple paths where email might be stored
             if (eventData.auth_event?.actor_username) {
               email = eventData.auth_event.actor_username;
             } else if (eventData.actor_username) {
               email = eventData.actor_username;
+            } else if (eventData.email) {
+              email = eventData.email;
+            } else if (eventData.user?.email) {
+              email = eventData.user.email;
+            } else if (eventData.user_email) {
+              email = eventData.user_email;
+            } else if (eventData.identity?.email) {
+              email = eventData.identity.email;
+            } else if (eventData.req?.body?.email) {
+              email = eventData.req.body.email;
+            } else if (eventData.request?.body?.email) {
+              email = eventData.request.body.email;
             }
+            
+            console.log(`🔍 [Security] Email extraction for log ${index}:`, {
+              foundEmail: email,
+              authEvent: eventData.auth_event,
+              actorUsername: eventData.actor_username,
+              email: eventData.email,
+              userEmail: eventData.user?.email,
+              identityEmail: eventData.identity?.email,
+              reqBodyEmail: eventData.req?.body?.email,
+              requestBodyEmail: eventData.request?.body?.email,
+              rawEventData: eventData
+            });
             
             // Add to recent attempts (limit to last 50)
             if (recentAttempts.length < 50) {
