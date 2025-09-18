@@ -13,7 +13,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
-import DevToolsPanel from '@/components/DevToolsPanel';
+
 import { AuthTestingPanel } from '@/components/testing/AuthTestingPanel';
 
 const Settings = () => {
