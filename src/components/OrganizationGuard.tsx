@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { Loader2 } from 'lucide-react';
@@ -13,8 +13,9 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
   const { currentUser, loading: authLoading } = useSimpleAuth();
   const [hasOrganization, setHasOrganization] = useState<boolean | null>(null);
   const [isCheckingOrganization, setIsCheckingOrganization] = useState(true);
+  const lastCheckedUserRef = useRef<string | null>(null);
 
-  const checkUserOrganization = async (user: any) => {
+  const checkUserOrganization = useCallback(async (user: any) => {
     if (!user?.id) return false;
     
     try {
@@ -46,24 +47,32 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
       console.error('OrganizationGuard - Error checking user organization:', error);
       return false;
     }
-  };
+  }, []);
 
   useEffect(() => {
     const checkOrganization = async () => {
       if (!currentUser) {
         setHasOrganization(null);
         setIsCheckingOrganization(false);
+        lastCheckedUserRef.current = null;
+        return;
+      }
+
+      // Only check if the user ID has changed to prevent infinite loops
+      if (lastCheckedUserRef.current === currentUser.id) {
         return;
       }
 
       setIsCheckingOrganization(true);
+      lastCheckedUserRef.current = currentUser.id;
+      
       const hasOrg = await checkUserOrganization(currentUser);
       setHasOrganization(hasOrg);
       setIsCheckingOrganization(false);
     };
 
     checkOrganization();
-  }, [currentUser]);
+  }, [currentUser?.id, checkUserOrganization]); // Only depend on user ID, not the full user object
 
   const handleOrganizationComplete = async () => {
     console.log('🚀 OrganizationGuard - Organization setup completed');
