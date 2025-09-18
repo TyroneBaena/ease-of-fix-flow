@@ -112,10 +112,11 @@ export const useSecurityMetrics = () => {
             isToday
           });
 
-          // Simple detection: /token requests with password grant_type are login attempts
+          // Detect login attempts: /token requests with password grant_type OR login action
           const isTokenRequest = (eventData.path === '/token' || log.path === '/token');
           const isPasswordGrant = eventData.grant_type === 'password';
-          const isLoginAttempt = isTokenRequest && isPasswordGrant;
+          const isLoginAction = eventData.action === 'login' || (eventData.auth_event && eventData.auth_event.action === 'login');
+          const isLoginAttempt = (isTokenRequest && isPasswordGrant) || isLoginAction;
           
           if (isLoginAttempt) {
             const status = eventData.status || log.status;
