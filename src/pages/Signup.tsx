@@ -37,32 +37,29 @@ const Signup = () => {
     if (!user) return false;
     
     try {
-      console.log('Checking organization for user:', user.email);
+      console.log('🔍 Checking organization for user:', user.email);
       
-      // Check if user has an organization_id in their profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id, session_organization_id')
-        .eq('id', user.id)
-        .single();
+      // First check if user has any active organization memberships
+      const { data: userOrgs, error: userOrgsError } = await supabase
+        .from('user_organizations')
+        .select('organization_id, is_active, is_default')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
       
-      console.log('Profile data:', profile);
+      console.log('🔍 User organizations:', userOrgs, 'Error:', userOrgsError);
       
-      if (profile?.organization_id) {
-        // Also check if user_organizations record exists and is active
-        const { data: userOrg } = await supabase
-          .from('user_organizations')
-          .select('id, is_active')
-          .eq('user_id', user.id)
-          .eq('organization_id', profile.organization_id)
-          .eq('is_active', true)
-          .maybeSingle();
-        
-        console.log('User organization membership:', userOrg);
-        return !!userOrg;
+      if (userOrgsError) {
+        console.error('Error fetching user organizations:', userOrgsError);
+        return false;
       }
       
-      console.log('User has no organization - needs onboarding');
+      // If user has active organizations, they don't need onboarding
+      if (userOrgs && userOrgs.length > 0) {
+        console.log('🔍 User has', userOrgs.length, 'active organizations - no onboarding needed');
+        return true;
+      }
+      
+      console.log('🔍 User has no active organizations - needs onboarding');
       return false;
     } catch (error) {
       console.error('Error checking user organization:', error);
