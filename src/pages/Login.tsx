@@ -32,12 +32,15 @@ const Login = () => {
       });
       
       if (error) {
-        console.error('❌ Failed to log security event:', error);
+        console.error('❌ [Login] FAILED to log security event:', error);
+        console.error('❌ [Login] Full error details:', JSON.stringify(error, null, 2));
       } else {
-        console.log('🔐 Logged security event:', eventType, 'for:', userEmail);
+        console.log('🔐 [Login] SUCCESS: Logged security event:', eventType, 'for:', userEmail);
+        console.log('🔐 [Login] Full response:', JSON.stringify(data, null, 2));
       }
     } catch (error) {
-      console.error('❌ Failed to log security event:', error);
+      console.error('❌ [Login] EXCEPTION while logging security event:', error);
+      console.error('❌ [Login] Exception stack:', error.stack);
     }
   };
 
@@ -75,17 +78,21 @@ const Login = () => {
       setIsLoading(true);
       console.log(`🚀 Login - Attempting login for: ${email}`);
       
+      console.log('🚀 [Login] About to call signInWithEmailPassword...');
       const { user, error } = await signInWithEmailPassword(email, password);
+      console.log('🚀 [Login] signInWithEmailPassword returned:', { hasUser: !!user, hasError: !!error, errorMessage: error?.message });
       
       if (error) {
         console.error('🚀 Login - Sign in error:', error);
         
         // Log failed login attempt
+        console.log('🔐 [Login] About to log FAILED login attempt for:', email);
         await logSecurityEvent('login_failed', email, {
           reason: error.message,
           timestamp: new Date().toISOString(),
           browser: navigator.userAgent.split(' ').pop()
         });
+        console.log('🔐 [Login] Finished logging FAILED login attempt');
         
         if (error.message?.includes('Invalid login credentials')) {
           setError('Invalid email or password. Please check your credentials and try again.');
@@ -101,11 +108,13 @@ const Login = () => {
         console.log('🚀 Login - Sign in successful, waiting for auth context to handle redirection');
         
         // Log successful login attempt
+        console.log('🔐 [Login] About to log SUCCESSFUL login attempt for:', email);
         await logSecurityEvent('login_success', email, {
           timestamp: new Date().toISOString(),
           browser: navigator.userAgent.split(' ').pop(),
           action: 'user_login'
         });
+        console.log('🔐 [Login] Finished logging SUCCESSFUL login attempt');
         
         // The useEffect above will handle redirection once currentUser is set
       } else {
@@ -116,11 +125,13 @@ const Login = () => {
       console.error('🚀 Login - Unexpected login error:', error);
       
       // Log unexpected login error
+      console.log('🔐 [Login] About to log UNEXPECTED ERROR for:', email);
       await logSecurityEvent('login_failed', email, {
         reason: 'unexpected_error',
         error_message: error.message,
         timestamp: new Date().toISOString()
       });
+      console.log('🔐 [Login] Finished logging UNEXPECTED ERROR');
       
       setError(error.message || 'An unexpected error occurred. Please try again.');
       setIsLoading(false);
