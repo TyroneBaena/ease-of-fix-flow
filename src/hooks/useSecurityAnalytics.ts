@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SecurityMetrics {
@@ -29,7 +29,7 @@ export const useSecurityAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSecurityMetrics = async () => {
+  const fetchSecurityMetrics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -39,27 +39,42 @@ export const useSecurityAnalytics = () => {
       // Get current user session for active sessions count
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Call the security analytics edge function
-      const { data: response, error: functionError } = await supabase.functions.invoke('security-analytics');
+      // Call the security analytics edge function with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const { data: response, error: functionError } = await supabase.functions.invoke('security-analytics', {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (functionError) {
+          console.error('❌ [Security Analytics] Function error:', functionError);
+          throw functionError;
+        }
 
-      if (functionError) {
-        console.error('❌ [Security Analytics] Function error:', functionError);
-        throw functionError;
+        if (!response?.success) {
+          console.error('❌ [Security Analytics] API error:', response?.error);
+          throw new Error(response?.error || 'Failed to fetch security metrics');
+        }
+
+        // Update metrics with real session count
+        const updatedMetrics = {
+          ...response.data,
+          activeSessionsCount: session ? 1 : 0, // Real session count
+        };
+
+        console.log('✅ [Security Analytics] Successfully fetched metrics:', updatedMetrics);
+        setMetrics(updatedMetrics);
+        
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
       }
-
-      if (!response?.success) {
-        console.error('❌ [Security Analytics] API error:', response?.error);
-        throw new Error(response?.error || 'Failed to fetch security metrics');
-      }
-
-      // Update metrics with real session count
-      const updatedMetrics = {
-        ...response.data,
-        activeSessionsCount: session ? 1 : 0, // Real session count
-      };
-
-      console.log('✅ [Security Analytics] Successfully fetched metrics:', updatedMetrics);
-      setMetrics(updatedMetrics);
 
     } catch (err) {
       console.error('❌ [Security Analytics] Error:', err);
@@ -78,10 +93,10 @@ export const useSecurityAnalytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Log security event helper function
-  const logSecurityEvent = async (
+  const logSecurityEvent = useCallback(async (
     eventType: string,
     userEmail?: string,
     ipAddress?: string,
@@ -108,7 +123,7 @@ export const useSecurityAnalytics = () => {
     } catch (error) {
       console.error('❌ [Security Analytics] Failed to log security event:', error);
     }
-  };
+  }, [fetchSecurityMetrics]);
 
   // Auto-log auth events
   useEffect(() => {
@@ -116,22 +131,53 @@ export const useSecurityAnalytics = () => {
       console.log('🔐 [Security Analytics] Auth state changed:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        await logSecurityEvent('login_success', session.user.email || '', '', '', {
-          provider: 'email',
-          browser: navigator.userAgent.split(' ').pop(),
-          timestamp: new Date().toISOString(),
-          action: 'user_login'
-        });
+        try {
+          await supabase.rpc('log_security_event', {
+            p_event_type: 'login_success',
+            p_user_id: session.user.id,
+            p_user_email: session.user.email || '',
+            p_ip_address: null,
+            p_user_agent: navigator.userAgent || null,
+            p_session_id: null,
+            p_metadata: {
+              provider: 'email',
+              browser: navigator.userAgent.split(' ').pop(),
+              timestamp: new Date().toISOString(),
+              action: 'user_login'
+            }
+          });
+          
+          console.log('🔐 [Security Analytics] Logged login_success event');
+          
+          // Refresh metrics after a short delay
+          setTimeout(fetchSecurityMetrics, 1000);
+        } catch (error) {
+          console.error('❌ [Security Analytics] Failed to log login event:', error);
+        }
       } else if (event === 'SIGNED_OUT') {
-        await logSecurityEvent('logout', '', '', '', {
-          timestamp: new Date().toISOString(),
-          action: 'user_logout'
-        });
+        try {
+          await supabase.rpc('log_security_event', {
+            p_event_type: 'logout',
+            p_user_id: null,
+            p_user_email: '',
+            p_ip_address: null,
+            p_user_agent: navigator.userAgent || null,
+            p_session_id: null,
+            p_metadata: {
+              timestamp: new Date().toISOString(),
+              action: 'user_logout'
+            }
+          });
+          
+          console.log('🔐 [Security Analytics] Logged logout event');
+        } catch (error) {
+          console.error('❌ [Security Analytics] Failed to log logout event:', error);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [logSecurityEvent]);
+  }, []); // Remove logSecurityEvent dependency
 
   useEffect(() => {
     fetchSecurityMetrics();
@@ -161,7 +207,7 @@ export const useSecurityAnalytics = () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchSecurityMetrics]);
 
   return {
     metrics,
