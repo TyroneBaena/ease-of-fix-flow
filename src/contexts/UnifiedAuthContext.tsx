@@ -409,10 +409,34 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     role: effectiveRole as UserRole
   } : null;
 
-  // User management functions (stubs for now)
+  // User management functions
   const fetchUsers = async () => {
-    // Implementation would go here
-    console.log('fetchUsers called');
+    if (!isAdmin) {
+      console.log('UnifiedAuth - Not fetching users (not admin)');
+      return;
+    }
+
+    try {
+      console.log('UnifiedAuth - Fetching users for practice leader dropdown');
+      const { fetchAllUsers } = await import('@/services/user/userQueries');
+      const userData = await fetchAllUsers();
+      
+      // Convert to User type format
+      const convertedUsers = userData.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        assignedProperties: user.assignedProperties || [],
+        createdAt: user.createdAt,
+        organization_id: user.organization_id
+      }));
+      
+      setUsers(convertedUsers);
+      console.log('UnifiedAuth - Users fetched for practice leaders:', convertedUsers.length);
+    } catch (error) {
+      console.error('UnifiedAuth - Error fetching users:', error);
+    }
   };
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
@@ -557,6 +581,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       subscription.unsubscribe();
     };
   }, []);
+
+  // Fetch users when user becomes admin
+  useEffect(() => {
+    if (isAdmin && !loading && currentOrganization) {
+      console.log('UnifiedAuth - User is admin, fetching users for practice leader dropdown');
+      fetchUsers();
+    }
+  }, [isAdmin, loading, currentOrganization]);
 
   const value: UnifiedAuthContextType = {
     currentUser: enhancedCurrentUser,
