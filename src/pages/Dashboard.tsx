@@ -10,8 +10,6 @@ import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSideba
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
-import { ComprehensiveTestingPanel } from '@/components/testing/ComprehensiveTestingPanel';
-import { WorkflowTestingPanel } from '@/components/testing/WorkflowTestingPanel';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 
