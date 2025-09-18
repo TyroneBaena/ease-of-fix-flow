@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Contractor } from '@/types/contractor';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { useContractorDialog } from './useContractorDialog';
 import { useContractorActions } from './useContractorActions';
 import { useContractorPagination } from './useContractorPagination';
@@ -10,7 +10,7 @@ import { toast } from '@/lib/toast';
 import { supabase } from '@/lib/supabase';
 
 export const useContractorManagement = () => {
-  const { currentUser, isAdmin } = useUserContext();
+  const { currentUser, isAdmin } = useSimpleAuth();
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<Error | null>(null);

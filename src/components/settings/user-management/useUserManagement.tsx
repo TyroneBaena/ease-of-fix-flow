@@ -1,6 +1,7 @@
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useUserContext } from '@/contexts/UserContext';
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { usePropertyContext } from '@/contexts/property';
 import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
@@ -9,7 +10,8 @@ import { User } from '@/types/user';
 import { toast } from 'sonner';
 
 export const useUserManagement = () => {
-  const { users, currentUser, isAdmin, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
+  const { users, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
+  const { currentUser, isAdmin } = useSimpleAuth();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
