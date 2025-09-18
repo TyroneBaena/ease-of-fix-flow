@@ -50,37 +50,6 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       console.log('ContractorAuth - Fetching contractor profile for user:', userId);
       
-      // Debug: Check if we have an active session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('ContractorAuth - Session check:', {
-        hasSession: !!session,
-        sessionUserId: session?.user?.id,
-        sessionEmail: session?.user?.email,
-        paramUserId: userId,
-        sessionError
-      });
-      
-      // If no session, force re-authentication
-      if (!session || !session.user) {
-        console.error('ContractorAuth - No active session found!');
-        setIsContractor(false);
-        setContractorId(null);
-        setError('Authentication session expired. Please log in again.');
-        return;
-      }
-      
-      // Verify the session user matches the param
-      if (session.user.id !== userId) {
-        console.error('ContractorAuth - Session user ID mismatch:', {
-          sessionUserId: session.user.id,
-          paramUserId: userId
-        });
-        setIsContractor(false);
-        setContractorId(null);
-        setError('Session user ID mismatch. Please log in again.');
-        return;
-      }
-      
       // Get current user's profile info for email lookup
       const { data: currentUserProfile, error: profileError } = await supabase
         .from('profiles')
