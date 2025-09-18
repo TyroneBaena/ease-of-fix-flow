@@ -1152,6 +1152,10 @@ export type Database = {
         }
         Returns: string
       }
+      analytics_query: {
+        Args: { query: string }
+        Returns: Json
+      }
       can_manage_organization: {
         Args: { org_id: string }
         Returns: boolean
