@@ -1252,6 +1252,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      initialize_user_profile: {
+        Args: {
+          email_param: string
+          name_param?: string
+          organization_id_param?: string
+          user_id_param: string
+        }
+        Returns: string
+      }
       insert_activity_log_secure: {
         Args: {
           p_action_type: string
