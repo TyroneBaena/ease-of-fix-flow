@@ -1196,6 +1196,10 @@ export type Database = {
         Args: { org_id: string }
         Returns: boolean
       }
+      cleanup_old_security_events: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_comment_notifications: {
         Args: {
           comment_text: string
@@ -1228,6 +1232,10 @@ export type Database = {
           is_authenticated: boolean
           profile_exists: boolean
         }[]
+      }
+      get_active_sessions_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_appropriate_user_role: {
         Args: Record<PropertyKey, never>

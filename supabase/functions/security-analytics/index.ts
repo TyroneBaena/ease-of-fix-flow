@@ -41,6 +41,14 @@ serve(async (req) => {
 
     console.log('✅ [Security Analytics] Successfully fetched metrics:', metricsData?.[0])
 
+    // Get real-time active sessions count
+    const { data: sessionCountData, error: sessionError } = await supabase
+      .rpc('get_active_sessions_count')
+
+    if (sessionError) {
+      console.warn('⚠️ [Security Analytics] Warning fetching session count:', sessionError)
+    }
+
     // Parse and format the response
     const metrics = metricsData?.[0] || {
       total_events: 0,
@@ -65,7 +73,7 @@ serve(async (req) => {
     const response = {
       success: true,
       data: {
-        activeSessionsCount: 1, // Current user session
+        activeSessionsCount: sessionCountData || 1, // Use real session count
         failedLoginsToday: parseInt(metrics.failed_logins) || 0,
         totalLoginsToday: parseInt(metrics.successful_logins) || 0,
         recentLoginAttempts: recentEvents.map((event: any) => ({
@@ -100,7 +108,7 @@ serve(async (req) => {
         success: false, 
         error: error.message,
         data: {
-          activeSessionsCount: 1,
+          activeSessionsCount: 1, // Fallback value
           failedLoginsToday: 0,
           totalLoginsToday: 0,
           recentLoginAttempts: []
