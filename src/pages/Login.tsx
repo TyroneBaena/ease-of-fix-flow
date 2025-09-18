@@ -101,6 +101,7 @@ const Login = () => {
         } else {
           setError(error.message || 'Login failed');
         }
+        setIsLoading(false); // Reset loading state on error
         return;
       }
       
