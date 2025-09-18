@@ -70,3 +70,9 @@ verify_jwt = false
 
 [functions.inbound-email]
 verify_jwt = false
+
+[functions.log-security-event]
+verify_jwt = false
+
+[functions.security-analytics]
+verify_jwt = true

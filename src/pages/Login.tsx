@@ -18,19 +18,24 @@ const Login = () => {
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useSimpleAuth();
 
-  // Helper function to log security events
+  // Helper function to log security events via edge function
   const logSecurityEvent = async (eventType: string, userEmail: string, metadata?: any) => {
     try {
-      await supabase.rpc('log_security_event', {
-        p_event_type: eventType,
-        p_user_id: null,
-        p_user_email: userEmail,
-        p_ip_address: null,
-        p_user_agent: navigator.userAgent,
-        p_session_id: null,
-        p_metadata: metadata || {}
+      const { data, error } = await supabase.functions.invoke('log-security-event', {
+        body: {
+          event_type: eventType,
+          user_email: userEmail,
+          ip_address: null, // Will be captured server-side
+          user_agent: navigator.userAgent,
+          metadata: metadata || {}
+        }
       });
-      console.log('🔐 Logged security event:', eventType, 'for:', userEmail);
+      
+      if (error) {
+        console.error('❌ Failed to log security event:', error);
+      } else {
+        console.log('🔐 Logged security event:', eventType, 'for:', userEmail);
+      }
     } catch (error) {
       console.error('❌ Failed to log security event:', error);
     }
