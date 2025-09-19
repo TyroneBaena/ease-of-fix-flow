@@ -17,9 +17,10 @@ export const useMaintenanceRequestProvider = () => {
     console.log('🔍 MAINTENANCE PROVIDER - Current user changed:', currentUser);
     console.log('🔍 MAINTENANCE PROVIDER - User ID:', currentUser?.id);
     console.log('🔍 MAINTENANCE PROVIDER - User role:', currentUser?.role);
+    console.log('🔍 MAINTENANCE PROVIDER - User organization_id:', currentUser?.organization_id);
     
-    if (currentUser) {
-      console.log('🔍 MAINTENANCE PROVIDER - User authenticated, loading requests');
+    if (currentUser && currentUser.organization_id) {
+      console.log('🔍 MAINTENANCE PROVIDER - User authenticated with organization, loading requests');
       loadRequests();
       
       // Set up real-time subscription for maintenance requests
@@ -49,17 +50,17 @@ export const useMaintenanceRequestProvider = () => {
         supabase.removeChannel(channel);
       };
     } else {
-      console.log('🔍 MAINTENANCE PROVIDER - No current user, clearing requests and stopping loading');
+      console.log('🔍 MAINTENANCE PROVIDER - No current user or organization, clearing requests and stopping loading');
       setRequests([]);
       setLoading(false);
     }
-  }, [currentUser?.id, currentUser?.role]); // Watch for both ID and role changes
+  }, [currentUser?.id, currentUser?.role, currentUser?.organization_id]); // Watch for organization changes too
 
   const loadRequests = async () => {
-    console.log('🔍 LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role);
+    console.log('🔍 LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
     
-    if (!currentUser) {
-      console.log('🔍 LOADING REQUESTS - No user, skipping');
+    if (!currentUser || !currentUser.organization_id) {
+      console.log('🔍 LOADING REQUESTS - No user or organization, skipping');
       setLoading(false);
       return [];
     }
