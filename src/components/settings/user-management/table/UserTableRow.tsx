@@ -24,6 +24,27 @@ interface UserTableRowProps {
   onManualResetPassword?: (userId: string, email: string) => void;
 }
 
+// Custom comparison function for UserTableRow
+const arePropsEqual = (prevProps: UserTableRowProps, nextProps: UserTableRowProps) => {
+  const prevUser = prevProps.user;
+  const nextUser = nextProps.user;
+  
+  return (
+    prevUser.id === nextUser.id &&
+    prevUser.name === nextUser.name &&
+    prevUser.email === nextUser.email &&
+    prevUser.role === nextUser.role &&
+    prevUser.createdAt === nextUser.createdAt &&
+    JSON.stringify(prevUser.assignedProperties) === JSON.stringify(nextUser.assignedProperties) &&
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.onEditUser === nextProps.onEditUser &&
+    prevProps.onDeleteUser === nextProps.onDeleteUser &&
+    prevProps.onResetPassword === nextProps.onResetPassword &&
+    prevProps.onManualResetPassword === nextProps.onManualResetPassword
+  );
+};
+
 const UserTableRow: React.FC<UserTableRowProps> = ({ 
   user, 
   currentUserId, 
@@ -126,4 +147,4 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
   );
 };
 
-export default UserTableRow;
+export default React.memo(UserTableRow, arePropsEqual);

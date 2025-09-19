@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ContractorMetrics } from '@/components/contractor/dashboard/ContractorMetrics';
 import { RequestsTable } from '@/components/contractor/requests/RequestsTable';
-import { QuickActionsCard } from './QuickActionsCard';
+import QuickActionsCard from './QuickActionsCard';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 interface DashboardContentProps {

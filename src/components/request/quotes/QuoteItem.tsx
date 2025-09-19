@@ -21,6 +21,33 @@ interface QuoteItemProps {
   onReject: (quoteId: string) => void;
 }
 
+// Custom comparison function for QuoteItem
+const arePropsEqual = (prevProps: QuoteItemProps, nextProps: QuoteItemProps) => {
+  const prevQuote = prevProps.quote;
+  const nextQuote = nextProps.quote;
+  const prevContractor = prevProps.contractor;
+  const nextContractor = nextProps.contractor;
+  
+  return (
+    prevQuote.id === nextQuote.id &&
+    prevQuote.amount === nextQuote.amount &&
+    prevQuote.description === nextQuote.description &&
+    prevQuote.status === nextQuote.status &&
+    prevQuote.submittedAt === nextQuote.submittedAt &&
+    prevProps.loadingContractor === nextProps.loadingContractor &&
+    prevProps.onApprove === nextProps.onApprove &&
+    prevProps.onReject === nextProps.onReject &&
+    // Compare contractor data
+    (prevContractor === nextContractor || (
+      prevContractor?.id === nextContractor?.id &&
+      prevContractor?.companyName === nextContractor?.companyName &&
+      prevContractor?.contactName === nextContractor?.contactName &&
+      prevContractor?.phone === nextContractor?.phone &&
+      prevContractor?.email === nextContractor?.email
+    ))
+  );
+};
+
 export const QuoteItem = ({ 
   quote, 
   contractor, 
@@ -50,3 +77,5 @@ export const QuoteItem = ({
     </div>
   );
 };
+
+export default React.memo(QuoteItem, arePropsEqual);

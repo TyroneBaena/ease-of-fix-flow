@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, Bell } from 'lucide-react';
 
-export const QuickActionsCard: React.FC = () => {
+// QuickActionsCard is a leaf component with no props, so we can use simple React.memo
+const QuickActionsCard: React.FC = () => {
   const navigate = useNavigate();
 
   return (
@@ -40,3 +41,5 @@ export const QuickActionsCard: React.FC = () => {
     </Card>
   );
 };
+
+export default React.memo(QuickActionsCard);

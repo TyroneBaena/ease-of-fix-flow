@@ -12,7 +12,22 @@ interface StatCardProps {
   tooltipText?: string;
 }
 
+// Custom comparison function for StatCard
+const arePropsEqual = (prevProps: StatCardProps, nextProps: StatCardProps) => {
+  return (
+    prevProps.title === nextProps.title &&
+    prevProps.value === nextProps.value &&
+    prevProps.color === nextProps.color &&
+    prevProps.description === nextProps.description &&
+    prevProps.tooltipText === nextProps.tooltipText
+    // Note: icon comparison is intentionally omitted as React nodes are complex to compare
+  );
+};
+
 const StatCard = ({ title, value, icon, color, description, tooltipText }: StatCardProps) => {
+  // Debug logging to track renders
+  console.log(`📊 StatCard "${title}" re-rendered with value: ${value}`);
+  
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between">
@@ -40,4 +55,4 @@ const StatCard = ({ title, value, icon, color, description, tooltipText }: StatC
   );
 };
 
-export default StatCard;
+export default React.memo(StatCard, arePropsEqual);

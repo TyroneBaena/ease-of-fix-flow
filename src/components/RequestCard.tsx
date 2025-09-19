@@ -15,7 +15,34 @@ interface RequestCardProps {
   onClick: () => void;
 }
 
+// Custom comparison function to prevent unnecessary re-renders
+const arePropsEqual = (prevProps: RequestCardProps, nextProps: RequestCardProps) => {
+  // Compare request properties that affect rendering
+  const prevRequest = prevProps.request;
+  const nextRequest = nextProps.request;
+  
+  return (
+    prevRequest.id === nextRequest.id &&
+    prevRequest.status === nextRequest.status &&
+    prevRequest.issueNature === nextRequest.issueNature &&
+    prevRequest.title === nextRequest.title &&
+    prevRequest.explanation === nextRequest.explanation &&
+    prevRequest.description === nextRequest.description &&
+    prevRequest.site === nextRequest.site &&
+    prevRequest.category === nextRequest.category &&
+    prevRequest.reportDate === nextRequest.reportDate &&
+    prevRequest.createdAt === nextRequest.createdAt &&
+    prevRequest.location === nextRequest.location &&
+    prevRequest.dueDate === nextRequest.dueDate &&
+    prevRequest.assignedTo === nextRequest.assignedTo &&
+    prevProps.onClick === nextProps.onClick
+  );
+};
+
 const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
+  // Debug logging to track renders
+  console.log(`🎨 RequestCard re-rendered for request: ${request.id?.substring(0, 8)}`);
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
@@ -117,4 +144,4 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
   );
 };
 
-export default RequestCard;
+export default React.memo(RequestCard, arePropsEqual);

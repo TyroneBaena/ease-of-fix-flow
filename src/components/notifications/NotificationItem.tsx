@@ -11,6 +11,22 @@ interface NotificationItemProps {
   onClick: (notification: NotificationClient) => void;
 }
 
+// Custom comparison function for NotificationItem
+const arePropsEqual = (prevProps: NotificationItemProps, nextProps: NotificationItemProps) => {
+  const prevNotification = prevProps.notification;
+  const nextNotification = nextProps.notification;
+  
+  return (
+    prevNotification.id === nextNotification.id &&
+    prevNotification.title === nextNotification.title &&
+    prevNotification.message === nextNotification.message &&
+    prevNotification.type === nextNotification.type &&
+    prevNotification.isRead === nextNotification.isRead &&
+    prevNotification.createdAt === nextNotification.createdAt &&
+    prevProps.onClick === nextProps.onClick
+  );
+};
+
 export const NotificationItem = ({ notification, onClick }: NotificationItemProps) => {
   const getNotificationIcon = (type: NotificationClient['type']) => {
     switch(type) {
@@ -53,4 +69,4 @@ export const NotificationItem = ({ notification, onClick }: NotificationItemProp
   );
 };
 
-export default NotificationItem;
+export default React.memo(NotificationItem, arePropsEqual);
