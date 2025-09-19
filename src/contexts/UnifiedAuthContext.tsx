@@ -484,8 +484,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         
         // Set session immediately (non-async)
         setSession(session);
-        setLoading(false); // Set loading to false immediately
-        console.log('🚀 UnifiedAuth v12.0 - Session set, loading set to false');
+        console.log('🚀 UnifiedAuth v12.0 - Session set, starting user conversion...');
         
         // CRITICAL FIX: Use setTimeout to defer async Supabase calls to prevent deadlocks
         // This is the official Supabase recommendation to avoid auth callback deadlocks
@@ -506,10 +505,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               console.warn('🚀 UnifiedAuth v12.0 - Non-critical org fetch error:', orgError);
             }
             
+            // Only set loading to false after everything is complete
+            setLoading(false);
+            console.log('🚀 UnifiedAuth v12.0 - Loading set to false after user data loaded');
+            
           } catch (error) {
             console.error('🚀 UnifiedAuth v12.0 - Error in deferred user conversion:', error);
             setCurrentUser(null);
             setSession(null);
+            setLoading(false);
           }
         }, 0);
         
@@ -547,10 +551,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('🚀 UnifiedAuth v12.0 - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
       
       if (session?.user) {
-        // Set session and loading state immediately (non-async)
+        // Set session immediately (non-async)
         setSession(session);
-        setLoading(false);
-        console.log('🚀 UnifiedAuth v12.0 - Initial session set, loading set to false');
+        console.log('🚀 UnifiedAuth v12.0 - Initial session set, starting user data load');
         
         // Use setTimeout to defer async calls for initial session too
         setTimeout(async () => {
@@ -568,10 +571,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               console.error('🚀 UnifiedAuth v12.0 - Non-critical org error on initial load:', orgError);
             }
             
+            // Only set loading to false after everything is complete
+            setLoading(false);
+            console.log('🚀 UnifiedAuth v12.0 - Initial loading complete');
+            
           } catch (error) {
             console.error('🚀 UnifiedAuth v12.0 - Error converting initial user:', error);
             setCurrentUser(null);
             setSession(null);
+            setLoading(false);
           }
         }, 0);
       } else {
