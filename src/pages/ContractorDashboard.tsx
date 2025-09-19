@@ -10,8 +10,6 @@ import { DashboardLoadingState } from '@/components/contractor/dashboard/Dashboa
 import { DashboardContent } from '@/components/contractor/dashboard/DashboardContent';
 import { useDashboardFilters } from '@/hooks/contractor/useDashboardFilters';
 import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
-import { SessionDebugger } from '@/components/contractor/SessionDebugger';
-import { DirectContractorTest } from '@/components/contractor/DirectContractorTest';
 import { Toaster } from "sonner";
 
 const ContractorDashboard = () => {
@@ -104,12 +102,6 @@ const ContractorDashboard = () => {
           />
         </main>
       )}
-      
-      {/* Debug Components */}
-      <div className="space-y-4 mt-8">
-        <DirectContractorTest />
-        <SessionDebugger />
-      </div>
       
       <Toaster />
     </div>
