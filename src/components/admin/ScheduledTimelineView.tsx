@@ -48,7 +48,6 @@ export const ScheduledTimelineView: React.FC = () => {
       
       setScheduledJobs(validJobs);
     } catch (error) {
-      console.error('Error fetching scheduled jobs:', error);
       setScheduledJobs([]);
     } finally {
       setLoading(false);
