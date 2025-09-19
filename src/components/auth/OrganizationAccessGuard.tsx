@@ -30,11 +30,9 @@ export const OrganizationAccessGuard: React.FC<OrganizationAccessGuardProps> = (
       }
 
       try {
-        console.log('🛡️ OrganizationAccessGuard: Validating access for user:', currentUser.email);
         
         // Check if user profile has organization_id
         if (!currentUser.organization_id) {
-          console.log('🛡️ User missing organization_id in profile');
           setHasAccess(false);
           setIsValidating(false);
           return;
@@ -42,26 +40,20 @@ export const OrganizationAccessGuard: React.FC<OrganizationAccessGuardProps> = (
 
         // Check if current organization matches user's organization
         if (!currentOrganization) {
-          console.log('🛡️ No current organization set');
           setHasAccess(false);
           setIsValidating(false);
           return;
         }
 
         if (currentUser.organization_id !== currentOrganization.id) {
-          console.log('🛡️ Organization mismatch:', {
-            userOrg: currentUser.organization_id,
-            currentOrg: currentOrganization.id
-          });
+
           setHasAccess(false);
           setIsValidating(false);
           return;
         }
 
-        console.log('🛡️ Organization access validated successfully');
         setHasAccess(true);
       } catch (error) {
-        console.error('🛡️ Error validating organization access:', error);
         setHasAccess(false);
       } finally {
         setIsValidating(false);
