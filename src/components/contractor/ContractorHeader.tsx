@@ -7,6 +7,7 @@ import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ContractorNavigation } from './ContractorNavigation';
 import ContractorNotificationBell from './ContractorNotificationBell';
+import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
 import {
   Sheet,
   SheetContent,
@@ -16,6 +17,7 @@ import {
 export const ContractorHeader = () => {
   const navigate = useNavigate();
   const { signOut, currentUser, loading } = useUserContext();
+  const { contractor, loading: contractorLoading } = useContractorProfileData();
 
   const handleSignOut = async () => {
     try {
@@ -107,11 +109,11 @@ export const ContractorHeader = () => {
           
           <div className="flex items-center space-x-4">
             {currentUser && <ContractorNotificationBell />}
-            {loading ? (
+            {loading || contractorLoading ? (
               <Skeleton className="h-5 w-28" />
             ) : currentUser ? (
               <span className="text-sm text-gray-600">
-                {currentUser.name || currentUser.email || 'Contractor'}
+                {contractor?.contactName || currentUser.name || currentUser.email || 'Contractor'}
               </span>
             ) : null}
             {currentUser && (
