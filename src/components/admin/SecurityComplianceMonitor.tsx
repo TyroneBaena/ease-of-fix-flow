@@ -22,7 +22,6 @@ export const SecurityComplianceMonitor = () => {
       const { data, error } = await supabase.rpc('get_security_compliance_status');
       
       if (error) {
-        console.error('Error running security checks:', error);
         return;
       }
 
@@ -33,7 +32,6 @@ export const SecurityComplianceMonitor = () => {
       })) || []);
       setLastChecked(new Date());
     } catch (error) {
-      console.error('Failed to run security checks:', error);
     } finally {
       setLoading(false);
     }
