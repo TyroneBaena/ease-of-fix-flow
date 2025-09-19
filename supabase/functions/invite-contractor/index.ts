@@ -249,27 +249,35 @@ serve(async (req: Request) => {
     }
 
     // Validate the complete setup before proceeding
-    const { data: validationData, error: validationError } = await supabaseClient
+    // First, validate the contractor record exists
+    const { data: contractorValidation, error: contractorValidationError } = await supabaseClient
       .from('contractors')
-      .select(`
-        id,
-        user_id,
-        email,
-        organization_id,
-        profiles!inner(id, email, organization_id)
-      `)
+      .select('id, user_id, email, organization_id')
       .eq('id', contractorData.id)
       .single();
 
-    if (validationError || !validationData) {
-      console.error("Validation failed after contractor creation:", validationError);
+    if (contractorValidationError || !contractorValidation) {
+      console.error("Contractor validation failed:", contractorValidationError);
       throw new Error("Contractor created but validation failed");
     }
 
-    if (validationData.organization_id !== validationData.profiles.organization_id) {
+    // Then validate the profile record exists and matches
+    const { data: profileValidation, error: profileValidationError } = await supabaseClient
+      .from('profiles')
+      .select('id, email, organization_id')
+      .eq('id', authUserId)
+      .single();
+
+    if (profileValidationError || !profileValidation) {
+      console.error("Profile validation failed:", profileValidationError);
+      throw new Error("Profile created but validation failed");
+    }
+
+    // Check for organization mismatch
+    if (contractorValidation.organization_id !== profileValidation.organization_id) {
       console.error("Organization mismatch detected:", {
-        contractorOrg: validationData.organization_id,
-        profileOrg: validationData.profiles.organization_id
+        contractorOrg: contractorValidation.organization_id,
+        profileOrg: profileValidation.organization_id
       });
       throw new Error("Organization ID mismatch between contractor and profile");
     }
