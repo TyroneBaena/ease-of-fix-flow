@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { useContractorsState } from './hooks/useContractorsState';
 import { useQuoteOperations } from './hooks/useQuoteOperations';
 import { useAssignmentOperations } from './hooks/useAssignmentOperations';
@@ -15,12 +16,12 @@ export const useContractorOperations = () => {
   const assignmentOperations = useAssignmentOperations();
   const progressOperations = useProgressOperations();
 
-  return {
+  return useMemo(() => ({
     ...contractorsState,
     ...quoteOperations,
     ...assignmentOperations,
     ...progressOperations
-  };
+  }), [contractorsState, quoteOperations, assignmentOperations, progressOperations]);
 };
 
 // Re-export the submitQuoteForJob function so it can be used in the index.ts re-exports

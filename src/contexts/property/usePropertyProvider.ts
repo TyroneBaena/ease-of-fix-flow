@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Property } from '@/types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
@@ -24,7 +24,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   }, [currentUser]);
 
   // Fetch properties from database
-  const fetchAndSetProperties = async () => {
+  const fetchAndSetProperties = useCallback(async () => {
     try {
       setLoading(true);
       setLoadingFailed(false);
@@ -44,9 +44,9 @@ export const usePropertyProvider = (): PropertyContextType => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id]);
 
-  const addProperty = async (property: Omit<Property, 'id' | 'createdAt'>) => {
+  const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
     try {
       if (!currentUser) {
         toast.error('You must be logged in to add a property');
@@ -104,17 +104,17 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('Unexpected error adding property:', err);
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [currentUser]);
 
-  const getProperty = (id: string) => {
+  const getProperty = useCallback((id: string) => {
     console.log('PropertyContext: getProperty called with ID:', id);
     console.log('PropertyContext: Available properties:', properties.map(p => ({ id: p.id, name: p.name })));
     const found = properties.find(property => property.id === id);
     console.log('PropertyContext: Found property:', found);
     return found;
-  };
+  }, [properties]);
 
-  const updateProperty = async (id: string, propertyUpdate: Partial<Property>) => {
+  const updateProperty = useCallback(async (id: string, propertyUpdate: Partial<Property>) => {
     console.log('PropertyContext: updateProperty called with ID:', id);
     console.log('PropertyContext: Current user:', currentUser);
     console.log('PropertyContext: Property update data:', propertyUpdate);
@@ -179,9 +179,9 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('PropertyContext: Unexpected error updating property:', err);
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [currentUser, properties]);
 
-  const deleteProperty = async (id: string) => {
+  const deleteProperty = useCallback(async (id: string) => {
     try {
       if (!currentUser) {
         toast.error('You must be logged in to delete a property');
@@ -206,9 +206,9 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('Unexpected error deleting property:', err);
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [currentUser, properties]);
 
-  return {
+  return useMemo(() => ({
     properties,
     loading,
     loadingFailed,
@@ -216,5 +216,13 @@ export const usePropertyProvider = (): PropertyContextType => {
     getProperty,
     updateProperty,
     deleteProperty
-  };
+  }), [
+    properties,
+    loading,
+    loadingFailed,
+    addProperty,
+    getProperty,
+    updateProperty,
+    deleteProperty
+  ]);
 };

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
@@ -56,7 +56,7 @@ export const useMaintenanceRequestProvider = () => {
     }
   }, [currentUser?.id, currentUser?.role, currentUser?.organization_id]); // Watch for organization changes too
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     console.log('🔍 LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
     
     if (!currentUser || !currentUser.organization_id) {
@@ -95,13 +95,13 @@ export const useMaintenanceRequestProvider = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
 
-  const getRequestsForProperty = (propertyId: string) => {
+  const getRequestsForProperty = useCallback((propertyId: string) => {
     return requests.filter(request => request.propertyId === propertyId);
-  };
+  }, [requests]);
 
-  const addRequestToProperty = async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+  const addRequestToProperty = useCallback(async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     console.log('Adding request to property with data:', requestData);
     // Ensure required fields are present with defaults
     const requestWithDefaults = {
@@ -125,7 +125,7 @@ export const useMaintenanceRequestProvider = () => {
       console.error('Failed to create new request');
       return null;
     }
-  };
+  }, [addRequest]);
 
   // Helper function to determine if user should see this request
   const shouldUserSeeRequest = (requestData: any, userId: string) => {
@@ -139,11 +139,17 @@ export const useMaintenanceRequestProvider = () => {
     return true;
   };
 
-  return {
+  return useMemo(() => ({
     requests,
     loading,
     getRequestsForProperty,
     addRequestToProperty,
     loadRequests,
-  };
+  }), [
+    requests,
+    loading,
+    getRequestsForProperty,
+    addRequestToProperty,
+    loadRequests
+  ]);
 };

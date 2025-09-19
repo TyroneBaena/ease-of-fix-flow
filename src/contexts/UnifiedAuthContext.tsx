@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types/user';
@@ -604,7 +604,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [isAdmin, loading, currentOrganization, fetchUsers]);
 
-  const value: UnifiedAuthContextType = {
+  const value: UnifiedAuthContextType = useMemo(() => ({
     currentUser: enhancedCurrentUser,
     session,
     loading,
@@ -623,7 +623,26 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     removeUser,
     resetPassword,
     adminResetPassword
-  };
+  }), [
+    enhancedCurrentUser,
+    session,
+    loading,
+    signOut,
+    currentOrganization,
+    userOrganizations,
+    switchOrganization,
+    refreshOrganizations,
+    getCurrentUserRole,
+    isAdmin,
+    canAccessProperty,
+    users,
+    fetchUsers,
+    addUser,
+    updateUser,
+    removeUser,
+    resetPassword,
+    adminResetPassword
+  ]);
 
   console.log('🚀 UnifiedAuth v8.0 - Provider render:', { 
     hasCurrentUser: !!enhancedCurrentUser, 

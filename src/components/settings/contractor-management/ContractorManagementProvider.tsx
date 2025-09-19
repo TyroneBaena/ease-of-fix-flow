@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { Contractor } from '@/types/contractor';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { fetchContractors } from '@/contexts/contractor/operations/contractorFetch';
@@ -68,14 +68,14 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     }
   }, [currentUser, isAdmin, loadContractors]);
 
-  const value: ContractorManagementContextType = {
+  const value: ContractorManagementContextType = useMemo(() => ({
     contractors,
     loading,
     fetchError,
     loadContractors,
     isAdmin,
     currentUser
-  };
+  }), [contractors, loading, fetchError, loadContractors, isAdmin, currentUser]);
 
   return (
     <ContractorManagementContext.Provider value={value}>
