@@ -318,7 +318,7 @@ const Index = () => {
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="q1">
               <AccordionTrigger>Do I need a credit card to start?</AccordionTrigger>
-              <AccordionContent>No—start your 30-day free trial without a card.</AccordionContent>
+              <AccordionContent>Yes—start your 30-day free trial without a card.</AccordionContent>
             </AccordionItem>
             <AccordionItem value="q2">
               <AccordionTrigger>Is data secure and compliant?</AccordionTrigger>
