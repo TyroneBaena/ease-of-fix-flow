@@ -303,7 +303,7 @@ const Index = () => {
               rating={5}
             />
             <TestimonialCard
-              quote="Clear audit trails and reporting make compliance reviews painless."
+              quote="Property management has never been so easy since using Housing hub."
               author="Registered Manager, Accommodation Service"
               rating={5}
             />
