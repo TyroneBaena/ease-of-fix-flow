@@ -269,33 +269,24 @@ const Index = () => {
             <h2 className="text-3xl font-bold text-gray-900">Simple pricing</h2>
             <p className="text-gray-600">Start free for 30 days. Pricing in AUD, billed per property.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="border rounded-lg p-6 bg-gray-50 hover-scale">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Starter</h3>
-                <span className="text-gray-900 text-2xl font-bold">A$29<span className="text-base font-normal text-gray-600">/property/mo</span></span>
+          <div className="flex justify-center">
+            <div className="max-w-md w-full border rounded-lg p-8 bg-gray-50 hover-scale shadow-sm">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Starter</h3>
+                <div className="text-gray-900">
+                  <span className="text-4xl font-bold">A$29</span>
+                  <span className="text-lg font-normal text-gray-600">/property/mo</span>
+                </div>
               </div>
-              <ul className="space-y-2 text-gray-700 mb-6">
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Unlimited properties</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Unlimited requests</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Contractor portal</li>
+              <ul className="space-y-3 text-gray-700 mb-8">
+                <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Unlimited properties</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Unlimited requests</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Contractor portal</li>
               </ul>
               <Button className="w-full" onClick={() => navigate('/signup')}>Start free trial</Button>
             </div>
-            {/* <div className="border rounded-lg p-6 bg-white shadow hover-scale">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Pro</h3>
-                <span className="text-gray-900 text-2xl font-bold">A$99<span className="text-base font-normal text-gray-600">/property/mo</span></span>
-              </div>
-              <ul className="space-y-2 text-gray-700 mb-6">
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Unlimited properties</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Advanced reporting</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Priority support</li>
-              </ul>
-              <Button className="w-full" onClick={() => navigate('/signup')}>Start free trial</Button>
-            </div> */}
           </div>
-          <p className="text-sm text-gray-500 mt-4 text-center">
+          <p className="text-sm text-gray-500 mt-6 text-center">
             Prices are placeholders. Stripe self-serve signup coming soon.
           </p>
         </div>
