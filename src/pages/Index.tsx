@@ -221,7 +221,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Security & compliance */}
+      {/* Security & compliance - COMMENTED OUT
       <section id="security" className="py-16 bg-gray-50 animate-fade-in">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8 items-center">
@@ -260,6 +260,7 @@ const Index = () => {
           </div>
         </div>
       </section>
+      */}
 
       {/* Pricing */}
       <section id="pricing" className="py-16 bg-white animate-fade-in">
