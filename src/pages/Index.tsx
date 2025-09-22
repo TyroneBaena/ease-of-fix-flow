@@ -282,7 +282,7 @@ const Index = () => {
               </ul>
               <Button className="w-full" onClick={() => navigate('/signup')}>Start free trial</Button>
             </div>
-            <div className="border rounded-lg p-6 bg-white shadow hover-scale">
+            {/* <div className="border rounded-lg p-6 bg-white shadow hover-scale">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">Pro</h3>
                 <span className="text-gray-900 text-2xl font-bold">A$99<span className="text-base font-normal text-gray-600">/property/mo</span></span>
@@ -293,7 +293,7 @@ const Index = () => {
                 <li className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-blue-500" /> Priority support</li>
               </ul>
               <Button className="w-full" onClick={() => navigate('/signup')}>Start free trial</Button>
-            </div>
+            </div> */}
           </div>
           <p className="text-sm text-gray-500 mt-4 text-center">
             Prices are placeholders. Stripe self-serve signup coming soon.
