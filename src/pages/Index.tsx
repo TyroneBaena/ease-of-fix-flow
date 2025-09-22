@@ -4,9 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate, Link } from 'react-router-dom';
 import { Wrench, ClipboardList, BarChart3, UserCircle, Shield, CheckCircle2, Star, CreditCard, Lock, Users, Clock, ArrowRight } from 'lucide-react';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { currentUser, loading } = useSimpleAuth();
+
+  // Redirect authenticated users to their appropriate dashboard
+  useEffect(() => {
+    if (!loading && currentUser) {
+      if (currentUser.role === 'contractor') {
+        navigate('/contractor-dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [currentUser, loading, navigate]);
 
   useEffect(() => {
     document.title = 'Supported Accommodation Property Management | HousingHub';
