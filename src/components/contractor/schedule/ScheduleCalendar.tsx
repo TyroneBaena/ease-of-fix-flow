@@ -34,7 +34,7 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
         <CardHeader>
           <CardTitle>Calendar</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6">
           <Calendar
             mode="single"
             selected={selectedDate}
@@ -54,7 +54,7 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
             modifiersStyles={{
               hasItems: { backgroundColor: '#dbeafe', color: '#1e40af' }
             }}
-            className="rounded-md border"
+            className="rounded-md border w-full max-w-full overflow-hidden"
           />
         </CardContent>
       </Card>
