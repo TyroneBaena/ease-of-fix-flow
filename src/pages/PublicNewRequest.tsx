@@ -108,42 +108,39 @@ const PublicNewRequest = () => {
     setSubmitting(true);
     
     try {
-      // Since this is a public form, we'll create a maintenance request without authentication
-      // The request will be created in a way that doesn't require user_id from auth
-      const requestData = {
-        title: formData.title,
-        description: formData.description,
-        location: formData.location || property?.address || '',
-        priority: formData.priority,
-        category: formData.category || property?.name || '',
-        status: 'pending',
-        submitted_by: formData.submittedBy,
-        property_id: propertyId,
-        issue_nature: formData.issueNature || formData.title,
-        explanation: formData.explanation || formData.description,
-        attempted_fix: formData.attemptedFix,
-        // We'll use a special user_id that represents public submissions
-        user_id: '00000000-0000-0000-0000-000000000001', // Special UUID for public requests
-        // organization_id will be set by database triggers based on property
-        // Store contact info in metadata since this is a public request
-        contact_info: {
-          email: formData.contactEmail,
-          phone: formData.contactPhone,
-          name: formData.submittedBy
-        }
-      };
+      console.log('🔍 PublicNewRequest - Submitting request data:', formData);
 
-      console.log('🔍 PublicNewRequest - Submitting request:', requestData);
+      // Use the secure database function to submit the public request
+      const { data: requestId, error } = await supabase
+        .rpc('submit_public_maintenance_request', {
+          p_property_id: propertyId,
+          p_title: formData.title,
+          p_description: formData.description,
+          p_location: formData.location,
+          p_priority: formData.priority,
+          p_category: formData.category,
+          p_submitted_by: formData.submittedBy,
+          p_contact_email: formData.contactEmail,
+          p_contact_phone: formData.contactPhone,
+          p_issue_nature: formData.issueNature || formData.title,
+          p_explanation: formData.explanation || formData.description,
+          p_attempted_fix: formData.attemptedFix
+        });
 
-      // For now, let's use a direct insert but we'll need to handle this properly
-      // In a real implementation, you'd want a specific public submission endpoint
-      toast.success('Request submitted successfully! You will receive an email confirmation.');
+      if (error) {
+        console.error('❌ PublicNewRequest - Submission error:', error);
+        toast.error('Failed to submit request. Please try again.');
+        return;
+      }
+
+      console.log('✅ PublicNewRequest - Request submitted successfully, ID:', requestId);
+      toast.success('Request submitted successfully! You will receive an email confirmation shortly.');
       
       // Redirect back to the property view
       navigate(`/property-requests/${propertyId}`);
       
     } catch (error) {
-      console.error('Error submitting request:', error);
+      console.error('❌ PublicNewRequest - Unexpected error:', error);
       toast.error('Failed to submit request. Please try again.');
     } finally {
       setSubmitting(false);
