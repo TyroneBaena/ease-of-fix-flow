@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Settings, Users, Building, FileText, Bell } from 'lucide-react';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import ReportsCard from './ReportsCard';
-import UpcomingMaintenanceCard from './UpcomingMaintenanceCard';
-
 const DashboardSidebar = () => {
   const navigate = useNavigate();
   const { isAdmin } = useUserContext();
@@ -56,7 +54,6 @@ const DashboardSidebar = () => {
       
       {/* Existing cards */}
       <ReportsCard />
-      <UpcomingMaintenanceCard />
     </div>
   );
 };
