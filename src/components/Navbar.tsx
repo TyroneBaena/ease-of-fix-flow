@@ -21,20 +21,24 @@ const Navbar = () => {
           </div>
           
           {/* Desktop Navigation */}
-          {!isMobile && (
-            <div className="hidden md:block">
-              <NavLinks />
-            </div>
-          )}
+          <div className="hidden lg:block">
+            <NavLinks />
+          </div>
           
           {/* Actions */}
           <div className="flex items-center space-x-4">
-            <OrganizationSwitcher />
+            <div className="hidden sm:block">
+              <OrganizationSwitcher />
+            </div>
             <NotificationBell />
-            <UserMenu />
+            <div className="hidden lg:block">
+              <UserMenu />
+            </div>
             
-            {/* Mobile menu */}
-            {isMobile && <MobileMenu />}
+            {/* Mobile menu - show on smaller screens */}
+            <div className="lg:hidden">
+              <MobileMenu />
+            </div>
           </div>
         </div>
       </div>
