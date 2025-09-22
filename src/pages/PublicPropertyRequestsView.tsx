@@ -23,12 +23,9 @@ const PublicPropertyRequestsView = () => {
 
     const fetchPropertyAndRequests = async () => {
       try {
-        // Fetch property details
+        // Use secure database function to fetch property details (bypasses RLS)
         const { data: propertyData, error: propertyError } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', id)
-          .single();
+          .rpc('get_public_property_info', { property_uuid: id });
 
         if (propertyError) {
           console.error('Error fetching property:', propertyError);
@@ -37,31 +34,41 @@ const PublicPropertyRequestsView = () => {
           return;
         }
 
+        // Check if property data exists
+        if (!propertyData || propertyData.length === 0) {
+          console.error('No property data found for ID:', id);
+          toast.error('Property not found');
+          setLoading(false);
+          return;
+        }
+
+        const propertyRecord = propertyData[0];
+
         // Map database fields to Property type
         const mappedProperty: Property = {
-          id: propertyData.id,
-          name: propertyData.name,
-          address: propertyData.address,
-          contactNumber: propertyData.contact_number,
-          email: propertyData.email,
-          practiceLeader: propertyData.practice_leader,
-          practiceLeaderEmail: propertyData.practice_leader_email,
-          practiceLeaderPhone: propertyData.practice_leader_phone,
-          renewalDate: propertyData.renewal_date,
-          rentAmount: propertyData.rent_amount,
-          rentPeriod: propertyData.rent_period as 'week' | 'month',
-          createdAt: propertyData.created_at,
-          landlordId: propertyData.landlord_id
+          id: propertyRecord.id,
+          name: propertyRecord.name,
+          address: propertyRecord.address,
+          contactNumber: propertyRecord.contact_number,
+          email: propertyRecord.email,
+          practiceLeader: propertyRecord.practice_leader,
+          practiceLeaderEmail: propertyRecord.practice_leader_email,
+          practiceLeaderPhone: propertyRecord.practice_leader_phone,
+          renewalDate: null, // Not included in public function for simplicity
+          rentAmount: propertyRecord.rent_amount,
+          rentPeriod: propertyRecord.rent_period as 'week' | 'month',
+          createdAt: propertyRecord.created_at,
+          landlordId: null // Not exposed in public view for security
         };
 
         setProperty(mappedProperty);
 
-        // Fetch maintenance requests for this property
+        // Use secure database function to fetch maintenance requests (bypasses RLS)
         const { data: requestsData, error: requestsError } = await supabase
-          .from('maintenance_requests')
-          .select('*')
-          .eq('property_id', id)
-          .order('created_at', { ascending: false });
+          .rpc('get_public_property_requests', { 
+            property_uuid: id, 
+            request_limit: 5 
+          });
 
         if (requestsError) {
           console.error('Error fetching requests:', requestsError);
@@ -74,32 +81,23 @@ const PublicPropertyRequestsView = () => {
             status: request.status as 'pending' | 'in-progress' | 'completed' | 'open',
             location: request.location,
             priority: request.priority as 'low' | 'medium' | 'high' | 'critical',
-            site: request.site,
-            submittedBy: request.submitted_by,
+            site: '', // Not exposed in public view
+            submittedBy: '', // Not exposed in public view for privacy
             createdAt: request.created_at,
-            updatedAt: request.updated_at,
-            propertyId: request.property_id,
-            assignedTo: request.assigned_to,
-            dueDate: request.due_date,
-            attachments: Array.isArray(request.attachments) ? 
-              request.attachments.map((att: any) => ({
-                url: att.url || att,
-                name: att.name,
-                type: att.type
-              })) : null,
+            updatedAt: request.created_at, // Using created_at as updatedAt is not in public function
+            propertyId: id,
+            assignedTo: '', // Not exposed in public view
+            dueDate: null, // Not exposed in public view
+            attachments: null, // Not exposed in public view for security
             category: request.category,
-            history: Array.isArray(request.history) ? 
-              request.history.map((hist: any) => ({
-                action: hist.action || '',
-                timestamp: hist.timestamp || ''
-              })) : null,
-            isParticipantRelated: request.is_participant_related || false,
-            participantName: request.participant_name || '',
-            attemptedFix: request.attempted_fix || '',
+            history: null, // Not exposed in public view
+            isParticipantRelated: false, // Not exposed in public view
+            participantName: '', // Not exposed in public view for privacy
+            attemptedFix: '', // Not exposed in public view
             issueNature: request.issue_nature || '',
             explanation: request.explanation || '',
-            reportDate: request.report_date || request.created_at,
-            userId: request.user_id
+            reportDate: request.created_at,
+            userId: '' // Not exposed in public view for privacy
           }));
           setRequests(mappedRequests);
         }
@@ -182,7 +180,7 @@ const PublicPropertyRequestsView = () => {
                 </p>
               </div>
               <Button
-                onClick={() => navigate(`/new-request?propertyId=${id}`)}
+                onClick={() => navigate(`/login?redirectTo=/new-request&propertyId=${id}`)}
                 className="flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -257,7 +255,7 @@ const PublicPropertyRequestsView = () => {
                 <p className="text-muted-foreground">No maintenance requests found for this property.</p>
                 <Button 
                   className="mt-4"
-                  onClick={() => navigate(`/new-request?propertyId=${id}`)}
+                  onClick={() => navigate(`/login?redirectTo=/new-request&propertyId=${id}`)}
                 >
                   Create First Request
                 </Button>

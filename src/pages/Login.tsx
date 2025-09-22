@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, loading: authLoading } = useSimpleAuth();
 
   // Helper function to log security events via edge function
@@ -47,11 +48,29 @@ const Login = () => {
   // Redirect if already authenticated with improved logic
   useEffect(() => {
     if (!authLoading && currentUser) {
-      const redirectPath = getRedirectPathByRole(currentUser.role);
-      console.log(`🚀 Login - User already authenticated (${currentUser.email}), redirecting to: ${redirectPath}`);
+      // Check for redirect parameters from QR code flow
+      const urlParams = new URLSearchParams(location.search);
+      const redirectTo = urlParams.get('redirectTo');
+      const propertyId = urlParams.get('propertyId');
+      
+      let redirectPath;
+      if (redirectTo && propertyId) {
+        // Redirect to the intended page with property ID
+        redirectPath = `${redirectTo}?propertyId=${propertyId}`;
+        console.log(`🚀 Login - User authenticated, redirecting to QR code flow: ${redirectPath}`);
+      } else if (redirectTo) {
+        // Redirect to the intended page without property ID
+        redirectPath = redirectTo;
+        console.log(`🚀 Login - User authenticated, redirecting to: ${redirectPath}`);
+      } else {
+        // Default role-based redirect
+        redirectPath = getRedirectPathByRole(currentUser.role);
+        console.log(`🚀 Login - User authenticated (${currentUser.email}), redirecting to: ${redirectPath}`);
+      }
+      
       navigate(redirectPath, { replace: true });
     }
-  }, [currentUser, authLoading, navigate]);
+  }, [currentUser, authLoading, navigate, location.search]);
 
   // Add timeout to prevent infinite loading
   useEffect(() => {
@@ -108,12 +127,19 @@ const Login = () => {
       if (user) {
         console.log('🚀 Login - Sign in successful, waiting for auth context to handle redirection');
         
-        // Log successful login attempt
+        // Log successful login attempt with redirect info if available
+        const urlParams = new URLSearchParams(location.search);
+        const redirectTo = urlParams.get('redirectTo');
+        const propertyId = urlParams.get('propertyId');
+        
         console.log('🔐 [Login] About to log SUCCESSFUL login attempt for:', email);
         await logSecurityEvent('login_success', email, {
           timestamp: new Date().toISOString(),
           browser: navigator.userAgent.split(' ').pop(),
-          action: 'user_login'
+          action: 'user_login',
+          redirect_to: redirectTo,
+          property_id: propertyId,
+          from_qr_code: !!(redirectTo && propertyId)
         });
         console.log('🔐 [Login] Finished logging SUCCESSFUL login attempt');
         
