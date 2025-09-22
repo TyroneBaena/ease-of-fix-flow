@@ -11,15 +11,16 @@ export const useProgressOperations = () => {
     requestId: string,
     progress: number,
     notes?: string,
-    completionPhotos?: Array<{ url: string }>
+    completionPhotos?: Array<{ url: string }>,
+    action?: 'complete' | 'reopen' | 'cancel'
   ) => {
     console.log(`useProgressOperations - Updating job progress for request ${requestId} to ${progress}%`);
     console.log(`useProgressOperations - Notes:`, notes);
     console.log(`useProgressOperations - Completion photos:`, completionPhotos);
     
     try {
-      // Pass ALL parameters including completionPhotos
-      await updateJobProgressStatus(requestId, progress, notes, completionPhotos);
+      // Pass ALL parameters including completionPhotos and action
+      await updateJobProgressStatus(requestId, progress, notes, completionPhotos, action);
       console.log("useProgressOperations - Job progress updated successfully");
       return true;
     } catch (err) {

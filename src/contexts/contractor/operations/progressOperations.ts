@@ -7,7 +7,8 @@ export const updateJobProgressStatus = async (
   requestId: string, 
   progress: number, 
   notes?: string,
-  completionPhotos?: Array<{ url: string }>
+  completionPhotos?: Array<{ url: string }>,
+  action?: 'complete' | 'reopen' | 'cancel'
 ) => {
   console.log(`🚀 updateJobProgressStatus - STARTING UPDATE for request ${requestId}`);
   console.log(`🚀 updateJobProgressStatus - Progress: ${progress}%`);
@@ -44,10 +45,13 @@ export const updateJobProgressStatus = async (
     updates.completion_photos = completionPhotos;
   }
 
-  // Update status based on progress - simplified logic
-  console.log(`updateJobProgressStatus - Determining status update for progress: ${progress}%`);
+  // Update status based on progress and action - simplified logic
+  console.log(`updateJobProgressStatus - Determining status update for progress: ${progress}%, action: ${action}`);
   
-  if (progress === 100) {
+  if (action === 'cancel') {
+    console.log('updateJobProgressStatus - Setting status to cancelled');
+    updates.status = 'cancelled';
+  } else if (progress === 100) {
     console.log('updateJobProgressStatus - Setting status to completed');
     updates.status = 'completed';
   } else if (progress > 0) {

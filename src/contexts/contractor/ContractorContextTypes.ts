@@ -17,6 +17,7 @@ export interface ContractorContextType {
     requestId: string, 
     progress: number, 
     notes?: string, 
-    completionPhotos?: Array<{ url: string }>
+    completionPhotos?: Array<{ url: string }>,
+    action?: 'complete' | 'reopen' | 'cancel'
   ) => Promise<boolean | void>;
 }

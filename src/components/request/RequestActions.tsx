@@ -70,7 +70,7 @@ export const RequestActions = ({
       console.log(`RequestActions - Performing ${action} action`);
       
       // Perform the actual backend update
-      await updateJobProgress(requestId, progress, message);
+      await updateJobProgress(requestId, progress, message, undefined, action);
       toast.success(successMessage);
       
       // Only trigger the parent callback once and after a delay
