@@ -23,6 +23,7 @@ import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
 import PropertyRequestsView from '@/pages/PropertyRequestsView';
 import PublicPropertyRequestsView from '@/pages/PublicPropertyRequestsView';
+import PublicNewRequest from '@/pages/PublicNewRequest';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
@@ -148,6 +149,9 @@ function App() {
             
             {/* Public QR code route - no authentication required */}
             <Route path="/property-requests/:id" element={<PublicPropertyRequestsView />} />
+            
+            {/* Public new request route - no authentication required */}
+            <Route path="/public-new-request" element={<PublicNewRequest />} />
             
             {/* Private property requests route - requires authentication */}
             <Route path="/private/property-requests/:id" element={

@@ -17,15 +17,22 @@ const PublicPropertyRequestsView = () => {
 
   useEffect(() => {
     if (!id) {
+      console.error('❌ PublicPropertyRequestsView - No property ID provided');
       setLoading(false);
       return;
     }
 
+    console.log('🔍 PublicPropertyRequestsView - Fetching data for property ID:', id);
+
     const fetchPropertyAndRequests = async () => {
       try {
+        console.log('🔍 PublicPropertyRequestsView - Calling get_public_property_info with UUID:', id);
+        
         // Use secure database function to fetch property details (bypasses RLS)
         const { data: propertyData, error: propertyError } = await supabase
           .rpc('get_public_property_info', { property_uuid: id });
+
+        console.log('🔍 PublicPropertyRequestsView - Property RPC response:', { propertyData, propertyError });
 
         if (propertyError) {
           console.error('Error fetching property:', propertyError);
@@ -62,13 +69,17 @@ const PublicPropertyRequestsView = () => {
         };
 
         setProperty(mappedProperty);
+        console.log('✅ PublicPropertyRequestsView - Property data mapped successfully:', mappedProperty);
 
+        console.log('🔍 PublicPropertyRequestsView - Fetching maintenance requests...');
         // Use secure database function to fetch maintenance requests (bypasses RLS)
         const { data: requestsData, error: requestsError } = await supabase
           .rpc('get_public_property_requests', { 
             property_uuid: id, 
             request_limit: 5 
           });
+
+        console.log('🔍 PublicPropertyRequestsView - Requests RPC response:', { requestsData, requestsError });
 
         if (requestsError) {
           console.error('Error fetching requests:', requestsError);
@@ -180,7 +191,7 @@ const PublicPropertyRequestsView = () => {
                 </p>
               </div>
               <Button
-                onClick={() => navigate(`/login?redirectTo=/new-request&propertyId=${id}`)}
+                onClick={() => navigate(`/public-new-request?propertyId=${id}`)}
                 className="flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -255,7 +266,7 @@ const PublicPropertyRequestsView = () => {
                 <p className="text-muted-foreground">No maintenance requests found for this property.</p>
                 <Button 
                   className="mt-4"
-                  onClick={() => navigate(`/login?redirectTo=/new-request&propertyId=${id}`)}
+                  onClick={() => navigate(`/public-new-request?propertyId=${id}`)}
                 >
                   Create First Request
                 </Button>
