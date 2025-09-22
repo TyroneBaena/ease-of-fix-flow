@@ -271,22 +271,6 @@ const ContractorProfile = () => {
                         {contractor?.jobsCompleted || 0}
                       </Badge>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Star className="h-4 w-4" />
-                        <span>Rating</span>
-                      </div> 
-                       <div className="flex items-center gap-2">
-                        <div className="flex">
-                          {contractor?.rating ? renderStars(contractor.rating) : 'N/A'}
-                        </div>
-                        {contractor?.rating && (
-                          <span className="text-sm font-medium">
-                            {contractor.rating.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
                     <div className="flex justify-between items-center py-2">
                       <div className="flex items-center gap-2 text-gray-600">
                         <Shield className="h-4 w-4" />
