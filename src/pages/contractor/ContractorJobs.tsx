@@ -10,6 +10,8 @@ import { RefreshCw } from 'lucide-react';
 import { Toaster } from "sonner";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import ContractorJobFilters from '@/components/contractor/requests/ContractorJobFilters';
+import { useContractorJobFilters } from '@/hooks/contractor/useContractorJobFilters';
 
 const ContractorJobs = () => {
   const { 
@@ -21,14 +23,54 @@ const ContractorJobs = () => {
     contractorId
   } = useContractorAuth();
 
+  // Combine all jobs for comprehensive filtering
+  const allJobs = [...(activeJobs || []), ...(completedJobs || [])];
+  
+  // Set up filtering for all jobs
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    categoryFilter,
+    setCategoryFilter,
+    priorityFilter,
+    setPriorityFilter,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
+    dateRange,
+    setDateRange,
+    categories,
+    filteredJobs
+  } = useContractorJobFilters(allJobs);
+
+  // Separate filtered jobs back into active and completed
+  const filteredActiveJobs = filteredJobs.filter(job => 
+    job.status === 'pending' || job.status === 'open' || job.status === 'in-progress'
+  );
+  
+  const filteredCompletedJobs = filteredJobs.filter(job => 
+    job.status === 'completed' || job.status === 'cancelled'
+  );
+
   console.log('ContractorJobs - Current data state:', {
     contractorId,
     activeJobsCount: activeJobs?.length || 0,
     completedJobsCount: completedJobs?.length || 0,
+    filteredActiveJobsCount: filteredActiveJobs.length,
+    filteredCompletedJobsCount: filteredCompletedJobs.length,
     loading,
     error,
-    activeJobs: activeJobs?.map(job => ({ id: job.id.substring(0, 8), title: job.title, status: job.status })),
-    completedJobs: completedJobs?.map(job => ({ id: job.id.substring(0, 8), title: job.title, status: job.status }))
+    totalFiltered: filteredJobs.length,
+    filtersActive: {
+      search: !!searchTerm,
+      status: statusFilter !== 'all',
+      category: categoryFilter !== 'all',
+      priority: priorityFilter !== 'all',
+      dateRange: !!dateRange.from
+    }
   });
 
   const handleRefresh = () => {
@@ -66,38 +108,68 @@ const ContractorJobs = () => {
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          <Card className="p-6">
-            <Tabs defaultValue="active">
-              <TabsList className="mb-4">
-                <TabsTrigger value="active">
-                  Active Jobs ({activeJobs?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="completed">
-                  Completed ({completedJobs?.length || 0})
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="active">
-                <RequestsTable 
-                  requests={activeJobs || []} 
-                  onSelectRequest={(request) => {
-                    window.location.href = `/contractor-jobs/${request.id}`;
-                  }}
-                  filterQuoteRequests={false}
-                />
-              </TabsContent>
-              
-              <TabsContent value="completed">
-                <RequestsTable 
-                  requests={completedJobs || []}
-                  onSelectRequest={(request) => {
-                    window.location.href = `/contractor-jobs/${request.id}`;
-                  }}
-                  filterQuoteRequests={false}
-                />
-              </TabsContent>
-            </Tabs>
-          </Card>
+          <>
+            <ContractorJobFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              categoryFilter={categoryFilter}
+              setCategoryFilter={setCategoryFilter}
+              priorityFilter={priorityFilter}
+              setPriorityFilter={setPriorityFilter}
+              sortField={sortField}
+              setSortField={setSortField}
+              sortDirection={sortDirection}
+              setSortDirection={setSortDirection}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              categories={categories}
+            />
+            
+            <Card className="p-6">
+              <Tabs defaultValue="active">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="active">
+                    Active Jobs ({filteredActiveJobs.length})
+                    {filteredActiveJobs.length !== (activeJobs?.length || 0) && (
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        / {activeJobs?.length || 0}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="completed">
+                    Completed ({filteredCompletedJobs.length})
+                    {filteredCompletedJobs.length !== (completedJobs?.length || 0) && (
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        / {completedJobs?.length || 0}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="active">
+                  <RequestsTable 
+                    requests={filteredActiveJobs} 
+                    onSelectRequest={(request) => {
+                      window.location.href = `/contractor-jobs/${request.id}`;
+                    }}
+                    filterQuoteRequests={false}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="completed">
+                  <RequestsTable 
+                    requests={filteredCompletedJobs}
+                    onSelectRequest={(request) => {
+                      window.location.href = `/contractor-jobs/${request.id}`;
+                    }}
+                    filterQuoteRequests={false}
+                  />
+                </TabsContent>
+              </Tabs>
+            </Card>
+          </>
         )}
       </main>
     </div>
