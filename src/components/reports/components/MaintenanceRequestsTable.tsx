@@ -39,7 +39,7 @@ const MaintenanceRequestsTable: React.FC<MaintenanceRequestsTableProps> = ({
               <TableRow key={request.id}>
                 <TableCell className="font-medium">{request.issueNature || request.title}</TableCell>
                 <TableCell>{request.propertyId ? getPropertyName(request.propertyId) : 'N/A'}</TableCell>
-                <TableCell>{request.site || request.category || 'N/A'}</TableCell>
+                <TableCell>{request.site || (request.propertyId ? getPropertyName(request.propertyId) : 'N/A')}</TableCell>
                 <TableCell>
                   <span className={`capitalize px-2 py-1 rounded-full text-xs ${getPriorityClass(request.priority)}`}>
                     {request.priority || 'Medium'}
