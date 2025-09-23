@@ -1454,6 +1454,21 @@ export type Database = {
               p_title: string
             }
           | {
+              p_attachments?: string
+              p_attempted_fix?: string
+              p_category?: string
+              p_contact_email?: string
+              p_contact_phone?: string
+              p_description: string
+              p_explanation?: string
+              p_issue_nature?: string
+              p_location?: string
+              p_priority?: string
+              p_property_id: string
+              p_submitted_by?: string
+              p_title: string
+            }
+          | {
               p_attempted_fix?: string
               p_category?: string
               p_contact_email?: string

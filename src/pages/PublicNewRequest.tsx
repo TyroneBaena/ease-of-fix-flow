@@ -175,7 +175,7 @@ const PublicNewRequest = () => {
           p_issue_nature: formState.issueNature.trim(),
           p_explanation: formState.explanation.trim(),
           p_attempted_fix: formState.attemptedFix.trim() || null,
-          p_attachments: attachmentUrls.length > 0 ? attachmentUrls : null
+          p_attachments: attachmentUrls.length > 0 ? JSON.stringify(attachmentUrls) : null
         });
 
       console.log('🔍 PublicNewRequest - Database response:', { data: requestId, error });
