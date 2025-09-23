@@ -128,16 +128,27 @@ const PublicNewRequest = () => {
       // Upload files if any
       let attachmentUrls: string[] = [];
       if (files.length > 0) {
-        console.log('🔍 PublicNewRequest - Uploading files:', files);
+        console.log('🔍 PublicNewRequest - Uploading files:', files.length, 'files');
+        console.log('🔍 PublicNewRequest - Files details:', files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+        
         try {
+          console.log('🔍 PublicNewRequest - Starting file upload...');
           const uploadedFiles = await uploadFiles(files);
           attachmentUrls = uploadedFiles.map(file => file.url);
-          console.log('🔍 PublicNewRequest - Files uploaded successfully:', attachmentUrls);
+          console.log('🔍 PublicNewRequest - Files uploaded successfully. Count:', uploadedFiles.length);
+          console.log('🔍 PublicNewRequest - Attachment URLs:', attachmentUrls);
+          
+          if (uploadedFiles.length !== files.length) {
+            console.warn('⚠️ PublicNewRequest - Some files failed to upload. Expected:', files.length, 'Uploaded:', uploadedFiles.length);
+          }
         } catch (uploadError) {
           console.error('❌ PublicNewRequest - File upload error:', uploadError);
           toast.error('Failed to upload files. Please try again.');
+          setIsSubmitting(false);
           return;
         }
+      } else {
+        console.log('🔍 PublicNewRequest - No files to upload');
       }
 
       console.log('🔍 PublicNewRequest - Submitting request data:', {
