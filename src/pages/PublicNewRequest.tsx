@@ -175,7 +175,7 @@ const PublicNewRequest = () => {
       }
 
       console.log('✅ PublicNewRequest - Request submitted successfully, ID:', requestId);
-      toast.success('Request submitted successfully! You will receive an email confirmation shortly.');
+      toast.success('Request submitted successfully!');
       
       // Redirect back to the property view
       navigate(`/property-requests/${propertyId}`);
