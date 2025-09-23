@@ -10,13 +10,15 @@ interface CategorySelectionFieldProps {
   priority: 'low' | 'medium' | 'high' | 'critical' | '';
   onCategoryChange: (value: string) => void;
   onPriorityChange: (value: 'low' | 'medium' | 'high' | 'critical') => void;
+  propertyId?: string; // For public access via QR code
 }
 
 export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
   category,
   priority,
   onCategoryChange,
-  onPriorityChange
+  onPriorityChange,
+  propertyId
 }) => {
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
 
@@ -26,10 +28,25 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
 
   const fetchBudgetCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('budget_categories')
-        .select('*')
-        .order('name');
+      let data, error;
+      
+      // If propertyId is provided (public access via QR code), use the public function
+      if (propertyId) {
+        const result = await supabase
+          .rpc('get_public_property_budget_categories', { 
+            property_uuid: propertyId 
+          });
+        data = result.data;
+        error = result.error;
+      } else {
+        // Regular authenticated access
+        const result = await supabase
+          .from('budget_categories')
+          .select('*')
+          .order('name');
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('Error fetching budget categories:', error);

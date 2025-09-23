@@ -271,6 +271,7 @@ const PublicNewRequest = () => {
                 removeFile={removeFile}
                 isUploading={isUploading}
                 showPhotoError={false}
+                propertyId={propertyId}
               />
 
               <div className="flex justify-end space-x-4 pt-6 border-t">

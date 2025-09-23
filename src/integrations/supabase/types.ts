@@ -1293,6 +1293,14 @@ export type Database = {
           total_spend: number
         }[]
       }
+      get_public_property_budget_categories: {
+        Args: { property_uuid: string }
+        Returns: {
+          description: string
+          id: string
+          name: string
+        }[]
+      }
       get_public_property_info: {
         Args: { property_uuid: string }
         Returns: {

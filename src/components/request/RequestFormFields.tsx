@@ -38,6 +38,7 @@ interface RequestFormFieldsProps {
   removeFile: (index: number) => void;
   isUploading: boolean;
   showPhotoError?: boolean;
+  propertyId?: string; // For public access via QR code
 }
 
 export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
@@ -49,7 +50,8 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
   handleFileChange,
   removeFile,
   isUploading,
-  showPhotoError = false
+  showPhotoError = false,
+  propertyId
 }) => {
   return (
     <>
@@ -64,6 +66,7 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
         priority={formState.priority || ''}
         onCategoryChange={(value) => updateFormState('budgetCategoryId', value)}
         onPriorityChange={(value) => updateFormState('priority', value)}
+        propertyId={propertyId}
       />
       
       <ParticipantRelatedField
