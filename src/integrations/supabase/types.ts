@@ -1437,20 +1437,36 @@ export type Database = {
         Returns: undefined
       }
       submit_public_maintenance_request: {
-        Args: {
-          p_attempted_fix?: string
-          p_category?: string
-          p_contact_email?: string
-          p_contact_phone?: string
-          p_description: string
-          p_explanation?: string
-          p_issue_nature?: string
-          p_location?: string
-          p_priority?: string
-          p_property_id: string
-          p_submitted_by?: string
-          p_title: string
-        }
+        Args:
+          | {
+              p_attachments?: Json
+              p_attempted_fix?: string
+              p_category?: string
+              p_contact_email?: string
+              p_contact_phone?: string
+              p_description: string
+              p_explanation?: string
+              p_issue_nature?: string
+              p_location?: string
+              p_priority?: string
+              p_property_id: string
+              p_submitted_by?: string
+              p_title: string
+            }
+          | {
+              p_attempted_fix?: string
+              p_category?: string
+              p_contact_email?: string
+              p_contact_phone?: string
+              p_description: string
+              p_explanation?: string
+              p_issue_nature?: string
+              p_location?: string
+              p_priority?: string
+              p_property_id: string
+              p_submitted_by?: string
+              p_title: string
+            }
         Returns: string
       }
       switch_user_organization: {
