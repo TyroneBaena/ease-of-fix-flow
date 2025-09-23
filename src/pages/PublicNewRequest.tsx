@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building, ArrowLeft } from 'lucide-react';
 import { Property } from '@/types/property';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
+import { useRequestForm } from '@/hooks/useRequestForm';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { CategorySelectionField } from '@/components/request/CategorySelectionField';
+import { ParticipantRelatedField } from '@/components/request/ParticipantRelatedField';
+import { ParticipantNameField } from '@/components/request/ParticipantNameField';
+import { AttemptedFixField } from '@/components/request/AttemptedFixField';
+import { IssueNatureField } from '@/components/request/IssueNatureField';
+import { ExplanationField } from '@/components/request/ExplanationField';
+import { LocationField } from '@/components/request/LocationField';
+import { ReportDateField } from '@/components/request/ReportDateField';
+import { SubmittedByField } from '@/components/request/SubmittedByField';
+import { RequestFormAttachments } from '@/components/request/RequestFormAttachments';
 
 const PublicNewRequest = () => {
   const navigate = useNavigate();
@@ -17,22 +26,24 @@ const PublicNewRequest = () => {
   
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    location: '',
-    priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
-    category: '',
-    submittedBy: '',
-    contactEmail: '',
-    contactPhone: '',
-    issueNature: '',
-    explanation: '',
-    attemptedFix: ''
-  });
+  // Use the same form hooks as desktop version
+  const {
+    formState,
+    updateFormState,
+    files,
+    previewUrls,
+    handleFileChange,
+    removeFile,
+    isSubmitting,
+    setIsSubmitting
+  } = useRequestForm();
+  
+  const { uploadFiles, isUploading } = useFileUpload();
+  
+  // Additional contact fields for public form
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
 
   useEffect(() => {
     if (!propertyId) {
@@ -73,10 +84,10 @@ const PublicNewRequest = () => {
         };
 
         setProperty(mappedProperty);
-        setFormData(prev => ({
-          ...prev,
-          category: mappedProperty.name // Set property name as default category
-        }));
+        // Set the property ID in form state
+        updateFormState('propertyId', propertyId);
+        // Set default report date to today
+        updateFormState('reportDate', new Date().toISOString().split('T')[0]);
         
       } catch (error) {
         console.error('Error in fetchProperty:', error);
@@ -90,27 +101,34 @@ const PublicNewRequest = () => {
     fetchProperty();
   }, [propertyId, navigate]);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  // Removed handleInputChange as we now use updateFormState from the hook
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('🔍 PublicNewRequest - Form submission started');
-    console.log('🔍 PublicNewRequest - Form data:', formData);
+    console.log('🔍 PublicNewRequest - Form data:', formState);
     console.log('🔍 PublicNewRequest - Property ID:', propertyId);
+    console.log('🔍 PublicNewRequest - Contact info:', { contactEmail, contactPhone });
     
-    // Enhanced validation with detailed logging
-    const requiredFields = ['title', 'description', 'submittedBy', 'contactEmail'];
-    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]?.trim());
+    // Enhanced validation
+    if (!formState.issueNature?.trim()) {
+      toast.error('Please describe the nature of the issue');
+      return;
+    }
     
-    if (missingFields.length > 0) {
-      console.error('❌ PublicNewRequest - Missing required fields:', missingFields);
-      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+    if (!formState.explanation?.trim()) {
+      toast.error('Please provide an explanation of the issue');
+      return;
+    }
+    
+    if (!formState.submittedBy?.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
+    
+    if (!contactEmail?.trim()) {
+      toast.error('Please enter your email address');
       return;
     }
     
@@ -120,33 +138,49 @@ const PublicNewRequest = () => {
       return;
     }
 
-    setSubmitting(true);
+    setIsSubmitting(true);
     
     try {
+      // Upload files if any
+      let attachmentUrls: string[] = [];
+      if (files.length > 0) {
+        console.log('🔍 PublicNewRequest - Uploading files:', files);
+        try {
+          const uploadedFiles = await uploadFiles(files);
+          attachmentUrls = uploadedFiles.map(file => file.url);
+          console.log('🔍 PublicNewRequest - Files uploaded successfully:', attachmentUrls);
+        } catch (uploadError) {
+          console.error('❌ PublicNewRequest - File upload error:', uploadError);
+          toast.error('Failed to upload files. Please try again.');
+          return;
+        }
+      }
+
       console.log('🔍 PublicNewRequest - Submitting request data:', {
         propertyId,
-        title: formData.title,
-        description: formData.description,
-        submittedBy: formData.submittedBy,
-        contactEmail: formData.contactEmail,
-        priority: formData.priority
+        issueNature: formState.issueNature,
+        explanation: formState.explanation,
+        submittedBy: formState.submittedBy,
+        contactEmail: contactEmail,
+        priority: formState.priority,
+        attachments: attachmentUrls
       });
 
       // Use the secure database function to submit the public request
       const { data: requestId, error } = await supabase
         .rpc('submit_public_maintenance_request', {
           p_property_id: propertyId,
-          p_title: formData.title.trim(),
-          p_description: formData.description.trim(),
-          p_location: formData.location.trim() || null,
-          p_priority: formData.priority,
-          p_category: formData.category.trim() || property?.name || 'General',
-          p_submitted_by: formData.submittedBy.trim(),
-          p_contact_email: formData.contactEmail.trim(),
-          p_contact_phone: formData.contactPhone.trim() || null,
-          p_issue_nature: formData.issueNature.trim() || formData.title.trim(),
-          p_explanation: formData.explanation.trim() || formData.description.trim(),
-          p_attempted_fix: formData.attemptedFix.trim() || null
+          p_title: formState.issueNature.trim(),
+          p_description: formState.explanation.trim(),
+          p_location: formState.location.trim() || property?.address || '',
+          p_priority: formState.priority || 'medium',
+          p_category: formState.budgetCategoryId || property?.name || 'General',
+          p_submitted_by: formState.submittedBy.trim(),
+          p_contact_email: contactEmail.trim(),
+          p_contact_phone: contactPhone.trim() || null,
+          p_issue_nature: formState.issueNature.trim(),
+          p_explanation: formState.explanation.trim(),
+          p_attempted_fix: formState.attemptedFix.trim() || null
         });
 
       console.log('🔍 PublicNewRequest - Database response:', { data: requestId, error });
@@ -167,7 +201,7 @@ const PublicNewRequest = () => {
       console.error('❌ PublicNewRequest - Unexpected error:', error);
       toast.error(`Failed to submit request: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -244,95 +278,91 @@ const PublicNewRequest = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Contact Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Your Name *</label>
-                  <Input
-                    value={formData.submittedBy}
-                    onChange={(e) => handleInputChange('submittedBy', e.target.value)}
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Email Address *</label>
-                  <Input
-                    type="email"
-                    value={formData.contactEmail}
-                    onChange={(e) => handleInputChange('contactEmail', e.target.value)}
-                    placeholder="your.email@example.com"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground">Phone Number (Optional)</label>
-                <Input
-                  type="tel"
-                  value={formData.contactPhone}
-                  onChange={(e) => handleInputChange('contactPhone', e.target.value)}
-                  placeholder="Enter your phone number"
-                />
-              </div>
-
-              {/* Issue Details */}
-              <div>
-                <label className="text-sm font-medium text-foreground">Issue Title *</label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="Brief summary of the issue"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground">Issue Description *</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Provide a detailed description of the maintenance issue"
-                  rows={4}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Priority</label>
-                  <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Location</label>
-                  <Input
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Specific location within the property"
-                  />
+              {/* Contact Information Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Email Address *</label>
+                    <input
+                      type="email"
+                      className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="your.email@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Phone Number (Optional)</label>
+                    <input
+                      type="tel"
+                      className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground">Have you attempted to fix this yourself?</label>
-                <Textarea
-                  value={formData.attemptedFix}
-                  onChange={(e) => handleInputChange('attemptedFix', e.target.value)}
-                  placeholder="Describe any attempts you've made to resolve the issue"
-                  rows={3}
-                />
-              </div>
+              {/* Form Fields using the same components as desktop */}
+              <CategorySelectionField
+                category={formState.budgetCategoryId || ''}
+                priority={formState.priority || ''}
+                onCategoryChange={(value) => updateFormState('budgetCategoryId', value)}
+                onPriorityChange={(value) => updateFormState('priority', value)}
+              />
+              
+              <ParticipantRelatedField
+                value={formState.isParticipantRelated || false}
+                onChange={(value) => updateFormState('isParticipantRelated', value)}
+              />
+              
+              <ParticipantNameField
+                value={formState.participantName || ''}
+                onChange={(value) => updateFormState('participantName', value)}
+                isParticipantRelated={formState.isParticipantRelated || false}
+              />
+              
+              <AttemptedFixField
+                value={formState.attemptedFix || ''}
+                onChange={(value) => updateFormState('attemptedFix', value)}
+              />
+              
+              <RequestFormAttachments
+                files={files}
+                previewUrls={previewUrls}
+                onFileChange={handleFileChange}
+                onRemoveFile={removeFile}
+                isUploading={isUploading}
+                showError={false}
+              />
+              
+              <IssueNatureField
+                value={formState.issueNature || ''}
+                onChange={(value) => updateFormState('issueNature', value)}
+              />
+              
+              <ExplanationField
+                value={formState.explanation || ''}
+                onChange={(value) => updateFormState('explanation', value)}
+              />
+              
+              <LocationField
+                value={formState.location || ''}
+                onChange={(value) => updateFormState('location', value)}
+              />
+              
+              <ReportDateField
+                value={formState.reportDate || ''}
+                onChange={(value) => updateFormState('reportDate', value)}
+              />
+              
+              <SubmittedByField
+                value={formState.submittedBy || ''}
+                onChange={(value) => updateFormState('submittedBy', value)}
+              />
 
               <div className="flex justify-end space-x-4 pt-6 border-t">
                 <Button 
@@ -342,8 +372,8 @@ const PublicNewRequest = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Submitting...' : 'Submit Request'}
+                <Button type="submit" disabled={isSubmitting || isUploading}>
+                  {isSubmitting ? 'Submitting...' : isUploading ? 'Uploading...' : 'Submit Request'}
                 </Button>
               </div>
             </form>
