@@ -100,36 +100,60 @@ const PublicNewRequest = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description || !formData.submittedBy || !formData.contactEmail) {
-      toast.error('Please fill in all required fields');
+    console.log('🔍 PublicNewRequest - Form submission started');
+    console.log('🔍 PublicNewRequest - Form data:', formData);
+    console.log('🔍 PublicNewRequest - Property ID:', propertyId);
+    
+    // Enhanced validation with detailed logging
+    const requiredFields = ['title', 'description', 'submittedBy', 'contactEmail'];
+    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]?.trim());
+    
+    if (missingFields.length > 0) {
+      console.error('❌ PublicNewRequest - Missing required fields:', missingFields);
+      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+    
+    if (!propertyId) {
+      console.error('❌ PublicNewRequest - Property ID is missing');
+      toast.error('Property ID is required to submit a request');
       return;
     }
 
     setSubmitting(true);
     
     try {
-      console.log('🔍 PublicNewRequest - Submitting request data:', formData);
+      console.log('🔍 PublicNewRequest - Submitting request data:', {
+        propertyId,
+        title: formData.title,
+        description: formData.description,
+        submittedBy: formData.submittedBy,
+        contactEmail: formData.contactEmail,
+        priority: formData.priority
+      });
 
       // Use the secure database function to submit the public request
       const { data: requestId, error } = await supabase
         .rpc('submit_public_maintenance_request', {
           p_property_id: propertyId,
-          p_title: formData.title,
-          p_description: formData.description,
-          p_location: formData.location,
+          p_title: formData.title.trim(),
+          p_description: formData.description.trim(),
+          p_location: formData.location.trim() || null,
           p_priority: formData.priority,
-          p_category: formData.category,
-          p_submitted_by: formData.submittedBy,
-          p_contact_email: formData.contactEmail,
-          p_contact_phone: formData.contactPhone,
-          p_issue_nature: formData.issueNature || formData.title,
-          p_explanation: formData.explanation || formData.description,
-          p_attempted_fix: formData.attemptedFix
+          p_category: formData.category.trim() || property?.name || 'General',
+          p_submitted_by: formData.submittedBy.trim(),
+          p_contact_email: formData.contactEmail.trim(),
+          p_contact_phone: formData.contactPhone.trim() || null,
+          p_issue_nature: formData.issueNature.trim() || formData.title.trim(),
+          p_explanation: formData.explanation.trim() || formData.description.trim(),
+          p_attempted_fix: formData.attemptedFix.trim() || null
         });
+
+      console.log('🔍 PublicNewRequest - Database response:', { data: requestId, error });
 
       if (error) {
         console.error('❌ PublicNewRequest - Submission error:', error);
-        toast.error('Failed to submit request. Please try again.');
+        toast.error(`Failed to submit request: ${error.message}`);
         return;
       }
 
@@ -141,7 +165,7 @@ const PublicNewRequest = () => {
       
     } catch (error) {
       console.error('❌ PublicNewRequest - Unexpected error:', error);
-      toast.error('Failed to submit request. Please try again.');
+      toast.error(`Failed to submit request: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }
