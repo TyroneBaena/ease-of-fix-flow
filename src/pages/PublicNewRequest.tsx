@@ -8,16 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 import { useRequestForm } from '@/hooks/useRequestForm';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { CategorySelectionField } from '@/components/request/CategorySelectionField';
-import { ParticipantRelatedField } from '@/components/request/ParticipantRelatedField';
-import { ParticipantNameField } from '@/components/request/ParticipantNameField';
-import { AttemptedFixField } from '@/components/request/AttemptedFixField';
-import { IssueNatureField } from '@/components/request/IssueNatureField';
-import { ExplanationField } from '@/components/request/ExplanationField';
-import { LocationField } from '@/components/request/LocationField';
-import { ReportDateField } from '@/components/request/ReportDateField';
-import { SubmittedByField } from '@/components/request/SubmittedByField';
-import { RequestFormAttachments } from '@/components/request/RequestFormAttachments';
+import { RequestFormFields } from '@/components/request/RequestFormFields';
 
 const PublicNewRequest = () => {
   const navigate = useNavigate();
@@ -41,9 +32,6 @@ const PublicNewRequest = () => {
   
   const { uploadFiles, isUploading } = useFileUpload();
   
-  // Additional contact fields for public form
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
 
   useEffect(() => {
     if (!propertyId) {
@@ -109,7 +97,7 @@ const PublicNewRequest = () => {
     console.log('🔍 PublicNewRequest - Form submission started');
     console.log('🔍 PublicNewRequest - Form data:', formState);
     console.log('🔍 PublicNewRequest - Property ID:', propertyId);
-    console.log('🔍 PublicNewRequest - Contact info:', { contactEmail, contactPhone });
+    
     
     // Enhanced validation
     if (!formState.issueNature?.trim()) {
@@ -127,10 +115,6 @@ const PublicNewRequest = () => {
       return;
     }
     
-    if (!contactEmail?.trim()) {
-      toast.error('Please enter your email address');
-      return;
-    }
     
     if (!propertyId) {
       console.error('❌ PublicNewRequest - Property ID is missing');
@@ -161,7 +145,6 @@ const PublicNewRequest = () => {
         issueNature: formState.issueNature,
         explanation: formState.explanation,
         submittedBy: formState.submittedBy,
-        contactEmail: contactEmail,
         priority: formState.priority,
         attachments: attachmentUrls
       });
@@ -176,8 +159,8 @@ const PublicNewRequest = () => {
           p_priority: formState.priority || 'medium',
           p_category: formState.budgetCategoryId || property?.name || 'General',
           p_submitted_by: formState.submittedBy.trim(),
-          p_contact_email: contactEmail.trim(),
-          p_contact_phone: contactPhone.trim() || null,
+          p_contact_email: formState.submittedBy.trim(),
+          p_contact_phone: null,
           p_issue_nature: formState.issueNature.trim(),
           p_explanation: formState.explanation.trim(),
           p_attempted_fix: formState.attemptedFix.trim() || null
@@ -278,90 +261,16 @@ const PublicNewRequest = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Contact Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Contact Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-foreground">Email Address *</label>
-                    <input
-                      type="email"
-                      className="w-full px-3 py-2 border border-input bg-background rounded-md"
-                      value={contactEmail}
-                      onChange={(e) => setContactEmail(e.target.value)}
-                      placeholder="your.email@example.com"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground">Phone Number (Optional)</label>
-                    <input
-                      type="tel"
-                      className="w-full px-3 py-2 border border-input bg-background rounded-md"
-                      value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      placeholder="Enter your phone number"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Form Fields using the same components as desktop */}
-              <CategorySelectionField
-                category={formState.budgetCategoryId || ''}
-                priority={formState.priority || ''}
-                onCategoryChange={(value) => updateFormState('budgetCategoryId', value)}
-                onPriorityChange={(value) => updateFormState('priority', value)}
-              />
-              
-              <ParticipantRelatedField
-                value={formState.isParticipantRelated || false}
-                onChange={(value) => updateFormState('isParticipantRelated', value)}
-              />
-              
-              <ParticipantNameField
-                value={formState.participantName || ''}
-                onChange={(value) => updateFormState('participantName', value)}
-                isParticipantRelated={formState.isParticipantRelated || false}
-              />
-              
-              <AttemptedFixField
-                value={formState.attemptedFix || ''}
-                onChange={(value) => updateFormState('attemptedFix', value)}
-              />
-              
-              <RequestFormAttachments
+              <RequestFormFields
+                formState={formState}
+                updateFormState={updateFormState}
+                properties={property ? [property] : []}
                 files={files}
                 previewUrls={previewUrls}
-                onFileChange={handleFileChange}
-                onRemoveFile={removeFile}
+                handleFileChange={handleFileChange}
+                removeFile={removeFile}
                 isUploading={isUploading}
-                showError={false}
-              />
-              
-              <IssueNatureField
-                value={formState.issueNature || ''}
-                onChange={(value) => updateFormState('issueNature', value)}
-              />
-              
-              <ExplanationField
-                value={formState.explanation || ''}
-                onChange={(value) => updateFormState('explanation', value)}
-              />
-              
-              <LocationField
-                value={formState.location || ''}
-                onChange={(value) => updateFormState('location', value)}
-              />
-              
-              <ReportDateField
-                value={formState.reportDate || ''}
-                onChange={(value) => updateFormState('reportDate', value)}
-              />
-              
-              <SubmittedByField
-                value={formState.submittedBy || ''}
-                onChange={(value) => updateFormState('submittedBy', value)}
+                showPhotoError={false}
               />
 
               <div className="flex justify-end space-x-4 pt-6 border-t">
