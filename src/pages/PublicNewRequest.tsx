@@ -157,7 +157,7 @@ const PublicNewRequest = () => {
           p_description: formState.explanation.trim(),
           p_location: formState.location.trim() || property?.address || '',
           p_priority: formState.priority || 'medium',
-          p_category: formState.budgetCategoryId || property?.name || 'General',
+          p_category: 'General',
           p_submitted_by: formState.submittedBy.trim(),
           p_contact_email: formState.submittedBy.trim(),
           p_contact_phone: null,
