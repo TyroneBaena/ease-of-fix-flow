@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Settings, Menu as MenuIcon } from 'lucide-react';
+import { LogOut, Plus, Settings, Menu as MenuIcon, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { 
   Sheet,
@@ -36,6 +36,11 @@ export const MobileMenu = () => {
     // Add Settings for admin and manager - updated to use isAdmin as boolean
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
+    }
+    
+    // Add Security for admin only
+    if (isAdmin) {
+      items.push({ name: 'Security', icon: <Shield className="h-5 w-5" />, path: '/security' });
     }
     
     return items;
