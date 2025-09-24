@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Building, MapPin, Plus, Eye, Edit, Clock } from 'lucide-react';
 import { Property } from '@/types/property';
 import { MaintenanceRequest } from '@/types/maintenance';
+import RequestCard from '@/components/RequestCard';
+import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSidebar';
 
 /**
  * Public maintenance requests page for QR code access
@@ -22,6 +24,7 @@ const PublicPropertyRequests = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -152,92 +155,75 @@ const PublicPropertyRequests = () => {
 
       {/* Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Quick Action Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Maintenance Request Portal</CardTitle>
-              <p className="text-sm text-muted-foreground">Property ID: {id}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Button onClick={handleNewRequest} className="h-16 flex flex-col items-center justify-center text-sm">
-                  <Plus className="h-6 w-6 mb-2" />
-                  <div className="text-center">
-                    <div className="font-semibold text-sm">Submit New Request</div>
-                    <div className="text-xs opacity-80">Report a maintenance issue</div>
-                  </div>
-                </Button>
-                <div className="h-16 flex flex-col items-center justify-center bg-muted rounded-md">
-                  <Eye className="h-6 w-6 mb-2 text-muted-foreground" />
-                  <div className="text-center">
-                    <div className="font-semibold text-muted-foreground text-sm">View Requests Below</div>
-                    <div className="text-xs text-muted-foreground">See existing maintenance requests</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Maintenance Requests */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-2 lg:space-y-0">
-                <span className="text-xl">Maintenance Requests</span>
-                <Badge variant="secondary" className="self-start lg:self-auto">{requests.length} total</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {requests.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-muted-foreground">
-                    <Clock className="h-8 w-8 mx-auto mb-2" />
-                    <p className="text-base">No maintenance requests yet</p>
-                    <p className="text-sm">Submit the first request for this property</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {requests.map((request) => (
-                    <div 
-                      key={request.id} 
-                      className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors duration-200"
-                      onClick={() => {
-                        console.log('🔍 [DEBUG] Opening request details for:', request.id);
-                        // For now, show details in an alert. Later can navigate to detail page
-                        alert(`Request Details:\n\nTitle: ${request.issueNature || request.title}\nDescription: ${request.explanation || request.description}\nLocation: ${request.location || request.site}\nStatus: ${request.status}\nSubmitted: ${new Date(request.createdAt).toLocaleDateString()}`);
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-base">
-                          {request.issueNature || request.title || 'Maintenance Request'}
-                        </h3>
-                        <Badge className={getStatusColor(request.status)}>
-                          {request.status.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {request.explanation || request.description}
-                      </p>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Location: {request.location || request.site}</span>
-                        <span>Submitted: {new Date(request.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      {request.submittedBy && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          By: {request.submittedBy}
-                        </div>
-                      )}
-                      <div className="mt-3 pt-2 border-t border-muted flex items-center text-primary">
-                        <Eye className="h-4 w-4 mr-2" />
-                        <span className="text-sm font-medium">Click to view details</span>
-                      </div>
+        <div className={`grid gap-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1'}`}>
+          <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : ''}`}>
+            {/* Quick Action Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Maintenance Request Portal</CardTitle>
+                <p className="text-sm text-muted-foreground">Property ID: {id}</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <Button onClick={handleNewRequest} className="h-16 flex flex-col items-center justify-center text-sm">
+                    <Plus className="h-6 w-6 mb-2" />
+                    <div className="text-center">
+                      <div className="font-semibold text-sm">Submit New Request</div>
+                      <div className="text-xs opacity-80">Report a maintenance issue</div>
                     </div>
-                  ))}
+                  </Button>
+                  <div className="h-16 flex flex-col items-center justify-center bg-muted rounded-md">
+                    <Eye className="h-6 w-6 mb-2 text-muted-foreground" />
+                    <div className="text-center">
+                      <div className="font-semibold text-muted-foreground text-sm">View Requests Below</div>
+                      <div className="text-xs text-muted-foreground">See existing maintenance requests</div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Maintenance Requests */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-2 lg:space-y-0">
+                  <span className="text-xl">Maintenance Requests</span>
+                  <Badge variant="secondary" className="self-start lg:self-auto">{requests.length} total</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {requests.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-base">No maintenance requests yet</p>
+                      <p className="text-sm">Submit the first request for this property</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {requests.map((request) => (
+                      <RequestCard
+                        key={request.id}
+                        request={request}
+                        onClick={() => {
+                          console.log('🔍 [DEBUG] Opening request details for:', request.id);
+                          setSelectedRequest(request);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {selectedRequest && (
+            <RequestDetailSidebar 
+              request={selectedRequest}
+              onClose={() => setSelectedRequest(null)}
+            />
+          )}
         </div>
       </div>
     </div>
