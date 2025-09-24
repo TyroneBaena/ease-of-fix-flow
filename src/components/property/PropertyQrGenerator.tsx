@@ -18,8 +18,8 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
   const [isOpen, setIsOpen] = useState(false);
   const [qrUrl, setQrUrl] = useState<string>('');
   const [token, setToken] = useState<string>('');
-  const [expiryHours, setExpiryHours] = useState(24);
   const [loading, setLoading] = useState(false);
+  const expiryHours = 6; // Static 6 hours as requested
   const { toast } = useToast();
 
   const generateQrCode = async () => {
@@ -93,7 +93,6 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
   const resetForm = () => {
     setQrUrl('');
     setToken('');
-    setExpiryHours(24);
   };
 
   return (
@@ -101,34 +100,19 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       <DialogTrigger asChild>
         <Button variant="outline" onClick={resetForm} className="w-full justify-start">
           <QrCode className="h-4 w-4 mr-2" />
-          Generate New QR Code
+          View QR Code
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Generate Property Access QR Code</DialogTitle>
+          <DialogTitle>Property Access QR Code</DialogTitle>
           <DialogDescription>
-            Create a one-time access QR code for {propertyName}
+            QR code for instant access to {propertyName} (valid for {expiryHours} hours)
           </DialogDescription>
         </DialogHeader>
         
         {!qrUrl ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="expiry">Valid for (hours)</Label>
-              <Input
-                id="expiry"
-                type="number"
-                min="1"
-                max="168"
-                value={expiryHours}
-                onChange={(e) => setExpiryHours(parseInt(e.target.value) || 24)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Maximum 168 hours (7 days)
-              </p>
-            </div>
-            
+          <div className="text-center">
             <Button 
               onClick={generateQrCode} 
               disabled={loading}
@@ -141,15 +125,18 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
               )}
               Generate QR Code
             </Button>
+            <p className="text-sm text-muted-foreground mt-2">
+              Creates a secure QR code valid for {expiryHours} hours
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* QR Code Display */}
             <Card>
               <CardHeader className="text-center">
-                <CardTitle className="text-lg">Scan to Access Property</CardTitle>
+                <CardTitle className="text-lg">Scan for Instant Access</CardTitle>
                 <CardDescription>
-                  One-time access valid for {expiryHours} hours
+                  Valid for {expiryHours} hours from generation
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">

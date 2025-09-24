@@ -2,13 +2,12 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { MapPin, Edit, Trash, QrCode } from 'lucide-react';
+import { MapPin, Edit, Trash } from 'lucide-react';
 import { Property } from '@/types/property';
 
 interface PropertyHeaderProps {
   property: Property;
   onDeleteProperty: () => void;
-  onOpenQrDialog: () => void;
   setDialogOpen: (isOpen: boolean) => void;
   dialogOpen: boolean;
 }
@@ -16,7 +15,6 @@ interface PropertyHeaderProps {
 export const PropertyHeader: React.FC<PropertyHeaderProps> = ({ 
   property, 
   onDeleteProperty,
-  onOpenQrDialog,
   setDialogOpen,
   dialogOpen
 }) => {
@@ -31,15 +29,6 @@ export const PropertyHeader: React.FC<PropertyHeaderProps> = ({
       </div>
       
       <div className="flex space-x-2 mt-4 md:mt-0">
-        <Button
-          variant="outline"
-          onClick={onOpenQrDialog}
-          className="flex items-center"
-        >
-          <QrCode className="mr-2 h-4 w-4" />
-          View QR Code
-        </Button>
-        
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="flex items-center">

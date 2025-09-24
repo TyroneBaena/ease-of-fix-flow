@@ -4,14 +4,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import Navbar from '@/components/Navbar';
-import { generateQRCodeUrl } from '@/utils/qrCodeGenerator';
 import { toast } from '@/lib/toast';
 import { PropertyForm } from '@/components/property/PropertyForm';
 import { PropertyHeader } from '@/components/property/PropertyHeader';
 import { PropertyInfo } from '@/components/property/PropertyInfo';
 import { PropertyRequests } from '@/components/property/PropertyRequests';
 import { PropertyQuickActions } from '@/components/property/PropertyQuickActions';
-import { PropertyQrDialog } from '@/components/property/PropertyQrDialog';
 import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { useBudgetData } from '@/hooks/useBudgetData';
@@ -35,7 +33,6 @@ const PropertyDetail = () => {
   const property = id ? getProperty(id) : undefined;
   const [requests, setRequests] = useState<MaintenanceRequest[]>(id ? getRequestsForProperty(id) : []);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [qrDialogOpen, setQrDialogOpen] = useState(false);
   
   // Re-fetch requests when property changes (in case property ID dependencies change)
   useEffect(() => {
@@ -71,10 +68,6 @@ const PropertyDetail = () => {
     // Property data will automatically update via context
   };
 
-  const handleQrDownload = () => {
-    toast.success(`QR Code for ${property.name} downloaded`);
-  };
-
   // Show unified loading state until both property and budget data are ready
   if (!property || (id && budgetLoading)) {
     return (
@@ -98,8 +91,6 @@ const PropertyDetail = () => {
     );
   }
 
-  const qrCodeUrl = id ? generateQRCodeUrl(id) : '';
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -108,7 +99,6 @@ const PropertyDetail = () => {
         <PropertyHeader 
           property={property}
           onDeleteProperty={handleDeleteProperty}
-          onOpenQrDialog={() => setQrDialogOpen(true)}
           setDialogOpen={setDialogOpen}
           dialogOpen={dialogOpen}
         />
@@ -136,7 +126,6 @@ const PropertyDetail = () => {
                   <PropertyQuickActions
                     propertyId={id}
                     propertyName={property?.name || 'Property'}
-                    onOpenQrDialog={() => setQrDialogOpen(true)}
                     onOpenEditDialog={() => setDialogOpen(true)}
                   />
                 )}
@@ -153,16 +142,6 @@ const PropertyDetail = () => {
           </TabsContent>
         </Tabs>
       </main>
-      
-      {id && (
-        <PropertyQrDialog
-          open={qrDialogOpen}
-          onOpenChange={setQrDialogOpen}
-          propertyName={property.name}
-          qrCodeUrl={qrCodeUrl}
-          onDownload={handleQrDownload}
-        />
-      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">

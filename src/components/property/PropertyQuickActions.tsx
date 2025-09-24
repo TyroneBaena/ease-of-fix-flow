@@ -9,14 +9,12 @@ import PropertyQrGenerator from './PropertyQrGenerator';
 interface PropertyQuickActionsProps {
   propertyId: string;
   propertyName: string;
-  onOpenQrDialog: () => void;
   onOpenEditDialog: () => void;
 }
 
 export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({ 
   propertyId, 
   propertyName,
-  onOpenQrDialog, 
   onOpenEditDialog 
 }) => {
   const navigate = useNavigate();
@@ -34,22 +32,10 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
           <Plus className="mr-2 h-4 w-4" />
           New Maintenance Request
         </Button>
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={() => alert('Generate QR Code feature coming soon')}
-        >
-          <QrCode className="mr-2 h-4 w-4" />
-          Generate New QR Code
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={onOpenQrDialog}
-        >
-          <QrCode className="mr-2 h-4 w-4" />
-          View Old QR Code
-        </Button>
+        <PropertyQrGenerator 
+          propertyId={propertyId} 
+          propertyName={propertyName}
+        />
         <Button
           variant="outline"
           className="w-full justify-start"
