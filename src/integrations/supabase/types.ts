@@ -1293,45 +1293,6 @@ export type Database = {
           total_spend: number
         }[]
       }
-      get_public_property_budget_categories: {
-        Args: { property_uuid: string }
-        Returns: {
-          description: string
-          id: string
-          name: string
-        }[]
-      }
-      get_public_property_info: {
-        Args: { property_uuid: string }
-        Returns: {
-          address: string
-          contact_number: string
-          created_at: string
-          email: string
-          id: string
-          name: string
-          practice_leader: string
-          practice_leader_email: string
-          practice_leader_phone: string
-          rent_amount: number
-          rent_period: string
-        }[]
-      }
-      get_public_property_requests: {
-        Args: { property_uuid: string; request_limit?: number }
-        Returns: {
-          category: string
-          created_at: string
-          description: string
-          explanation: string
-          id: string
-          issue_nature: string
-          location: string
-          priority: string
-          status: string
-          title: string
-        }[]
-      }
       get_security_compliance_status: {
         Args: Record<PropertyKey, never>
         Returns: {

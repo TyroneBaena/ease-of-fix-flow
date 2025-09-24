@@ -28,25 +28,12 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
 
   const fetchBudgetCategories = async () => {
     try {
-      let data, error;
-      
-      // If propertyId is provided (public access via QR code), use the public function
-      if (propertyId) {
-        const result = await supabase
-          .rpc('get_public_property_budget_categories', { 
-            property_uuid: propertyId 
-          });
-        data = result.data;
-        error = result.error;
-      } else {
-        // Regular authenticated access
-        const result = await supabase
-          .from('budget_categories')
-          .select('*')
+      // Since we now require authentication for all property access,
+      // we can use the standard authenticated endpoint
+      const { data, error } = await supabase
+        .from('budget_categories')
+        .select('*')
           .order('name');
-        data = result.data;
-        error = result.error;
-      }
 
       if (error) {
         console.error('Error fetching budget categories:', error);
