@@ -145,24 +145,6 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
               </CardContent>
             </Card>
 
-            {/* URL Display */}
-            <div className="space-y-2">
-              <Label>QR Code URL</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={qrUrl}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => copyToClipboard(qrUrl)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
 
             {/* Actions */}
             <div className="flex gap-2">
