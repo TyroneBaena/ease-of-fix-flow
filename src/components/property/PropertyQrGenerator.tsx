@@ -45,10 +45,13 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       const newToken = data;
       setToken(newToken);
       
-      // Generate QR code URL
+      // Generate QR code URL with token format
       const baseUrl = window.location.origin;
       const qrCodeUrl = `${baseUrl}/qr/${newToken}`;
       setQrUrl(qrCodeUrl);
+      
+      console.log('✅ Generated token:', newToken);
+      console.log('✅ QR URL:', qrCodeUrl);
       
       toast({
         title: "QR Code Generated",
