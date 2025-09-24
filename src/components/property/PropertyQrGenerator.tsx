@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { QrCode, Copy, Download, RefreshCw, Loader2 } from 'lucide-react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface PropertyQrGeneratorProps {
   propertyId: string;
@@ -135,7 +135,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <QRCode
+                <QRCodeSVG
                   id="qr-code-canvas"
                   value={qrUrl}
                   size={200}
