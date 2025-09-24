@@ -37,7 +37,7 @@ const PublicPropertyRequests = () => {
       console.log('🔍 Fetching property data for ID:', id);
 
       // Use the edge function to safely fetch property data with property ID as URL parameter
-      const response = await fetch(`https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property?propertyId=${encodeURIComponent(id)}`);
+      const response = await fetch(`https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property-data?propertyId=${encodeURIComponent(id)}`);
       const result = await response.json();
 
       console.log('📦 Function response:', result);
@@ -55,6 +55,7 @@ const PublicPropertyRequests = () => {
       }
 
       console.log('✅ Property loaded successfully:', result.property.name);
+      console.log('📊 Budget categories available:', result.budgetCategories?.length || 0);
       setProperty(result.property);
       setRequests(result.requests || []);
 
@@ -67,6 +68,7 @@ const PublicPropertyRequests = () => {
   };
 
   const handleNewRequest = () => {
+    console.log('🚀 Navigating to new request for property:', id);
     navigate(`/new-request?propertyId=${id}&public=true`);
   };
 
@@ -145,6 +147,7 @@ const PublicPropertyRequests = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg sm:text-xl">Maintenance Request Portal</CardTitle>
+              <p className="text-sm text-muted-foreground">Property ID: {id}</p>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2">

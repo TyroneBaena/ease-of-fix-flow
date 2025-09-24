@@ -7,7 +7,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { RequestFormFields } from './RequestFormFields';
 import { RequestFormActions } from './RequestFormActions';
 
@@ -83,22 +83,28 @@ export const RequestFormContainer = () => {
     console.log('RequestForm - Selected property:', selectedProperty);
     console.log('RequestForm - Site name:', site);
     
-    // Fix validation to check the correct fields
-    if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !priority || !budgetCategoryId) {
-      console.log('RequestForm - Validation failed - missing required fields');
-      toast.error("Please fill in all required fields including category and priority");
+    // More lenient validation for public users
+    const requiredFields = isPublic 
+      ? { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority }
+      : { propertyId, issueNature, explanation, location, reportDate, submittedBy, attemptedFix, priority, budgetCategoryId };
+    
+    const missingFields = Object.entries(requiredFields).filter(([key, value]) => !value);
+    
+    if (missingFields.length > 0) {
+      console.log('❌ RequestForm - Validation failed - missing required fields:', missingFields.map(([key]) => key));
+      toast.error(`Please fill in all required fields: ${missingFields.map(([key]) => key).join(', ')}`);
       return;
     }
     
     if (isParticipantRelated && (!participantName || participantName === 'N/A')) {
-      console.log('RequestForm - Validation failed - participant name required');
+      console.log('❌ RequestForm - Validation failed - participant name required');
       toast.error("Please provide the participant's name");
       return;
     }
     
     // Skip user validation for public requests
     if (!isPublic && !currentUser?.id) {
-      console.log('RequestForm - Validation failed - no current user');
+      console.log('❌ RequestForm - Validation failed - no current user');
       toast.error("You must be logged in to submit a request");
       return;
     }
@@ -166,7 +172,7 @@ export const RequestFormContainer = () => {
             throw new Error(result.error || 'Failed to submit maintenance request');
           }
 
-          console.log('RequestForm - Public submission successful:', result);
+          console.log('✅ RequestForm - Public submission successful:', result);
           toast.success("Your maintenance request has been submitted successfully!");
           navigate(`/property-requests/${propertyId}`);
         } catch (error) {
@@ -181,7 +187,7 @@ export const RequestFormContainer = () => {
           title: issueNature,
           description: explanation,
           category: budgetCategoryId,
-          priority,
+          priority: priority as 'low' | 'medium' | 'high' | 'critical', // Type assertion to fix the error
           budget_category_id: budgetCategoryId,
           isParticipantRelated: isParticipantRelated || false,
           participantName: isParticipantRelated ? participantName : 'N/A',
