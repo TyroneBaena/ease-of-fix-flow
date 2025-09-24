@@ -153,32 +153,7 @@ const PublicPropertyRequests = () => {
 
       {/* Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-            {/* Quick Action Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Maintenance Request Portal</CardTitle>
-                <p className="text-sm text-muted-foreground">Property ID: {id}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <Button onClick={handleNewRequest} className="h-16 flex flex-col items-center justify-center text-sm">
-                    <Plus className="h-6 w-6 mb-2" />
-                    <div className="text-center">
-                      <div className="font-semibold text-sm">Submit New Request</div>
-                      <div className="text-xs opacity-80">Report a maintenance issue</div>
-                    </div>
-                  </Button>
-                  <div className="h-16 flex flex-col items-center justify-center bg-muted rounded-md">
-                    <Eye className="h-6 w-6 mb-2 text-muted-foreground" />
-                    <div className="text-center">
-                      <div className="font-semibold text-muted-foreground text-sm">View Requests Below</div>
-                      <div className="text-xs text-muted-foreground">See existing maintenance requests</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="space-y-6">
 
             {/* Maintenance Requests */}
             <Card>
