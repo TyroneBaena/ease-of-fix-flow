@@ -83,16 +83,15 @@ export const RequestFormContainer = () => {
     console.log('RequestForm - Selected property:', selectedProperty);
     console.log('RequestForm - Site name:', site);
     
-    // More lenient validation for public users
-    const requiredFields = isPublic 
-      ? { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority }
-      : { propertyId, issueNature, explanation, location, reportDate, submittedBy, attemptedFix, priority, budgetCategoryId };
+    // More lenient validation for public users - category is optional for public
+    const requiredFieldsCheck = isPublic 
+      ? !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !priority
+      : !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !priority || !budgetCategoryId;
     
-    const missingFields = Object.entries(requiredFields).filter(([key, value]) => !value);
-    
-    if (missingFields.length > 0) {
-      console.log('❌ RequestForm - Validation failed - missing required fields:', missingFields.map(([key]) => key));
-      toast.error(`Please fill in all required fields: ${missingFields.map(([key]) => key).join(', ')}`);
+    if (requiredFieldsCheck) {
+      console.log('❌ RequestForm - Validation failed');
+      console.log('Missing fields check:', { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority, budgetCategoryId, attemptedFix });
+      toast.error(isPublic ? "Please fill in all required fields" : "Please fill in all required fields including category");
       return;
     }
     
@@ -158,9 +157,9 @@ export const RequestFormContainer = () => {
               location: location,
               reportDate: reportDate,
               submittedBy: submittedBy,
-              attemptedFix: attemptedFix,
+              attemptedFix: attemptedFix || 'None attempted',
               priority: priority,
-              budgetCategoryId: budgetCategoryId
+              budgetCategoryId: budgetCategoryId || null
             })
           });
 

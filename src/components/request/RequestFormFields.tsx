@@ -66,7 +66,6 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
         priority={formState.priority || ''}
         onCategoryChange={(value) => updateFormState('budgetCategoryId', value)}
         onPriorityChange={(value) => updateFormState('priority', value)}
-        propertyId={propertyId}
       />
       
       <ParticipantRelatedField

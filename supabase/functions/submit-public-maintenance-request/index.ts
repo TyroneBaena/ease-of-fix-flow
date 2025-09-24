@@ -30,8 +30,9 @@ serve(async (req) => {
       budgetCategoryId
     } = requestData;
 
-    // Validate required fields
+    // Validate required fields - category is optional for public submissions
     if (!propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !priority) {
+      console.log('❌ Missing required fields:', { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { 
@@ -73,7 +74,7 @@ serve(async (req) => {
         organization_id: propertyData.organization_id,
         title: issueNature,
         description: explanation,
-        category: budgetCategoryId || 'General',
+        category: budgetCategoryId || 'General Maintenance',
         location: location,
         priority: priority,
         status: 'pending',
