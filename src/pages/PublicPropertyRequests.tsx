@@ -34,33 +34,43 @@ const PublicPropertyRequests = () => {
       setLoading(true);
       setError('');
 
-      console.log('🔍 Fetching property data for ID:', id);
+      console.log('🔍 [DEBUG] Fetching property data for ID:', id);
+      console.log('🔍 [DEBUG] Current URL:', window.location.href);
 
       // Use the edge function to safely fetch property data with property ID as URL parameter
-      const response = await fetch(`https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property-data?propertyId=${encodeURIComponent(id)}`);
+      const url = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property-data?propertyId=${encodeURIComponent(id!)}`;
+      console.log('🌐 [DEBUG] Calling edge function URL:', url);
+      
+      const response = await fetch(url);
+      console.log('📡 [DEBUG] Response status:', response.status, response.statusText);
+      
       const result = await response.json();
-
-      console.log('📦 Function response:', result);
+      console.log('📦 [DEBUG] Full function response:', JSON.stringify(result, null, 2));
 
       if (!response.ok || result.error) {
-        console.error('❌ Error from function:', result.error);
+        console.error('❌ [DEBUG] Error from function:', result.error);
         setError(result.error || 'Failed to load property information');
         return;
       }
 
       if (!result?.property) {
-        console.log('❌ No property data received');
+        console.log('❌ [DEBUG] No property data received');
+        console.log('❌ [DEBUG] Result structure:', Object.keys(result || {}));
         setError('Property not found');
         return;
       }
 
-      console.log('✅ Property loaded successfully:', result.property.name);
-      console.log('📊 Budget categories available:', result.budgetCategories?.length || 0);
+      console.log('✅ [DEBUG] Property loaded successfully:', result.property.name);
+      console.log('📊 [DEBUG] Budget categories available:', result.budgetCategories?.length || 0);
+      console.log('📊 [DEBUG] Budget categories data:', result.budgetCategories);
+      console.log('📋 [DEBUG] Requests available:', result.requests?.length || 0);
+      
       setProperty(result.property);
       setRequests(result.requests || []);
 
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('💥 [DEBUG] Unexpected error:', error);
+      console.error('💥 [DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);

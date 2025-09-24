@@ -31,9 +31,10 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
     try {
       const { budgetCategories: publicBudgetCategories } = usePublicPropertyContext();
       budgetCategories = publicBudgetCategories;
-      console.log('🔍 CategorySelection - Using public budget categories:', budgetCategories.length);
+      console.log('🔍 [DEBUG] CategorySelection - Using public budget categories:', budgetCategories.length);
+      console.log('🔍 [DEBUG] CategorySelection - Public budget categories data:', publicBudgetCategories);
     } catch (error) {
-      console.log('⚠️ CategorySelection - Public context not available, using fallback');
+      console.log('⚠️ [DEBUG] CategorySelection - Public context not available:', error);
       budgetCategories = [];
     }
   } else {
@@ -43,6 +44,7 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
     
     React.useEffect(() => {
       if (!isPublic) {
+        console.log('🔍 [DEBUG] CategorySelection - Fetching private budget categories');
         const fetchBudgetCategories = async () => {
           try {
             const { data, error } = await supabase
@@ -51,12 +53,13 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
               .order('name');
 
             if (error) {
-              console.error('Error fetching budget categories:', error);
+              console.error('❌ [DEBUG] CategorySelection - Error fetching budget categories:', error);
             } else {
+              console.log('✅ [DEBUG] CategorySelection - Private budget categories loaded:', data?.length || 0);
               setPrivateBudgetCategories(data || []);
             }
           } catch (err) {
-            console.error('Error fetching budget categories:', err);
+            console.error('❌ [DEBUG] CategorySelection - Error fetching budget categories:', err);
           }
         };
         
@@ -65,7 +68,7 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
     }, [isPublic]);
     
     budgetCategories = privateBudgetCategories;
-    console.log('🔍 CategorySelection - Using private budget categories:', budgetCategories.length);
+    console.log('🔍 [DEBUG] CategorySelection - Using private budget categories:', budgetCategories.length);
   }
 
   return (

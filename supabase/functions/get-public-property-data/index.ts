@@ -65,6 +65,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('✅ [DEBUG] Property found:', propertyData.name);
+
     // Fetch budget categories for the property's organization
     const { data: budgetCategoriesData, error: budgetError } = await supabase
       .from('budget_categories')
@@ -72,10 +74,21 @@ serve(async (req) => {
       .eq('organization_id', propertyData.organization_id)
       .order('name');
 
+    console.log('📊 [DEBUG] Budget categories query result:', { data: budgetCategoriesData, error: budgetError });
+
     if (budgetError) {
-      console.error('Error fetching budget categories:', budgetError);
+      console.error('❌ [DEBUG] Error fetching budget categories:', budgetError);
       // Don't fail the whole request for budget categories error
     }
+
+    // Fetch existing maintenance requests for this property
+    const { data: requestsData, error: requestsError } = await supabase
+      .from('maintenance_requests')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('created_at', { ascending: false });
+
+    console.log('📋 [DEBUG] Maintenance requests query result:', { data: requestsData, error: requestsError });
 
     // Transform property data
     const transformedProperty = {
@@ -105,12 +118,33 @@ serve(async (req) => {
       updatedAt: category.updated_at
     }));
 
-    console.log('✅ Property and budget categories loaded successfully');
+    // Transform maintenance requests
+    const transformedRequests = (requestsData || []).map((request: any) => ({
+      id: request.id,
+      title: request.title,
+      description: request.description,
+      status: request.status,
+      priority: request.priority,
+      location: request.location,
+      issueNature: request.issue_nature || request.title,
+      explanation: request.explanation || request.description,
+      submittedBy: request.submitted_by,
+      createdAt: request.created_at,
+      site: request.site || request.location
+    }));
+
+    console.log('✅ [DEBUG] Property and budget categories loaded successfully');
+    console.log('📊 [DEBUG] Returning data:', {
+      property: transformedProperty.name,
+      budgetCategoriesCount: transformedBudgetCategories.length,
+      requestsCount: transformedRequests.length
+    });
 
     return new Response(
       JSON.stringify({
         property: transformedProperty,
-        budgetCategories: transformedBudgetCategories
+        budgetCategories: transformedBudgetCategories,
+        requests: transformedRequests
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -32,30 +32,48 @@ export const PublicPropertyProvider: React.FC<{ children: React.ReactNode }> = (
       setLoading(true);
       setError(null);
 
-      console.log('🔍 PublicPropertyProvider: Fetching data for property:', propertyId);
+      console.log('🔍 [DEBUG] PublicPropertyProvider: Fetching data for property:', propertyId);
+      console.log('🔍 [DEBUG] PublicPropertyProvider: Current search params:', searchParams.toString());
 
       // Fetch property and budget categories via edge function
-      const response = await fetch(`https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property-data?propertyId=${encodeURIComponent(propertyId!)}`);
+      const url = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property-data?propertyId=${encodeURIComponent(propertyId!)}`;
+      console.log('🌐 [DEBUG] PublicPropertyProvider: Calling URL:', url);
+      
+      const response = await fetch(url);
+      console.log('📡 [DEBUG] PublicPropertyProvider: Response status:', response.status);
+      
       const result = await response.json();
+      console.log('📦 [DEBUG] PublicPropertyProvider: Full response:', JSON.stringify(result, null, 2));
 
       if (!response.ok || result.error) {
-        console.error('❌ Error fetching public property data:', result.error);
+        console.error('❌ [DEBUG] PublicPropertyProvider: Error fetching data:', result.error);
         setError(result.error || 'Failed to load property data');
         return;
       }
 
-      console.log('✅ PublicPropertyProvider: Data loaded:', result);
+      console.log('✅ [DEBUG] PublicPropertyProvider: Data loaded successfully');
+      console.log('🏠 [DEBUG] PublicPropertyProvider: Property:', result.property);
+      console.log('📊 [DEBUG] PublicPropertyProvider: Budget categories count:', result.budgetCategories?.length || 0);
 
       if (result.property) {
+        console.log('✅ [DEBUG] PublicPropertyProvider: Setting property:', result.property.name);
         setProperties([result.property]);
+      } else {
+        console.log('❌ [DEBUG] PublicPropertyProvider: No property in result');
+        setProperties([]);
       }
       
       if (result.budgetCategories) {
+        console.log('✅ [DEBUG] PublicPropertyProvider: Setting budget categories:', result.budgetCategories.length);
         setBudgetCategories(result.budgetCategories);
+      } else {
+        console.log('❌ [DEBUG] PublicPropertyProvider: No budget categories in result');
+        setBudgetCategories([]);
       }
 
     } catch (error) {
-      console.error('❌ PublicPropertyProvider: Unexpected error:', error);
+      console.error('❌ [DEBUG] PublicPropertyProvider: Unexpected error:', error);
+      console.error('❌ [DEBUG] PublicPropertyProvider: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       setError('Something went wrong while loading property data');
     } finally {
       setLoading(false);

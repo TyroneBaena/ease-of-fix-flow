@@ -145,6 +145,19 @@ export const RequestFormContainer = () => {
         console.log('RequestForm - Using public edge function submission');
         
         try {
+          console.log('🚀 [DEBUG] RequestForm - Using public edge function submission');
+          console.log('📦 [DEBUG] RequestForm - Sending data:', {
+            propertyId: propertyId,
+            issueNature: issueNature,
+            explanation: explanation,
+            location: location,
+            reportDate: reportDate,
+            submittedBy: submittedBy,
+            attemptedFix: attemptedFix || 'None attempted',
+            priority: priority,
+            budgetCategoryId: budgetCategoryId || null
+          });
+          
           const response = await fetch('https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/submit-public-maintenance-request', {
             method: 'POST',
             headers: {
@@ -163,15 +176,16 @@ export const RequestFormContainer = () => {
             })
           });
 
+          console.log('📡 [DEBUG] RequestForm - Response status:', response.status);
           const result = await response.json();
-          console.log('RequestForm - Edge function response:', result);
+          console.log('📦 [DEBUG] RequestForm - Edge function response:', JSON.stringify(result, null, 2));
 
           if (!response.ok || result.error) {
-            console.error('RequestForm - Public submission error:', result.error);
+            console.error('❌ [DEBUG] RequestForm - Public submission error:', result.error);
             throw new Error(result.error || 'Failed to submit maintenance request');
           }
 
-          console.log('✅ RequestForm - Public submission successful:', result);
+          console.log('✅ [DEBUG] RequestForm - Public submission successful:', result);
           toast.success("Your maintenance request has been submitted successfully!");
           navigate(`/property-requests/${propertyId}`);
         } catch (error) {
