@@ -9,7 +9,6 @@ import { Building, MapPin, Plus, Eye, Edit, Clock } from 'lucide-react';
 import { Property } from '@/types/property';
 import { MaintenanceRequest } from '@/types/maintenance';
 import RequestCard from '@/components/RequestCard';
-import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSidebar';
 
 /**
  * Public maintenance requests page for QR code access
@@ -24,7 +23,6 @@ const PublicPropertyRequests = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -155,8 +153,7 @@ const PublicPropertyRequests = () => {
 
       {/* Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className={`grid gap-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1'}`}>
-          <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : ''}`}>
+        <div className="space-y-6">
             {/* Quick Action Card */}
             <Card>
               <CardHeader>
@@ -207,23 +204,15 @@ const PublicPropertyRequests = () => {
                         key={request.id}
                         request={request}
                         onClick={() => {
-                          console.log('🔍 [DEBUG] Opening request details for:', request.id);
-                          setSelectedRequest(request);
+                          console.log('🔍 [DEBUG] Navigating to request details for:', request.id);
+                          navigate(`/request/${request.id}`);
                         }}
                       />
                     ))}
                   </div>
                 )}
               </CardContent>
-            </Card>
-          </div>
-          
-          {selectedRequest && (
-            <RequestDetailSidebar 
-              request={selectedRequest}
-              onClose={() => setSelectedRequest(null)}
-            />
-          )}
+          </Card>
         </div>
       </div>
     </div>
