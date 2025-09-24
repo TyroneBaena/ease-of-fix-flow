@@ -62,7 +62,10 @@ serve(async (req) => {
     if (!request) {
       console.log('❌ [GET-PUBLIC-REQUEST-DATA] Request not found');
       return new Response(
-        JSON.stringify({ error: 'Request not found' }),
+        JSON.stringify({ 
+          error: 'Request not found',
+          details: 'The maintenance request you are trying to access may have been deleted or the QR code may be invalid. Please contact your property manager.'
+        }),
         { 
           status: 404, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

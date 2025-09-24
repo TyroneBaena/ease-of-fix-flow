@@ -51,13 +51,14 @@ const PublicRequestDetail = () => {
 
       if (!requestResponse.ok || requestResult.error) {
         console.error('❌ [DEBUG] Error from function:', requestResult.error);
-        setError(requestResult.error || 'Failed to load request information');
+        const errorMessage = requestResult.details || requestResult.error || 'Failed to load request information';
+        setError(errorMessage);
         return;
       }
 
       if (!requestResult?.request) {
         console.log('❌ [DEBUG] No request data received');
-        setError('Request not found');
+        setError('Request not found. The maintenance request you are trying to access may have been deleted or the QR code may be invalid. Please contact your property manager.');
         return;
       }
 

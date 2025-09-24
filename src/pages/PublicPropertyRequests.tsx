@@ -50,14 +50,15 @@ const PublicPropertyRequests = () => {
 
       if (!response.ok || result.error) {
         console.error('❌ [DEBUG] Error from function:', result.error);
-        setError(result.error || 'Failed to load property information');
+        const errorMessage = result.details || result.error || 'Failed to load property information';
+        setError(errorMessage);
         return;
       }
 
       if (!result?.property) {
         console.log('❌ [DEBUG] No property data received');
         console.log('❌ [DEBUG] Result structure:', Object.keys(result || {}));
-        setError('Property not found');
+        setError('Property not found. The property you are trying to access may have been deleted or the QR code may be invalid. Please contact your property manager.');
         return;
       }
 

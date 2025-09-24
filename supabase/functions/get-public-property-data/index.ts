@@ -56,8 +56,12 @@ serve(async (req) => {
     }
 
     if (!propertyData) {
+      console.log('❌ [DEBUG] Property not found for ID:', propertyId);
       return new Response(
-        JSON.stringify({ error: 'Property not found' }),
+        JSON.stringify({ 
+          error: 'Property not found',
+          details: 'The property you are trying to access may have been deleted or the QR code may be invalid. Please contact your property manager.'
+        }),
         { 
           status: 404, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -90,7 +94,7 @@ serve(async (req) => {
 
     console.log('📋 [DEBUG] Maintenance requests query result:', { data: requestsData, error: requestsError });
 
-    // Transform property data
+    // Transform property data (excluding sensitive rent information for public access)
     const transformedProperty = {
       id: propertyData.id,
       name: propertyData.name,
@@ -101,10 +105,8 @@ serve(async (req) => {
       practiceLeaderEmail: propertyData.practice_leader_email || '',
       practiceLeaderPhone: propertyData.practice_leader_phone || '',
       renewalDate: propertyData.renewal_date || '',
-      rentAmount: propertyData.rent_amount || 0,
-      rentPeriod: propertyData.rent_period || 'month',
+      // SECURITY: Rent data excluded from public access
       createdAt: propertyData.created_at,
-      landlordId: propertyData.landlord_id,
       organizationId: propertyData.organization_id
     };
 
