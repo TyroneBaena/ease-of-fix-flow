@@ -99,9 +99,9 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" onClick={resetForm}>
+        <Button variant="outline" onClick={resetForm} className="w-full justify-start">
           <QrCode className="h-4 w-4 mr-2" />
-          Generate QR Code
+          Generate New QR Code
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
