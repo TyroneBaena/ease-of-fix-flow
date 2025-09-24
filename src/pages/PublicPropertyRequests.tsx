@@ -34,83 +34,24 @@ const PublicPropertyRequests = () => {
       setLoading(true);
       setError('');
 
-      // Fetch property data (publicly accessible)
-      const { data: propertyData, error: propertyError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      // Use the edge function to safely fetch property data
+      const { data, error } = await supabase.functions.invoke('get-public-property', {
+        body: JSON.stringify({ propertyId: id })
+      });
 
-      if (propertyError) {
-        console.error('Error fetching property:', propertyError);
+      if (error) {
+        console.error('Error fetching property data:', error);
         setError('Failed to load property information');
         return;
       }
 
-      if (!propertyData) {
+      if (!data?.property) {
         setError('Property not found');
         return;
       }
 
-      // Transform property data
-      const transformedProperty: Property = {
-        id: propertyData.id,
-        name: propertyData.name,
-        address: propertyData.address,
-        contactNumber: propertyData.contact_number,
-        email: propertyData.email,
-        practiceLeader: propertyData.practice_leader,
-        practiceLeaderEmail: propertyData.practice_leader_email || '',
-        practiceLeaderPhone: propertyData.practice_leader_phone || '',
-        renewalDate: propertyData.renewal_date || '',
-        rentAmount: propertyData.rent_amount || 0,
-        rentPeriod: (propertyData.rent_period as 'week' | 'month') || 'month',
-        createdAt: propertyData.created_at,
-        landlordId: propertyData.landlord_id
-      };
-
-      setProperty(transformedProperty);
-
-      // Fetch maintenance requests for this property (publicly viewable)
-      const { data: requestsData, error: requestsError } = await supabase
-        .from('maintenance_requests')
-        .select('*')
-        .eq('property_id', id)
-        .order('created_at', { ascending: false });
-
-      if (requestsError) {
-        console.error('Error fetching requests:', requestsError);
-        // Don't show error for requests, just log it
-      } else {
-        // Transform requests data
-        const transformedRequests: MaintenanceRequest[] = (requestsData || []).map((req: any) => ({
-          id: req.id,
-          isParticipantRelated: req.is_participant_related || false,
-          participantName: req.participant_name || '',
-          attemptedFix: req.attempted_fix || '',
-          issueNature: req.issue_nature || '',
-          explanation: req.explanation || '',
-          location: req.location || '',
-          reportDate: req.report_date || '',
-          site: req.site || '',
-          submittedBy: req.submitted_by || '',
-          status: req.status || 'pending',
-          title: req.title || '',
-          description: req.description || '',
-          category: req.category || '',
-          priority: req.priority || 'medium',
-          propertyId: req.property_id,
-          createdAt: req.created_at,
-          updatedAt: req.updated_at,
-          assignedTo: req.assigned_to,
-          dueDate: req.due_date,
-          attachments: req.attachments,
-          history: req.history,
-          userId: req.user_id || '', // Add the required userId field
-        }));
-
-        setRequests(transformedRequests);
-      }
+      setProperty(data.property);
+      setRequests(data.requests || []);
 
     } catch (error) {
       console.error('Unexpected error:', error);
