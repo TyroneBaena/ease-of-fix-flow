@@ -44,10 +44,12 @@ export const RequestFormContainer = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    console.log('RequestForm - handleSubmit called');
-    console.log('RequestForm - Form state:', formState);
-    console.log('RequestForm - Files to upload:', files);
-    console.log('RequestForm - Current user:', currentUser);
+    console.log('🚀 RequestForm - handleSubmit called');
+    console.log('📋 RequestForm - Form state:', formState);
+    console.log('📁 RequestForm - Files to upload:', files);
+    console.log('👤 RequestForm - Current user:', currentUser);
+    console.log('🌐 RequestForm - Is public:', isPublic);
+    console.log('🔗 RequestForm - Property ID param:', propertyIdParam);
     
     // Validate photos first
     if (!validatePhotos()) {
@@ -134,33 +136,43 @@ export const RequestFormContainer = () => {
       console.log('RequestForm - Final attachments value before database save:', attachments);
 
       if (isPublic) {
-        // Use public submission function for QR code users
-        console.log('RequestForm - Using public submission function');
+        // Use edge function for public submission
+        console.log('RequestForm - Using public edge function submission');
         
-        const { data, error } = await supabase.rpc('submit_public_maintenance_request', {
-          p_property_id: propertyId,
-          p_title: issueNature,
-          p_description: explanation,
-          p_issue_nature: issueNature,
-          p_explanation: explanation,
-          p_location: location,
-          p_submitted_by: submittedBy,
-          p_attempted_fix: attemptedFix,
-          p_priority: priority,
-          p_category: budgetCategoryId,
-          p_attachments: attachments ? JSON.stringify(attachments) : null,
-          p_contact_email: '', // Public requests don't need contact info
-          p_contact_phone: ''
-        });
+        try {
+          const response = await fetch('https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/submit-public-maintenance-request', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              propertyId: propertyId,
+              issueNature: issueNature,
+              explanation: explanation,
+              location: location,
+              reportDate: reportDate,
+              submittedBy: submittedBy,
+              attemptedFix: attemptedFix,
+              priority: priority,
+              budgetCategoryId: budgetCategoryId
+            })
+          });
 
-        if (error) {
+          const result = await response.json();
+          console.log('RequestForm - Edge function response:', result);
+
+          if (!response.ok || result.error) {
+            console.error('RequestForm - Public submission error:', result.error);
+            throw new Error(result.error || 'Failed to submit maintenance request');
+          }
+
+          console.log('RequestForm - Public submission successful:', result);
+          toast.success("Your maintenance request has been submitted successfully!");
+          navigate(`/property-requests/${propertyId}`);
+        } catch (error) {
           console.error('RequestForm - Public submission error:', error);
           throw error;
         }
-
-        console.log('RequestForm - Public submission successful:', data);
-        toast.success("Your maintenance request has been submitted successfully!");
-        navigate(`/property-requests/${propertyId}`);
       } else {
         // Use authenticated submission for logged-in users
         console.log('RequestForm - Using authenticated submission');

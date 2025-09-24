@@ -18,18 +18,18 @@ const NewRequest = () => {
       {/* Public header for QR code users */}
       {isPublic && (
         <div className="border-b bg-card">
-          <div className="container mx-auto px-4 py-4">
-            <h1 className="text-2xl font-bold text-foreground">Submit Maintenance Request</h1>
-            <p className="text-muted-foreground">Report a maintenance issue for this property</p>
+          <div className="container mx-auto px-4 py-4 sm:py-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Submit Maintenance Request</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Report a maintenance issue for this property</p>
           </div>
         </div>
       )}
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {!isPublic && <RequestFormHeader />}
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="shadow-sm">
+          <CardContent className="p-4 sm:p-6">
             <RequestForm />
           </CardContent>
         </Card>
