@@ -5,6 +5,7 @@ import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import Navbar from '@/components/Navbar';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/lib/supabase';
 import { PropertyForm } from '@/components/property/PropertyForm';
 import { PropertyHeader } from '@/components/property/PropertyHeader';
 import { PropertyInfo } from '@/components/property/PropertyInfo';
@@ -22,6 +23,15 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 import { MaintenanceRequest } from '@/types/maintenance';
+import { Property } from '@/types/property';
+
+interface TemporarySession {
+  sessionToken: string;
+  propertyId: string;
+  propertyName: string;
+  organizationId: string;
+  expiresAt: string;
+}
 
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,31 +39,87 @@ const PropertyDetail = () => {
   const { getProperty, deleteProperty, properties } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
   
-  // Use context data directly instead of local state
-  const property = id ? getProperty(id) : undefined;
+  // Check for temporary session
+  const [temporarySession, setTemporarySession] = useState<TemporarySession | null>(null);
+  const [temporaryProperty, setTemporaryProperty] = useState<Property | null>(null);
+  const [isTemporaryAccess, setIsTemporaryAccess] = useState(false);
+  
+  // Use context data for authenticated users, temporary data for QR access
+  const property = isTemporaryAccess ? temporaryProperty : (id ? getProperty(id) : undefined);
   const [requests, setRequests] = useState<MaintenanceRequest[]>(id ? getRequestsForProperty(id) : []);
   const [dialogOpen, setDialogOpen] = useState(false);
   
+  // Check for temporary session on mount
+  useEffect(() => {
+    const checkTemporarySession = async () => {
+      const storedSession = localStorage.getItem('temporarySession');
+      
+      if (storedSession && id) {
+        try {
+          const sessionData: TemporarySession = JSON.parse(storedSession);
+          
+          // Check if session matches property ID and is not expired
+          if (sessionData.propertyId === id && new Date(sessionData.expiresAt) > new Date()) {
+            setTemporarySession(sessionData);
+            setIsTemporaryAccess(true);
+            
+            // Fetch property data using the session token
+            const { data: propertyData, error } = await supabase
+              .from('properties')
+              .select('*')
+              .eq('id', id)
+              .single();
+            
+            if (propertyData && !error) {
+              // Transform database data to Property type
+              const transformedProperty: Property = {
+                id: propertyData.id,
+                name: propertyData.name,
+                address: propertyData.address,
+                contactNumber: propertyData.contact_number,
+                email: propertyData.email,
+                practiceLeader: propertyData.practice_leader,
+                practiceLeaderEmail: propertyData.practice_leader_email || '',
+                practiceLeaderPhone: propertyData.practice_leader_phone || '',
+                renewalDate: propertyData.renewal_date || '',
+                rentAmount: propertyData.rent_amount || 0,
+                rentPeriod: (propertyData.rent_period as 'week' | 'month') || 'month',
+                createdAt: propertyData.created_at,
+                landlordId: propertyData.landlord_id
+              };
+              setTemporaryProperty(transformedProperty);
+            }
+          }
+        } catch (error) {
+          console.error('Invalid temporary session data:', error);
+          localStorage.removeItem('temporarySession');
+        }
+      }
+    };
+
+    checkTemporarySession();
+  }, [id]);
+
   // Re-fetch requests when property changes (in case property ID dependencies change)
   useEffect(() => {
-    if (id) {
+    if (id && !isTemporaryAccess) {
       const updatedRequests = getRequestsForProperty(id);
       setRequests(updatedRequests);
     }
-  }, [id, getRequestsForProperty, properties]); // Re-run when properties context changes
+  }, [id, getRequestsForProperty, properties, isTemporaryAccess]); // Re-run when properties context changes
   
   // Only load budget data if we have a valid property ID
   const { maintenanceSpend, currentFinancialYear, loading: budgetLoading, getBudgetAnalysis } = useBudgetData(id || '');
 
   useEffect(() => {
-    if (id) {
+    if (id && !isTemporaryAccess) {
       const propertyData = getProperty(id);
       if (!propertyData) {
         toast.error('Property not found');
         navigate('/properties');
       }
     }
-  }, [id, getProperty, navigate]);
+  }, [id, getProperty, navigate, isTemporaryAccess]);
 
   const handleDeleteProperty = () => {
     if (id) {
@@ -93,20 +159,50 @@ const PropertyDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      {/* Only show Navbar for authenticated users */}
+      {!isTemporaryAccess && <Navbar />}
+      
+      {/* Temporary session header */}
+      {isTemporaryAccess && temporarySession && (
+        <div className="bg-blue-50 border-b border-blue-200 py-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-sm text-blue-800">
+              Temporary access to {temporarySession.propertyName} • 
+              Expires: {new Date(temporarySession.expiresAt).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      )}
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <PropertyHeader 
-          property={property}
-          onDeleteProperty={handleDeleteProperty}
-          setDialogOpen={setDialogOpen}
-          dialogOpen={dialogOpen}
-        />
+        {/* Only show PropertyHeader with actions for authenticated users */}
+        {!isTemporaryAccess && (
+          <PropertyHeader 
+            property={property}
+            onDeleteProperty={handleDeleteProperty}
+            setDialogOpen={setDialogOpen}
+            dialogOpen={dialogOpen}
+          />
+        )}
+
+        {/* Simple header for temporary access */}
+        {isTemporaryAccess && property && (
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">{property.name}</h1>
+            <div className="flex items-center text-gray-600 mt-1">
+              <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {property.address}
+            </div>
+          </div>
+        )}
         
         <Tabs defaultValue="overview" className="mt-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${isTemporaryAccess ? 'grid-cols-2' : 'grid-cols-3'}`}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="budget">Budget Management</TabsTrigger>
+            {!isTemporaryAccess && <TabsTrigger value="budget">Budget Management</TabsTrigger>}
             <TabsTrigger value="requests">Maintenance Requests</TabsTrigger>
           </TabsList>
           
@@ -126,6 +222,7 @@ const PropertyDetail = () => {
                   <PropertyQuickActions
                     propertyId={id}
                     onOpenEditDialog={() => setDialogOpen(true)}
+                    isTemporaryAccess={isTemporaryAccess}
                   />
                 )}
               </div>
@@ -133,7 +230,12 @@ const PropertyDetail = () => {
           </TabsContent>
           
           <TabsContent value="budget" className="mt-6">
-            {id && <BudgetManagement propertyId={id} />}
+            {id && !isTemporaryAccess && <BudgetManagement propertyId={id} />}
+            {isTemporaryAccess && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Budget management is not available with temporary access.</p>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="requests" className="mt-6">
@@ -142,17 +244,20 @@ const PropertyDetail = () => {
         </Tabs>
       </main>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Edit Property</DialogTitle>
-            <DialogDescription>
-              Update the details for this property.
-            </DialogDescription>
-          </DialogHeader>
-          <PropertyForm onClose={handleDialogClose} existingProperty={property} />
-        </DialogContent>
-      </Dialog>
+      {/* Only show edit dialog for authenticated users */}
+      {!isTemporaryAccess && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Property</DialogTitle>
+              <DialogDescription>
+                Update the details for this property.
+              </DialogDescription>
+            </DialogHeader>
+            <PropertyForm onClose={handleDialogClose} existingProperty={property} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

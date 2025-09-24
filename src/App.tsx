@@ -39,6 +39,7 @@ import ContractorSchedule from '@/pages/contractor/ContractorSchedule';
 import ContractorSettings from '@/pages/contractor/ContractorSettings';
 import ContractorNotifications from '@/pages/ContractorNotifications';
 import QuoteSubmission from './pages/contractor/QuoteSubmission';
+import PropertyDetailWrapper from '@/components/PropertyDetailWrapper';
 
 // Context providers for specific features
 import { SubscriptionProvider } from './contexts/subscription/SubscriptionContext';
@@ -136,17 +137,7 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="/properties/:id" element={
-              <ProtectedRoute>
-                <OrganizationGuard>
-                  <PropertyProvider>
-                    <MaintenanceRequestProvider>
-                      <PropertyDetail />
-                    </MaintenanceRequestProvider>
-                  </PropertyProvider>
-                </OrganizationGuard>
-              </ProtectedRoute>
-            } />
+            <Route path="/properties/:id" element={<PropertyDetailWrapper />} />
             
             {/* QR code route - validates token and creates temporary session */}
             <Route path="/qr/:token" element={<QRCodeRedirect />} />

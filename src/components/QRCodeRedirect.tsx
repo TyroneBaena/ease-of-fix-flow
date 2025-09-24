@@ -72,9 +72,9 @@ const QRCodeRedirect = () => {
           description: `Welcome! You now have access to ${data.propertyName}`,
         });
 
-        // Redirect to the property maintenance requests
+        // Redirect to the property detail page (same as desktop)
         setTimeout(() => {
-          navigate(`/property-access/${data.propertyId}`, { replace: true });
+          navigate(`/properties/${data.propertyId}`, { replace: true });
         }, 1500);
 
       } catch (error) {

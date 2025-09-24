@@ -8,11 +8,13 @@ import { Plus, Edit } from 'lucide-react';
 interface PropertyQuickActionsProps {
   propertyId: string;
   onOpenEditDialog: () => void;
+  isTemporaryAccess?: boolean;
 }
 
 export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({ 
   propertyId, 
-  onOpenEditDialog 
+  onOpenEditDialog,
+  isTemporaryAccess = false
 }) => {
   const navigate = useNavigate();
 
@@ -29,14 +31,16 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
           <Plus className="mr-2 h-4 w-4" />
           New Maintenance Request
         </Button>
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={onOpenEditDialog}
-        >
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Property Details
-        </Button>
+        {!isTemporaryAccess && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={onOpenEditDialog}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Property Details
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
