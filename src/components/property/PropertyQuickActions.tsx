@@ -34,10 +34,14 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
           <Plus className="mr-2 h-4 w-4" />
           New Maintenance Request
         </Button>
-        <PropertyQrGenerator 
-          propertyId={propertyId} 
-          propertyName={propertyName}
-        />
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={() => alert('Generate QR Code feature coming soon')}
+        >
+          <QrCode className="mr-2 h-4 w-4" />
+          Generate New QR Code
+        </Button>
         <Button
           variant="outline"
           className="w-full justify-start"
