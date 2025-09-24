@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { QrCode, Copy, Download, RefreshCw } from 'lucide-react';
+import { QrCode, Copy, Download, RefreshCw, Loader2 } from 'lucide-react';
 import QRCode from 'qrcode.react';
 
 interface PropertyQrGeneratorProps {
@@ -19,12 +19,21 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
   const [qrUrl, setQrUrl] = useState<string>('');
   const [token, setToken] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const expiryHours = 6; // Static 6 hours as requested
   const { toast } = useToast();
+
+  // Auto-generate QR code when dialog opens
+  useEffect(() => {
+    if (isOpen && !qrUrl && !loading) {
+      generateQrCode();
+    }
+  }, [isOpen]);
 
   const generateQrCode = async () => {
     try {
       setLoading(true);
+      setError('');
       
       console.log('🔄 Generating token for property:', propertyId);
       
@@ -36,6 +45,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
 
       if (error) {
         console.error('❌ Error generating token:', error);
+        setError(error.message || "Failed to generate access token. Please try again.");
         toast({
           title: "Error",
           description: error.message || "Failed to generate access token. Please try again.",
@@ -46,9 +56,11 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
 
       if (!data) {
         console.error('❌ No token returned from function');
+        const errorMsg = "No token was generated. Please try again.";
+        setError(errorMsg);
         toast({
           title: "Error",
-          description: "No token was generated. Please try again.",
+          description: errorMsg,
           variant: "destructive"
         });
         return;
@@ -72,9 +84,11 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       
     } catch (error) {
       console.error('❌ Unexpected error:', error);
+      const errorMsg = "Something went wrong. Please try again.";
+      setError(errorMsg);
       toast({
         title: "Error", 
-        description: "Something went wrong. Please try again.",
+        description: errorMsg,
         variant: "destructive"
       });
     } finally {
@@ -108,12 +122,13 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
   const resetForm = () => {
     setQrUrl('');
     setToken('');
+    setError('');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" onClick={resetForm} className="w-full justify-start">
+        <Button variant="outline" onClick={resetForm} className="flex items-center">
           <QrCode className="h-4 w-4 mr-2" />
           View QR Code
         </Button>
@@ -126,25 +141,23 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
           </DialogDescription>
         </DialogHeader>
         
-        {!qrUrl ? (
-          <div className="text-center">
-            <Button 
-              onClick={generateQrCode} 
-              disabled={loading}
-              className="w-full"
-            >
-              {loading ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <QrCode className="h-4 w-4 mr-2" />
-              )}
-              Generate QR Code
-            </Button>
-            <p className="text-sm text-muted-foreground mt-2">
-              Creates a secure QR code valid for {expiryHours} hours
-            </p>
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-lg font-medium">Generating QR Code...</p>
+            <p className="text-sm text-muted-foreground">Creating secure access token</p>
           </div>
-        ) : (
+        ) : error ? (
+          <div className="text-center py-8">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg mb-4">
+              <p className="text-sm text-red-800 dark:text-red-200 mb-3">{error}</p>
+              <Button onClick={generateQrCode} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          </div>
+        ) : qrUrl ? (
           <div className="space-y-4">
             {/* QR Code Display */}
             <Card>
@@ -204,7 +217,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
               </p>
             </div>
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );
