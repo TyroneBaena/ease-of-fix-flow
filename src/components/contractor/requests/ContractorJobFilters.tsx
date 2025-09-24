@@ -16,6 +16,8 @@ interface ContractorJobFiltersProps {
   setStatusFilter: (status: string) => void;
   categoryFilter: string;
   setCategoryFilter: (category: string) => void;
+  siteFilter: string;
+  setSiteFilter: (site: string) => void;
   priorityFilter: string;
   setPriorityFilter: (priority: string) => void;
   sortField: string;
@@ -25,6 +27,7 @@ interface ContractorJobFiltersProps {
   dateRange?: { from: Date | undefined; to: Date | undefined };
   setDateRange?: (range: { from: Date | undefined; to: Date | undefined }) => void;
   categories: string[];
+  sites: string[];
 }
 
 const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
@@ -34,6 +37,8 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   setStatusFilter,
   categoryFilter,
   setCategoryFilter,
+  siteFilter,
+  setSiteFilter,
   priorityFilter,
   setPriorityFilter,
   sortField,
@@ -42,7 +47,8 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   setSortDirection,
   dateRange,
   setDateRange,
-  categories
+  categories,
+  sites
 }) => {
   const toggleSortDirection = () => {
     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -67,6 +73,7 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
     setSearchTerm('');
     setStatusFilter('all');
     setCategoryFilter('all');
+    setSiteFilter('all');
     setPriorityFilter('all');
     setSortField('createdAt');
     setSortDirection('desc');
@@ -76,7 +83,7 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   };
 
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || 
-    priorityFilter !== 'all' || dateRange?.from;
+    siteFilter !== 'all' || priorityFilter !== 'all' || dateRange?.from;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -120,6 +127,23 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
               {categories.map(category => (
                 <SelectItem key={category} value={category}>
                   {category.charAt(0).toUpperCase() + category.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Site Filter */}
+        <div className="w-full lg:w-48">
+          <Select value={siteFilter} onValueChange={setSiteFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Site: All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {sites.map(site => (
+                <SelectItem key={site} value={site}>
+                  {site}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -250,6 +274,20 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
                 size="sm" 
                 className="h-4 w-4 ml-2 p-0" 
                 onClick={() => setCategoryFilter('all')}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+
+          {siteFilter !== 'all' && (
+            <Badge variant="outline" className="bg-cyan-50 border-cyan-200">
+              Site: {siteFilter}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 ml-2 p-0" 
+                onClick={() => setSiteFilter('all')}
               >
                 <X className="h-3 w-3" />
               </Button>

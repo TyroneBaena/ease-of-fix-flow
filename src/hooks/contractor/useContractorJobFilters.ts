@@ -11,6 +11,7 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [siteFilter, setSiteFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
@@ -24,6 +25,17 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
         .map(category => category!)
     ));
     return uniqueCategories.sort();
+  }, [allJobs]);
+
+  // Get unique sites from all jobs
+  const sites = useMemo(() => {
+    const uniqueSites = Array.from(new Set(
+      allJobs
+        .map(job => job.site)
+        .filter(Boolean)
+        .map(site => site!)
+    ));
+    return uniqueSites.sort();
   }, [allJobs]);
 
   // Filter and sort jobs
@@ -50,6 +62,11 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
     // Category filter
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(job => job.category === categoryFilter);
+    }
+
+    // Site filter
+    if (siteFilter !== 'all') {
+      filtered = filtered.filter(job => job.site === siteFilter);
     }
 
     // Priority filter
@@ -123,6 +140,7 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
     searchTerm,
     statusFilter,
     categoryFilter,
+    siteFilter,
     priorityFilter,
     sortField,
     sortDirection,
@@ -136,6 +154,8 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
     setStatusFilter,
     categoryFilter,
     setCategoryFilter,
+    siteFilter,
+    setSiteFilter,
     priorityFilter,
     setPriorityFilter,
     sortField,
@@ -145,6 +165,7 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
     dateRange,
     setDateRange,
     categories,
+    sites,
     filteredJobs
   };
 };

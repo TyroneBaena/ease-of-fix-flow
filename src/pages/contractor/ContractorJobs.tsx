@@ -34,6 +34,8 @@ const ContractorJobs = () => {
     setStatusFilter,
     categoryFilter,
     setCategoryFilter,
+    siteFilter,
+    setSiteFilter,
     priorityFilter,
     setPriorityFilter,
     sortField,
@@ -43,6 +45,7 @@ const ContractorJobs = () => {
     dateRange,
     setDateRange,
     categories,
+    sites,
     filteredJobs
   } = useContractorJobFilters(allJobs);
 
@@ -68,6 +71,7 @@ const ContractorJobs = () => {
       search: !!searchTerm,
       status: statusFilter !== 'all',
       category: categoryFilter !== 'all',
+      site: siteFilter !== 'all',
       priority: priorityFilter !== 'all',
       dateRange: !!dateRange.from
     }
@@ -116,6 +120,8 @@ const ContractorJobs = () => {
               setStatusFilter={setStatusFilter}
               categoryFilter={categoryFilter}
               setCategoryFilter={setCategoryFilter}
+              siteFilter={siteFilter}
+              setSiteFilter={setSiteFilter}
               priorityFilter={priorityFilter}
               setPriorityFilter={setPriorityFilter}
               sortField={sortField}
@@ -125,6 +131,7 @@ const ContractorJobs = () => {
               dateRange={dateRange}
               setDateRange={setDateRange}
               categories={categories}
+              sites={sites}
             />
             
             <Card className="p-6">
