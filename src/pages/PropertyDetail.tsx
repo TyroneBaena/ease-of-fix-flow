@@ -36,7 +36,7 @@ interface TemporarySession {
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getProperty, deleteProperty, properties } = usePropertyContext();
+  const { getProperty, deleteProperty, properties, loading } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
   
   // Check for temporary session
@@ -68,7 +68,7 @@ const PropertyDetail = () => {
               .from('properties')
               .select('*')
               .eq('id', id)
-              .single();
+              .maybeSingle();
             
             if (propertyData && !error) {
               // Transform database data to Property type
@@ -112,14 +112,29 @@ const PropertyDetail = () => {
   const { maintenanceSpend, currentFinancialYear, loading: budgetLoading, getBudgetAnalysis } = useBudgetData(id || '');
 
   useEffect(() => {
+    console.log('PropertyDetail: Effect triggered', { 
+      id, 
+      isTemporaryAccess, 
+      propertiesCount: properties.length, 
+      loading,
+      property: property ? `Found: ${property.name}` : 'Not found'
+    });
+    
     if (id && !isTemporaryAccess) {
       const propertyData = getProperty(id);
-      if (!propertyData) {
+      console.log('PropertyDetail: Looking for property with ID:', id);
+      console.log('PropertyDetail: Available properties:', properties.length);
+      console.log('PropertyDetail: Available property IDs:', properties.map(p => p.id));
+      console.log('PropertyDetail: Found property:', propertyData);
+      console.log('PropertyDetail: Loading state:', loading);
+      
+      if (!propertyData && !loading && properties.length > 0) {
+        console.log('PropertyDetail: Property not found, redirecting to properties page');
         toast.error('Property not found');
         navigate('/properties');
       }
     }
-  }, [id, getProperty, navigate, isTemporaryAccess]);
+  }, [id, getProperty, navigate, isTemporaryAccess, properties, loading, property]);
 
   const handleDeleteProperty = () => {
     if (id) {
@@ -135,7 +150,7 @@ const PropertyDetail = () => {
   };
 
   // Show unified loading state until both property and budget data are ready
-  if (!property || (id && budgetLoading)) {
+  if ((!property && !isTemporaryAccess) || (id && budgetLoading) || (loading && !isTemporaryAccess)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
