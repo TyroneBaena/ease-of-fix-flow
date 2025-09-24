@@ -42,8 +42,6 @@ const ContractorJobs = () => {
     setSortField,
     sortDirection,
     setSortDirection,
-    dateRange,
-    setDateRange,
     categories,
     sites,
     filteredJobs
@@ -73,7 +71,7 @@ const ContractorJobs = () => {
       category: categoryFilter !== 'all',
       site: siteFilter !== 'all',
       priority: priorityFilter !== 'all',
-      dateRange: !!dateRange.from
+      
     }
   });
 
@@ -128,8 +126,6 @@ const ContractorJobs = () => {
               setSortField={setSortField}
               sortDirection={sortDirection}
               setSortDirection={setSortDirection}
-              dateRange={dateRange}
-              setDateRange={setDateRange}
               categories={categories}
               sites={sites}
             />

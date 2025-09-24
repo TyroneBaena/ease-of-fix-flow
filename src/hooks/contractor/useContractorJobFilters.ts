@@ -1,10 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 
-interface DateRange {
-  from: Date | undefined;
-  to: Date | undefined;
-}
 
 export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,7 +10,7 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
   const [siteFilter, setSiteFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  
 
   // Get unique categories from all jobs
   const categories = useMemo(() => {
@@ -74,24 +70,6 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
       filtered = filtered.filter(job => job.priority === priorityFilter);
     }
 
-    // Date range filter
-    if (dateRange.from) {
-      const fromDate = new Date(dateRange.from);
-      fromDate.setHours(0, 0, 0, 0);
-      
-      filtered = filtered.filter(job => {
-        const jobDate = new Date(job.createdAt);
-        jobDate.setHours(0, 0, 0, 0);
-        
-        if (dateRange.to) {
-          const toDate = new Date(dateRange.to);
-          toDate.setHours(23, 59, 59, 999);
-          return jobDate >= fromDate && jobDate <= toDate;
-        }
-        
-        return jobDate >= fromDate;
-      });
-    }
 
     // Sorting
     filtered.sort((a, b) => {
@@ -144,7 +122,6 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
     priorityFilter,
     sortField,
     sortDirection,
-    dateRange
   ]);
 
   return {
@@ -162,8 +139,6 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
     setSortField,
     sortDirection,
     setSortDirection,
-    dateRange,
-    setDateRange,
     categories,
     sites,
     filteredJobs

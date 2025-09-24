@@ -3,10 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, ArrowDown, ArrowUp, Calendar as CalendarIcon, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { Search, ArrowDown, ArrowUp, X } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface ContractorJobFiltersProps {
@@ -24,8 +21,6 @@ interface ContractorJobFiltersProps {
   setSortField: (field: string) => void;
   sortDirection: string;
   setSortDirection: (direction: string) => void;
-  dateRange?: { from: Date | undefined; to: Date | undefined };
-  setDateRange?: (range: { from: Date | undefined; to: Date | undefined }) => void;
   categories: string[];
   sites: string[];
 }
@@ -45,8 +40,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   setSortField,
   sortDirection,
   setSortDirection,
-  dateRange,
-  setDateRange,
   categories,
   sites
 }) => {
@@ -63,11 +56,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
     }
   };
 
-  const clearDateRange = () => {
-    if (setDateRange) {
-      setDateRange({ from: undefined, to: undefined });
-    }
-  };
 
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -77,13 +65,10 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
     setPriorityFilter('all');
     setSortField('createdAt');
     setSortDirection('desc');
-    if (setDateRange) {
-      setDateRange({ from: undefined, to: undefined });
-    }
   };
 
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || 
-    siteFilter !== 'all' || priorityFilter !== 'all' || dateRange?.from;
+    siteFilter !== 'all' || priorityFilter !== 'all';
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -166,47 +151,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
           </Select>
         </div>
 
-        {/* Date Range Filter */}
-        {setDateRange && (
-          <div className="w-full lg:w-64">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange?.from && !dateRange?.to && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )}
         
         {/* Sort Options */}
         <div className="w-full lg:w-48">
@@ -308,22 +252,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
             </Badge>
           )}
 
-          {dateRange?.from && setDateRange && (
-            <Badge variant="outline" className="bg-yellow-50 border-yellow-200">
-              Date: {dateRange.to ? 
-                `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}` : 
-                format(dateRange.from, "MMM d")
-              }
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-4 w-4 ml-2 p-0" 
-                onClick={clearDateRange}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
         </div>
 
         {hasActiveFilters && (
