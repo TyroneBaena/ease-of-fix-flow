@@ -135,6 +135,7 @@ const PropertyDetail = () => {
                 {id && (
                   <PropertyQuickActions
                     propertyId={id}
+                    propertyName={property?.name || 'Property'}
                     onOpenQrDialog={() => setQrDialogOpen(true)}
                     onOpenEditDialog={() => setDialogOpen(true)}
                   />

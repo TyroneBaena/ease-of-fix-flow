@@ -867,6 +867,64 @@ export type Database = {
           },
         ]
       }
+      property_access_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          organization_id: string
+          property_id: string
+          token: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          organization_id: string
+          property_id: string
+          token: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          property_id?: string
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_access_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_access_tokens_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_access_tokens_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_budgets: {
         Row: {
           budget_category_id: string
@@ -1119,6 +1177,64 @@ export type Database = {
         }
         Relationships: []
       }
+      temporary_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_claimed: boolean
+          organization_id: string
+          property_id: string
+          session_token: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_claimed?: boolean
+          organization_id: string
+          property_id: string
+          session_token: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_claimed?: boolean
+          organization_id?: string
+          property_id?: string
+          session_token?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temporary_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temporary_sessions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temporary_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_schemas: {
         Row: {
           created_at: string | null
@@ -1241,6 +1357,10 @@ export type Database = {
           is_authenticated: boolean
           profile_exists: boolean
         }[]
+      }
+      generate_property_access_token: {
+        Args: { p_expires_hours?: number; p_property_id: string }
+        Returns: string
       }
       get_active_sessions_count: {
         Args: Record<PropertyKey, never>
@@ -1426,6 +1546,15 @@ export type Database = {
       user_has_property_access: {
         Args: { property_uuid: string }
         Returns: boolean
+      }
+      validate_property_access_token: {
+        Args: { p_token: string }
+        Returns: {
+          is_valid: boolean
+          organization_id: string
+          property_id: string
+          property_name: string
+        }[]
       }
       verify_multi_tenancy_health: {
         Args: Record<PropertyKey, never>

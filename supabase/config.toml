@@ -76,3 +76,6 @@ verify_jwt = false
 
 [functions.security-analytics]
 verify_jwt = true
+
+[functions.validate-qr-token]
+verify_jwt = false

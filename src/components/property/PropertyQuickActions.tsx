@@ -4,15 +4,18 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Plus, QrCode, Edit } from 'lucide-react';
+import PropertyQrGenerator from './PropertyQrGenerator';
 
 interface PropertyQuickActionsProps {
   propertyId: string;
+  propertyName: string;
   onOpenQrDialog: () => void;
   onOpenEditDialog: () => void;
 }
 
 export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({ 
   propertyId, 
+  propertyName,
   onOpenQrDialog, 
   onOpenEditDialog 
 }) => {
@@ -31,13 +34,17 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
           <Plus className="mr-2 h-4 w-4" />
           New Maintenance Request
         </Button>
+        <PropertyQrGenerator 
+          propertyId={propertyId} 
+          propertyName={propertyName}
+        />
         <Button
           variant="outline"
           className="w-full justify-start"
           onClick={onOpenQrDialog}
         >
           <QrCode className="mr-2 h-4 w-4" />
-          View QR Code
+          View Old QR Code
         </Button>
         <Button
           variant="outline"

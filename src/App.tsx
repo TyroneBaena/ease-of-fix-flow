@@ -24,6 +24,7 @@ import PropertyDetail from '@/pages/PropertyDetail';
 import PropertyRequestsView from '@/pages/PropertyRequestsView';
 import QRCodeRedirect from '@/components/QRCodeRedirect';
 import PublicNewRequestRedirect from '@/components/PublicNewRequestRedirect';
+import PropertyAccess from '@/pages/PropertyAccess';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
@@ -147,8 +148,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* QR code route - redirects to login with property context */}
-            <Route path="/property-requests/:id" element={<QRCodeRedirect />} />
+            {/* QR code route - validates token and creates temporary session */}
+            <Route path="/qr/:token" element={<QRCodeRedirect />} />
+            
+            {/* Temporary property access route */}
+            <Route path="/property-access/:propertyId" element={<PropertyAccess />} />
             
             {/* Public new request route - redirects to login with context */}
             <Route path="/public-new-request" element={<PublicNewRequestRedirect />} />
