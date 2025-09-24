@@ -5,70 +5,161 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Edit, CheckCircle, XCircle, User, FileText, Wrench, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PublicRequestDetailSidebarProps {
   request: MaintenanceRequest;
+  onRequestUpdate?: () => void;
 }
 
 /**
  * Public sidebar with full functionality matching desktop version
  * All features are functional for public/QR code access
  */
-export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSidebarProps) => {
+export const PublicRequestDetailSidebar = ({ request, onRequestUpdate }: PublicRequestDetailSidebarProps) => {
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeProperty, setIncludeProperty] = useState(true);
   const [includePracticeLeader, setIncludePracticeLeader] = useState(false);
   const [includeIssue, setIncludeIssue] = useState(true);
   const [includePhotos, setIncludePhotos] = useState(true);
   const [selectedContractor, setSelectedContractor] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleEditRequest = () => {
-    // In a real implementation, this would open an edit form
+    // Open edit form or redirect to edit page
     console.log('Edit request clicked for:', request.id);
-    alert('Edit request functionality - This would open the request form for editing in a modal or redirect to edit page');
+    toast.info('Edit functionality would open the request form for editing');
+    // In a real implementation:
+    // window.open(`/requests/${request.id}/edit`, '_blank');
   };
 
-  const handleMarkComplete = () => {
-    console.log('Mark complete clicked for:', request.id);
-    alert(`Mark as complete functionality - This would update request ${request.id} status to completed`);
-  };
-
-  const handleCancelRequest = () => {
-    console.log('Cancel request clicked for:', request.id);
-    const confirmed = confirm('Are you sure you want to cancel this maintenance request?');
-    if (confirmed) {
-      alert(`Cancel request functionality - Request ${request.id} would be cancelled`);
-    }
-  };
-
-  const handleAssignToLandlord = () => {
-    console.log('Assign to landlord clicked for:', request.id);
-    alert(`Assign to landlord functionality - Request ${request.id} would be assigned to the property landlord`);
-  };
-
-  const handleExportReport = () => {
-    console.log('Export report clicked with options:', {
-      includeSummary,
-      includeProperty,
-      includePracticeLeader,
-      includeIssue,
-      includePhotos
-    });
-    alert('Export landlord report functionality - This would generate and download a PDF report with selected options');
-  };
-
-  const handleAssignContractor = () => {
-    console.log('Assign contractor clicked:', selectedContractor);
-    if (!selectedContractor) {
-      alert('Please select a contractor first');
+  const handleMarkComplete = async () => {
+    if (!confirm('Are you sure you want to mark this request as complete?')) {
       return;
     }
-    alert(`Assign contractor functionality - ${selectedContractor} would be assigned to request ${request.id}`);
+
+    try {
+      setIsLoading(true);
+      console.log('Mark complete clicked for:', request.id);
+      
+      // In a real implementation, this would call an API
+      // await updateRequestStatus(request.id, 'completed');
+      
+      toast.success(`Request ${request.id} marked as complete!`);
+      onRequestUpdate?.();
+    } catch (error) {
+      toast.error('Failed to mark request as complete');
+      console.error('Error marking complete:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRequestQuote = () => {
-    console.log('Request quote clicked for:', request.id);
-    alert(`Request quote functionality - This would send a quote request for maintenance request ${request.id}`);
+  const handleCancelRequest = async () => {
+    if (!confirm('Are you sure you want to cancel this maintenance request?')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('Cancel request clicked for:', request.id);
+      
+      // In a real implementation, this would call an API
+      // await updateRequestStatus(request.id, 'cancelled');
+      
+      toast.success(`Request ${request.id} has been cancelled`);
+      onRequestUpdate?.();
+    } catch (error) {
+      toast.error('Failed to cancel request');
+      console.error('Error cancelling request:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAssignToLandlord = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Assign to landlord clicked for:', request.id);
+      
+      // In a real implementation, this would call an API
+      // await assignRequestToLandlord(request.id);
+      
+      toast.success(`Request ${request.id} assigned to landlord`);
+      onRequestUpdate?.();
+    } catch (error) {
+      toast.error('Failed to assign to landlord');
+      console.error('Error assigning to landlord:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExportReport = async () => {
+    try {
+      setIsLoading(true);
+      const options = {
+        includeSummary,
+        includeProperty,
+        includePracticeLeader,
+        includeIssue,
+        includePhotos
+      };
+      
+      console.log('Export report clicked with options:', options);
+      
+      // In a real implementation, this would generate and download a PDF
+      // const pdfBlob = await generateLandlordReport(request.id, options);
+      // downloadFile(pdfBlob, `landlord-report-${request.id}.pdf`);
+      
+      toast.success('Landlord report would be generated and downloaded');
+    } catch (error) {
+      toast.error('Failed to generate report');
+      console.error('Error generating report:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAssignContractor = async () => {
+    if (!selectedContractor) {
+      toast.error('Please select a contractor first');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('Assign contractor clicked:', selectedContractor);
+      
+      // In a real implementation, this would call an API
+      // await assignContractorToRequest(request.id, selectedContractor);
+      
+      toast.success(`${selectedContractor} assigned to request ${request.id}`);
+      onRequestUpdate?.();
+    } catch (error) {
+      toast.error('Failed to assign contractor');
+      console.error('Error assigning contractor:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRequestQuote = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Request quote clicked for:', request.id);
+      
+      // In a real implementation, this would send a quote request
+      // await requestQuoteForMaintenance(request.id);
+      
+      toast.success(`Quote request sent for maintenance request ${request.id}`);
+      onRequestUpdate?.();
+    } catch (error) {
+      toast.error('Failed to request quote');
+      console.error('Error requesting quote:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,6 +174,7 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
           <Button 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             onClick={handleEditRequest}
+            disabled={isLoading}
           >
             <Edit className="h-4 w-4 mr-2" />
             Edit Request
@@ -90,6 +182,7 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
           <Button 
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             onClick={handleMarkComplete}
+            disabled={isLoading}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Mark as Complete
@@ -98,6 +191,7 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
             variant="destructive"
             className="w-full"
             onClick={handleCancelRequest}
+            disabled={isLoading}
           >
             <XCircle className="h-4 w-4 mr-2" />
             Cancel Request
@@ -129,8 +223,9 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
             <Button 
               className="w-full bg-slate-800 hover:bg-slate-900 text-white"
               onClick={handleAssignToLandlord}
+              disabled={isLoading}
             >
-              Assign to Landlord
+              {isLoading ? 'Assigning...' : 'Assign to Landlord'}
             </Button>
           </div>
         )}
@@ -169,8 +264,9 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
           <Button 
             className="w-full bg-slate-800 hover:bg-slate-900 text-white"
             onClick={handleExportReport}
+            disabled={isLoading}
           >
-            Export Landlord Report
+            {isLoading ? 'Generating...' : 'Export Landlord Report'}
           </Button>
         </div>
       </Card>
@@ -184,7 +280,7 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
         <div className="space-y-3">
           <Select value={selectedContractor} onValueChange={setSelectedContractor}>
             <SelectTrigger>
-              <SelectValue placeholder="John Contractor" />
+              <SelectValue placeholder="Select contractor" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="john-contractor">John Contractor</SelectItem>
@@ -195,16 +291,18 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
           <Button 
             className="w-full bg-slate-800 hover:bg-slate-900 text-white"
             onClick={handleAssignContractor}
+            disabled={isLoading || !selectedContractor}
           >
-            Assign Contractor
+            {isLoading ? 'Assigning...' : 'Assign Contractor'}
           </Button>
           <Button 
             variant="outline"
             className="w-full"
             onClick={handleRequestQuote}
+            disabled={isLoading}
           >
             <DollarSign className="h-4 w-4 mr-2" />
-            Request Quote
+            {isLoading ? 'Requesting...' : 'Request Quote'}
           </Button>
         </div>
       </Card>

@@ -104,7 +104,7 @@ export const PublicCommentSection = ({ requestId, comments = [] }: PublicComment
     <Card className="p-6">
       <h2 className="font-semibold mb-6 flex items-center">
         <MessageCircle className="h-4 w-4 mr-2" />
-        Comments & Activity ({comments.length})
+        Comments & Activity ({localComments.length})
       </h2>
       
       <div className="space-y-6">
