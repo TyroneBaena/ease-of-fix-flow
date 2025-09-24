@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
+import { usePublicPropertyContext } from "@/contexts/property/PublicPropertyProvider";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from "sonner";
@@ -16,7 +17,24 @@ export const RequestFormContainer = () => {
   const [searchParams] = useSearchParams();
   const propertyIdParam = searchParams.get('propertyId');
   const isPublic = searchParams.get('public') === 'true';
-  const { properties } = usePropertyContext();
+  
+  // Use appropriate context based on public/private access
+  let properties: any[] = [];
+  try {
+    if (isPublic) {
+      const { properties: publicProperties } = usePublicPropertyContext();
+      properties = publicProperties;
+      console.log('🔍 [DEBUG] RequestFormContainer - Using public properties:', properties.length);
+    } else {
+      const { properties: privateProperties } = usePropertyContext();
+      properties = privateProperties;
+      console.log('🔍 [DEBUG] RequestFormContainer - Using private properties:', properties.length);
+    }
+  } catch (error) {
+    console.log('⚠️ [DEBUG] RequestFormContainer - Context not available:', error);
+    properties = [];
+  }
+  
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
   const { uploadFiles, isUploading } = useFileUpload();
@@ -80,34 +98,43 @@ export const RequestFormContainer = () => {
     const selectedProperty = properties.find(p => p.id === propertyId);
     const site = selectedProperty?.name || 'Unknown Property';
     
-    console.log('RequestForm - Selected property:', selectedProperty);
-    console.log('RequestForm - Site name:', site);
+    console.log('🔍 [DEBUG] RequestForm - Form submission started');
+    console.log('🔍 [DEBUG] RequestForm - Current form values:', {
+      propertyId, issueNature, explanation, location, reportDate, submittedBy, 
+      priority, budgetCategoryId, attemptedFix, isParticipantRelated, participantName
+    });
+    console.log('🔍 [DEBUG] RequestForm - isPublic:', isPublic);
+    console.log('🔍 [DEBUG] RequestForm - Selected property:', selectedProperty);
+    console.log('🔍 [DEBUG] RequestForm - Site name:', site);
     
     // More lenient validation for public users - category is optional for public
     const requiredFieldsCheck = isPublic 
       ? !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !priority
       : !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !priority || !budgetCategoryId;
     
+    console.log('🔍 [DEBUG] RequestForm - Validation check result:', requiredFieldsCheck);
+    
     if (requiredFieldsCheck) {
-      console.log('❌ RequestForm - Validation failed');
-      console.log('Missing fields check:', { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority, budgetCategoryId, attemptedFix });
+      console.log('❌ [DEBUG] RequestForm - Validation failed');
+      console.log('❌ [DEBUG] Missing fields check:', { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority, budgetCategoryId, attemptedFix });
       toast.error(isPublic ? "Please fill in all required fields" : "Please fill in all required fields including category");
       return;
     }
     
     if (isParticipantRelated && (!participantName || participantName === 'N/A')) {
-      console.log('❌ RequestForm - Validation failed - participant name required');
+      console.log('❌ [DEBUG] RequestForm - Validation failed - participant name required');
       toast.error("Please provide the participant's name");
       return;
     }
     
     // Skip user validation for public requests
     if (!isPublic && !currentUser?.id) {
-      console.log('❌ RequestForm - Validation failed - no current user');
+      console.log('❌ [DEBUG] RequestForm - Validation failed - no current user');
       toast.error("You must be logged in to submit a request");
       return;
     }
     
+    console.log('✅ [DEBUG] RequestForm - All validations passed, starting submission');
     setIsSubmitting(true);
     
     try {
@@ -189,7 +216,10 @@ export const RequestFormContainer = () => {
           toast.success("Your maintenance request has been submitted successfully!");
           navigate(`/property-requests/${propertyId}`);
         } catch (error) {
-          console.error('RequestForm - Public submission error:', error);
+          console.error('❌ [DEBUG] RequestForm - Public submission error:', error);
+          console.error('❌ [DEBUG] RequestForm - Error details:', error instanceof Error ? error.message : 'Unknown error');
+          console.error('❌ [DEBUG] RequestForm - Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+          toast.error("Something went wrong. Please try again.");
           throw error;
         }
       } else {
@@ -247,10 +277,25 @@ export const RequestFormContainer = () => {
         navigate('/dashboard');
       }
     } catch (error) {
-      console.error('RequestForm - Error during submission:', error);
-      toast.error("An error occurred while submitting the request");
+      console.error('❌ [DEBUG] RequestForm - Overall submission error:', error);
+      console.error('❌ [DEBUG] RequestForm - Error type:', typeof error);
+      console.error('❌ [DEBUG] RequestForm - Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ [DEBUG] RequestForm - Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // More specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (error.message.includes('validation') || error.message.includes('required')) {
+          toast.error("Please check all required fields are filled correctly.");
+        } else {
+          toast.error(`Submission failed: ${error.message}`);
+        }
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
-      console.log('RequestForm - Setting isSubmitting to false');
+      console.log('🔍 [DEBUG] RequestForm - Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
