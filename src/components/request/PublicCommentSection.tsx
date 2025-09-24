@@ -9,16 +9,16 @@ import { Label } from "@/components/ui/label";
 
 interface PublicCommentSectionProps {
   requestId: string;
+  comments?: any[];
 }
 
 /**
  * Public comment section that works without authentication
  * Shows read-only view for public users
  */
-export const PublicCommentSection = ({ requestId }: PublicCommentSectionProps) => {
+export const PublicCommentSection = ({ requestId, comments = [] }: PublicCommentSectionProps) => {
   const [comment, setComment] = useState('');
   const [isLoading] = useState(false);
-  const [comments] = useState<any[]>([]); // Empty for now, can be populated from edge function later
 
   const handleAddComment = async () => {
     // For public users, show a message that they need to submit via property portal

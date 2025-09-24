@@ -40,32 +40,51 @@ const PublicRequestDetail = () => {
       console.log('🔍 [DEBUG] Fetching public request data for ID:', id);
 
       // Use the edge function to safely fetch request data
-      const url = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-request-data?requestId=${encodeURIComponent(id!)}`;
-      console.log('🌐 [DEBUG] Calling edge function URL:', url);
+      const requestUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-request-data?requestId=${encodeURIComponent(id!)}`;
+      console.log('🌐 [DEBUG] Calling edge function URL:', requestUrl);
       
-      const response = await fetch(url);
-      console.log('📡 [DEBUG] Response status:', response.status, response.statusText);
+      const requestResponse = await fetch(requestUrl);
+      console.log('📡 [DEBUG] Response status:', requestResponse.status, requestResponse.statusText);
       
-      const result = await response.json();
-      console.log('📦 [DEBUG] Full function response:', JSON.stringify(result, null, 2));
+      const requestResult = await requestResponse.json();
+      console.log('📦 [DEBUG] Full function response:', JSON.stringify(requestResult, null, 2));
 
-      if (!response.ok || result.error) {
-        console.error('❌ [DEBUG] Error from function:', result.error);
-        setError(result.error || 'Failed to load request information');
+      if (!requestResponse.ok || requestResult.error) {
+        console.error('❌ [DEBUG] Error from function:', requestResult.error);
+        setError(requestResult.error || 'Failed to load request information');
         return;
       }
 
-      if (!result?.request) {
+      if (!requestResult?.request) {
         console.log('❌ [DEBUG] No request data received');
         setError('Request not found');
         return;
       }
 
-      console.log('✅ [DEBUG] Request loaded successfully:', result.request.issueNature || result.request.title);
-      setRequest(result.request);
+      console.log('✅ [DEBUG] Request loaded successfully:', requestResult.request.issueNature || requestResult.request.title);
+      setRequest(requestResult.request);
       
-      // Mock data for features that require authentication context
-      setComments([]);
+      // Fetch comments for the request
+      console.log('🔍 [DEBUG] Fetching comments for request:', id);
+      const commentsUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-request-comments?requestId=${encodeURIComponent(id!)}`;
+      
+      try {
+        const commentsResponse = await fetch(commentsUrl);
+        const commentsResult = await commentsResponse.json();
+        
+        if (commentsResponse.ok && commentsResult.comments) {
+          console.log('✅ [DEBUG] Comments loaded:', commentsResult.comments.length);
+          setComments(commentsResult.comments);
+        } else {
+          console.log('⚠️ [DEBUG] No comments or error fetching comments:', commentsResult.error);
+          setComments([]);
+        }
+      } catch (commentsError) {
+        console.error('❌ [DEBUG] Error fetching comments:', commentsError);
+        setComments([]);
+      }
+      
+      // Mock data for other features that require authentication context
       setActivityLogs([]);
       setQuotes([]);
 
@@ -149,7 +168,7 @@ const PublicRequestDetail = () => {
               comments={comments}
               activityLogs={activityLogs}
             />
-            <PublicCommentSection requestId={id || ''} />
+            <PublicCommentSection requestId={id || ''} comments={comments} />
           </div>
           
           <PublicRequestDetailSidebar request={request} />
