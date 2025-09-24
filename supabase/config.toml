@@ -94,3 +94,6 @@ verify_jwt = false
 
 [functions.get-public-request-comments]
 verify_jwt = false
+
+[functions.add-public-comment]
+verify_jwt = false
