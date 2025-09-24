@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { isUserAdmin } from '@/utils/userRoles';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +30,8 @@ import { PropertyForm } from '@/components/property/PropertyForm';
 
 const Properties = () => {
   const { properties } = usePropertyContext();
+  const { currentUser } = useUserContext();
+  const isAdmin = isUserAdmin(currentUser);
   const [dialogOpen, setDialogOpen] = useState(false);
   
   // Debug: Log properties to see current state
@@ -108,10 +112,12 @@ const Properties = () => {
                         <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                         <span>Renewal: {new Date(property.renewalDate).toLocaleDateString()}</span>
                       </div>
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-2 text-gray-500" />
-                        <span>{property.rentAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2 text-gray-500" />
+                          <span>{property.rentAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                   <CardFooter className="border-t pt-4">

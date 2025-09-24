@@ -2,6 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Mail, User, Calendar, DollarSign } from 'lucide-react';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { isUserAdmin } from '@/utils/userRoles';
 
 interface PropertyInfoProps {
   property: {
@@ -19,6 +21,9 @@ interface PropertyInfoProps {
 }
 
 export const PropertyInfo: React.FC<PropertyInfoProps> = ({ property }) => {
+  const { currentUser } = useUserContext();
+  const isAdmin = isUserAdmin(currentUser);
+  
   const formatRentDisplay = () => {
     const period = property.rentPeriod || 'month';
     const amount = property.rentAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -90,14 +95,16 @@ export const PropertyInfo: React.FC<PropertyInfoProps> = ({ property }) => {
                     Renewal Date: {property.renewalDate ? new Date(property.renewalDate).toLocaleDateString() : 'Not specified'}
                   </span>
                 </div>
-                <div className="flex items-start">
-                  <DollarSign className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
-                  <div className="flex flex-col">
-                    <span className="font-medium">
-                      Rent: {formatRentDisplay()}
-                    </span>
+                {isAdmin && (
+                  <div className="flex items-start">
+                    <DollarSign className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        Rent: {formatRentDisplay()}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
             
