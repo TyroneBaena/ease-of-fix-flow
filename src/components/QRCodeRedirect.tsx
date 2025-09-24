@@ -5,11 +5,10 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * QRCodeRedirect component handles QR code scans with automatic token validation
- * and temporary session creation for property access
+ * QRCodeRedirect component handles both new token-based QR codes and legacy property ID QR codes
  */
 const QRCodeRedirect = () => {
-  const { token } = useParams<{ token: string }>();
+  const { token, id } = useParams<{ token?: string; id?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [status, setStatus] = useState<'validating' | 'success' | 'error'>('validating');
@@ -17,6 +16,15 @@ const QRCodeRedirect = () => {
 
   useEffect(() => {
     const validateTokenAndCreateSession = async () => {
+      // Handle legacy property ID QR codes (redirect to login)
+      if (id && !token) {
+        console.log('🔄 Legacy QR code detected - redirecting to login with property context');
+        const redirectPath = `/private/property-requests/${id}`;
+        const loginUrl = `/login?redirectTo=${encodeURIComponent(redirectPath)}&propertyId=${id}`;
+        navigate(loginUrl, { replace: true });
+        return;
+      }
+
       if (!token) {
         console.error('❌ QRCodeRedirect - No token provided');
         setStatus('error');
@@ -83,7 +91,7 @@ const QRCodeRedirect = () => {
     };
 
     validateTokenAndCreateSession();
-  }, [token, navigate, toast]);
+  }, [token, id, navigate, toast]);
 
   const getIcon = () => {
     switch (status) {

@@ -151,6 +151,9 @@ function App() {
             {/* QR code route - validates token and creates temporary session */}
             <Route path="/qr/:token" element={<QRCodeRedirect />} />
             
+            {/* Legacy QR code route - for backward compatibility */}
+            <Route path="/property-requests/:id" element={<QRCodeRedirect />} />
+            
             {/* Temporary property access route */}
             <Route path="/property-access/:propertyId" element={<PropertyAccess />} />
             
