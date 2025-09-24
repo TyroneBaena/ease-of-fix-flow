@@ -36,14 +36,9 @@ const PublicPropertyRequests = () => {
 
       console.log('🔍 Fetching property data for ID:', id);
 
-      // Use the edge function to safely fetch property data
-      const { data, error } = await supabase.functions.invoke('get-public-property', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: { propertyId: id }
-      });
+      // Use the edge function to safely fetch property data with property ID as URL parameter
+      const functionUrl = `get-public-property?propertyId=${encodeURIComponent(id)}`;
+      const { data, error } = await supabase.functions.invoke(functionUrl);
 
       console.log('📦 Function response:', { data, error });
 
