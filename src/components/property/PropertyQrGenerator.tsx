@@ -26,6 +26,8 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
     try {
       setLoading(true);
       
+      console.log('🔄 Generating token for property:', propertyId);
+      
       const { data, error } = await supabase
         .rpc('generate_property_access_token', {
           p_property_id: propertyId,
@@ -33,10 +35,20 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
         });
 
       if (error) {
-        console.error('Error generating token:', error);
+        console.error('❌ Error generating token:', error);
         toast({
           title: "Error",
-          description: "Failed to generate access token. Please try again.",
+          description: error.message || "Failed to generate access token. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!data) {
+        console.error('❌ No token returned from function');
+        toast({
+          title: "Error",
+          description: "No token was generated. Please try again.",
           variant: "destructive"
         });
         return;
@@ -59,7 +71,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       });
       
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('❌ Unexpected error:', error);
       toast({
         title: "Error", 
         description: "Something went wrong. Please try again.",
