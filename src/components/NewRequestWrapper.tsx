@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import OrganizationGuard from '@/components/OrganizationGuard';
 import { MaintenanceRequestProvider } from '@/contexts/maintenance';
 import { PropertyProvider } from '@/contexts/property/PropertyContext';
+import { PublicPropertyProvider } from '@/contexts/property/PublicPropertyProvider';
 import NewRequest from '@/pages/NewRequest';
 
 /**
@@ -17,11 +18,11 @@ const NewRequestWrapper = () => {
   // For public access (QR code users), render without protection
   if (isPublic) {
     return (
-      <PropertyProvider>
+      <PublicPropertyProvider>
         <MaintenanceRequestProvider>
           <NewRequest />
         </MaintenanceRequestProvider>
-      </PropertyProvider>
+      </PublicPropertyProvider>
     );
   }
 

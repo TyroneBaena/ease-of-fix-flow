@@ -37,26 +37,26 @@ const PublicPropertyRequests = () => {
       console.log('🔍 Fetching property data for ID:', id);
 
       // Use the edge function to safely fetch property data with property ID as URL parameter
-      const functionUrl = `get-public-property?propertyId=${encodeURIComponent(id)}`;
-      const { data, error } = await supabase.functions.invoke(functionUrl);
+      const response = await fetch(`https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property?propertyId=${encodeURIComponent(id)}`);
+      const result = await response.json();
 
-      console.log('📦 Function response:', { data, error });
+      console.log('📦 Function response:', result);
 
-      if (error) {
-        console.error('❌ Error from function:', error);
-        setError('Failed to load property information');
+      if (!response.ok || result.error) {
+        console.error('❌ Error from function:', result.error);
+        setError(result.error || 'Failed to load property information');
         return;
       }
 
-      if (!data?.property) {
+      if (!result?.property) {
         console.log('❌ No property data received');
         setError('Property not found');
         return;
       }
 
-      console.log('✅ Property loaded successfully:', data.property.name);
-      setProperty(data.property);
-      setRequests(data.requests || []);
+      console.log('✅ Property loaded successfully:', result.property.name);
+      setProperty(result.property);
+      setRequests(result.requests || []);
 
     } catch (error) {
       console.error('Unexpected error:', error);

@@ -24,16 +24,27 @@ export const CategorySelectionField: React.FC<CategorySelectionFieldProps> = ({
 
   useEffect(() => {
     fetchBudgetCategories();
-  }, []);
+  }, [propertyId]); // Add propertyId as dependency
 
   const fetchBudgetCategories = async () => {
     try {
-      // Since we now require authentication for all property access,
-      // we can use the standard authenticated endpoint
+      // For public access, use the edge function to get budget categories
+      if (propertyId) {
+        console.log('🔍 Fetching budget categories for public access');
+        const response = await fetch(`https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-property-data?propertyId=${encodeURIComponent(propertyId)}`);
+        const result = await response.json();
+        
+        if (response.ok && result.budgetCategories) {
+          setBudgetCategories(result.budgetCategories);
+          return;
+        }
+      }
+      
+      // Fallback to authenticated endpoint
       const { data, error } = await supabase
         .from('budget_categories')
         .select('*')
-          .order('name');
+        .order('name');
 
       if (error) {
         console.error('Error fetching budget categories:', error);

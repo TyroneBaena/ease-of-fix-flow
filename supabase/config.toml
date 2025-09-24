@@ -82,3 +82,9 @@ verify_jwt = false
 
 [functions.get-public-property]
 verify_jwt = false
+
+[functions.get-public-property-data]
+verify_jwt = false
+
+[functions.submit-public-maintenance-request]
+verify_jwt = false
