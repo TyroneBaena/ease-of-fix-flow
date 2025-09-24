@@ -127,14 +127,8 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
         ) : qrUrl ? (
           <div className="space-y-4">
             {/* QR Code Display */}
-             <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-lg">Scan to Submit Maintenance Request</CardTitle>
-                <CardDescription>
-                  Scan with your phone to submit a maintenance request for {propertyName}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center">
+            <div className="flex justify-center py-6">
+              <div className="border p-4 rounded-lg">
                 <QRCodeSVG
                   id="qr-code-canvas"
                   value={qrUrl}
@@ -142,8 +136,8 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
                   level="M"
                   includeMargin={true}
                 />
-              </CardContent>
-            </Card> 
+              </div>
+            </div>
 
 
             {/* Actions */}
