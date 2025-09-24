@@ -22,6 +22,7 @@ import RequestDetail from '@/pages/RequestDetail';
 import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
 import PropertyRequestsView from '@/pages/PropertyRequestsView';
+import PublicPropertyRequests from '@/pages/PublicPropertyRequests';
 import QRCodeRedirect from '@/components/QRCodeRedirect';
 import PublicNewRequestRedirect from '@/components/PublicNewRequestRedirect';
 import PropertyAccess from '@/pages/PropertyAccess';
@@ -40,6 +41,7 @@ import ContractorSettings from '@/pages/contractor/ContractorSettings';
 import ContractorNotifications from '@/pages/ContractorNotifications';
 import QuoteSubmission from './pages/contractor/QuoteSubmission';
 import PropertyDetailWrapper from '@/components/PropertyDetailWrapper';
+import NewRequestWrapper from '@/components/NewRequestWrapper';
 
 // Context providers for specific features
 import { SubscriptionProvider } from './contexts/subscription/SubscriptionContext';
@@ -103,17 +105,7 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="/new-request" element={
-              <ProtectedRoute>
-                <OrganizationGuard>
-                  <MaintenanceRequestProvider>
-                    <PropertyProvider>
-                      <NewRequest />
-                    </PropertyProvider>
-                  </MaintenanceRequestProvider>
-                </OrganizationGuard>
-              </ProtectedRoute>
-            } />
+            <Route path="/new-request" element={<NewRequestWrapper />} />
             
             <Route path="/requests/:id" element={
               <ProtectedRoute>
@@ -143,7 +135,7 @@ function App() {
             <Route path="/qr/:token" element={<QRCodeRedirect />} />
             
             {/* Legacy QR code route - for backward compatibility */}
-            <Route path="/property-requests/:id" element={<QRCodeRedirect />} />
+            <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
             
             {/* Temporary property access route */}
             <Route path="/property-access/:propertyId" element={<PropertyAccess />} />

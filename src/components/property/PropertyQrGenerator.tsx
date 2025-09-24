@@ -35,51 +35,18 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       setLoading(true);
       setError('');
       
-      console.log('🔄 Generating token for property:', propertyId);
+      console.log('🔄 Generating QR code for property:', propertyId);
       
-      const { data, error } = await supabase
-        .rpc('generate_property_access_token', {
-          p_property_id: propertyId,
-          p_expires_hours: expiryHours
-        });
-
-      if (error) {
-        console.error('❌ Error generating token:', error);
-        setError(error.message || "Failed to generate access token. Please try again.");
-        toast({
-          title: "Error",
-          description: error.message || "Failed to generate access token. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!data) {
-        console.error('❌ No token returned from function');
-        const errorMsg = "No token was generated. Please try again.";
-        setError(errorMsg);
-        toast({
-          title: "Error",
-          description: errorMsg,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const newToken = data;
-      setToken(newToken);
-      
-      // Generate QR code URL with token format
+      // Generate QR code URL with simple property requests format (no token needed)
       const baseUrl = window.location.origin;
-      const qrCodeUrl = `${baseUrl}/qr/${newToken}`;
+      const qrCodeUrl = `${baseUrl}/property-requests/${propertyId}`;
       setQrUrl(qrCodeUrl);
       
-      console.log('✅ Generated token:', newToken);
       console.log('✅ QR URL:', qrCodeUrl);
       
       toast({
         title: "QR Code Generated",
-        description: `Access token valid for ${expiryHours} hours`,
+        description: `QR code for ${propertyName} maintenance requests`,
       });
       
     } catch (error) {
@@ -135,9 +102,9 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Property Access QR Code</DialogTitle>
+          <DialogTitle>Property Maintenance QR Code</DialogTitle>
           <DialogDescription>
-            QR code for instant access to {propertyName} (valid for {expiryHours} hours)
+            QR code for submitting maintenance requests for {propertyName}
           </DialogDescription>
         </DialogHeader>
         
@@ -162,9 +129,9 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
             {/* QR Code Display */}
             <Card>
               <CardHeader className="text-center">
-                <CardTitle className="text-lg">Scan for Instant Access</CardTitle>
+                <CardTitle className="text-lg">Scan to Submit Maintenance Request</CardTitle>
                 <CardDescription>
-                  Valid for {expiryHours} hours from generation
+                  Scan with your phone to submit a maintenance request for {propertyName}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">

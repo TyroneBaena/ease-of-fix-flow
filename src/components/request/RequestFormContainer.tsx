@@ -15,6 +15,7 @@ export const RequestFormContainer = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const propertyIdParam = searchParams.get('propertyId');
+  const isPublic = searchParams.get('public') === 'true';
   const { properties } = usePropertyContext();
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
@@ -93,7 +94,8 @@ export const RequestFormContainer = () => {
       return;
     }
     
-    if (!currentUser?.id) {
+    // Skip user validation for public requests
+    if (!isPublic && !currentUser?.id) {
       console.log('RequestForm - Validation failed - no current user');
       toast.error("You must be logged in to submit a request");
       return;
@@ -102,7 +104,7 @@ export const RequestFormContainer = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('RequestForm - Starting request submission');
+      console.log('RequestForm - Starting request submission, isPublic:', isPublic);
       console.log('RequestForm - Files array:', files);
       console.log('RequestForm - Files array length:', files.length);
       
@@ -131,55 +133,88 @@ export const RequestFormContainer = () => {
 
       console.log('RequestForm - Final attachments value before database save:', attachments);
 
-      const requestData = {
-        title: issueNature,
-        description: explanation,
-        category: budgetCategoryId,
-        priority,
-        budget_category_id: budgetCategoryId,
-        isParticipantRelated: isParticipantRelated || false,
-        participantName: isParticipantRelated ? participantName : 'N/A',
-        attemptedFix,
-        issueNature,
-        explanation,
-        location,
-        reportDate,
-        site,
-        submittedBy,
-        propertyId,
-        userId: currentUser.id.toString(),
-        user_id: currentUser.id.toString(),
-        attachments: attachments
-      };
-
-      console.log('RequestForm - Request data being sent to addRequestToProperty:', requestData);
-
-      // Add the request to the selected property
-      const newRequest = await addRequestToProperty(requestData);
-      
-      console.log('RequestForm - addRequestToProperty returned:', newRequest);
-      
-      // Send email notifications
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const accessToken = session.session?.access_token;
+      if (isPublic) {
+        // Use public submission function for QR code users
+        console.log('RequestForm - Using public submission function');
         
-        if (accessToken && newRequest?.id) {
-          console.log('Sending email notifications for request:', newRequest.id);
-          await supabase.functions.invoke('send-maintenance-request-notification', {
-            body: { request_id: newRequest.id },
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
+        const { data, error } = await supabase.rpc('submit_public_maintenance_request', {
+          p_property_id: propertyId,
+          p_title: issueNature,
+          p_description: explanation,
+          p_issue_nature: issueNature,
+          p_explanation: explanation,
+          p_location: location,
+          p_submitted_by: submittedBy,
+          p_attempted_fix: attemptedFix,
+          p_priority: priority,
+          p_category: budgetCategoryId,
+          p_attachments: attachments ? JSON.stringify(attachments) : null,
+          p_contact_email: '', // Public requests don't need contact info
+          p_contact_phone: ''
+        });
+
+        if (error) {
+          console.error('RequestForm - Public submission error:', error);
+          throw error;
         }
-      } catch (emailError) {
-        console.error('Failed to send email notifications:', emailError);
-        // Don't block the success flow if email fails
+
+        console.log('RequestForm - Public submission successful:', data);
+        toast.success("Your maintenance request has been submitted successfully!");
+        navigate(`/property-requests/${propertyId}`);
+      } else {
+        // Use authenticated submission for logged-in users
+        console.log('RequestForm - Using authenticated submission');
+        
+        const requestData = {
+          title: issueNature,
+          description: explanation,
+          category: budgetCategoryId,
+          priority,
+          budget_category_id: budgetCategoryId,
+          isParticipantRelated: isParticipantRelated || false,
+          participantName: isParticipantRelated ? participantName : 'N/A',
+          attemptedFix,
+          issueNature,
+          explanation,
+          location,
+          reportDate,
+          site,
+          submittedBy,
+          propertyId,
+          userId: currentUser!.id.toString(),
+          user_id: currentUser!.id.toString(),
+          attachments: attachments
+        };
+
+        console.log('RequestForm - Request data being sent to addRequestToProperty:', requestData);
+
+        // Add the request to the selected property
+        const newRequest = await addRequestToProperty(requestData);
+        
+        console.log('RequestForm - addRequestToProperty returned:', newRequest);
+        
+        // Send email notifications
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const accessToken = session.session?.access_token;
+          
+          if (accessToken && newRequest?.id) {
+            console.log('Sending email notifications for request:', newRequest.id);
+            await supabase.functions.invoke('send-maintenance-request-notification', {
+              body: { request_id: newRequest.id },
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            });
+          }
+        } catch (emailError) {
+          console.error('Failed to send email notifications:', emailError);
+          // Don't block the success flow if email fails
+        }
+        
+        toast.success("Your maintenance request has been submitted");
+        navigate('/dashboard');
       }
-      
-      toast.success("Your maintenance request has been submitted");
-      navigate('/dashboard');
     } catch (error) {
       console.error('RequestForm - Error during submission:', error);
       toast.error("An error occurred while submitting the request");
@@ -207,7 +242,7 @@ export const RequestFormContainer = () => {
       
       <RequestFormActions 
         isSubmitting={totalLoading}
-        onCancel={() => navigate('/dashboard')}
+        onCancel={() => navigate(isPublic ? `/property-requests/${propertyIdParam}` : '/dashboard')}
       />
     </form>
   );
