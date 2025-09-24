@@ -14,9 +14,16 @@ export const usePropertyProvider = (): PropertyContextType => {
   const { currentUser } = useUserContext();
 
   useEffect(() => {
+    console.log('PropertyProvider: useEffect triggered', { 
+      currentUser: currentUser ? `User: ${currentUser.email}` : 'No user',
+      userId: currentUser?.id 
+    });
+    
     if (currentUser) {
+      console.log('PropertyProvider: User found, calling fetchAndSetProperties');
       fetchAndSetProperties();
     } else {
+      console.log('PropertyProvider: No user, clearing properties');
       setProperties([]);
       setLoading(false);
       setLoadingFailed(false);
@@ -26,6 +33,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
     try {
+      console.log('PropertyProvider: fetchAndSetProperties called');
       setLoading(true);
       setLoadingFailed(false);
       console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
