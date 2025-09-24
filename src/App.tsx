@@ -22,8 +22,8 @@ import RequestDetail from '@/pages/RequestDetail';
 import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
 import PropertyRequestsView from '@/pages/PropertyRequestsView';
-import PublicPropertyRequestsView from '@/pages/PublicPropertyRequestsView';
-import PublicNewRequest from '@/pages/PublicNewRequest';
+import QRCodeRedirect from '@/components/QRCodeRedirect';
+import PublicNewRequestRedirect from '@/components/PublicNewRequestRedirect';
 import Settings from '@/pages/Settings';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
@@ -147,11 +147,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* Public QR code route - no authentication required */}
-            <Route path="/property-requests/:id" element={<PublicPropertyRequestsView />} />
+            {/* QR code route - redirects to login with property context */}
+            <Route path="/property-requests/:id" element={<QRCodeRedirect />} />
             
-            {/* Public new request route - no authentication required */}
-            <Route path="/public-new-request" element={<PublicNewRequest />} />
+            {/* Public new request route - redirects to login with context */}
+            <Route path="/public-new-request" element={<PublicNewRequestRedirect />} />
             
             {/* Private property requests route - requires authentication */}
             <Route path="/private/property-requests/:id" element={
