@@ -13,10 +13,26 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 Function called with URL:', req.url);
+    
     const url = new URL(req.url);
-    const propertyId = url.searchParams.get('propertyId');
+    let propertyId = url.searchParams.get('propertyId');
+    
+    // Also try to get from request body if not in URL params
+    if (!propertyId && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        console.log('📝 Request body:', body);
+        propertyId = body.propertyId;
+      } catch (bodyError) {
+        console.error('❌ Error parsing body:', bodyError);
+      }
+    }
+
+    console.log('🔍 Property ID:', propertyId);
 
     if (!propertyId) {
+      console.log('❌ No property ID provided');
       return new Response(
         JSON.stringify({ error: 'Property ID is required' }),
         { 
