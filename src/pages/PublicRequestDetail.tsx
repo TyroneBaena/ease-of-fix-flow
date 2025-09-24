@@ -67,10 +67,14 @@ const PublicRequestDetail = () => {
       // Fetch comments for the request
       console.log('🔍 [DEBUG] Fetching comments for request:', id);
       const commentsUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-request-comments?requestId=${encodeURIComponent(id!)}`;
+      console.log('🌐 [DEBUG] Comments URL:', commentsUrl);
       
       try {
         const commentsResponse = await fetch(commentsUrl);
+        console.log('📡 [DEBUG] Comments response status:', commentsResponse.status, commentsResponse.statusText);
+        
         const commentsResult = await commentsResponse.json();
+        console.log('📦 [DEBUG] Comments result:', JSON.stringify(commentsResult, null, 2));
         
         if (commentsResponse.ok && commentsResult.comments) {
           console.log('✅ [DEBUG] Comments loaded:', commentsResult.comments.length);

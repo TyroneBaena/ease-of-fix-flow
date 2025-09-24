@@ -41,7 +41,7 @@ export const PublicCommentSection = ({ requestId, comments = [] }: PublicComment
     <Card className="p-6">
       <h2 className="font-semibold mb-6 flex items-center">
         <MessageCircle className="h-4 w-4 mr-2" />
-        Comments & Activity
+        Comments & Activity ({comments.length})
       </h2>
       
       <div className="space-y-6">
@@ -82,7 +82,11 @@ export const PublicCommentSection = ({ requestId, comments = [] }: PublicComment
         ) : (
           <div className="text-center py-6">
             <p className="text-gray-500">No comments yet</p>
-            <p className="text-sm text-gray-400">Comments are managed through the property management system</p>
+            <p className="text-sm text-gray-400">
+              {comments.length === 0 
+                ? "Comments are managed through the property management system" 
+                : `Found ${comments.length} comments but none are displaying`}
+            </p>
           </div>
         )}
       </div>

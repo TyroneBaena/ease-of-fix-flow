@@ -23,31 +23,52 @@ export const PublicRequestDetailSidebar = ({ request }: PublicRequestDetailSideb
   const [selectedContractor, setSelectedContractor] = useState("");
 
   const handleEditRequest = () => {
-    alert('Edit request functionality - opens request form for editing');
+    // In a real implementation, this would open an edit form
+    console.log('Edit request clicked for:', request.id);
+    alert('Edit request functionality - This would open the request form for editing in a modal or redirect to edit page');
   };
 
   const handleMarkComplete = () => {
-    alert('Mark as complete functionality - updates request status to completed');
+    console.log('Mark complete clicked for:', request.id);
+    alert(`Mark as complete functionality - This would update request ${request.id} status to completed`);
   };
 
   const handleCancelRequest = () => {
-    alert('Cancel request functionality - cancels the maintenance request');
+    console.log('Cancel request clicked for:', request.id);
+    const confirmed = confirm('Are you sure you want to cancel this maintenance request?');
+    if (confirmed) {
+      alert(`Cancel request functionality - Request ${request.id} would be cancelled`);
+    }
   };
 
   const handleAssignToLandlord = () => {
-    alert('Assign to landlord functionality - assigns request to property landlord');
+    console.log('Assign to landlord clicked for:', request.id);
+    alert(`Assign to landlord functionality - Request ${request.id} would be assigned to the property landlord`);
   };
 
   const handleExportReport = () => {
-    alert('Export landlord report functionality - generates and downloads report');
+    console.log('Export report clicked with options:', {
+      includeSummary,
+      includeProperty,
+      includePracticeLeader,
+      includeIssue,
+      includePhotos
+    });
+    alert('Export landlord report functionality - This would generate and download a PDF report with selected options');
   };
 
   const handleAssignContractor = () => {
-    alert('Assign contractor functionality - assigns selected contractor to request');
+    console.log('Assign contractor clicked:', selectedContractor);
+    if (!selectedContractor) {
+      alert('Please select a contractor first');
+      return;
+    }
+    alert(`Assign contractor functionality - ${selectedContractor} would be assigned to request ${request.id}`);
   };
 
   const handleRequestQuote = () => {
-    alert('Request quote functionality - requests quote from contractor');
+    console.log('Request quote clicked for:', request.id);
+    alert(`Request quote functionality - This would send a quote request for maintenance request ${request.id}`);
   };
 
   return (
