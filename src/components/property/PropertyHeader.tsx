@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MapPin, Edit, Trash } from 'lucide-react';
 import { Property } from '@/types/property';
+import PropertyQrGenerator from './PropertyQrGenerator';
 
 interface PropertyHeaderProps {
   property: Property;
@@ -29,6 +29,11 @@ export const PropertyHeader: React.FC<PropertyHeaderProps> = ({
       </div>
       
       <div className="flex space-x-2 mt-4 md:mt-0">
+        <PropertyQrGenerator 
+          propertyId={property.id} 
+          propertyName={property.name}
+        />
+        
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="flex items-center">
