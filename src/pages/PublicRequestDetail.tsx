@@ -6,7 +6,7 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { ActivityTimeline } from '@/components/request/ActivityTimeline';
 import { PublicCommentSection } from '@/components/request/PublicCommentSection';
-import { PublicRequestDetailSidebar } from '@/components/request/PublicRequestDetailSidebar';
+
 import { Toaster } from "sonner";
 
 /**
@@ -162,20 +162,16 @@ const PublicRequestDetail = () => {
         </div>
       </div>
 
-      {/* Main Content - Exactly matching desktop layout */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 space-y-8">
-            <RequestInfo request={request} />
-            <ActivityTimeline 
-              request={request} 
-              comments={comments}
-              activityLogs={activityLogs}
-            />
-            <PublicCommentSection requestId={id || ''} comments={comments} />
-          </div>
-          
-          <PublicRequestDetailSidebar request={request} />
+      {/* Main Content - Public view without sidebar */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          <RequestInfo request={request} />
+          <ActivityTimeline 
+            request={request} 
+            comments={comments}
+            activityLogs={activityLogs}
+          />
+          <PublicCommentSection requestId={id || ''} comments={comments} />
         </div>
       </main>
       
