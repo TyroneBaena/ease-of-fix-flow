@@ -204,8 +204,8 @@ const PublicPropertyRequests = () => {
                         key={request.id}
                         request={request}
                         onClick={() => {
-                          console.log('🔍 [DEBUG] Navigating to request details for:', request.id);
-                          navigate(`/request/${request.id}`);
+                          console.log('🔍 [DEBUG] Navigating to public request details for:', request.id);
+                          navigate(`/public-request/${request.id}`);
                         }}
                       />
                     ))}

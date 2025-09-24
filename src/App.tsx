@@ -19,6 +19,7 @@ import Dashboard from '@/pages/Dashboard';
 import AllRequests from '@/pages/AllRequests';
 import NewRequest from '@/pages/NewRequest';
 import RequestDetail from '@/pages/RequestDetail';
+import PublicRequestDetail from '@/pages/PublicRequestDetail';
 import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
 import PropertyRequestsView from '@/pages/PropertyRequestsView';
@@ -106,6 +107,9 @@ function App() {
             } />
             
             <Route path="/new-request" element={<NewRequestWrapper />} />
+            
+            {/* Public request detail route for QR code access */}
+            <Route path="/public-request/:id" element={<PublicRequestDetail />} />
             
             <Route path="/requests/:id" element={
               <ProtectedRoute>

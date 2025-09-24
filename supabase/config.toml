@@ -88,3 +88,6 @@ verify_jwt = false
 
 [functions.submit-public-maintenance-request]
 verify_jwt = false
+
+[functions.get-public-request-data]
+verify_jwt = false
