@@ -25,12 +25,21 @@ serve(async (req) => {
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
+    log("Function started");
+    
     const authHeader = req.headers.get("Authorization");
+    log("Auth header check", { hasAuthHeader: !!authHeader, authHeaderLength: authHeader?.length });
+    
     if (!authHeader) throw new Error("Missing Authorization header");
 
     const token = authHeader.replace("Bearer ", "");
+    log("Token extracted", { tokenLength: token.length });
+    
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError) throw new Error(`Auth error: ${userError.message}`);
+    if (userError) {
+      log("Auth error", { error: userError });
+      throw new Error(`Auth error: ${userError.message}`);
+    }
     
     const user = userData.user;
     if (!user?.email) throw new Error("No authenticated user or email missing");

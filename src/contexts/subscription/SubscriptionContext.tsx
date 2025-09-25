@@ -199,6 +199,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     try {
+      console.log("Starting billing calculation for user:", currentUser.id);
+      
+      // Get current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        return { success: false, error: "Authentication session invalid" };
+      }
+      
+      console.log("Session found, calling edge function");
       const { data, error } = await supabase.functions.invoke("calculate-property-billing");
       
       if (error) {
@@ -206,6 +216,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
+      console.log("Billing calculation successful:", data);
       // Refresh subscription data after calculating billing
       await refresh();
       return { success: true, billingData: data };
