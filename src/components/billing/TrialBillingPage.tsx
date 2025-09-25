@@ -35,6 +35,7 @@ export const TrialBillingPage: React.FC = () => {
     startTrial,
     calculateBilling,
     upgradeToPaid,
+    refresh,
     loading
   } = useSubscription();
   
@@ -70,9 +71,12 @@ export const TrialBillingPage: React.FC = () => {
           title: "Subscription Activated!",
           description: "Your trial has been upgraded to a paid subscription.",
         });
-        // Force a refresh to update the UI with new subscription status
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay for backend processing
-        window.location.reload(); // Force complete refresh to ensure UI updates
+        // Wait a moment for database to update, then refresh subscription state
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await refresh();
+        
+        // Navigate to refresh the page and ensure clean state
+        navigate('/billing', { replace: true });
       } else {
         let errorMessage = result.error || "Failed to upgrade subscription";
         
