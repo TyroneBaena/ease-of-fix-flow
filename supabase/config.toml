@@ -17,6 +17,15 @@ password = "your-super-secret-and-long-postgres-password"
 [functions.create-trial-subscription]
 verify_jwt = false
 
+[functions.calculate-property-billing]
+verify_jwt = false
+
+[functions.cancel-trial-subscription]
+verify_jwt = false
+
+[functions.reactivate-subscription]
+verify_jwt = false
+
 [functions.send-invite]
 verify_jwt = false
 
