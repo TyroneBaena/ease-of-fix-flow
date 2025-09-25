@@ -14,6 +14,9 @@ hook_send_auth_email_secrets = "NEW_RESEND_API_KEY"
 [database]
 password = "your-super-secret-and-long-postgres-password"
 
+[functions.create-trial-subscription]
+verify_jwt = false
+
 [functions.send-invite]
 verify_jwt = false
 
