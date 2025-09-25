@@ -185,6 +185,14 @@ export const TrialBillingPage: React.FC = () => {
                       <span>{currency?.toUpperCase()} ${monthlyAmount}</span>
                     </div>
                   </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleManageTrial}
+                  >
+                    Cancel Subscription
+                  </Button>
                 </>
               ) : isTrialActive ? (
                 <>
