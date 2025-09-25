@@ -60,8 +60,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     setLoading(true);
     try {
-      // First, ask Stripe via edge function and upsert the DB
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      // First, calculate current billing based on properties
+      const { data, error } = await supabase.functions.invoke("calculate-property-billing");
       if (error) {
         console.error("check-subscription error:", error);
       }
