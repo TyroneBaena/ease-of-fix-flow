@@ -67,19 +67,32 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       // Prefer the function's response when available, otherwise read from DB
-      if (data && typeof (data as any).subscribed !== "undefined") {
+      if (data && (typeof (data as any).subscribed !== "undefined" || (data as any).status)) {
         const resp = data as any;
-        setSubscribed(!!resp.subscribed);
-        setSubscriptionTier(resp.subscription_tier ?? null);
-        setSubscriptionEnd(resp.subscription_end ?? null);
         
-        // Set trial and property data if available
-        setIsTrialActive(resp.is_trial_active ?? null);
-        setTrialEndDate(resp.trial_end_date ?? null);
-        setDaysRemaining(resp.days_remaining ?? null);
-        setPropertyCount(resp.property_count ?? null);
-        setMonthlyAmount(resp.monthly_amount ?? null);
-        setCurrency(resp.currency ?? null);
+        // Handle both check-subscription and calculate-property-billing responses
+        if (resp.status) {
+          // Response from calculate-property-billing
+          setSubscribed(resp.status === 'active');
+          setSubscriptionTier(resp.status === 'trial' ? 'trial' : 'property-based');
+          setIsTrialActive(!!resp.trial_active);
+          setTrialEndDate(resp.trial_end_date ?? null);
+          setDaysRemaining(resp.days_remaining ?? null);
+          setPropertyCount(resp.property_count ?? null);
+          setMonthlyAmount(resp.monthly_amount ?? null);
+          setCurrency(resp.currency ?? 'aud');
+        } else {
+          // Response from check-subscription
+          setSubscribed(!!resp.subscribed);
+          setSubscriptionTier(resp.subscription_tier ?? null);
+          setSubscriptionEnd(resp.subscription_end ?? null);
+          setIsTrialActive(resp.is_trial_active ?? null);
+          setTrialEndDate(resp.trial_end_date ?? null);
+          setDaysRemaining(resp.days_remaining ?? null);
+          setPropertyCount(resp.property_count ?? null);
+          setMonthlyAmount(resp.monthly_amount ?? null);
+          setCurrency(resp.currency ?? null);
+        }
       } else {
         const { data: row, error: fetchErr } = await supabase
           .from("subscribers")
