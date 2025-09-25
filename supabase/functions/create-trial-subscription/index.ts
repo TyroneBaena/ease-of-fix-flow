@@ -99,6 +99,7 @@ serve(async (req) => {
       .from('subscribers')
       .upsert({
         user_id: user.id,
+        email: user.email,
         subscribed: false, // Trial status, not yet subscribed
         stripe_customer_id: customerId,
         subscription_tier: 'trial',

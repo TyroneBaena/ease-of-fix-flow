@@ -1161,7 +1161,7 @@ export type Database = {
           trial_end_date: string | null
           trial_start_date: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           active_properties_count?: number | null
@@ -1182,7 +1182,7 @@ export type Database = {
           trial_end_date?: string | null
           trial_start_date?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           active_properties_count?: number | null
@@ -1203,7 +1203,7 @@ export type Database = {
           trial_end_date?: string | null
           trial_start_date?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
