@@ -1143,35 +1143,65 @@ export type Database = {
       }
       subscribers: {
         Row: {
+          active_properties_count: number | null
+          cancellation_date: string | null
           created_at: string
           email: string
           id: string
+          is_cancelled: boolean | null
+          is_trial_active: boolean | null
+          last_billing_date: string | null
+          next_billing_date: string | null
+          payment_method_id: string | null
+          setup_intent_id: string | null
           stripe_customer_id: string | null
           subscribed: boolean
           subscription_end: string | null
           subscription_tier: string | null
+          trial_end_date: string | null
+          trial_start_date: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          active_properties_count?: number | null
+          cancellation_date?: string | null
           created_at?: string
           email: string
           id?: string
+          is_cancelled?: boolean | null
+          is_trial_active?: boolean | null
+          last_billing_date?: string | null
+          next_billing_date?: string | null
+          payment_method_id?: string | null
+          setup_intent_id?: string | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          active_properties_count?: number | null
+          cancellation_date?: string | null
           created_at?: string
           email?: string
           id?: string
+          is_cancelled?: boolean | null
+          is_trial_active?: boolean | null
+          last_billing_date?: string | null
+          next_billing_date?: string | null
+          payment_method_id?: string | null
+          setup_intent_id?: string | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1438,6 +1468,10 @@ export type Database = {
       get_user_role_for_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      initialize_property_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       initialize_user_profile: {
         Args: {
