@@ -84,7 +84,7 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ 
       success: true,
       timestamp: new Date().toISOString(),
-      emailId: emailResponse.data?.id
+      emailId: (emailResponse as any)?.data?.id
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders }

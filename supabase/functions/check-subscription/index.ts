@@ -65,7 +65,7 @@ serve(async (req) => {
 
     const subs = await stripe.subscriptions.list({ customer: customerId, limit: 3 });
     // Find the best status (active or trialing)
-    const activeOrTrial = subs.data.find((s) => ["active", "trialing"].includes(s.status));
+    const activeOrTrial = subs.data.find((s: any) => ["active", "trialing"].includes(s.status));
 
     let subscribed = false;
     let subscriptionTier: string | null = null;

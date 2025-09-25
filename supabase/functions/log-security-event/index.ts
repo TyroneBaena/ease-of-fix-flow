@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to log security event' 
+        error: (error as Error).message || 'Failed to log security event' 
       }),
       { 
         status: 500,
