@@ -15,7 +15,7 @@ import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
 
 import { AuthTestingPanel } from '@/components/testing/AuthTestingPanel';
-import { ContractorWorkflowValidator } from '@/components/testing/ContractorWorkflowValidator';
+
 
 const Settings = () => {
   const { currentUser, loading } = useSimpleAuth();
@@ -142,7 +142,6 @@ const Settings = () => {
             <TabsContent value="testing">
               <div className="space-y-6">
                 <AuthTestingPanel />
-                <ContractorWorkflowValidator />
               </div>
             </TabsContent>
           )}
