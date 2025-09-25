@@ -107,6 +107,7 @@ serve(async (req) => {
         subscription_tier: 'trial',
         trial_start_date: trialStartDate.toISOString(),
         trial_end_date: trialEndDate.toISOString(),
+        is_trial_active: true, // Add this field
         active_properties_count: propertyCount,
         last_billing_date: null,
         next_billing_date: trialEndDate.toISOString(), // First billing after trial
