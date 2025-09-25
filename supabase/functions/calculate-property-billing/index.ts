@@ -39,10 +39,14 @@ serve(async (req) => {
       .from('subscribers')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (subscriberError) {
-      throw new Error(`Subscriber not found: ${subscriberError.message}`);
+      throw new Error(`Error fetching subscriber: ${subscriberError.message}`);
+    }
+
+    if (!subscriber) {
+      throw new Error(`No subscriber record found for user: ${user.id}`);
     }
 
     log("Found subscriber", { 
