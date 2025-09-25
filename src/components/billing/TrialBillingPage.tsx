@@ -74,9 +74,16 @@ export const TrialBillingPage: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay for backend processing
         window.location.reload(); // Force complete refresh to ensure UI updates
       } else {
+        let errorMessage = result.error || "Failed to upgrade subscription";
+        
+        // Check if it's a payment method error
+        if (result.error?.includes("payment method") || result.error?.includes("payment source")) {
+          errorMessage = "A payment method is required to upgrade. Please add a payment method to continue.";
+        }
+        
         toast({
           title: "Error",
-          description: result.error || "Failed to upgrade subscription",
+          description: errorMessage,
           variant: "destructive",
         });
       }

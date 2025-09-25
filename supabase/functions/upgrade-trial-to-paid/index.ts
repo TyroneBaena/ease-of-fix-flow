@@ -91,6 +91,82 @@ serve(async (req) => {
       customerId: subscriber.stripe_customer_id
     });
 
+    // Check if customer has a default payment method
+    const customer = await stripe.customers.retrieve(subscriber.stripe_customer_id);
+    if (!customer.invoice_settings?.default_payment_method && !customer.default_source) {
+      // Customer has no payment method, create subscription with extended trial to collect payment
+      log("No payment method found, creating subscription with trial");
+      
+      // First create a product for this subscription
+      const product = await stripe.products.create({
+        name: `Property Management - ${propertyCount} properties`,
+        description: `Property management billing for ${propertyCount} properties at $29 AUD each`
+      });
+
+      // Create subscription with trial period to allow payment method collection
+      const newSubscription = await stripe.subscriptions.create({
+        customer: subscriber.stripe_customer_id,
+        items: [{
+          price_data: {
+            currency: 'aud',
+            product: product.id,
+            unit_amount: monthlyAmount,
+            recurring: {
+              interval: 'month'
+            }
+          },
+          quantity: 1
+        }],
+        trial_end: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days to add payment method
+        collection_method: 'charge_automatically',
+        metadata: {
+          property_count: propertyCount.toString(),
+          supabase_user_id: user.id,
+          upgrade_from_trial: 'true'
+        }
+      });
+
+      log("Created subscription with payment collection trial", { 
+        subscriptionId: newSubscription.id,
+        trialEnd: newSubscription.trial_end
+      });
+
+      // Update subscriber record
+      const { error: updateError } = await supabase
+        .from('subscribers')
+        .update({
+          subscribed: true,
+          subscription_tier: 'paid',
+          is_trial_active: false,
+          last_billing_date: null,
+          next_billing_date: new Date(newSubscription.trial_end * 1000).toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        log("Error updating subscriber", { error: updateError });
+        throw new Error(`Failed to update subscriber: ${updateError.message}`);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        status: 'pending_payment_method',
+        subscription_id: newSubscription.id,
+        property_count: propertyCount,
+        monthly_amount: monthlyAmount / 100,
+        currency: 'aud',
+        trial_end: new Date(newSubscription.trial_end * 1000).toISOString(),
+        message: 'Subscription created - payment method required within 7 days'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Customer has a payment method, create immediate subscription
+    log("Payment method found, creating immediate subscription");
+
     // First create a product for this subscription
     const product = await stripe.products.create({
       name: `Property Management - ${propertyCount} properties`,
