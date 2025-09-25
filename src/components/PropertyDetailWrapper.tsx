@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import OrganizationGuard from '@/components/OrganizationGuard';
 import { PropertyProvider } from '@/contexts/property/PropertyContext';
 import { MaintenanceRequestProvider } from '@/contexts/maintenance';
+import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContext';
 import PropertyDetail from '@/pages/PropertyDetail';
 
 interface TemporarySession {
@@ -58,11 +59,13 @@ const PropertyDetailWrapper = () => {
   // If user has a valid temporary session, render without protection
   if (hasTemporarySession) {
     return (
-      <PropertyProvider>
-        <MaintenanceRequestProvider>
-          <PropertyDetail />
-        </MaintenanceRequestProvider>
-      </PropertyProvider>
+      <SubscriptionProvider>
+        <PropertyProvider>
+          <MaintenanceRequestProvider>
+            <PropertyDetail />
+          </MaintenanceRequestProvider>
+        </PropertyProvider>
+      </SubscriptionProvider>
     );
   }
 
@@ -70,11 +73,13 @@ const PropertyDetailWrapper = () => {
   return (
     <ProtectedRoute>
       <OrganizationGuard>
-        <PropertyProvider>
-          <MaintenanceRequestProvider>
-            <PropertyDetail />
-          </MaintenanceRequestProvider>
-        </PropertyProvider>
+        <SubscriptionProvider>
+          <PropertyProvider>
+            <MaintenanceRequestProvider>
+              <PropertyDetail />
+            </MaintenanceRequestProvider>
+          </PropertyProvider>
+        </SubscriptionProvider>
       </OrganizationGuard>
     </ProtectedRoute>
   );
