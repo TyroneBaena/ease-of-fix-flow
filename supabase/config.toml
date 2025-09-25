@@ -26,6 +26,9 @@ verify_jwt = false
 [functions.reactivate-subscription]
 verify_jwt = false
 
+[functions.upgrade-trial-to-paid]
+verify_jwt = false
+
 [functions.send-invite]
 verify_jwt = false
 

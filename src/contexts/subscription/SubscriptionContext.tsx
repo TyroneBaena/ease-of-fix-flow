@@ -22,6 +22,7 @@ interface SubscriptionContextValue {
   cancelTrial: () => Promise<{ success: boolean; error?: string }>;
   reactivateSubscription: () => Promise<{ success: boolean; error?: string }>;
   calculateBilling: () => Promise<{ success: boolean; error?: string; billingData?: any }>;
+  upgradeToPaid: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
@@ -239,6 +240,29 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [currentUser, refresh]);
 
+  const upgradeToPaid = useCallback(async () => {
+    if (!currentUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+    
+    try {
+      // End trial and create paid subscription
+      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid");
+      
+      if (error) {
+        console.error("Upgrade to paid error:", error);
+        return { success: false, error: error.message };
+      }
+      
+      // Refresh subscription data after upgrade
+      await refresh();
+      return { success: true };
+    } catch (error) {
+      console.error("Upgrade to paid exception:", error);
+      return { success: false, error: "Failed to upgrade to paid subscription" };
+    }
+  }, [currentUser, refresh]);
+
   useEffect(() => {
     // When auth user changes, refresh subscription state
     if (currentUser?.id) {
@@ -281,6 +305,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     cancelTrial,
     reactivateSubscription,
     calculateBilling,
+    upgradeToPaid,
   }), [
     subscribed, 
     subscriptionTier, 
@@ -296,7 +321,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     startTrial,
     cancelTrial,
     reactivateSubscription,
-    calculateBilling
+    calculateBilling,
+    upgradeToPaid
   ]);
 
   return (

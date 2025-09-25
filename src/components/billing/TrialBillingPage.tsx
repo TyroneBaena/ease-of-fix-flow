@@ -34,6 +34,7 @@ export const TrialBillingPage: React.FC = () => {
     subscribed,
     startTrial,
     calculateBilling,
+    upgradeToPaid,
     loading
   } = useSubscription();
   
@@ -63,18 +64,19 @@ export const TrialBillingPage: React.FC = () => {
   const handleUpgrade = async () => {
     setActionLoading('upgrade');
     try {
-      const result = await calculateBilling();
+      const result = await upgradeToPaid();
       if (result.success) {
-        // Redirect to payment flow or show success
         toast({
-          title: "Billing Calculated",
-          description: "Your subscription is being set up...",
+          title: "Subscription Activated!",
+          description: "Your trial has been upgraded to a paid subscription.",
         });
-        // Here you would typically redirect to Stripe Checkout
+        // Force a refresh to update the UI with new subscription status
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay for backend processing
+        window.location.reload(); // Force complete refresh to ensure UI updates
       } else {
         toast({
           title: "Error",
-          description: result.error || "Failed to calculate billing",
+          description: result.error || "Failed to upgrade subscription",
           variant: "destructive",
         });
       }
