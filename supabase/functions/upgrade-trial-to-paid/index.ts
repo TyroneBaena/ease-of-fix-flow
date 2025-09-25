@@ -67,10 +67,10 @@ serve(async (req) => {
       stripeCustomerId: subscriber.stripe_customer_id 
     });
 
-    // Verify user is in active trial
-    if (!subscriber.is_trial_active) {
-      throw new Error('User is not in an active trial');
-    }
+    // Allow upgrade even if trial is not active (user might want to upgrade after trial ended)
+    // if (!subscriber.is_trial_active) {
+    //   throw new Error('User is not in an active trial');
+    // }
 
     if (!subscriber.stripe_customer_id) {
       throw new Error('No Stripe customer ID found');
