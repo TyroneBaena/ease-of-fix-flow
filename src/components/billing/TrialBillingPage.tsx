@@ -80,8 +80,10 @@ export const TrialBillingPage: React.FC = () => {
       } else {
         let errorMessage = result.error || "Failed to upgrade subscription";
         
-        // Check if it's a payment method error
-        if (result.error?.includes("payment method") || result.error?.includes("payment source")) {
+        // Check for specific error types
+        if (result.error?.includes("zero properties")) {
+          errorMessage = "You need at least one property to upgrade to a paid subscription. Please add a property first.";
+        } else if (result.error?.includes("payment method") || result.error?.includes("payment source")) {
           errorMessage = "A payment method is required to upgrade. Please add a payment method to continue.";
         }
         
