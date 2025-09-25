@@ -107,6 +107,17 @@ export const usePropertyProvider = (): PropertyContextType => {
 
       setProperties(prev => [...prev, newProperty]);
       toast.success('Property added successfully');
+      
+      // Trigger subscription billing refresh when properties change
+      const refreshSubscription = async () => {
+        try {
+          await supabase.functions.invoke("calculate-property-billing");
+        } catch (error) {
+          console.log("Failed to refresh billing calculation:", error);
+        }
+      };
+      refreshSubscription();
+      
       return newProperty;
     } catch (err) {
       console.error('Unexpected error adding property:', err);
@@ -208,6 +219,16 @@ export const usePropertyProvider = (): PropertyContextType => {
       }
 
       setProperties(properties.filter(property => property.id !== id));
+      
+      // Trigger subscription billing refresh when properties change
+      const refreshSubscription = async () => {
+        try {
+          await supabase.functions.invoke("calculate-property-billing");
+        } catch (error) {
+          console.log("Failed to refresh billing calculation:", error);
+        }
+      };
+      refreshSubscription();
       
       toast.success('Property deleted successfully');
     } catch (err) {

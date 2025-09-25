@@ -250,6 +250,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 
+  // Set up automatic refresh when billing might change
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    
+    const interval = setInterval(() => {
+      refresh();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [currentUser?.id, refresh]);
+
   const value: SubscriptionContextValue = useMemo(() => ({
     subscribed,
     subscriptionTier,
