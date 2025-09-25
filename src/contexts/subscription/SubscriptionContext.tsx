@@ -61,78 +61,49 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     setLoading(true);
     try {
-      // First, calculate current billing based on properties
-      const { data, error } = await supabase.functions.invoke("calculate-property-billing");
-      if (error) {
-        console.error("check-subscription error:", error);
-      }
-
-      // Prefer the function's response when available, otherwise read from DB
-      if (data && (typeof (data as any).subscribed !== "undefined" || (data as any).status)) {
-        const resp = data as any;
+      // Directly query the database to avoid function caching issues
+      const { data: row, error: fetchErr } = await supabase
+        .from("subscribers")
+        .select(`
+          subscribed, 
+          subscription_tier, 
+          subscription_end,
+          is_trial_active,
+          trial_end_date,
+          active_properties_count
+        `)
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
         
-        // Handle both check-subscription and calculate-property-billing responses
-        if (resp.status) {
-          // Response from calculate-property-billing
-          setSubscribed(resp.status === 'active');
-          setSubscriptionTier(resp.status === 'trial' ? 'trial' : 'property-based');
-          setIsTrialActive(!!resp.trial_active);
-          setTrialEndDate(resp.trial_end_date ?? null);
-          setDaysRemaining(resp.days_remaining ?? null);
-          setPropertyCount(resp.property_count ?? null);
-          setMonthlyAmount(resp.monthly_amount ?? null);
-          setCurrency(resp.currency ?? 'aud');
-        } else {
-          // Response from check-subscription
-          setSubscribed(!!resp.subscribed);
-          setSubscriptionTier(resp.subscription_tier ?? null);
-          setSubscriptionEnd(resp.subscription_end ?? null);
-          setIsTrialActive(resp.is_trial_active ?? null);
-          setTrialEndDate(resp.trial_end_date ?? null);
-          setDaysRemaining(resp.days_remaining ?? null);
-          setPropertyCount(resp.property_count ?? null);
-          setMonthlyAmount(resp.monthly_amount ?? null);
-          setCurrency(resp.currency ?? null);
-        }
+      if (fetchErr) {
+        console.error("subscribers fetch error:", fetchErr);
+      }
+      
+      setSubscribed((row as any)?.subscribed ?? null);
+      setSubscriptionTier((row as any)?.subscription_tier ?? null);
+      setSubscriptionEnd((row as any)?.subscription_end ?? null);
+      setIsTrialActive((row as any)?.is_trial_active ?? null);
+      setTrialEndDate((row as any)?.trial_end_date ?? null);
+      setPropertyCount((row as any)?.active_properties_count ?? null);
+      
+      // Calculate days remaining if trial is active
+      if ((row as any)?.trial_end_date && (row as any)?.is_trial_active) {
+        const endDate = new Date((row as any).trial_end_date);
+        const now = new Date();
+        const diffTime = endDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays > 0 ? diffDays : 0);
       } else {
-        const { data: row, error: fetchErr } = await supabase
-          .from("subscribers")
-          .select(`
-            subscribed, 
-            subscription_tier, 
-            subscription_end,
-            is_trial_active,
-            trial_end_date,
-            active_properties_count
-          `)
-          .eq("user_id", currentUser.id)
-          .maybeSingle();
-        if (fetchErr) {
-          console.error("subscribers fetch error:", fetchErr);
-        }
-        setSubscribed((row as any)?.subscribed ?? null);
-        setSubscriptionTier((row as any)?.subscription_tier ?? null);
-        setSubscriptionEnd((row as any)?.subscription_end ?? null);
-        setIsTrialActive((row as any)?.is_trial_active ?? null);
-        setTrialEndDate((row as any)?.trial_end_date ?? null);
-        setPropertyCount((row as any)?.active_properties_count ?? null);
-        
-        // Calculate days remaining if trial is active
-        if ((row as any)?.trial_end_date && (row as any)?.is_trial_active) {
-          const endDate = new Date((row as any).trial_end_date);
-          const now = new Date();
-          const diffTime = endDate.getTime() - now.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          setDaysRemaining(diffDays > 0 ? diffDays : 0);
-        } else {
-          setDaysRemaining(null);
-        }
-        
-        // Calculate monthly amount
-        const propCount = (row as any)?.active_properties_count ?? 0;
-        setMonthlyAmount(propCount * 29);
-        setCurrency('aud');
+        setDaysRemaining(null);
       }
+      
+      // Calculate monthly amount based on property count
+      const propCount = (row as any)?.active_properties_count || 0;
+      setMonthlyAmount(propCount * 29);
+      setCurrency('aud');
+      
+    } catch (error) {
+      console.error("Subscription refresh error:", error);
     } finally {
       setLoading(false);
     }
