@@ -82,13 +82,13 @@ export const TrialBillingPage: React.FC = () => {
         
         // Check for specific error types
         if (result.error?.includes("zero properties")) {
-          errorMessage = "You need at least one property to upgrade to a paid subscription. Please add a property first.";
+          errorMessage = "Cannot upgrade: Our billing system hasn't detected any properties in your account yet. Please wait a moment for the system to sync, or try adding a property first.";
         } else if (result.error?.includes("payment method") || result.error?.includes("payment source")) {
           errorMessage = "A payment method is required to upgrade. Please add a payment method to continue.";
         }
         
         toast({
-          title: "Error",
+          title: "Upgrade Failed",
           description: errorMessage,
           variant: "destructive",
         });

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Plus, Edit } from 'lucide-react';
+import { useSubscription } from "@/contexts/subscription/SubscriptionContext";
 
 interface PropertyQuickActionsProps {
   propertyId: string;
@@ -17,6 +18,13 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
   isTemporaryAccess = false
 }) => {
   const navigate = useNavigate();
+  const { refreshPropertyCount } = useSubscription();
+
+  const handleNewRequest = () => {
+    navigate(`/new-request?propertyId=${propertyId}`);
+    // Refresh property count when navigating to ensure billing is up to date
+    refreshPropertyCount();
+  };
 
   return (
     <Card>
@@ -26,7 +34,7 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
       <CardContent className="space-y-4">
         <Button
           className="w-full justify-start"
-          onClick={() => navigate(`/new-request?propertyId=${propertyId}`)}
+          onClick={handleNewRequest}
         >
           <Plus className="mr-2 h-4 w-4" />
           New Maintenance Request

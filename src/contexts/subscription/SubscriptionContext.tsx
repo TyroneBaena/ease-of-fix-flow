@@ -1,6 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useUserContext } from "@/contexts/UnifiedAuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 
 interface SubscriptionContextValue {
   subscribed: boolean | null;
@@ -9,7 +9,7 @@ interface SubscriptionContextValue {
   loading: boolean;
   refresh: () => Promise<void>;
   
-  // New trial and property-based billing fields
+  // Trial and property-based billing data
   isTrialActive: boolean | null;
   trialEndDate: string | null;
   daysRemaining: number | null;
@@ -19,22 +19,25 @@ interface SubscriptionContextValue {
   
   // Trial management functions
   startTrial: () => Promise<{ success: boolean; error?: string }>;
-  cancelTrial: (reason?: string) => Promise<{ success: boolean; error?: string }>;
+  cancelTrial: (reason: string) => Promise<{ success: boolean; error?: string }>;
   reactivateSubscription: () => Promise<{ success: boolean; error?: string }>;
   calculateBilling: () => Promise<{ success: boolean; error?: string; billingData?: any }>;
   upgradeToPaid: () => Promise<{ success: boolean; error?: string }>;
+  
+  // Property count management
+  refreshPropertyCount: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useUserContext();
+  const { currentUser } = useAuth();
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   
-  // New trial and property-based billing state
+  // Trial and billing state
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
   const [trialEndDate, setTrialEndDate] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
@@ -42,7 +45,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [monthlyAmount, setMonthlyAmount] = useState<number | null>(null);
   const [currency, setCurrency] = useState<string | null>(null);
 
-  const clear = () => {
+  const clear = useCallback(() => {
     setSubscribed(null);
     setSubscriptionTier(null);
     setSubscriptionEnd(null);
@@ -52,15 +55,18 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setPropertyCount(null);
     setMonthlyAmount(null);
     setCurrency(null);
-  };
+  }, []);
 
   const refresh = useCallback(async () => {
-    if (!currentUser) {
+    if (!currentUser?.id) {
       clear();
+      setLoading(false);
       return;
     }
-    setLoading(true);
+
     try {
+      setLoading(true);
+      
       // Directly query the database to avoid function caching issues
       const { data: row, error: fetchErr } = await supabase
         .from("subscribers")
@@ -107,9 +113,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, clear]);
 
-  // Trial management functions
+  // Separate function to refresh property count specifically
+  const refreshPropertyCount = useCallback(async () => {
+    if (!currentUser?.id) return;
+
+    try {
+      // First trigger a manual sync to ensure property counts are up to date
+      const { error: syncError } = await supabase.rpc('sync_all_property_counts');
+      if (syncError) {
+        console.warn("Property count sync warning:", syncError);
+      }
+      
+      // Then refresh the subscription data
+      await refresh();
+    } catch (error) {
+      console.error("Property count refresh error:", error);
+    }
+  }, [currentUser, refresh]);
+
   const startTrial = useCallback(async () => {
     if (!currentUser) {
       return { success: false, error: "User not authenticated" };
@@ -117,7 +140,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     try {
       const { data, error } = await supabase.functions.invoke("create-trial-subscription", {
-        body: { user_id: currentUser.id, email: currentUser.email }
+        body: { 
+          email: currentUser.email 
+        }
       });
       
       if (error) {
@@ -134,14 +159,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [currentUser, refresh]);
 
-  const cancelTrial = useCallback(async (reason?: string) => {
+  const cancelTrial = useCallback(async (reason: string) => {
     if (!currentUser) {
       return { success: false, error: "User not authenticated" };
     }
     
     try {
       const { data, error } = await supabase.functions.invoke("cancel-trial-subscription", {
-        body: { reason }
+        body: { 
+          reason 
+        }
       });
       
       if (error) {
@@ -149,7 +176,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
-      // Refresh subscription data after canceling trial
+      // Refresh subscription data after cancellation
       await refresh();
       return { success: true };
     } catch (error) {
@@ -171,7 +198,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
-      // Refresh subscription data after reactivating
+      // Refresh subscription data after reactivation
       await refresh();
       return { success: true };
     } catch (error) {
@@ -219,6 +246,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     try {
+      // First refresh property count to ensure we have latest data
+      await refreshPropertyCount();
+      
       // End trial and create paid subscription
       const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid");
       
@@ -234,7 +264,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("Upgrade to paid exception:", error);
       return { success: false, error: "Failed to upgrade to paid subscription" };
     }
-  }, [currentUser, refresh]);
+  }, [currentUser, refresh, refreshPropertyCount]);
 
   useEffect(() => {
     // When auth user changes, refresh subscription state
@@ -279,6 +309,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     reactivateSubscription,
     calculateBilling,
     upgradeToPaid,
+    
+    // Property count management
+    refreshPropertyCount,
   }), [
     subscribed, 
     subscriptionTier, 
@@ -295,7 +328,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     cancelTrial,
     reactivateSubscription,
     calculateBilling,
-    upgradeToPaid
+    upgradeToPaid,
+    refreshPropertyCount
   ]);
 
   return (
@@ -305,8 +339,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 };
 
-export const useSubscription = () => {
-  const ctx = useContext(SubscriptionContext);
-  if (!ctx) throw new Error("useSubscription must be used within a SubscriptionProvider");
-  return ctx;
+export const useSubscription = (): SubscriptionContextValue => {
+  const context = useContext(SubscriptionContext);
+  if (context === undefined) {
+    throw new Error('useSubscription must be used within a SubscriptionProvider');
+  }
+  return context;
 };
