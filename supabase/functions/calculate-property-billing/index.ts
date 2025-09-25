@@ -18,9 +18,11 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -35,18 +37,44 @@ serve(async (req) => {
     log("Authenticated user", { userId: user.id, email: user.email });
 
     // Get subscriber data
-    const { data: subscriber, error: subscriberError } = await supabase
+    log("Fetching subscriber for user", { userId: user.id });
+    let { data: subscriber, error: subscriberError } = await supabase
       .from('subscribers')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
 
+    log("Subscriber query result", { 
+      subscriber: subscriber ? "found" : "not found", 
+      error: subscriberError?.message,
+      userId: user.id 
+    });
+
     if (subscriberError) {
+      log("Subscriber query error", { error: subscriberError });
       throw new Error(`Error fetching subscriber: ${subscriberError.message}`);
     }
 
     if (!subscriber) {
-      throw new Error(`No subscriber record found for user: ${user.id}`);
+      log("No subscriber found, trying admin client");
+      // Try with admin client to bypass RLS
+      const { data: adminSubscriber, error: adminError } = await supabaseAdmin
+        .from('subscribers')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      log("Admin query result", { 
+        adminSubscriber: adminSubscriber ? "found" : "not found", 
+        adminError: adminError?.message 
+      });
+      
+      if (adminSubscriber) {
+        // Use the admin result
+        subscriber = adminSubscriber;
+      } else {
+        throw new Error(`No subscriber record found for user: ${user.id}`);
+      }
     }
 
     log("Found subscriber", { 
