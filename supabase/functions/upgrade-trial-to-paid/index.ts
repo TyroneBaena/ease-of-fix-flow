@@ -91,15 +91,19 @@ serve(async (req) => {
       customerId: subscriber.stripe_customer_id
     });
 
+    // First create a product for this subscription
+    const product = await stripe.products.create({
+      name: `Property Management - ${propertyCount} properties`,
+      description: `Property management billing for ${propertyCount} properties at $29 AUD each`
+    });
+
     // Create new paid subscription
     const newSubscription = await stripe.subscriptions.create({
       customer: subscriber.stripe_customer_id,
       items: [{
         price_data: {
           currency: 'aud',
-          product_data: {
-            name: `Property Management - ${propertyCount} properties`
-          },
+          product: product.id,
           unit_amount: monthlyAmount,
           recurring: {
             interval: 'month'
