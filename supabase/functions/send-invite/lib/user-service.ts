@@ -58,7 +58,7 @@ export async function findExistingUser(supabaseClient: any, email: string): Prom
         console.log(`Found ${userByEmail.users.length} users with email ${normalizedEmail}`);
         
         // Check if any of the users have the exact matching email (case insensitive)
-        const matchingUser = userByEmail.users.find(u => 
+        const matchingUser = userByEmail.users.find((u: any) => 
           u.email && u.email.toLowerCase() === normalizedEmail.toLowerCase()
         );
         

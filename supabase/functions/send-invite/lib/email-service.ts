@@ -48,11 +48,11 @@ export async function sendInvitationEmail(
       console.error("Error string:", JSON.stringify(error));
       
       // Handle specific Resend test mode error
-      if (error.error && error.error.includes("verify a domain")) {
+      if ((error as any).error && (error as any).error.includes("verify a domain")) {
         throw new Error(`Resend Domain Verification Required: ${error.error}. Please verify your domain at https://resend.com/domains or upgrade your Resend plan.`);
       }
       
-      throw new Error(`Resend API Error: ${error.error || error.message || JSON.stringify(error)}`);
+      throw new Error(`Resend API Error: ${(error as any).error || (error as any).message || JSON.stringify(error)}`);
     }
     
     console.log(`Email sent successfully to ${emailRecipient}, EmailID: ${data?.id}`);

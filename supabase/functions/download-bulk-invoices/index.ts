@@ -322,7 +322,7 @@ serve(async (req) => {
       } catch (cleanupError) {
         console.error('Error cleaning up temp files:', cleanupError);
       }
-      throw new Error(`Failed to create zip file: ${zipError.message}`);
+      throw new Error(`Failed to create zip file: ${(zipError as Error).message}`);
     }
 
   } catch (error) {
@@ -330,7 +330,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred',
+        error: (error as Error).message || 'An unexpected error occurred',
         success: false 
       }),
       { 

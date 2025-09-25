@@ -3,6 +3,7 @@ export interface InviteRequest {
   name: string;
   role: string;
   assignedProperties?: string[];
+  bypassExistingCheck?: boolean; // Add this property
 }
 
 export interface EmailData {

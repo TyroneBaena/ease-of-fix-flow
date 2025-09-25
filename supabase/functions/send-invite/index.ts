@@ -74,7 +74,7 @@ serve(async (req: Request) => {
           return new Response(
             JSON.stringify({
               success: false,
-              message: `Invalid JSON format: ${secondParseError.message}`,
+              message: `Invalid JSON format: ${(secondParseError as Error).message}`,
               error_code: 'INVALID_JSON',
               receivedContent: rawBody.substring(0, 200) // First 200 chars for debugging
             }),
@@ -89,7 +89,7 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             success: false,
-            message: `Failed to read request body: ${textError.message}`,
+            message: `Failed to read request body: ${(textError as Error).message}`,
             error_code: 'BODY_READ_ERROR'
           }),
           { 
@@ -207,7 +207,7 @@ serve(async (req: Request) => {
                     to: normalizedEmail,
                     name: existingUserResult.profile?.name || body.name,
                     role: body.role,
-                    temporaryPassword: null, // No new password needed
+                    temporaryPassword: undefined, // Use undefined instead of null
                     loginUrl,
                     isNewUser: false // Existing user
                   });
@@ -310,7 +310,7 @@ serve(async (req: Request) => {
       body.role,
       temporaryPassword,
       body.assignedProperties,
-      invitingUserId
+      invitingUserId || undefined
     );
 
 

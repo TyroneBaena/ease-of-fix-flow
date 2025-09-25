@@ -165,7 +165,7 @@ serve(async (req: Request) => {
             .single();
           
           currentUserOrgId = profile?.organization_id;
-          organizationName = profile?.organizations?.name;
+          organizationName = (profile?.organizations as any)?.name;
           inviterName = profile?.name;
         }
       } catch (error) {

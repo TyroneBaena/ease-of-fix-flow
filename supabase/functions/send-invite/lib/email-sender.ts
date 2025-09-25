@@ -48,6 +48,6 @@ export async function sendInvitationEmail(
     return data;
   } catch (error) {
     console.error("Failed to send email:", error);
-    throw new Error(`Email sending failed: ${error.message || 'Unknown error'}`);
+    throw new Error(`Email sending failed: ${(error as Error).message || 'Unknown error'}`);
   }
 }
