@@ -269,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to send notifications' 
+        error: (error as Error).message || 'Failed to send notifications' 
       }),
       {
         status: 500,

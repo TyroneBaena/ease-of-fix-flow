@@ -89,7 +89,7 @@ export async function findExistingUser(supabaseClient: any, email: string) {
     return { exists: false };
   } catch (error) {
     console.error("Error in findExistingUser:", error);
-    throw new Error(`Failed to check for existing user: ${error.message}`);
+    throw new Error(`Failed to check for existing user: ${(error as Error).message}`);
   }
 }
 
@@ -123,7 +123,7 @@ export async function updateExistingUser(supabaseClient: any, userId: string, na
     console.log(`User ${userId} updated successfully`);
   } catch (error) {
     console.error("Error in updateExistingUser:", error);
-    throw new Error(`Failed to update user: ${error.message}`);
+    throw new Error(`Failed to update user: ${(error as Error).message}`);
   }
 }
 
@@ -195,7 +195,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
     return authData.user;
   } catch (error) {
     console.error("Error in createNewUser:", error);
-    throw new Error(`Failed to create new user: ${error.message}`);
+    throw new Error(`Failed to create new user: ${(error as Error).message}`);
   }
 }
 
@@ -255,7 +255,7 @@ export async function createProfileForExistingUser(supabaseClient: any, user: an
     return profile;
   } catch (error) {
     console.error("Error in createProfileForExistingUser:", error);
-    throw new Error(`Failed to create profile: ${error.message}`);
+    throw new Error(`Failed to create profile: ${(error as Error).message}`);
   }
 }
 

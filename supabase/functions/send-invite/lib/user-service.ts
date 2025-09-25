@@ -243,25 +243,14 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
       }
     } catch (profileError) {
       console.error("❌ Exception creating user profile:", profileError);
-      throw new Error(`Failed to create user profile: ${profileError.message}`);
+      throw new Error(`Failed to create user profile: ${(profileError as Error).message}`);
     }
     
     return authData.user;
   } catch (error) {
     console.error("Error in createNewUser:", error);
     
-    // If profile creation failed but auth user was created, clean up the auth user
-    if (authData?.user?.id) {
-      try {
-        console.log(`Cleaning up orphaned auth user: ${authData.user.id}`);
-        await supabaseClient.auth.admin.deleteUser(authData.user.id);
-        console.log(`Cleaned up auth user ${authData.user.id}`);
-      } catch (cleanupError) {
-        console.error(`Failed to cleanup auth user ${authData.user.id}:`, cleanupError);
-      }
-    }
-    
-    throw new Error(`Failed to create new user: ${error.message}`);
+    throw new Error(`Failed to create new user: ${(error as Error).message}`);
   }
 }
 
@@ -295,7 +284,7 @@ export async function updateExistingUser(supabaseClient: any, userId: string, na
     console.log(`User ${userId} updated successfully`);
   } catch (error) {
     console.error("Error in updateExistingUser:", error);
-    throw new Error(`Failed to update user: ${error.message}`);
+    throw new Error(`Failed to update user: ${(error as Error).message}`);
   }
 }
 
@@ -355,7 +344,7 @@ export async function createProfileForExistingUser(supabaseClient: any, user: an
     return profile;
   } catch (error) {
     console.error("Error in createProfileForExistingUser:", error);
-    throw new Error(`Failed to create profile: ${error.message}`);
+    throw new Error(`Failed to create profile: ${(error as Error).message}`);
   }
 }
 

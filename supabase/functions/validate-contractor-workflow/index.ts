@@ -154,7 +154,7 @@ serve(async (req: Request) => {
       if (error) throw error;
 
       const contractorOrg = contractorWithProfile.organization_id;
-      const profileOrg = contractorWithProfile.profiles.organization_id;
+      const profileOrg = (contractorWithProfile.profiles as any).organization_id;
 
       if (contractorOrg === profileOrg) {
         results.push({
