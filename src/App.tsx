@@ -289,7 +289,11 @@ function App() {
             <Route path="/billing/manage" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <BillingManagePage />
+                  <SubscriptionProvider>
+                    <PropertyProvider>
+                      <BillingManagePage />
+                    </PropertyProvider>
+                  </SubscriptionProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
