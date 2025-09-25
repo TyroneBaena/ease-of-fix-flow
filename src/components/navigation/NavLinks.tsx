@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ClipboardList, FileText, Settings, Building, Shield } from 'lucide-react';
+import { Home, ClipboardList, FileText, Settings, Building, Shield, CreditCard } from 'lucide-react';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 type NavItem = {
@@ -24,6 +24,7 @@ export const NavLinks = () => {
       { name: 'Properties', icon: <Building className="h-5 w-5" />, path: '/properties' },
       { name: 'Requests', icon: <ClipboardList className="h-5 w-5" />, path: '/requests' },
       { name: 'Reports', icon: <FileText className="h-5 w-5" />, path: '/reports' },
+      { name: 'Billing', icon: <CreditCard className="h-5 w-5" />, path: '/billing' },
     ];
     
     // Add Settings for admin and manager - updated to use isAdmin as boolean
