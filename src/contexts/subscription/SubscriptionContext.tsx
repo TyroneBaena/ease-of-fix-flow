@@ -19,7 +19,7 @@ interface SubscriptionContextValue {
   
   // Trial management functions
   startTrial: () => Promise<{ success: boolean; error?: string }>;
-  cancelTrial: () => Promise<{ success: boolean; error?: string }>;
+  cancelTrial: (reason?: string) => Promise<{ success: boolean; error?: string }>;
   reactivateSubscription: () => Promise<{ success: boolean; error?: string }>;
   calculateBilling: () => Promise<{ success: boolean; error?: string; billingData?: any }>;
   upgradeToPaid: () => Promise<{ success: boolean; error?: string }>;
@@ -134,13 +134,15 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [currentUser, refresh]);
 
-  const cancelTrial = useCallback(async () => {
+  const cancelTrial = useCallback(async (reason?: string) => {
     if (!currentUser) {
       return { success: false, error: "User not authenticated" };
     }
     
     try {
-      const { data, error } = await supabase.functions.invoke("cancel-trial-subscription");
+      const { data, error } = await supabase.functions.invoke("cancel-trial-subscription", {
+        body: { reason }
+      });
       
       if (error) {
         console.error("Cancel trial error:", error);

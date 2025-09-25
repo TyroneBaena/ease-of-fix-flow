@@ -56,6 +56,7 @@ import { ContractorRouteGuard } from './components/contractor/ContractorRouteGua
 import Pricing from '@/pages/Pricing';
 import Billing from '@/pages/Billing';
 import Security from '@/pages/Security';
+import { BillingManagePage } from '@/components/billing/BillingManagePage';
 
 const queryClient = new QueryClient();
 
@@ -282,6 +283,13 @@ function App() {
               <ProtectedRoute>
                 <OrganizationGuard>
                   <Billing />
+                </OrganizationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/billing/manage" element={
+              <ProtectedRoute>
+                <OrganizationGuard>
+                  <BillingManagePage />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
