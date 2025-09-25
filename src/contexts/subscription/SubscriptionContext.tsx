@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/auth/AuthContext";
+import { useUserContext } from "@/contexts/UnifiedAuthContext";
 
 interface SubscriptionContextValue {
   subscribed: boolean | null;
@@ -31,7 +31,7 @@ interface SubscriptionContextValue {
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser } = useUserContext();
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
@@ -120,13 +120,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!currentUser?.id) return;
 
     try {
-      // First trigger a manual sync to ensure property counts are up to date
-      const { error: syncError } = await supabase.rpc('sync_all_property_counts');
-      if (syncError) {
-        console.warn("Property count sync warning:", syncError);
-      }
-      
-      // Then refresh the subscription data
+      // Refresh the subscription data which should get updated property counts
       await refresh();
     } catch (error) {
       console.error("Property count refresh error:", error);

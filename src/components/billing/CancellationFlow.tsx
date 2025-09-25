@@ -66,7 +66,8 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
     setIsProcessing(true);
     
     try {
-      const result = await cancelTrial();
+      const cancellationReason = `${cancellationReasons.find(r => r.value === selectedReason)?.label}${feedback ? `: ${feedback}` : ''}`;
+      const result = await cancelTrial(cancellationReason);
       
       if (result.success) {
         setCurrentStep('completed');

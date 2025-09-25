@@ -1573,6 +1573,14 @@ export type Database = {
         Args: { new_org_id: string }
         Returns: boolean
       }
+      sync_all_property_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          org_id: string
+          property_count: number
+          subscribers_updated: number
+        }[]
+      }
       test_logging: {
         Args: Record<PropertyKey, never>
         Returns: undefined
