@@ -38,6 +38,50 @@ serve(async (req) => {
     log("Authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    
+    // First check if user has a trial subscription in our database
+    const { data: existingSubscriber } = await supabase
+      .from("subscribers")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    // If user has a trial subscription, check if it's still active
+    if (existingSubscriber && existingSubscriber.subscription_tier === 'trial') {
+      const trialEndDate = new Date(existingSubscriber.trial_end_date);
+      const now = new Date();
+      
+      if (trialEndDate > now) {
+        log("Active trial found", { 
+          trialEndDate: existingSubscriber.trial_end_date,
+          daysRemaining: Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        });
+        
+        return new Response(
+          JSON.stringify({
+            subscribed: false,
+            subscription_tier: 'trial',
+            subscription_end: existingSubscriber.trial_end_date,
+            trial_end_date: existingSubscriber.trial_end_date,
+            is_trial_active: true,
+            property_count: existingSubscriber.active_properties_count || 0
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      } else {
+        log("Trial expired", { trialEndDate: existingSubscriber.trial_end_date });
+        // Trial expired, update the record
+        await supabase
+          .from("subscribers")
+          .update({ 
+            subscription_tier: null,
+            is_trial_active: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq("user_id", user.id);
+      }
+    }
+
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
@@ -50,11 +94,19 @@ serve(async (req) => {
           subscribed: false,
           subscription_tier: null,
           subscription_end: null,
+          is_trial_active: false,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "email" }
+        { onConflict: "user_id" }
       );
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(
+        JSON.stringify({ 
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+          is_trial_active: false,
+          property_count: 0
+        }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -99,9 +151,10 @@ serve(async (req) => {
         subscribed,
         subscription_tier: subscriptionTier,
         subscription_end: subscriptionEnd,
+        is_trial_active: false,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "email" }
+      { onConflict: "user_id" }
     );
 
     return new Response(
@@ -109,6 +162,8 @@ serve(async (req) => {
         subscribed,
         subscription_tier: subscriptionTier,
         subscription_end: subscriptionEnd,
+        is_trial_active: false,
+        property_count: existingSubscriber?.active_properties_count || 0
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
