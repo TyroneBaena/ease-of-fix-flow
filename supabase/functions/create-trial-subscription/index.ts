@@ -18,10 +18,12 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
   const applicationUrl = Deno.env.get("APPLICATION_URL") ?? "";
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -94,8 +96,8 @@ serve(async (req) => {
       log("Property count for trial", { organizationId, propertyCount });
     }
 
-    // Create or update subscriber record with trial info
-    const { error: upsertError } = await supabase
+    // Create or update subscriber record with trial info using admin client to bypass RLS
+    const { error: upsertError } = await supabaseAdmin
       .from('subscribers')
       .upsert({
         user_id: user.id,
