@@ -253,13 +253,22 @@ export const BillingManagementPage: React.FC = () => {
                       Cancel Subscription
                     </Button>
                   ) : isTrialActive ? (
-                    <Button 
-                      onClick={handleUpgradeToPaid}
-                      disabled={isUpgrading || !propertyCount}
-                      size="sm"
-                    >
-                      {isUpgrading ? 'Upgrading...' : 'Upgrade to Paid'}
-                    </Button>
+                    <>
+                      <Button 
+                        onClick={handleUpgradeToPaid}
+                        disabled={isUpgrading || !propertyCount}
+                        size="sm"
+                      >
+                        {isUpgrading ? 'Upgrading...' : 'Upgrade to Paid'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowCancellation(true)}
+                        size="sm"
+                      >
+                        Cancel Trial
+                      </Button>
+                    </>
                   ) : (
                     <Button 
                       onClick={() => setShowReactivation(true)}
