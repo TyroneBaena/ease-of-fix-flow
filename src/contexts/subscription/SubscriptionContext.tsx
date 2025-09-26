@@ -133,6 +133,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     try {
+      console.log("Starting trial subscription for user:", currentUser.id);
+      
+      // Get current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        return { success: false, error: "Authentication session invalid" };
+      }
+      
+      console.log("Session found, calling create-trial-subscription function");
       const { data, error } = await supabase.functions.invoke("create-trial-subscription", {
         body: { 
           email: currentUser.email 
@@ -144,6 +154,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
+      console.log("Trial subscription started successfully:", data);
       // Refresh subscription data after starting trial
       await refresh();
       return { success: true };
@@ -159,6 +170,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     try {
+      console.log("Starting trial cancellation for user:", currentUser.id);
+      
+      // Get current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        return { success: false, error: "Authentication session invalid" };
+      }
+      
+      console.log("Session found, calling cancel-trial-subscription function");
       const { data, error } = await supabase.functions.invoke("cancel-trial-subscription", {
         body: { 
           reason 
@@ -170,6 +191,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
+      console.log("Trial cancellation successful:", data);
       // Refresh subscription data after cancellation
       await refresh();
       return { success: true };
@@ -185,6 +207,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     try {
+      console.log("Starting subscription reactivation for user:", currentUser.id);
+      
+      // Get current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        return { success: false, error: "Authentication session invalid" };
+      }
+      
+      console.log("Session found, calling reactivate-subscription function");
       const { data, error } = await supabase.functions.invoke("reactivate-subscription");
       
       if (error) {
@@ -192,6 +224,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
+      console.log("Subscription reactivated successfully:", data);
       // Refresh subscription data after reactivation
       await refresh();
       return { success: true };
@@ -243,6 +276,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // First refresh property count to ensure we have latest data
       await refreshPropertyCount();
       
+      console.log("Starting upgrade to paid for user:", currentUser.id);
+      
+      // Get current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        return { success: false, error: "Authentication session invalid" };
+      }
+      
+      console.log("Session found, calling upgrade-trial-to-paid function");
       // End trial and create paid subscription
       const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid");
       
@@ -251,6 +294,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message };
       }
       
+      console.log("Upgrade to paid successful:", data);
       // Refresh subscription data after upgrade
       await refresh();
       return { success: true };
