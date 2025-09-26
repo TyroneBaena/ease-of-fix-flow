@@ -118,10 +118,31 @@ Deno.serve(async (req) => {
     // Create service role client for admin operations
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Upsert subscriber record
+    // Check if user already has a subscriber record (no trial for existing users)
+    const { data: existingSubscriber, error: checkError } = await adminSupabase
+      .from('subscribers')
+      .select('id, trial_start_date, subscribed')
+      .eq('user_id', userId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      log("Error checking existing subscriber", { checkError });
+      throw new Error('Failed to check existing subscriber');
+    }
+
+    if (existingSubscriber) {
+      log("User already has subscription record - no trial available", { 
+        subscriberId: existingSubscriber.id,
+        hadTrial: !!existingSubscriber.trial_start_date,
+        isSubscribed: existingSubscriber.subscribed
+      });
+      throw new Error('Trial is only available for first-time users');
+    }
+
+    // Create new subscriber record for first-time user
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
-      .upsert({
+      .insert({
         user_id: userId,
         email: userEmail,
         stripe_customer_id: customer.id,
@@ -132,8 +153,6 @@ Deno.serve(async (req) => {
         is_cancelled: false,
         active_properties_count: propertyCount,
         subscribed: false,
-      }, {
-        onConflict: 'user_id'
       })
       .select()
       .single();
