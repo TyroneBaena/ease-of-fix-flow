@@ -1,149 +1,164 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@13.7.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const log = (step: string, details?: unknown) => {
-  console.log(`[CREATE-TRIAL] ${step}${details ? " - " + JSON.stringify(details) : ""}`);
-};
+function log(step: string, details?: unknown) {
+  console.log(`[CREATE-TRIAL-SUBSCRIPTION] ${step}`, details ? JSON.stringify(details) : '');
+}
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-  const applicationUrl = Deno.env.get("APPLICATION_URL") ?? "";
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    log("Starting trial subscription creation");
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError) throw new Error(`Auth error: ${userError.message}`);
-    
-    const user = userData.user;
-    if (!user?.email) throw new Error("No authenticated user or email missing");
-    log("Authenticated user", { userId: user.id, email: user.email });
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-
-    // Check if customer already exists
-    const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId = existingCustomers.data[0]?.id;
-
-    // Create customer if doesn't exist
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabase_user_id: user.id,
-          trial_signup: "true"
-        }
-      });
-      customerId = customer.id;
-      log("Created new Stripe customer", { customerId });
-    } else {
-      log("Using existing Stripe customer", { customerId });
+    if (!supabaseUrl || !supabaseServiceKey || !stripeSecretKey) {
+      throw new Error('Missing required environment variables');
     }
 
-    // Create Setup Intent for card collection without charge
-    const setupIntent = await stripe.setupIntents.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      usage: 'off_session',
-      metadata: {
-        purpose: 'trial_signup',
-        supabase_user_id: user.id
-      }
+    // Initialize Stripe
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
     });
 
-    log("Created Setup Intent", { setupIntentId: setupIntent.id });
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    // Create Supabase client with the user's token
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      log("Authentication failed", { authError });
+      throw new Error('User not authenticated');
+    }
+
+    log("User authenticated", { userId: user.id, email: user.email });
+
+    // Create or get Stripe customer
+    let customer;
+    const existingCustomers = await stripe.customers.list({
+      email: user.email!,
+      limit: 1,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+      log("Found existing Stripe customer", { customerId: customer.id });
+    } else {
+      customer = await stripe.customers.create({
+        email: user.email!,
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      });
+      log("Created new Stripe customer", { customerId: customer.id });
+    }
+
+    // Create SetupIntent for payment method collection
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+    });
+
+    log("Created SetupIntent", { setupIntentId: setupIntent.id });
 
     // Calculate trial end date (30 days from now)
-    const trialStartDate = new Date();
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 30);
 
-    // Get user's organization to count properties
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
+    // Count user's active properties
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('user_id', user.id);
 
-    const organizationId = profile?.organization_id;
-    let propertyCount = 0;
-
-    if (organizationId) {
-      const { data: properties } = await supabase
-        .from('properties')
-        .select('id')
-        .eq('organization_id', organizationId);
-      
-      propertyCount = properties?.length || 0;
-      log("Property count for trial", { organizationId, propertyCount });
+    if (propertiesError) {
+      log("Error fetching properties", { propertiesError });
+      throw new Error('Failed to fetch user properties');
     }
 
-    // Create or update subscriber record with trial info using admin client to bypass RLS
-    const { error: upsertError } = await supabaseAdmin
+    const propertyCount = properties?.length || 0;
+    log("Counted user properties", { propertyCount });
+
+    // Create service role client for admin operations
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Upsert subscriber record
+    const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .upsert({
         user_id: user.id,
-        email: user.email,
-        subscribed: false, // Trial status, not yet subscribed
-        stripe_customer_id: customerId,
-        subscription_tier: 'trial',
-        trial_start_date: trialStartDate.toISOString(),
+        email: user.email!,
+        stripe_customer_id: customer.id,
+        setup_intent_id: setupIntent.id,
+        trial_start_date: new Date().toISOString(),
         trial_end_date: trialEndDate.toISOString(),
-        is_trial_active: true, // Add this field
-        active_properties_count: propertyCount,
-        last_billing_date: null,
-        next_billing_date: trialEndDate.toISOString(), // First billing after trial
-        payment_method_id: null, // Will be updated when setup intent is confirmed
+        is_trial_active: true,
         is_cancelled: false,
-        updated_at: new Date().toISOString()
+        active_properties_count: propertyCount,
+        subscribed: false,
       }, {
         onConflict: 'user_id'
-      });
+      })
+      .select()
+      .single();
 
-    if (upsertError) {
-      log("Error creating subscriber record", { error: upsertError });
-      throw new Error(`Failed to create subscriber record: ${upsertError.message}`);
+    if (subscriberError) {
+      log("Error creating subscriber", { subscriberError });
+      throw new Error('Failed to create subscriber record');
     }
 
-    log("Created trial subscription record", { userId: user.id, trialEndDate });
+    log("Created/updated subscriber", { subscriberId: subscriber.id });
 
-    const origin = req.headers.get("origin") || applicationUrl || "http://localhost:3000";
-
+    // Return success response
     return new Response(JSON.stringify({
       success: true,
-      setup_intent_client_secret: setupIntent.client_secret,
-      customer_id: customerId,
+      client_secret: setupIntent.client_secret,
+      customer_id: customer.id,
       trial_end_date: trialEndDate.toISOString(),
       property_count: propertyCount,
-      success_url: `${origin}/billing?trial=success`,
-      cancel_url: `${origin}/pricing?trial=cancel`
+      return_url: `${supabaseUrl.replace('supabase.co', 'supabase.co')}/billing`,
+      cancel_url: `${supabaseUrl.replace('supabase.co', 'supabase.co')}/billing`,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    log("ERROR", { message });
-    return new Response(JSON.stringify({ error: message }), {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    log("Error in create-trial-subscription", { error: errorMessage });
+    return new Response(JSON.stringify({ 
+      error: errorMessage 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

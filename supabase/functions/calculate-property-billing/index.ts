@@ -1,267 +1,247 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@13.7.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const log = (step: string, details?: unknown) => {
-  console.log(`[CALCULATE-BILLING] ${step}${details ? " - " + JSON.stringify(details) : ""}`);
-};
+function log(step: string, details?: unknown) {
+  console.log(`[CALCULATE-PROPERTY-BILLING] ${step}`, details ? JSON.stringify(details) : '');
+}
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
   try {
-    log("Function started");
-    
-    const authHeader = req.headers.get("Authorization");
-    log("Auth header check", { hasAuthHeader: !!authHeader, authHeaderLength: authHeader?.length });
-    
-    if (!authHeader) throw new Error("Missing Authorization header");
+    log("Starting property billing calculation");
 
-    const token = authHeader.replace("Bearer ", "");
-    log("Token extracted", { tokenLength: token.length });
-    
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError) {
-      log("Auth error", { error: userError });
-      throw new Error(`Auth error: ${userError.message}`);
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    if (!supabaseUrl || !supabaseServiceKey || !stripeSecretKey) {
+      throw new Error('Missing required environment variables');
     }
-    
-    const user = userData.user;
-    if (!user?.email) throw new Error("No authenticated user or email missing");
-    log("Authenticated user", { userId: user.id, email: user.email });
+
+    // Initialize Stripe
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+    });
+
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    // Create Supabase client with the user's token
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      log("Authentication failed", { authError });
+      throw new Error('User not authenticated');
+    }
+
+    log("User authenticated", { userId: user.id });
+
+    // Create admin client
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get subscriber data
-    log("Fetching subscriber for user", { userId: user.id });
-    let { data: subscriber, error: subscriberError } = await supabase
+    const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .select('*')
       .eq('user_id', user.id)
-      .maybeSingle();
-
-    log("Subscriber query result", { 
-      subscriber: subscriber ? "found" : "not found", 
-      error: subscriberError?.message,
-      userId: user.id 
-    });
+      .single();
 
     if (subscriberError) {
-      log("Subscriber query error", { error: subscriberError });
-      throw new Error(`Error fetching subscriber: ${subscriberError.message}`);
+      log("Error fetching subscriber", { subscriberError });
+      throw new Error('Subscriber not found');
     }
 
-    if (!subscriber) {
-      log("No subscriber found, trying admin client");
-      // Try with admin client to bypass RLS
-      const { data: adminSubscriber, error: adminError } = await supabaseAdmin
-        .from('subscribers')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      log("Admin query result", { 
-        adminSubscriber: adminSubscriber ? "found" : "not found", 
-        adminError: adminError?.message 
-      });
-      
-      if (adminSubscriber) {
-        // Use the admin result
-        subscriber = adminSubscriber;
-      } else {
-        throw new Error(`No subscriber record found for user: ${user.id}`);
-      }
-    }
+    log("Found subscriber", { subscriberId: subscriber.id });
 
-    log("Found subscriber", { 
-      userId: user.id, 
-      propertyCount: subscriber.active_properties_count,
-      trialEnd: subscriber.trial_end_date 
-    });
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    // Calculate billing based on property count
     const propertyCount = subscriber.active_properties_count || 0;
-    const monthlyAmount = propertyCount * 29 * 100; // $29 per property in cents
-    
+    const monthlyAmount = propertyCount * 50; // $50 per property per month
+
+    log("Calculated billing", { propertyCount, monthlyAmount });
+
     // Check if user is still in trial
-    const trialEndDate = new Date(subscriber.trial_end_date);
     const now = new Date();
-    const isTrialActive = now < trialEndDate;
+    const trialEndDate = new Date(subscriber.trial_end_date);
+    const isTrialActive = subscriber.is_trial_active && now < trialEndDate;
 
-    log("Billing calculation", { 
-      propertyCount, 
-      monthlyAmount: monthlyAmount / 100,
-      isTrialActive,
-      trialEndDate: trialEndDate.toISOString()
-    });
-
-    // If trial is still active, return trial info
     if (isTrialActive) {
       const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      log("User still in trial", { daysRemaining });
       
       return new Response(JSON.stringify({
-        status: 'trial',
-        trial_active: true,
+        success: true,
+        in_trial: true,
+        trial_end_date: subscriber.trial_end_date,
         days_remaining: daysRemaining,
-        trial_end_date: trialEndDate.toISOString(),
         property_count: propertyCount,
-        monthly_amount: monthlyAmount / 100,
-        currency: 'aud'
+        monthly_amount: monthlyAmount,
+        currency: 'usd'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    // Trial has ended, need to handle billing
-    if (!subscriber.stripe_customer_id) {
-      throw new Error("No Stripe customer ID found for user");
-    }
+    // Trial has ended, handle billing
+    if (subscriber.stripe_customer_id) {
+      log("Processing post-trial billing", { customerId: subscriber.stripe_customer_id });
 
-    const customerId = subscriber.stripe_customer_id;
+      // Check for existing active subscriptions
+      const subscriptions = await stripe.subscriptions.list({
+        customer: subscriber.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+      });
 
-    // Check if customer has existing subscription
-    const existingSubscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: 'active',
-      limit: 1
-    });
+      if (subscriptions.data.length > 0) {
+        // Update existing subscription
+        const subscription = subscriptions.data[0];
+        log("Found existing subscription", { subscriptionId: subscription.id });
 
-    if (existingSubscriptions.data.length > 0) {
-      const subscription = existingSubscriptions.data[0];
-      log("Found existing subscription", { subscriptionId: subscription.id });
-
-      // Update subscription with current property count
-      const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
-        items: [{
-          id: subscription.items.data[0].id,
-          price_data: {
-            currency: 'aud',
-            product_data: {
-              name: `Property Management - ${propertyCount} properties`
-            },
-            unit_amount: monthlyAmount,
-            recurring: {
-              interval: 'month'
-            }
+        // Update subscription with current property count
+        const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+          metadata: {
+            property_count: propertyCount.toString(),
+            monthly_amount: monthlyAmount.toString(),
           },
-          quantity: 1
-        }],
-        proration_behavior: 'always_invoice'
-      });
+        });
 
-      log("Updated subscription", { 
-        subscriptionId: updatedSubscription.id,
-        amount: monthlyAmount / 100
-      });
+        // Update subscriber record
+        const { error: updateError } = await adminSupabase
+          .from('subscribers')
+          .update({
+            subscribed: true,
+            subscription_tier: 'Pro',
+            next_billing_date: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', subscriber.id);
 
-      // Update subscriber record
-      await supabase
-        .from('subscribers')
-        .update({
+        if (updateError) {
+          log("Error updating subscriber", { updateError });
+          throw new Error('Failed to update subscriber');
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
           subscribed: true,
-          subscription_tier: 'paid',
-          last_billing_date: new Date().toISOString(),
+          subscription_id: updatedSubscription.id,
+          property_count: propertyCount,
+          monthly_amount: monthlyAmount,
+          currency: 'usd',
           next_billing_date: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
 
-      return new Response(JSON.stringify({
-        status: 'updated',
-        subscription_id: updatedSubscription.id,
-        property_count: propertyCount,
-        monthly_amount: monthlyAmount / 100,
-        currency: 'aud',
-        next_billing_date: new Date(updatedSubscription.current_period_end * 1000).toISOString()
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
+      } else if (propertyCount > 0) {
+        // Create new subscription
+        log("Creating new subscription", { propertyCount, monthlyAmount });
 
-    // No existing subscription, create new one
-    if (propertyCount === 0) {
-      // No properties, no billing needed
-      return new Response(JSON.stringify({
-        status: 'no_billing',
-        property_count: 0,
-        message: 'No properties to bill for'
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // Create new subscription
-    const newSubscription = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [{
-        price_data: {
-          currency: 'aud',
-          product_data: {
-            name: `Property Management - ${propertyCount} properties`
+        // Create a simple product and price for billing
+        const product = await stripe.products.create({
+          name: 'Property Management Subscription',
+          metadata: {
+            user_id: user.id,
           },
-          unit_amount: monthlyAmount,
+        });
+
+        const price = await stripe.prices.create({
+          unit_amount: monthlyAmount * 100, // Convert to cents
+          currency: 'usd',
           recurring: {
-            interval: 'month'
-          }
-        },
-        quantity: 1
-      }],
-      collection_method: 'charge_automatically',
-      metadata: {
-        property_count: propertyCount.toString(),
-        supabase_user_id: user.id
+            interval: 'month',
+          },
+          product: product.id,
+        });
+
+        const subscription = await stripe.subscriptions.create({
+          customer: subscriber.stripe_customer_id,
+          items: [{ price: price.id }],
+          metadata: {
+            property_count: propertyCount.toString(),
+            user_id: user.id,
+          },
+        });
+
+        // Update subscriber record
+        const { error: updateError } = await adminSupabase
+          .from('subscribers')
+          .update({
+            subscribed: true,
+            subscription_tier: 'Pro',
+            next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
+            is_trial_active: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', subscriber.id);
+
+        if (updateError) {
+          log("Error updating subscriber", { updateError });
+          throw new Error('Failed to update subscriber');
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          subscribed: true,
+          subscription_id: subscription.id,
+          property_count: propertyCount,
+          monthly_amount: monthlyAmount,
+          currency: 'usd',
+          next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
       }
-    });
+    }
 
-    log("Created new subscription", { 
-      subscriptionId: newSubscription.id,
-      amount: monthlyAmount / 100
-    });
-
-    // Update subscriber record
-    await supabase
-      .from('subscribers')
-      .update({
-        subscribed: true,
-        subscription_tier: 'paid',
-        last_billing_date: new Date().toISOString(),
-        next_billing_date: new Date(newSubscription.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.id);
-
+    // No billing needed (0 properties or no customer)
     return new Response(JSON.stringify({
-      status: 'created',
-      subscription_id: newSubscription.id,
+      success: true,
+      subscribed: false,
       property_count: propertyCount,
-      monthly_amount: monthlyAmount / 100,
-      currency: 'aud',
-      next_billing_date: new Date(newSubscription.current_period_end * 1000).toISOString()
+      monthly_amount: monthlyAmount,
+      currency: 'usd',
+      message: propertyCount === 0 ? 'No properties to bill for' : 'No customer setup'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    log("ERROR", { message });
-    return new Response(JSON.stringify({ error: message }), {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    log("Error in calculate-property-billing", { error: errorMessage });
+    return new Response(JSON.stringify({ 
+      error: errorMessage 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });
