@@ -26,7 +26,8 @@ const CardSetupForm: React.FC<{
   onSuccess: (setupIntentId: string) => void;
   onError: (error: string) => void;
   isLoading: boolean;
-}> = ({ onSuccess, onError, isLoading }) => {
+  formData?: SignupFormData;
+}> = ({ onSuccess, onError, isLoading, formData }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
@@ -138,7 +139,7 @@ const CardSetupForm: React.FC<{
 };
 
 export const EnhancedSignupFlow: React.FC = () => {
-  const [step, setStep] = useState<'signup' | 'payment' | 'complete'>('signup');
+  const [step, setStep] = useState<'signup' | 'complete'>('signup');
   const [formData, setFormData] = useState<SignupFormData>({
     email: '',
     password: '',
@@ -149,8 +150,8 @@ export const EnhancedSignupFlow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignupWithPayment = async (setupIntentId: string) => {
+    setIsLoading(true);
     setError(null);
 
     // Validation
@@ -169,9 +170,8 @@ export const EnhancedSignupFlow: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
+      // First create the user account
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -195,8 +195,8 @@ export const EnhancedSignupFlow: React.FC = () => {
       }
 
       if (data.session) {
-        // User is immediately signed in, proceed to payment step
-        setStep('payment');
+        // Now handle the payment setup and organization creation
+        await handlePaymentSuccess(setupIntentId);
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -338,7 +338,7 @@ export const EnhancedSignupFlow: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSignup} className="space-y-4">
+              <div className="space-y-6">
                 {error && (
                   <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
@@ -393,70 +393,42 @@ export const EnhancedSignupFlow: React.FC = () => {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    'Create Account'
-                  )}
-                </Button>
+                <Separator className="my-6" />
 
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <h3 className="font-medium mb-2">Payment Method</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Add a payment method to start your 30-day free trial
+                    </p>
+                  </div>
+
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <h4 className="font-medium mb-2">What happens next?</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Your 30-day trial starts immediately</li>
+                      <li>• No charges during the trial period</li>
+                      <li>• $29/property billing begins after trial</li>
+                      <li>• Cancel anytime before trial ends</li>
+                    </ul>
+                  </div>
+
+                  <Elements stripe={stripePromise}>
+                    <CardSetupForm
+                      onSuccess={handleSignupWithPayment}
+                      onError={(error) => setError(error)}
+                      isLoading={isLoading}
+                      formData={formData}
+                    />
+                  </Elements>
+                </div>
+
+                <div className="text-center text-sm text-muted-foreground mt-4">
                   Already have an account?{' '}
                   <a href="/login" className="text-primary hover:underline">
                     Sign in
                   </a>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 'payment' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">Complete Your Trial Setup</CardTitle>
-              <div className="text-center space-y-2">
-                <Badge variant="outline">
-                  <Shield className="w-4 h-4 mr-1" />
-                  Secure Payment Setup
-                </Badge>
-                <p className="text-sm text-muted-foreground">
-                  Add a payment method to start your 30-day free trial
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="bg-muted/50 rounded-lg p-4 mb-6">
-                <h3 className="font-medium mb-2">What happens next?</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Your 30-day trial starts immediately</li>
-                  <li>• No charges during the trial period</li>
-                  <li>• $29/property billing begins after trial</li>
-                  <li>• Cancel anytime before trial ends</li>
-                </ul>
-              </div>
-
-              <Elements stripe={stripePromise}>
-                <CardSetupForm
-                  onSuccess={handlePaymentSuccess}
-                  onError={handlePaymentError}
-                  isLoading={isLoading}
-                />
-              </Elements>
-
-              <div className="text-center text-sm text-muted-foreground mt-4">
-                <Shield className="w-4 h-4 inline mr-1" />
-                Your payment information is encrypted and secure
               </div>
             </CardContent>
           </Card>
