@@ -7,9 +7,13 @@ import StatsOverview from '@/components/dashboard/StatsOverview';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import RequestsList from '@/components/dashboard/RequestsList';
 import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSidebar';
+import { TrialBillingAlert } from '@/components/dashboard/TrialBillingAlert';
+import { BillingWidgets } from '@/components/dashboard/BillingWidgets';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
+import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContext';
+import { PropertyProvider } from '@/contexts/property/PropertyContext';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 
@@ -106,33 +110,46 @@ const Dashboard = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DashboardHeader title="Dashboard" />
-        
-        
-        <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
-          <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>
-            <StatsOverview requestsData={userRequests} />
-            <RequestsList 
-              allRequests={userRequests as any} 
-              onRequestSelect={setSelectedRequest}
-              selectedRequest={selectedRequest}
-            />
-          </div>
-          
-          {selectedRequest ? (
-            <RequestDetailSidebar 
-              request={selectedRequest}
-              onClose={() => setSelectedRequest(null)}
-            />
-          ) : (
-            <DashboardSidebar />
-          )}
+    <SubscriptionProvider>
+      <PropertyProvider>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar />
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <DashboardHeader title="Dashboard" />
+            
+            {/* Trial/Billing Alert */}
+            <div className="mb-6">
+              <TrialBillingAlert />
+            </div>
+
+            {/* Billing Widgets */}
+            <div className="mb-6">
+              <BillingWidgets />
+            </div>
+            
+            <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
+              <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>
+                <StatsOverview requestsData={userRequests} />
+                <RequestsList 
+                  allRequests={userRequests as any} 
+                  onRequestSelect={setSelectedRequest}
+                  selectedRequest={selectedRequest}
+                />
+              </div>
+              
+              {selectedRequest ? (
+                <RequestDetailSidebar 
+                  request={selectedRequest}
+                  onClose={() => setSelectedRequest(null)}
+                />
+              ) : (
+                <DashboardSidebar />
+              )}
+            </div>
+          </main>
         </div>
-      </main>
-    </div>
+      </PropertyProvider>
+    </SubscriptionProvider>
   );
 };
 
