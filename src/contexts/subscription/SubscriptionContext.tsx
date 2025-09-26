@@ -146,6 +146,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data, error } = await supabase.functions.invoke("create-trial-subscription", {
         body: { 
           email: currentUser.email 
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
       
@@ -183,6 +186,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data, error } = await supabase.functions.invoke("cancel-trial-subscription", {
         body: { 
           reason 
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
       
@@ -217,7 +223,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       console.log("Session found, calling reactivate-subscription function");
-      const { data, error } = await supabase.functions.invoke("reactivate-subscription");
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
       
       if (error) {
         console.error("Reactivate subscription error:", error);
@@ -250,7 +260,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       console.log("Session found, calling edge function");
-      const { data, error } = await supabase.functions.invoke("calculate-property-billing");
+      const { data, error } = await supabase.functions.invoke("calculate-property-billing", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
       
       if (error) {
         console.error("Calculate billing error:", error);
@@ -287,7 +301,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       console.log("Session found, calling upgrade-trial-to-paid function");
       // End trial and create paid subscription
-      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid");
+      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
       
       if (error) {
         console.error("Upgrade to paid error:", error);
