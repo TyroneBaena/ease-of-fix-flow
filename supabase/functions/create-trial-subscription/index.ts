@@ -34,8 +34,28 @@ Deno.serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // When verify_jwt = true, the user is automatically authenticated
-    // We can access the user via the Supabase client using the auto-passed JWT
+    // When verify_jwt = true, Supabase automatically verifies and provides user context
+    // Get user from JWT payload that was automatically verified
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      log("No authorization header found");
+      throw new Error('Missing authorization header');
+    }
+    
+    // Parse the JWT to get user info (simplified since Supabase already verified it)
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    const userEmail = payload.email;
+    
+    if (!userId || !userEmail) {
+      log("Invalid token payload", { hasUserId: !!userId, hasEmail: !!userEmail });
+      throw new Error('Invalid token payload');
+    }
+
+    log("User authenticated from JWT", { userId, email: userEmail });
+
+    // Create Supabase client for database operations
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: false,
@@ -43,31 +63,15 @@ Deno.serve(async (req) => {
       },
       global: {
         headers: {
-          Authorization: req.headers.get('Authorization') ?? '',
+          Authorization: authHeader,
         },
       },
     });
 
-    // Get the authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    log("Get user result", { 
-      hasUser: !!user, 
-      userId: user?.id,
-      authErrorMessage: authError?.message 
-    });
-    
-    if (authError || !user) {
-      log("Authentication failed", { authError });
-      throw new Error('User not authenticated');
-    }
-
-    log("User authenticated", { userId: user.id, email: user.email });
-
     // Create or get Stripe customer
     let customer;
     const existingCustomers = await stripe.customers.list({
-      email: user.email!,
+      email: userEmail,
       limit: 1,
     });
 
@@ -76,9 +80,9 @@ Deno.serve(async (req) => {
       log("Found existing Stripe customer", { customerId: customer.id });
     } else {
       customer = await stripe.customers.create({
-        email: user.email!,
+        email: userEmail,
         metadata: {
-          supabase_user_id: user.id,
+          supabase_user_id: userId,
         },
       });
       log("Created new Stripe customer", { customerId: customer.id });
@@ -101,7 +105,7 @@ Deno.serve(async (req) => {
     const { data: properties, error: propertiesError } = await supabase
       .from('properties')
       .select('id')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (propertiesError) {
       log("Error fetching properties", { propertiesError });
@@ -118,8 +122,8 @@ Deno.serve(async (req) => {
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .upsert({
-        user_id: user.id,
-        email: user.email!,
+        user_id: userId,
+        email: userEmail,
         stripe_customer_id: customer.id,
         setup_intent_id: setupIntent.id,
         trial_start_date: new Date().toISOString(),
