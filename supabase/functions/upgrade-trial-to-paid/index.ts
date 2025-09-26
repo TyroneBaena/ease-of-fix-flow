@@ -72,11 +72,40 @@ serve(async (req) => {
     //   throw new Error('User is not in an active trial');
     // }
 
-    if (!subscriber.stripe_customer_id) {
-      throw new Error('No Stripe customer ID found');
+    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    
+    // Create Stripe customer if one doesn't exist
+    let stripeCustomerId = subscriber.stripe_customer_id;
+    if (!stripeCustomerId) {
+      log("Creating new Stripe customer", { email: user.email });
+      
+      const stripeCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabase_user_id: user.id,
+          created_from: 'upgrade_trial'
+        }
+      });
+      
+      stripeCustomerId = stripeCustomer.id;
+      
+      // Update subscriber record with Stripe customer ID
+      const { error: customerUpdateError } = await supabase
+        .from('subscribers')
+        .update({
+          stripe_customer_id: stripeCustomerId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+        
+      if (customerUpdateError) {
+        log("Error updating subscriber with customer ID", { error: customerUpdateError });
+        throw new Error(`Failed to update subscriber with customer ID: ${customerUpdateError.message}`);
+      }
+      
+      log("Created Stripe customer", { customerId: stripeCustomerId });
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const propertyCount = subscriber.active_properties_count || 0;
 
     if (propertyCount === 0) {
@@ -88,11 +117,11 @@ serve(async (req) => {
     log("Creating paid subscription", { 
       propertyCount, 
       monthlyAmount: monthlyAmount / 100,
-      customerId: subscriber.stripe_customer_id
+      customerId: stripeCustomerId
     });
 
     // Check if customer has a default payment method
-    const customer = await stripe.customers.retrieve(subscriber.stripe_customer_id);
+    const customer = await stripe.customers.retrieve(stripeCustomerId);
     if (!customer.invoice_settings?.default_payment_method && !customer.default_source) {
       // Customer has no payment method, create subscription with extended trial to collect payment
       log("No payment method found, creating subscription with trial");
@@ -105,7 +134,7 @@ serve(async (req) => {
 
       // Create subscription with trial period to allow payment method collection
       const newSubscription = await stripe.subscriptions.create({
-        customer: subscriber.stripe_customer_id,
+        customer: stripeCustomerId,
         items: [{
           price_data: {
             currency: 'aud',
@@ -175,7 +204,7 @@ serve(async (req) => {
 
     // Create new paid subscription
     const newSubscription = await stripe.subscriptions.create({
-      customer: subscriber.stripe_customer_id,
+      customer: stripeCustomerId,
       items: [{
         price_data: {
           currency: 'aud',
