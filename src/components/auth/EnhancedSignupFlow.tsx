@@ -171,7 +171,7 @@ const CardSetupForm: React.FC<{
         ) : (
           <>
             <CreditCard className="w-4 h-4 mr-2" />
-            Start 30-Day Trial
+            Sign Up & Start Trial
           </>
         )}
       </Button>
@@ -311,13 +311,16 @@ export const EnhancedSignupFlow: React.FC = () => {
       <div className="w-full max-w-lg">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Start Your 30-Day Trial</CardTitle>
+            <CardTitle className="text-2xl text-center">Create Your Account</CardTitle>
             <div className="flex justify-center">
               <Badge variant="secondary">
                 <Building className="w-4 h-4 mr-1" />
                 Property Management Made Simple
               </Badge>
             </div>
+            <p className="text-center text-muted-foreground mt-2">
+              Sign up to start your 30-day free trial
+            </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
