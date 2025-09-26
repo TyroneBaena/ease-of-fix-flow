@@ -26,10 +26,19 @@ export const TrialBillingAlert: React.FC = () => {
     propertyCount,
     monthlyAmount,
     currency,
-    loading
+    loading,
+    debugDatabaseState
   } = useSubscription();
 
   if (loading) return null;
+
+  // Debug logging to see what state we're in
+  console.log("🟡 TrialBillingAlert state:", {
+    subscribed,
+    isTrialActive,
+    isCancelled,
+    loading
+  });
 
   const trialProgress = isTrialActive && daysRemaining !== null 
     ? Math.max(0, Math.min(100, ((14 - daysRemaining) / 14) * 100))
@@ -199,26 +208,34 @@ export const TrialBillingAlert: React.FC = () => {
               <span className="font-medium text-red-900">Trial Expired</span>
               <Badge variant="destructive">Action Required</Badge>
             </div>
-            <p className="text-sm text-red-700 mb-3">
-              Your free trial has ended. Upgrade to continue accessing all features.
-            </p>
-            <div className="flex gap-2">
-              <Button 
-                size="sm"
-                onClick={() => navigate('/billing')}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Reactivate
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/billing')}
-                className="border-red-300 text-red-700 hover:bg-red-100"
-              >
-                View Options
-              </Button>
-            </div>
+              <p className="text-sm text-red-700 mb-3">
+                Your free trial has ended. Upgrade to continue accessing all features.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Reactivate
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  View Options
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => debugDatabaseState()}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Debug DB
+                </Button>
+              </div>
           </div>
         </div>
       </CardContent>

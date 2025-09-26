@@ -27,6 +27,9 @@ interface SubscriptionContextValue {
   
   // Property count management
   refreshPropertyCount: () => Promise<void>;
+  
+  // Debug function
+  debugDatabaseState: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
@@ -97,6 +100,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setTrialEndDate((row as any)?.trial_end_date ?? null);
       setPropertyCount((row as any)?.active_properties_count ?? null);
       
+      // Debug logging to see what state we're in
+      console.log("🟡 Subscription state after refresh:", {
+        subscribed: (row as any)?.subscribed,
+        isTrialActive: (row as any)?.is_trial_active,
+        isCancelled: (row as any)?.is_cancelled,
+        row: row
+      });
+      
       // Calculate days remaining if trial is active
       if ((row as any)?.trial_end_date && (row as any)?.is_trial_active) {
         const endDate = new Date((row as any).trial_end_date);
@@ -112,6 +123,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const propCount = (row as any)?.active_properties_count || 0;
       setMonthlyAmount(propCount * 29);
       setCurrency('aud');
+      
+      // Debug: Also log what fields are available in the database
+      console.log("🟡 Available fields in subscriber record:", Object.keys(row || {}));
       
     } catch (error) {
       console.error("Subscription refresh error:", error);
@@ -339,6 +353,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => clearInterval(interval);
   }, [currentUser?.id, refresh]);
 
+  const debugDatabaseState = useCallback(async () => {
+    if (!currentUser?.id) {
+      console.log("🔴 No current user");
+      return;
+    }
+    
+    try {
+      const { data: row, error } = await supabase
+        .from("subscribers")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+        
+      console.log("🟡 Full database record:", row);
+      console.log("🟡 Error (if any):", error);
+    } catch (error) {
+      console.error("🔴 Debug query error:", error);
+    }
+  }, [currentUser]);
+
   const value: SubscriptionContextValue = useMemo(() => ({
     subscribed,
     subscriptionTier,
@@ -364,6 +398,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     // Property count management
     refreshPropertyCount,
+    
+    // Debug function
+    debugDatabaseState,
   }), [
     subscribed, 
     subscriptionTier, 
@@ -382,7 +419,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     reactivateSubscription,
     calculateBilling,
     upgradeToPaid,
-    refreshPropertyCount
+    refreshPropertyCount,
+    debugDatabaseState
   ]);
 
   return (
