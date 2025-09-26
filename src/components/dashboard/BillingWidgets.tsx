@@ -19,6 +19,7 @@ export const BillingWidgets: React.FC = () => {
   const {
     subscribed,
     isTrialActive,
+    isCancelled,
     trialEndDate,
     daysRemaining,
     propertyCount,
@@ -100,6 +101,12 @@ export const BillingWidgets: React.FC = () => {
                   Active
                 </Badge>
               </>
+            ) : isCancelled ? (
+              <>
+                <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                  Cancelled
+                </Badge>
+              </>
             ) : isTrialActive ? (
               <>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -118,6 +125,8 @@ export const BillingWidgets: React.FC = () => {
           <p className="text-xs text-muted-foreground mt-1">
             {subscribed 
               ? 'Billing active'
+              : isCancelled
+                ? 'Reactivation available'
               : isTrialActive 
                 ? `Ends ${trialEndDate ? format(new Date(trialEndDate), 'MMM dd') : 'soon'}`
                 : 'Reactivation required'
