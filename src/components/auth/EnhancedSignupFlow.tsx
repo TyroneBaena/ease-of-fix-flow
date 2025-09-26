@@ -251,6 +251,25 @@ export const EnhancedSignupFlow: React.FC = () => {
         console.error('Membership creation error:', membershipError);
       }
 
+      // Create trial subscription
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: trialData, error: trialError } = await supabase.functions.invoke(
+        'create-trial-subscription',
+        {
+          headers: {
+            Authorization: `Bearer ${currentSession?.access_token}`,
+          },
+        }
+      );
+
+      if (trialError) {
+        console.error('Trial creation error:', trialError);
+        setError('Failed to start your trial. Please contact support.');
+        return;
+      }
+
+      console.log('Trial created successfully:', trialData);
+
       setStep('complete');
       toast.success('Welcome! Your 30-day trial has started successfully.');
       
