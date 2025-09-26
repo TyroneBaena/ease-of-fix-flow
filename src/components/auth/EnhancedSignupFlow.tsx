@@ -26,51 +26,91 @@ const CardSetupForm: React.FC<{
   onSuccess: (setupIntentId: string) => void;
   onError: (error: string) => void;
   isLoading: boolean;
-  formData?: SignupFormData;
+  formData: SignupFormData;
 }> = ({ onSuccess, onError, isLoading, formData }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Get setup intent from our edge function
-    const createSetupIntent = async () => {
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session.session) {
-          onError('Authentication required');
-          return;
-        }
-
-        const response = await supabase.functions.invoke('create-trial-subscription', {
-          headers: {
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-        });
-
-        if (response.error) {
-          onError(response.error.message || 'Failed to create trial subscription');
-          return;
-        }
-
-        if (response.data?.client_secret) {
-          setSetupIntentClientSecret(response.data.client_secret);
-        } else {
-          onError('Failed to create payment setup');
-        }
-      } catch (error) {
-        console.error('Setup intent creation error:', error);
-        onError('Failed to initialize payment setup');
+  const createSetupIntent = async () => {
+    try {
+      // Validation first
+      if (!formData.email || !formData.password || !formData.name) {
+        onError('Please fill in all required fields');
+        return;
       }
-    };
 
-    createSetupIntent();
-  }, [onError]);
+      if (formData.password !== formData.confirmPassword) {
+        onError('Passwords do not match');
+        return;
+      }
+
+      if (formData.password.length < 6) {
+        onError('Password must be at least 6 characters long');
+        return;
+      }
+
+      // First create the user account
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            role: 'admin',
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (signUpError) {
+        onError(signUpError.message);
+        return;
+      }
+
+      if (data.user && !data.session) {
+        onError('Please check your email and click the confirmation link before proceeding.');
+        return;
+      }
+
+      if (!data.session) {
+        onError('Failed to create user session');
+        return;
+      }
+
+      // Now create setup intent
+      const response = await supabase.functions.invoke('create-trial-subscription', {
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        onError(response.error.message || 'Failed to create trial subscription');
+        return;
+      }
+
+      if (response.data?.client_secret) {
+        setSetupIntentClientSecret(response.data.client_secret);
+      } else {
+        onError('Failed to create payment setup');
+      }
+    } catch (error) {
+      console.error('Setup intent creation error:', error);
+      onError('Failed to initialize payment setup');
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!stripe || !elements || !setupIntentClientSecret) {
+    if (!setupIntentClientSecret) {
+      // First create the account and setup intent
+      await createSetupIntent();
+      return;
+    }
+
+    if (!stripe || !elements) {
       onError('Payment system not ready');
       return;
     }
@@ -85,7 +125,8 @@ const CardSetupForm: React.FC<{
       payment_method: {
         card: cardElement,
         billing_details: {
-          // We could add billing details here if needed
+          name: formData.name,
+          email: formData.email,
         },
       },
     });
@@ -121,11 +162,11 @@ const CardSetupForm: React.FC<{
         </p>
       </div>
       
-      <Button type="submit" disabled={!stripe || isLoading} className="w-full">
+      <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Setting up trial...
+            {setupIntentClientSecret ? 'Starting Trial...' : 'Creating Account...'}
           </>
         ) : (
           <>
@@ -150,66 +191,9 @@ export const EnhancedSignupFlow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleSignupWithPayment = async (setupIntentId: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    // Validation
-    if (!formData.email || !formData.password || !formData.name) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
-    try {
-      // First create the user account
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            name: formData.name,
-            role: 'admin', // First user becomes admin
-          },
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        return;
-      }
-
-      if (data.user && !data.session) {
-        setError('Please check your email and click the confirmation link before proceeding.');
-        return;
-      }
-
-      if (data.session) {
-        // Now handle the payment setup and organization creation
-        await handlePaymentSuccess(setupIntentId);
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      setError('An unexpected error occurred during signup');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handlePaymentSuccess = async (setupIntentId: string) => {
     setIsLoading(true);
     try {
-      // Create organization for the user
       const { data: session } = await supabase.auth.getSession();
       const user = session.session?.user;
       
@@ -265,7 +249,6 @@ export const EnhancedSignupFlow: React.FC = () => {
 
       if (membershipError) {
         console.error('Membership creation error:', membershipError);
-        // Don't fail the flow for this
       }
 
       setStep('complete');
@@ -326,25 +309,25 @@ export const EnhancedSignupFlow: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
-        {step === 'signup' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">Start Your 30-Day Trial</CardTitle>
-              <div className="flex justify-center">
-                <Badge variant="secondary">
-                  <Building className="w-4 h-4 mr-1" />
-                  Property Management Made Simple
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Start Your 30-Day Trial</CardTitle>
+            <div className="flex justify-center">
+              <Badge variant="secondary">
+                <Building className="w-4 h-4 mr-1" />
+                Property Management Made Simple
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium">Full Name</label>
                   <Input
@@ -392,47 +375,47 @@ export const EnhancedSignupFlow: React.FC = () => {
                     required
                   />
                 </div>
-
-                <Separator className="my-6" />
-
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <h3 className="font-medium mb-2">Payment Method</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Add a payment method to start your 30-day free trial
-                    </p>
-                  </div>
-
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <h4 className="font-medium mb-2">What happens next?</h4>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>• Your 30-day trial starts immediately</li>
-                      <li>• No charges during the trial period</li>
-                      <li>• $29/property billing begins after trial</li>
-                      <li>• Cancel anytime before trial ends</li>
-                    </ul>
-                  </div>
-
-                  <Elements stripe={stripePromise}>
-                    <CardSetupForm
-                      onSuccess={handleSignupWithPayment}
-                      onError={(error) => setError(error)}
-                      isLoading={isLoading}
-                      formData={formData}
-                    />
-                  </Elements>
-                </div>
-
-                <div className="text-center text-sm text-muted-foreground mt-4">
-                  Already have an account?{' '}
-                  <a href="/login" className="text-primary hover:underline">
-                    Sign in
-                  </a>
-                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+
+              <Separator className="my-6" />
+
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="font-medium mb-2">Payment Method</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Add a payment method to start your 30-day free trial
+                  </p>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <h4 className="font-medium mb-2">What happens next?</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Your 30-day trial starts immediately</li>
+                    <li>• No charges during the trial period</li>
+                    <li>• $29/property billing begins after trial</li>
+                    <li>• Cancel anytime before trial ends</li>
+                  </ul>
+                </div>
+
+                <Elements stripe={stripePromise}>
+                  <CardSetupForm
+                    onSuccess={handlePaymentSuccess}
+                    onError={handlePaymentError}
+                    isLoading={isLoading}
+                    formData={formData}
+                  />
+                </Elements>
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground mt-4">
+                Already have an account?{' '}
+                <a href="/login" className="text-primary hover:underline">
+                  Sign in
+                </a>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
