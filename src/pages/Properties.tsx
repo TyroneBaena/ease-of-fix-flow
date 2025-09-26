@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContext';
 import { isUserAdmin } from '@/utils/userRoles';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
+import { TrialAccessControl } from '@/components/billing/TrialAccessControl';
+import { PropertyCreationWithBilling } from '@/components/property/PropertyCreationWithBilling';
+import { usePropertyBillingIntegration } from '@/hooks/usePropertyBillingIntegration';
 import {
   Card,
   CardContent,
@@ -28,11 +32,14 @@ import { Building, Plus, MapPin, Phone, Mail, Calendar, DollarSign } from 'lucid
 import { toast } from '@/lib/toast';
 import { PropertyForm } from '@/components/property/PropertyForm';
 
-const Properties = () => {
+const PropertiesContent = () => {
   const { properties } = usePropertyContext();
   const { currentUser } = useUserContext();
   const isAdmin = isUserAdmin(currentUser);
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Initialize billing integration
+  usePropertyBillingIntegration();
   
   // Debug: Log properties to see current state
   console.log('Properties page: Current properties:', properties);
@@ -48,7 +55,8 @@ const Properties = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <TrialAccessControl feature="property management">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Properties</h1>
@@ -75,17 +83,10 @@ const Properties = () => {
         </div>
         
         {properties.length === 0 ? (
-          <div className="text-center py-12">
-            <Building className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No properties yet</h3>
-            <p className="mt-1 text-gray-500">Get started by adding your first property.</p>
-            <div className="mt-6">
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Property
-              </Button>
-            </div>
-          </div>
+          <PropertyCreationWithBilling 
+            onCreateProperty={() => setDialogOpen(true)}
+            className="max-w-md mx-auto"
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((property) => (
@@ -128,8 +129,17 @@ const Properties = () => {
             ))}
           </div>
         )}
-      </main>
+        </main>
+      </TrialAccessControl>
     </div>
+  );
+};
+
+const Properties = () => {
+  return (
+    <SubscriptionProvider>
+      <PropertiesContent />
+    </SubscriptionProvider>
   );
 };
 

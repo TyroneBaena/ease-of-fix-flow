@@ -24,7 +24,7 @@ const PricingContent: React.FC = () => {
     try {
       const result = await startTrial();
       if (result.success) {
-        toast.success("Welcome! Your 14-day free trial has started.");
+        toast.success("Welcome! Your 30-day free trial has started.");
         navigate("/dashboard");
       } else {
         toast.error(result.error || "Failed to start trial");
@@ -59,20 +59,20 @@ const PricingContent: React.FC = () => {
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             No complex tiers, no hidden fees. Just $29 AUD per property per month. 
-            Start with a 14-day free trial - no credit card required.
+            Start with a 30-day free trial - credit card required for trial signup.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Button 
               size="lg" 
-              onClick={handleStartTrial}
-              disabled={isStartingTrial}
+              onClick={() => navigate("/signup")}
               className="min-w-48"
             >
-              {isStartingTrial ? "Starting Trial..." : "Start Free Trial"}
+              <CreditCard className="w-4 h-4 mr-2" />
+              Start 30-Day Trial
             </Button>
             <p className="text-sm text-muted-foreground">
-              No credit card required • Cancel anytime
+              Credit card required • Cancel anytime • $29/property after trial
             </p>
           </div>
         </div>
