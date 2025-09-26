@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 function log(step: string, details?: unknown) {
@@ -27,26 +29,48 @@ Deno.serve(async (req) => {
       throw new Error('Missing required environment variables');
     }
 
-    // When verify_jwt = true, Supabase automatically verifies and provides user context
-    // Get user from JWT payload that was automatically verified
+    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      log("No authorization header found");
       throw new Error('Missing authorization header');
     }
-    
-    // Parse the JWT to get user info (simplified since Supabase already verified it)
+
+    log("Authorization header found", { hasHeader: !!authHeader });
+
+    // Extract the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-    const userEmail = payload.email;
-    
-    if (!userId || !userEmail) {
-      log("Invalid token payload", { hasUserId: !!userId, hasEmail: !!userEmail });
-      throw new Error('Invalid token payload');
+    if (!token) {
+      throw new Error('Invalid authorization token');
     }
 
-    log("User authenticated from JWT", { userId, email: userEmail });
+    // Create Supabase client with the user's token
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    log("Get user result", { 
+      hasUser: !!user, 
+      userId: user?.id,
+      authErrorMessage: authError?.message 
+    });
+    
+    if (authError || !user) {
+      log("Authentication failed", { authError });
+      throw new Error('User not authenticated');
+    }
+
+    log("User authenticated", { userId: user.id, email: user.email });
 
     // Parse request body for cancellation reason
     const body = await req.json();
@@ -61,7 +85,7 @@ Deno.serve(async (req) => {
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (subscriberError) {
@@ -71,8 +95,8 @@ Deno.serve(async (req) => {
       const { data: newSubscriber, error: createError } = await adminSupabase
         .from('subscribers')
         .insert({
-          user_id: userId,
-          email: userEmail,
+          user_id: user.id,
+          email: user.email!,
           is_trial_active: false,
           is_cancelled: true,
           cancellation_date: new Date().toISOString(),
