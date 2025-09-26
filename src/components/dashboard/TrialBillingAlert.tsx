@@ -20,6 +20,7 @@ export const TrialBillingAlert: React.FC = () => {
   const {
     subscribed,
     isTrialActive,
+    isCancelled,
     trialEndDate,
     daysRemaining,
     propertyCount,
@@ -141,6 +142,45 @@ export const TrialBillingAlert: React.FC = () => {
                   Add properties to enable billing and continue after trial
                 </p>
               )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Handle cancelled state - show reactivation option with different messaging
+  if (isCancelled) {
+    return (
+      <Card className="border-gray-200 bg-gray-50/50">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-gray-900">Subscription Cancelled</span>
+                <Badge variant="secondary">Cancelled</Badge>
+              </div>
+              <p className="text-sm text-gray-700 mb-3">
+                Your subscription has been cancelled. You can reactivate at any time to continue using all features.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Reactivate
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  View Options
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

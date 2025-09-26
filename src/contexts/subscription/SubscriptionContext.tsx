@@ -11,6 +11,7 @@ interface SubscriptionContextValue {
   
   // Trial and property-based billing data
   isTrialActive: boolean | null;
+  isCancelled: boolean | null;
   trialEndDate: string | null;
   daysRemaining: number | null;
   propertyCount: number | null;
@@ -39,6 +40,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   
   // Trial and billing state
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
+  const [isCancelled, setIsCancelled] = useState<boolean | null>(null);
   const [trialEndDate, setTrialEndDate] = useState<string | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
@@ -50,6 +52,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setSubscriptionTier(null);
     setSubscriptionEnd(null);
     setIsTrialActive(null);
+    setIsCancelled(null);
     setTrialEndDate(null);
     setDaysRemaining(null);
     setPropertyCount(null);
@@ -75,6 +78,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           subscription_tier, 
           subscription_end,
           is_trial_active,
+          is_cancelled,
           trial_end_date,
           active_properties_count
         `)
@@ -89,6 +93,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setSubscriptionTier((row as any)?.subscription_tier ?? null);
       setSubscriptionEnd((row as any)?.subscription_end ?? null);
       setIsTrialActive((row as any)?.is_trial_active ?? null);
+      setIsCancelled((row as any)?.is_cancelled ?? null);
       setTrialEndDate((row as any)?.trial_end_date ?? null);
       setPropertyCount((row as any)?.active_properties_count ?? null);
       
@@ -343,6 +348,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     // Trial and property-based billing data
     isTrialActive,
+    isCancelled,
     trialEndDate,
     daysRemaining,
     propertyCount,
@@ -365,6 +371,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     loading, 
     refresh,
     isTrialActive,
+    isCancelled,
     trialEndDate,
     daysRemaining,
     propertyCount,
