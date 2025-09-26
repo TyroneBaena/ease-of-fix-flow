@@ -175,33 +175,36 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     try {
-      console.log("Starting trial cancellation for user:", currentUser.id);
+      console.log("🟡 SubscriptionContext: Starting trial cancellation for user:", currentUser.id);
+      console.log("🟡 SubscriptionContext: Cancellation reason:", reason);
       
       // Get current session to ensure we have a valid token
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session) {
-        console.error("Session error:", sessionError);
+        console.error("🔴 SubscriptionContext: Session error:", sessionError);
         return { success: false, error: "Authentication session invalid" };
       }
       
-      console.log("Session found, calling cancel-trial-subscription function");
+      console.log("🟡 SubscriptionContext: Session found, calling cancel-trial-subscription function");
       const { data, error } = await supabase.functions.invoke("cancel-trial-subscription", {
         body: { 
           reason 
         }
       });
       
+      console.log("🟡 SubscriptionContext: Edge function response - data:", data, "error:", error);
+      
       if (error) {
-        console.error("Cancel trial error:", error);
+        console.error("🔴 SubscriptionContext: Cancel trial error:", error);
         return { success: false, error: error.message };
       }
       
-      console.log("Trial cancellation successful:", data);
+      console.log("🟢 SubscriptionContext: Trial cancellation successful:", data);
       // Refresh subscription data after cancellation
       await refresh();
       return { success: true };
     } catch (error) {
-      console.error("Cancel trial exception:", error);
+      console.error("🔴 SubscriptionContext: Cancel trial exception:", error);
       return { success: false, error: "Failed to cancel trial" };
     }
   }, [currentUser, refresh]);

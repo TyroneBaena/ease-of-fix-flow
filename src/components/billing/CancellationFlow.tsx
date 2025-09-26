@@ -62,14 +62,19 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
   };
 
   const handleCancel = async () => {
+    console.log("🟡 CancellationFlow: Starting handleCancel");
     setCurrentStep('processing');
     setIsProcessing(true);
     
     try {
       const cancellationReason = `${cancellationReasons.find(r => r.value === selectedReason)?.label}${feedback ? `: ${feedback}` : ''}`;
+      console.log("🟡 CancellationFlow: Calling cancelTrial with reason:", cancellationReason);
+      
       const result = await cancelTrial(cancellationReason);
+      console.log("🟡 CancellationFlow: cancelTrial result:", result);
       
       if (result.success) {
+        console.log("🟢 CancellationFlow: Cancellation successful");
         setCurrentStep('completed');
         toast({
           title: "Subscription Cancelled",
@@ -79,6 +84,7 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
           onComplete?.();
         }, 3000);
       } else {
+        console.log("🔴 CancellationFlow: Cancellation failed:", result.error);
         toast({
           title: "Cancellation Failed",
           description: result.error || "Unable to cancel subscription. Please try again.",
@@ -87,6 +93,7 @@ export const CancellationFlow: React.FC<CancellationFlowProps> = ({
         setCurrentStep('confirmation');
       }
     } catch (error) {
+      console.log("🔴 CancellationFlow: Exception occurred:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",

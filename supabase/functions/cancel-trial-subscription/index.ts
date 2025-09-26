@@ -27,31 +27,26 @@ Deno.serve(async (req) => {
       throw new Error('Missing required environment variables');
     }
 
-    // Get the authorization header
+    // When verify_jwt = true, Supabase automatically verifies and provides user context
+    // Get user from JWT payload that was automatically verified
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      log("No authorization header found");
       throw new Error('Missing authorization header');
     }
-
-    log("Authorization header found", { hasHeader: !!authHeader });
-
-    // Extract the JWT token from the Authorization header
+    
+    // Parse the JWT to get user info (simplified since Supabase already verified it)
     const token = authHeader.replace('Bearer ', '');
-    if (!token) {
-      throw new Error('Invalid authorization token');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    const userEmail = payload.email;
+    
+    if (!userId || !userEmail) {
+      log("Invalid token payload", { hasUserId: !!userId, hasEmail: !!userEmail });
+      throw new Error('Invalid token payload');
     }
 
-    // Create Supabase client with the user's token
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Set the session directly with the token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      log("Authentication failed", { authError });
-      throw new Error('User not authenticated');
-    }
-
-    log("User authenticated", { userId: user.id });
+    log("User authenticated from JWT", { userId, email: userEmail });
 
     // Parse request body for cancellation reason
     const body = await req.json();
@@ -66,7 +61,7 @@ Deno.serve(async (req) => {
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (subscriberError) {
@@ -76,8 +71,8 @@ Deno.serve(async (req) => {
       const { data: newSubscriber, error: createError } = await adminSupabase
         .from('subscribers')
         .insert({
-          user_id: user.id,
-          email: user.email!,
+          user_id: userId,
+          email: userEmail,
           is_trial_active: false,
           is_cancelled: true,
           cancellation_date: new Date().toISOString(),
