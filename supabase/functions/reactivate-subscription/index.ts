@@ -135,8 +135,32 @@ Deno.serve(async (req) => {
 
       // Create or get Stripe customer
       let customer;
+      let customerCurrency = 'usd'; // Default to USD
+      
       if (subscriber.stripe_customer_id) {
         customer = await stripe.customers.retrieve(subscriber.stripe_customer_id);
+        
+        // Get customer's existing currency from their subscriptions or invoices
+        const subscriptions = await stripe.subscriptions.list({
+          customer: subscriber.stripe_customer_id,
+          limit: 1,
+        });
+        
+        if (subscriptions.data.length > 0) {
+          customerCurrency = subscriptions.data[0].currency;
+          log("Using existing customer currency", { currency: customerCurrency });
+        } else {
+          // Check for any existing invoices to get currency
+          const invoices = await stripe.invoices.list({
+            customer: subscriber.stripe_customer_id,
+            limit: 1,
+          });
+          
+          if (invoices.data.length > 0) {
+            customerCurrency = invoices.data[0].currency;
+            log("Using customer currency from invoice", { currency: customerCurrency });
+          }
+        }
       } else {
         customer = await stripe.customers.create({
           email: userEmail,
@@ -145,6 +169,8 @@ Deno.serve(async (req) => {
           },
         });
       }
+
+      log("Customer currency determined", { currency: customerCurrency });
 
       // Create product and price
       const product = await stripe.products.create({
@@ -156,7 +182,7 @@ Deno.serve(async (req) => {
 
       const price = await stripe.prices.create({
         unit_amount: monthlyAmount * 100, // Convert to cents
-        currency: 'usd',
+        currency: customerCurrency,
         recurring: {
           interval: 'month',
         },
@@ -206,7 +232,7 @@ Deno.serve(async (req) => {
         subscription_id: subscription.id,
         property_count: propertyCount,
         monthly_amount: monthlyAmount,
-        currency: 'usd',
+        currency: customerCurrency,
         next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
         message: 'Reactivated with immediate paid subscription',
       }), {
