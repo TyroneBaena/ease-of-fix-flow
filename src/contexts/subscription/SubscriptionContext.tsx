@@ -74,7 +74,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLoading(true);
       
       // Directly query the database to avoid function caching issues
-      const { data: row, error: fetchErr } = await supabase
+      let { data: row, error: fetchErr } = await supabase
         .from("subscribers")
         .select(`
           subscribed, 
@@ -87,6 +87,44 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         `)
         .eq("user_id", currentUser.id)
         .maybeSingle();
+
+      // If no subscriber record exists, create one with an active trial
+      if (!row && !fetchErr) {
+        console.log("🟡 No subscriber record found, creating trial for user:", currentUser.email);
+        
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 30);
+        
+        const { data: newRow, error: createError } = await supabase
+          .from('subscribers')
+          .insert({
+            user_id: currentUser.id,
+            email: currentUser.email,
+            is_trial_active: true,
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: trialEndDate.toISOString(),
+            is_cancelled: false,
+            active_properties_count: 0,
+            subscribed: false,
+          })
+          .select(`
+            subscribed, 
+            subscription_tier, 
+            subscription_end,
+            is_trial_active,
+            is_cancelled,
+            trial_end_date,
+            active_properties_count
+          `)
+          .single();
+          
+        if (createError) {
+          console.error("Failed to create trial subscription:", createError);
+        } else {
+          console.log("🟢 Created trial subscription for user:", currentUser.email);
+          row = newRow;
+        }
+      }
         
       if (fetchErr) {
         console.error("subscribers fetch error:", fetchErr);
@@ -100,13 +138,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setTrialEndDate((row as any)?.trial_end_date ?? null);
       setPropertyCount((row as any)?.active_properties_count ?? null);
       
-      // Debug logging to see what state we're in
-      console.log("🟡 Subscription state after refresh:", {
-        subscribed: (row as any)?.subscribed,
-        isTrialActive: (row as any)?.is_trial_active,
-        isCancelled: (row as any)?.is_cancelled,
-        row: row
-      });
+      // Debug logging for development
+      if (row) {
+        console.log("🟡 Subscription state loaded:", {
+          subscribed: (row as any)?.subscribed,
+          isTrialActive: (row as any)?.is_trial_active,
+          trialEndDate: (row as any)?.trial_end_date
+        });
+      }
       
       // Calculate days remaining if trial is active
       if ((row as any)?.trial_end_date && (row as any)?.is_trial_active) {
