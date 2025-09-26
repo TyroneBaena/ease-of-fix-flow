@@ -32,6 +32,7 @@ export const BillingManagementPage: React.FC = () => {
   const {
     subscribed,
     isTrialActive,
+    isCancelled,
     trialEndDate,
     daysRemaining,
     propertyCount,
@@ -193,6 +194,11 @@ export const BillingManagementPage: React.FC = () => {
                         <>
                           <Clock className="w-4 h-4 text-blue-500" />
                           <span className="font-medium">Free Trial</span>
+                        </>
+                      ) : isCancelled ? (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                          <span className="font-medium">Cancelled</span>
                         </>
                       ) : (
                         <>
