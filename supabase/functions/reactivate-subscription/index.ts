@@ -189,14 +189,56 @@ Deno.serve(async (req) => {
         product: product.id,
       });
 
-      const subscription = await stripe.subscriptions.create({
+      // Check if customer has a payment method
+      const paymentMethods = await stripe.paymentMethods.list({
         customer: customer.id,
-        items: [{ price: price.id }],
-        metadata: {
-          property_count: propertyCount.toString(),
-          user_id: userId,
-        },
+        type: 'card',
       });
+
+      let subscription;
+      
+      if (paymentMethods.data.length === 0) {
+        // No payment method - create subscription with trial for payment method collection
+        log("No payment method found, creating subscription with trial period");
+        
+        subscription = await stripe.subscriptions.create({
+          customer: customer.id,
+          items: [{ price: price.id }],
+          trial_period_days: 7, // Give 7 days to add payment method
+          payment_behavior: 'default_incomplete',
+          payment_settings: {
+            save_default_payment_method: 'on_subscription',
+          },
+          metadata: {
+            property_count: propertyCount.toString(),
+            user_id: userId,
+            reactivation: 'true',
+          },
+        });
+        
+        log("Subscription created with trial for payment method collection", { 
+          subscriptionId: subscription.id,
+          status: subscription.status 
+        });
+      } else {
+        // Payment method exists - create immediate subscription
+        log("Payment method found, creating immediate subscription");
+        
+        subscription = await stripe.subscriptions.create({
+          customer: customer.id,
+          items: [{ price: price.id }],
+          metadata: {
+            property_count: propertyCount.toString(),
+            user_id: userId,
+            reactivation: 'true',
+          },
+        });
+        
+        log("Immediate subscription created", { 
+          subscriptionId: subscription.id,
+          status: subscription.status 
+        });
+      }
 
       // Update subscriber record
       const { data: updatedSubscriber, error: updateError } = await adminSupabase
@@ -230,11 +272,17 @@ Deno.serve(async (req) => {
         success: true,
         reactivated_as: 'paid',
         subscription_id: subscription.id,
+        subscription_status: subscription.status,
         property_count: propertyCount,
         monthly_amount: monthlyAmount,
         currency: customerCurrency,
-        next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
-        message: 'Reactivated with immediate paid subscription',
+        next_billing_date: subscription.trial_end 
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : new Date(subscription.current_period_end * 1000).toISOString(),
+        message: paymentMethods.data.length === 0 
+          ? 'Reactivated with 7-day trial to add payment method'
+          : 'Reactivated with immediate paid subscription',
+        requires_payment_method: paymentMethods.data.length === 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
