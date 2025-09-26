@@ -134,21 +134,23 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     try {
       console.log("Starting trial subscription for user:", currentUser.id);
+      console.log("Current user state:", { id: currentUser.id, email: currentUser.email });
       
       // Get current session to ensure we have a valid token
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log("Session retrieval result:", { hasSession: !!session, sessionError });
+      
       if (sessionError || !session) {
         console.error("Session error:", sessionError);
         return { success: false, error: "Authentication session invalid" };
       }
       
       console.log("Session found, calling create-trial-subscription function");
+      
+      // With verify_jwt = true, the authorization header is automatically included
       const { data, error } = await supabase.functions.invoke("create-trial-subscription", {
         body: { 
           email: currentUser.email 
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
         }
       });
       
@@ -186,9 +188,6 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data, error } = await supabase.functions.invoke("cancel-trial-subscription", {
         body: { 
           reason 
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
         }
       });
       
@@ -223,11 +222,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       console.log("Session found, calling reactivate-subscription function");
-      const { data, error } = await supabase.functions.invoke("reactivate-subscription", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription");
       
       if (error) {
         console.error("Reactivate subscription error:", error);
@@ -260,11 +255,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       console.log("Session found, calling edge function");
-      const { data, error } = await supabase.functions.invoke("calculate-property-billing", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { data, error } = await supabase.functions.invoke("calculate-property-billing");
       
       if (error) {
         console.error("Calculate billing error:", error);
@@ -301,11 +292,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       console.log("Session found, calling upgrade-trial-to-paid function");
       // End trial and create paid subscription
-      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid");
       
       if (error) {
         console.error("Upgrade to paid error:", error);

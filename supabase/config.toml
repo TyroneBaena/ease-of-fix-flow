@@ -15,19 +15,19 @@ hook_send_auth_email_secrets = "NEW_RESEND_API_KEY"
 password = "your-super-secret-and-long-postgres-password"
 
 [functions.create-trial-subscription]
-verify_jwt = false
+verify_jwt = true
 
 [functions.calculate-property-billing]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cancel-trial-subscription]
-verify_jwt = false
+verify_jwt = true
 
 [functions.reactivate-subscription]
-verify_jwt = false
+verify_jwt = true
 
 [functions.upgrade-trial-to-paid]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-invite]
 verify_jwt = false
