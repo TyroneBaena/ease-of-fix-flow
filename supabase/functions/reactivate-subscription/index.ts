@@ -34,33 +34,24 @@ Deno.serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // Get the authorization header
+    // Get the authorization header and extract JWT payload
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Missing or invalid authorization header');
     }
 
-    // Create Supabase client with the user's token
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    });
-
-    // Get the authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      log("Authentication failed", { authError });
-      throw new Error('User not authenticated');
+    // Extract JWT payload directly (since verify_jwt = true handles verification)
+    const jwt = authHeader.replace('Bearer ', '');
+    const jwtPayload = JSON.parse(atob(jwt.split('.')[1]));
+    
+    const userId = jwtPayload.sub;
+    const userEmail = jwtPayload.email;
+    
+    if (!userId || !userEmail) {
+      throw new Error('Invalid JWT payload');
     }
 
-    log("User authenticated", { userId: user.id });
+    log("User authenticated", { userId, userEmail });
 
     // Create admin client
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -69,7 +60,7 @@ Deno.serve(async (req) => {
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (subscriberError) {
@@ -84,10 +75,10 @@ Deno.serve(async (req) => {
     }
 
     // Check if user has active properties
-    const { data: properties, error: propertiesError } = await supabase
+    const { data: properties, error: propertiesError } = await adminSupabase
       .from('properties')
       .select('id')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (propertiesError) {
       log("Error fetching properties", { propertiesError });
@@ -148,9 +139,9 @@ Deno.serve(async (req) => {
         customer = await stripe.customers.retrieve(subscriber.stripe_customer_id);
       } else {
         customer = await stripe.customers.create({
-          email: user.email!,
+          email: userEmail,
           metadata: {
-            supabase_user_id: user.id,
+            supabase_user_id: userId,
           },
         });
       }
@@ -159,7 +150,7 @@ Deno.serve(async (req) => {
       const product = await stripe.products.create({
         name: 'Property Management Subscription',
         metadata: {
-          user_id: user.id,
+          user_id: userId,
         },
       });
 
@@ -177,7 +168,7 @@ Deno.serve(async (req) => {
         items: [{ price: price.id }],
         metadata: {
           property_count: propertyCount.toString(),
-          user_id: user.id,
+          user_id: userId,
         },
       });
 
