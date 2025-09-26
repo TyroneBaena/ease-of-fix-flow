@@ -78,21 +78,27 @@ const CardSetupForm: React.FC<{
         return;
       }
 
-      // Now create setup intent
+      // Now create setup intent and trial subscription
+      console.log('Calling create-trial-subscription edge function...');
       const response = await supabase.functions.invoke('create-trial-subscription', {
         headers: {
           Authorization: `Bearer ${data.session.access_token}`,
         },
       });
 
+      console.log('Edge function response:', response);
+
       if (response.error) {
+        console.error('Edge function error:', response.error);
         onError(response.error.message || 'Failed to create trial subscription');
         return;
       }
 
       if (response.data?.client_secret) {
+        console.log('Setup intent created successfully');
         setSetupIntentClientSecret(response.data.client_secret);
       } else {
+        console.error('No client secret in response:', response.data);
         onError('Failed to create payment setup');
       }
     } catch (error) {
@@ -251,24 +257,46 @@ export const EnhancedSignupFlow: React.FC = () => {
         console.error('Membership creation error:', membershipError);
       }
 
-      // Create trial subscription
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      const { data: trialData, error: trialError } = await supabase.functions.invoke(
-        'create-trial-subscription',
-        {
-          headers: {
-            Authorization: `Bearer ${currentSession?.access_token}`,
-          },
+      // Verify trial subscription was created - if not, create it manually
+      const { data: subscriberCheck } = await supabase
+        .from('subscribers')
+        .select('is_trial_active, trial_start_date')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!subscriberCheck || !subscriberCheck.is_trial_active) {
+        console.log('Trial not found, creating directly in database...');
+        
+        // Calculate trial end date (30 days from now)
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 30);
+        
+        // Create subscriber record directly
+        const { data: newSubscriber, error: createError } = await supabase
+          .from('subscribers')
+          .insert({
+            user_id: user.id,
+            email: user.email!,
+            is_trial_active: true,
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: trialEndDate.toISOString(),
+            is_cancelled: false,
+            active_properties_count: 0,
+            subscribed: false,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Direct subscriber creation error:', createError);
+          setError('Failed to start your trial. Please contact support.');
+          return;
         }
-      );
 
-      if (trialError) {
-        console.error('Trial creation error:', trialError);
-        setError('Failed to start your trial. Please contact support.');
-        return;
+        console.log('Trial subscription created directly:', newSubscriber);
+      } else {
+        console.log('Trial subscription already active:', subscriberCheck);
       }
-
-      console.log('Trial created successfully:', trialData);
 
       setStep('complete');
       toast.success('Welcome! Your 30-day trial has started successfully.');
