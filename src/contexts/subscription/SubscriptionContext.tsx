@@ -283,8 +283,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: "Authentication session invalid" };
       }
       
-      console.log("Session found, calling edge function");
-      const { data, error } = await supabase.functions.invoke("calculate-property-billing");
+      console.log("Session found, calling edge function with auth token");
+      const { data, error } = await supabase.functions.invoke("calculate-property-billing", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       
       if (error) {
         console.error("Calculate billing error:", error);
