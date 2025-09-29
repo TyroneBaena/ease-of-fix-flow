@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Property } from '@/types/property';
+import { usePropertyAccessControl } from '@/hooks/usePropertyAccessControl';
 
 interface TemporarySession {
   sessionToken: string;
@@ -136,11 +137,17 @@ const PropertyDetail = () => {
     }
   }, [id, getProperty, navigate, isTemporaryAccess, properties, loading, property]);
 
+  const { handleRestrictedAction } = usePropertyAccessControl();
+
   const handleDeleteProperty = () => {
     if (id) {
-      deleteProperty(id);
-      toast.success('Property deleted successfully');
-      navigate('/properties');
+      try {
+        deleteProperty(id);
+        toast.success('Property deleted successfully');
+        navigate('/properties');
+      } catch (error) {
+        handleRestrictedAction('delete property');
+      }
     }
   };
 

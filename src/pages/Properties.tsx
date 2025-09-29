@@ -6,8 +6,9 @@ import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContex
 import { isUserAdmin } from '@/utils/userRoles';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
-import { TrialAccessControl } from '@/components/billing/TrialAccessControl';
+
 import { PropertyCreationWithBilling } from '@/components/property/PropertyCreationWithBilling';
+import { PropertyAccessGuard } from '@/components/property/PropertyAccessGuard';
 import { usePropertyBillingIntegration } from '@/hooks/usePropertyBillingIntegration';
 import {
   Card,
@@ -55,7 +56,7 @@ const PropertiesContent = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <TrialAccessControl feature="property management">
+      <PropertyAccessGuard action="view">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -63,30 +64,34 @@ const PropertiesContent = () => {
             <p className="text-gray-600 mt-1">Manage all your properties in one place</p>
           </div>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Property
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Add New Property</DialogTitle>
-                <DialogDescription>
-                  Enter the details for the new property. All fields are required.
-                </DialogDescription>
-              </DialogHeader>
-              <PropertyForm onClose={handleClose} />
-            </DialogContent>
-          </Dialog>
+          <PropertyAccessGuard action="create">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Property
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Property</DialogTitle>
+                  <DialogDescription>
+                    Enter the details for the new property. All fields are required.
+                  </DialogDescription>
+                </DialogHeader>
+                <PropertyForm onClose={handleClose} />
+              </DialogContent>
+            </Dialog>
+          </PropertyAccessGuard>
         </div>
         
         {properties.length === 0 ? (
-          <PropertyCreationWithBilling 
-            onCreateProperty={() => setDialogOpen(true)}
-            className="max-w-md mx-auto"
-          />
+          <PropertyAccessGuard action="create">
+            <PropertyCreationWithBilling 
+              onCreateProperty={() => setDialogOpen(true)}
+              className="max-w-md mx-auto"
+            />
+          </PropertyAccessGuard>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((property) => (
@@ -130,7 +135,7 @@ const PropertiesContent = () => {
           </div>
         )}
         </main>
-      </TrialAccessControl>
+      </PropertyAccessGuard>
     </div>
   );
 };

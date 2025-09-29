@@ -106,11 +106,9 @@ export const usePropertyProvider = (): PropertyContextType => {
       };
 
       setProperties(prev => [...prev, newProperty]);
-      toast.success('Property added successfully');
       
-      // Force a billing recalculation by triggering a window reload
-      // This ensures the subscription context refreshes with updated property count
-      window.location.reload();
+      // Trigger billing integration hook to handle notifications and billing updates
+      // This will be handled by usePropertyBillingIntegration automatically through the properties.length change
       
       return newProperty;
     } catch (err) {
@@ -201,6 +199,10 @@ export const usePropertyProvider = (): PropertyContextType => {
         return;
       }
 
+      // Get property name before deletion for better user feedback
+      const deletedProperty = properties.find(p => p.id === id);
+      const propertyName = deletedProperty?.name || 'Property';
+
       const { error } = await supabase
         .from('properties')
         .delete()
@@ -212,13 +214,14 @@ export const usePropertyProvider = (): PropertyContextType => {
         return;
       }
 
-      setProperties(properties.filter(property => property.id !== id));
+      setProperties(prev => prev.filter(property => property.id !== id));
       
-      // Force a billing recalculation by triggering a window reload
-      // This ensures the subscription context refreshes with updated property count
-      window.location.reload();
+      // Show deletion confirmation with billing impact
+      toast.success(`${propertyName} deleted successfully`);
       
-      toast.success('Property deleted successfully');
+      // Billing will be automatically recalculated by usePropertyBillingIntegration 
+      // through the properties.length change
+      
     } catch (err) {
       console.error('Unexpected error deleting property:', err);
       toast.error('An unexpected error occurred');

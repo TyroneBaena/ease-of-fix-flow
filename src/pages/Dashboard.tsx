@@ -9,6 +9,7 @@ import RequestsList from '@/components/dashboard/RequestsList';
 import { RequestDetailSidebar } from '@/components/dashboard/RequestDetailSidebar';
 import { TrialBillingAlert } from '@/components/dashboard/TrialBillingAlert';
 import { BillingWidgets } from '@/components/dashboard/BillingWidgets';
+import { PropertyManagementWidget } from '@/components/dashboard/PropertyManagementWidget';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
@@ -125,6 +126,11 @@ const Dashboard = () => {
             {/* Billing Widgets */}
             <div className="mb-6">
               <BillingWidgets />
+            </div>
+
+            {/* Property Management Widget */}
+            <div className="mb-6">
+              <PropertyManagementWidget />
             </div>
             
             <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
