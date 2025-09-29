@@ -34,29 +34,28 @@ Deno.serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // Get the authorization header from Supabase's JWT verification
+    // For JWT-verified functions, user context is available via request headers
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
 
-    // Create Supabase client - JWT is already verified by Supabase
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    });
-
-    // Get the authenticated user - this should work since JWT is pre-verified
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      log("Authentication failed", { authError });
-      throw new Error('User not authenticated');
+    // Extract user ID from JWT payload (already verified by Supabase)
+    const jwt = authHeader.replace('Bearer ', '');
+    let userId: string;
+    try {
+      // Simple JWT payload decode (no verification needed as Supabase already verified)
+      const payload = JSON.parse(atob(jwt.split('.')[1]));
+      userId = payload.sub;
+      if (!userId) {
+        throw new Error('No user ID in JWT');
+      }
+    } catch (error) {
+      log("JWT decode error", { error });
+      throw new Error('Invalid JWT token');
     }
 
-    log("User authenticated", { userId: user.id });
+    log("User authenticated from JWT", { userId });
 
     // Create admin client
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -65,7 +64,7 @@ Deno.serve(async (req) => {
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (subscriberError) {
@@ -167,7 +166,7 @@ Deno.serve(async (req) => {
         const product = await stripe.products.create({
           name: 'Property Management Subscription',
           metadata: {
-            user_id: user.id,
+            user_id: userId,
           },
         });
 
@@ -185,7 +184,7 @@ Deno.serve(async (req) => {
           items: [{ price: price.id }],
           metadata: {
             property_count: propertyCount.toString(),
-            user_id: user.id,
+            user_id: userId,
           },
         });
 
