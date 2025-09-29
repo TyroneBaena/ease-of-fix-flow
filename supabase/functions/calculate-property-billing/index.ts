@@ -80,11 +80,10 @@ Deno.serve(async (req) => {
 
     log("Calculated billing", { propertyCount, monthlyAmount });
 
-    // Check if user is still in trial
+    // Check if user is still in trial - calculate based on actual trial end date
     const now = new Date();
-    const isTrialActive = subscriber.is_trial_active && 
-                         subscriber.trial_end_date && 
-                         now < new Date(subscriber.trial_end_date);
+    const trialEndDate = subscriber.trial_end_date ? new Date(subscriber.trial_end_date) : null;
+    const isTrialActive = trialEndDate && now < trialEndDate && !subscriber.is_cancelled;
 
     if (isTrialActive) {
       const trialEndDate = new Date(subscriber.trial_end_date);
@@ -218,10 +217,9 @@ Deno.serve(async (req) => {
         const isActive = subscription.status === 'active';
         const needsPaymentMethod = subscription.status === 'incomplete';
         
-        // Check if user still has trial time remaining
-        const trialStillActive = subscriber.is_trial_active && 
-          subscriber.trial_end_date && 
-          new Date(subscriber.trial_end_date) > new Date();
+        // Check if user still has trial time remaining - calculate properly
+        const trialEndDate = subscriber.trial_end_date ? new Date(subscriber.trial_end_date) : null;
+        const trialStillActive = trialEndDate && new Date() < trialEndDate && !subscriber.is_cancelled;
         
         const { error: updateError } = await adminSupabase
           .from('subscribers')
@@ -229,7 +227,7 @@ Deno.serve(async (req) => {
             subscribed: isActive,
             subscription_tier: isActive ? 'Pro' : 'Pending',
             next_billing_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-            // Keep trial active if it hasn't expired yet, even if subscription is pending
+            // Keep trial active if it hasn't expired yet, regardless of previous flag state
             is_trial_active: trialStillActive,
             updated_at: new Date().toISOString(),
           })
