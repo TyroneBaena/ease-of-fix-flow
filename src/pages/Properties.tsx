@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building, Plus, MapPin, Phone, Mail, Calendar, DollarSign } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { PropertyForm } from '@/components/property/PropertyForm';
+import { EnhancedPropertyForm } from '@/components/property/EnhancedPropertyForm';
 
 const PropertiesContent = () => {
   const { properties } = usePropertyContext();
@@ -79,7 +79,7 @@ const PropertiesContent = () => {
                     Enter the details for the new property. All fields are required.
                   </DialogDescription>
                 </DialogHeader>
-                <PropertyForm onClose={handleClose} />
+                <EnhancedPropertyForm onClose={handleClose} />
               </DialogContent>
             </Dialog>
           </PropertyAccessGuard>

@@ -81,16 +81,18 @@ Deno.serve(async (req) => {
 
     // Calculate billing based on property count
     const propertyCount = subscriber.active_properties_count || 0;
-    const monthlyAmount = propertyCount * 50; // $50 per property per month
+    const monthlyAmount = propertyCount * 29; // $29 AUD per property per month
 
     log("Calculated billing", { propertyCount, monthlyAmount });
 
     // Check if user is still in trial
     const now = new Date();
-    const trialEndDate = new Date(subscriber.trial_end_date);
-    const isTrialActive = subscriber.is_trial_active && now < trialEndDate;
+    const isTrialActive = subscriber.is_trial_active && 
+                         subscriber.trial_end_date && 
+                         now < new Date(subscriber.trial_end_date);
 
     if (isTrialActive) {
+      const trialEndDate = new Date(subscriber.trial_end_date);
       const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       log("User still in trial", { daysRemaining });
       
@@ -101,7 +103,7 @@ Deno.serve(async (req) => {
         days_remaining: daysRemaining,
         property_count: propertyCount,
         monthly_amount: monthlyAmount,
-        currency: 'usd'
+        currency: 'aud'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -154,7 +156,7 @@ Deno.serve(async (req) => {
           subscription_id: updatedSubscription.id,
           property_count: propertyCount,
           monthly_amount: monthlyAmount,
-          currency: 'usd',
+          currency: 'aud',
           next_billing_date: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -175,7 +177,7 @@ Deno.serve(async (req) => {
 
         const price = await stripe.prices.create({
           unit_amount: monthlyAmount * 100, // Convert to cents
-          currency: 'usd',
+          currency: 'aud',
           recurring: {
             interval: 'month',
           },
@@ -214,7 +216,7 @@ Deno.serve(async (req) => {
           subscription_id: subscription.id,
           property_count: propertyCount,
           monthly_amount: monthlyAmount,
-          currency: 'usd',
+          currency: 'aud',
           next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -229,7 +231,7 @@ Deno.serve(async (req) => {
       subscribed: false,
       property_count: propertyCount,
       monthly_amount: monthlyAmount,
-      currency: 'usd',
+      currency: 'aud',
       message: propertyCount === 0 ? 'No properties to bill for' : 'No customer setup'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -88,42 +88,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .eq("user_id", currentUser.id)
         .maybeSingle();
 
-      // If no subscriber record exists, create one with an active trial
+      // No auto-trial creation - users must go through proper signup flow
       if (!row && !fetchErr) {
-        console.log("🟡 No subscriber record found, creating trial for user:", currentUser.email);
-        
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 30);
-        
-        const { data: newRow, error: createError } = await supabase
-          .from('subscribers')
-          .insert({
-            user_id: currentUser.id,
-            email: currentUser.email,
-            is_trial_active: true,
-            trial_start_date: new Date().toISOString(),
-            trial_end_date: trialEndDate.toISOString(),
-            is_cancelled: false,
-            active_properties_count: 0,
-            subscribed: false,
-          })
-          .select(`
-            subscribed, 
-            subscription_tier, 
-            subscription_end,
-            is_trial_active,
-            is_cancelled,
-            trial_end_date,
-            active_properties_count
-          `)
-          .single();
-          
-        if (createError) {
-          console.error("Failed to create trial subscription:", createError);
-        } else {
-          console.log("🟢 Created trial subscription for user:", currentUser.email);
-          row = newRow;
-        }
+        console.log("🟡 No subscriber record found for user:", currentUser.email);
+        // Just continue with null values - proper trial signup should be done via startTrial()
       }
         
       if (fetchErr) {

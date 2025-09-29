@@ -19,7 +19,8 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
     isTrialActive, 
     isCancelled, 
     daysRemaining,
-    loading 
+    loading,
+    refresh 
   } = useSubscription();
   const navigate = useNavigate();
 
@@ -52,7 +53,10 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
   };
 
   const handleRestrictedAction = (action: string) => {
-    if (loading) return;
+    if (loading) {
+      toast.error("Loading subscription status, please wait...");
+      return;
+    }
     
     if (isCancelled) {
       toast.error("Your subscription is cancelled. Please reactivate to continue.", {
@@ -76,8 +80,17 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
       return;
     }
     
-    // Fallback message
-    toast.error(`Unable to ${action}. Please check your subscription status.`);
+    // Network or other error - try refreshing subscription status
+    toast.error("Unable to verify subscription status. Refreshing...", {
+      action: {
+        label: "Retry",
+        onClick: () => {
+          refresh();
+          setTimeout(() => handleRestrictedAction(action), 1000);
+        }
+      },
+      duration: 6000
+    });
   };
 
   return {

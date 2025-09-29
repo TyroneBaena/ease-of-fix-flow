@@ -129,38 +129,20 @@ Deno.serve(async (req) => {
 
     } else {
       // Reactivate as paid subscription
-      const monthlyAmount = propertyCount * 50;
+      const monthlyAmount = propertyCount * 29;
 
       log("Creating paid subscription", { propertyCount, monthlyAmount });
 
       // Create or get Stripe customer
       let customer;
-      let customerCurrency = 'usd'; // Default to USD
+      let customerCurrency = 'aud'; // Default to AUD
       
       if (subscriber.stripe_customer_id) {
         customer = await stripe.customers.retrieve(subscriber.stripe_customer_id);
         
-        // Get customer's existing currency from their subscriptions or invoices
-        const subscriptions = await stripe.subscriptions.list({
-          customer: subscriber.stripe_customer_id,
-          limit: 1,
-        });
-        
-        if (subscriptions.data.length > 0) {
-          customerCurrency = subscriptions.data[0].currency;
-          log("Using existing customer currency", { currency: customerCurrency });
-        } else {
-          // Check for any existing invoices to get currency
-          const invoices = await stripe.invoices.list({
-            customer: subscriber.stripe_customer_id,
-            limit: 1,
-          });
-          
-          if (invoices.data.length > 0) {
-            customerCurrency = invoices.data[0].currency;
-            log("Using customer currency from invoice", { currency: customerCurrency });
-          }
-        }
+        // Use AUD for consistency across the platform
+        customerCurrency = 'aud';
+        log("Using AUD currency for consistency", { currency: customerCurrency });
       } else {
         customer = await stripe.customers.create({
           email: userEmail,
