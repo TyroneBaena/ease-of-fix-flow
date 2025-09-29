@@ -34,18 +34,14 @@ Deno.serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // Get the authorization header
+    // Get the authorization header from Supabase's JWT verification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
 
-    // Create Supabase client with the user's token
+    // Create Supabase client - JWT is already verified by Supabase
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
       global: {
         headers: {
           Authorization: authHeader,
@@ -53,7 +49,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Get the authenticated user
+    // Get the authenticated user - this should work since JWT is pre-verified
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       log("Authentication failed", { authError });
