@@ -112,3 +112,6 @@ verify_jwt = false
 
 [functions.add-public-comment]
 verify_jwt = false
+
+[functions.test-signup-email]
+verify_jwt = false
