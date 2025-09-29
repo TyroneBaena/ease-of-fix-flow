@@ -41,7 +41,8 @@ export const BillingManagementPage: React.FC = () => {
     loading,
     upgradeToPaid,
     calculateBilling,
-    startTrial
+    startTrial,
+    refresh
   } = useSubscription();
 
   const [showCancellation, setShowCancellation] = useState(false);
@@ -56,6 +57,8 @@ export const BillingManagementPage: React.FC = () => {
       const result = await startTrial();
       if (result.success) {
         toast.success('Welcome! Your 30-day free trial has started.');
+        // Refresh subscription context to reflect the new trial status
+        await refresh();
       } else {
         toast.error(result.error || 'Failed to start trial');
       }
