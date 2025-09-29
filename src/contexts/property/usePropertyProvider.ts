@@ -117,13 +117,18 @@ export const usePropertyProvider = (): PropertyContextType => {
     }
   }, [currentUser]);
 
-  const getProperty = useCallback((id: string) => {
+  const getProperty = useCallback((id: string): Property | undefined => {
     console.log('PropertyContext: getProperty called with ID:', id);
-    console.log('PropertyContext: Available properties:', properties.map(p => ({ id: p.id, name: p.name })));
-    const found = properties.find(property => property.id === id);
-    console.log('PropertyContext: Found property:', found);
-    return found;
-  }, [properties]);
+    // Use ref or state callback to avoid circular dependency
+    let foundProperty: Property | undefined;
+    setProperties(prev => {
+      foundProperty = prev.find(property => property.id === id);
+      console.log('PropertyContext: Available properties:', prev.map(p => ({ id: p.id, name: p.name })));
+      console.log('PropertyContext: Found property:', foundProperty);
+      return prev; // Don't actually update state
+    });
+    return foundProperty;
+  }, []);
 
   const updateProperty = useCallback(async (id: string, propertyUpdate: Partial<Property>) => {
     console.log('PropertyContext: updateProperty called with ID:', id);
@@ -199,9 +204,13 @@ export const usePropertyProvider = (): PropertyContextType => {
         return;
       }
 
-      // Get property name before deletion for better user feedback
-      const deletedProperty = properties.find(p => p.id === id);
-      const propertyName = deletedProperty?.name || 'Property';
+      // Get property name using state callback to avoid circular dependency
+      let propertyName = 'Property';
+      setProperties(prev => {
+        const deletedProperty = prev.find(p => p.id === id);
+        propertyName = deletedProperty?.name || 'Property';
+        return prev; // Don't actually update state here
+      });
 
       const { error } = await supabase
         .from('properties')
@@ -226,7 +235,37 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('Unexpected error deleting property:', err);
       toast.error('An unexpected error occurred');
     }
-  }, [currentUser, properties]);
+  }, [currentUser]);
+      setProperties(prev => {
+        const deletedProperty = prev.find(p => p.id === id);
+        propertyName = deletedProperty?.name || 'Property';
+        return prev; // Don't actually update here
+      });
+
+      const { error } = await supabase
+        .from('properties')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting property:', error);
+        toast.error('Failed to delete property');
+        return;
+      }
+
+      setProperties(prev => prev.filter(property => property.id !== id));
+      
+      // Show deletion confirmation with billing impact
+      toast.success(`${propertyName} deleted successfully`);
+      
+      // Billing will be automatically recalculated by usePropertyBillingIntegration 
+      // through the properties.length change
+      
+    } catch (err) {
+      console.error('Unexpected error deleting property:', err);
+      toast.error('An unexpected error occurred');
+    }
+  }, [currentUser]);
 
   return useMemo(() => ({
     properties,
