@@ -179,22 +179,51 @@ Deno.serve(async (req) => {
           product: product.id,
         });
 
-        const subscription = await stripe.subscriptions.create({
+        // Check if customer has a payment method
+        const paymentMethods = await stripe.paymentMethods.list({
           customer: subscriber.stripe_customer_id,
-          items: [{ price: price.id }],
-          metadata: {
-            property_count: propertyCount.toString(),
-            user_id: userId,
-          },
+          type: 'card',
         });
 
-        // Update subscriber record
+        let subscription;
+        if (paymentMethods.data.length === 0) {
+          // No payment method - create subscription with incomplete status
+          subscription = await stripe.subscriptions.create({
+            customer: subscriber.stripe_customer_id,
+            items: [{ price: price.id }],
+            payment_behavior: 'default_incomplete',
+            payment_settings: {
+              payment_method_types: ['card'],
+              save_default_payment_method: 'on_subscription',
+            },
+            expand: ['latest_invoice.payment_intent'],
+            metadata: {
+              property_count: propertyCount.toString(),
+              user_id: userId,
+            },
+          });
+        } else {
+          // Has payment method - create normal subscription
+          subscription = await stripe.subscriptions.create({
+            customer: subscriber.stripe_customer_id,
+            items: [{ price: price.id }],
+            metadata: {
+              property_count: propertyCount.toString(),
+              user_id: userId,
+            },
+          });
+        }
+
+        // Update subscriber record based on subscription status
+        const isActive = subscription.status === 'active';
+        const needsPaymentMethod = subscription.status === 'incomplete';
+        
         const { error: updateError } = await adminSupabase
           .from('subscribers')
           .update({
-            subscribed: true,
-            subscription_tier: 'Pro',
-            next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
+            subscribed: isActive,
+            subscription_tier: isActive ? 'Pro' : 'Pending',
+            next_billing_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
             is_trial_active: false,
             updated_at: new Date().toISOString(),
           })
@@ -205,15 +234,28 @@ Deno.serve(async (req) => {
           throw new Error('Failed to update subscriber');
         }
 
-        return new Response(JSON.stringify({
+        const response: any = {
           success: true,
-          subscribed: true,
+          subscribed: isActive,
           subscription_id: subscription.id,
           property_count: propertyCount,
           monthly_amount: monthlyAmount,
           currency: 'aud',
-          next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
-        }), {
+          status: subscription.status,
+        };
+
+        // Add payment setup info if needed
+        if (needsPaymentMethod) {
+          response.needs_payment_method = true;
+          response.message = 'Subscription created but requires payment method setup';
+          if (subscription.latest_invoice?.payment_intent) {
+            response.client_secret = subscription.latest_invoice.payment_intent.client_secret;
+          }
+        } else {
+          response.next_billing_date = new Date(subscription.current_period_end * 1000).toISOString();
+        }
+
+        return new Response(JSON.stringify(response), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
         });
