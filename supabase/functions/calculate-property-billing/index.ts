@@ -218,13 +218,19 @@ Deno.serve(async (req) => {
         const isActive = subscription.status === 'active';
         const needsPaymentMethod = subscription.status === 'incomplete';
         
+        // Check if user still has trial time remaining
+        const trialStillActive = subscriber.is_trial_active && 
+          subscriber.trial_end_date && 
+          new Date(subscriber.trial_end_date) > new Date();
+        
         const { error: updateError } = await adminSupabase
           .from('subscribers')
           .update({
             subscribed: isActive,
             subscription_tier: isActive ? 'Pro' : 'Pending',
             next_billing_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-            is_trial_active: false,
+            // Keep trial active if it hasn't expired yet, even if subscription is pending
+            is_trial_active: trialStillActive,
             updated_at: new Date().toISOString(),
           })
           .eq('id', subscriber.id);
