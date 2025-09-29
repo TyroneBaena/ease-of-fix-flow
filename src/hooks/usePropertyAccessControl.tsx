@@ -19,6 +19,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
     isTrialActive, 
     isCancelled, 
     daysRemaining,
+    trialEndDate,
     loading,
     refresh 
   } = useSubscription();
@@ -29,8 +30,10 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
   const canDeleteProperty = !loading && (subscribed || isTrialActive);
   const canUpdateProperty = !loading && (subscribed || isTrialActive);
   
-  // Warning states
-  const showTrialExpiredWarning = !loading && !subscribed && !isTrialActive && !isCancelled;
+  // Warning states - distinguish between "never started trial" vs "trial expired"
+  const hasNeverStartedTrial = !trialEndDate;
+  const hasExpiredTrial = trialEndDate && !isTrialActive;
+  const showTrialExpiredWarning = !loading && !subscribed && hasExpiredTrial && !isCancelled;
   const showCancelledWarning = !loading && isCancelled;
   const showReactivationPrompt = !loading && isCancelled;
 
@@ -42,7 +45,11 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
     }
     
     if (!isTrialActive && !subscribed) {
-      return "Your trial has expired. Upgrade to continue managing properties.";
+      if (hasNeverStartedTrial) {
+        return "Start your free trial to begin managing properties.";
+      } else {
+        return "Your trial has expired. Upgrade to continue managing properties.";
+      }
     }
     
     if (isTrialActive && daysRemaining !== null && daysRemaining <= 3) {
@@ -70,13 +77,23 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
     }
     
     if (!isTrialActive && !subscribed) {
-      toast.error("Your trial has expired. Please upgrade to continue.", {
-        action: {
-          label: "Upgrade Now",
-          onClick: () => navigate('/pricing')
-        },
-        duration: 6000
-      });
+      if (hasNeverStartedTrial) {
+        toast.error("Start your free trial to access property management.", {
+          action: {
+            label: "Start Trial",
+            onClick: () => navigate('/billing')
+          },
+          duration: 6000
+        });
+      } else {
+        toast.error("Your trial has expired. Please upgrade to continue.", {
+          action: {
+            label: "Upgrade Now",
+            onClick: () => navigate('/pricing')
+          },
+          duration: 6000
+        });
+      }
       return;
     }
     

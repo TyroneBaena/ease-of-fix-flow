@@ -31,6 +31,10 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
     monthlyAmount
   } = useSubscription();
 
+  // Distinguish between "never started trial" vs "trial expired"
+  const hasNeverStartedTrial = !trialEndDate;
+  const hasExpiredTrial = trialEndDate && !isTrialActive;
+
   // If user has active subscription, show content
   if (subscribed) {
     return <>{children}</>;
@@ -41,8 +45,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
     return <>{children}</>;
   }
 
-  // Trial expired or cancelled - show access restriction
-  const isTrialExpired = !isTrialActive && !subscribed;
+  // Handle trial ending warning and content display
   const isTrialEnding = isTrialActive && daysRemaining !== null && daysRemaining <= 3;
 
   return (
@@ -57,8 +60,9 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
         </Alert>
       )}
 
-      {/* Show access restriction for expired/cancelled trials or subscription-required features */}
-      {(isTrialExpired || isCancelled || (isTrialActive && requiresSubscription)) && (
+      {/* Show access restriction for expired/cancelled trials or subscription-required features  
+          Don't show access restriction for users who haven't started a trial yet */}
+      {((hasExpiredTrial && !subscribed) || isCancelled || (isTrialActive && requiresSubscription)) && (
         <Card className="border-red-200 bg-red-50/50">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -66,7 +70,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
             </div>
             <CardTitle className="text-red-900">
               {isCancelled ? 'Subscription Required' : 
-               isTrialExpired ? 'Trial Expired' : 
+               hasExpiredTrial ? 'Trial Expired' : 
                'Premium Feature'}
             </CardTitle>
           </CardHeader>
@@ -77,7 +81,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
                   Your subscription was cancelled. Reactivate to access {feature}.
                 </p>
               )}
-              {isTrialExpired && (
+              {hasExpiredTrial && (
                 <p className="text-red-700">
                   Your free trial has ended. Upgrade to continue using {feature}.
                 </p>

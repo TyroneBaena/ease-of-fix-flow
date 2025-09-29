@@ -28,6 +28,10 @@ export const BillingWidgets: React.FC = () => {
     loading
   } = useSubscription();
 
+  // Distinguish between "never started trial" vs "trial expired"
+  const hasNeverStartedTrial = !trialEndDate;
+  const hasExpiredTrial = trialEndDate && !isTrialActive;
+
   if (loading) {
     return (
       <div className="grid md:grid-cols-3 gap-4">
@@ -116,6 +120,10 @@ export const BillingWidgets: React.FC = () => {
                   {daysRemaining}d left
                 </span>
               </>
+            ) : hasNeverStartedTrial ? (
+              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                Available
+              </Badge>
             ) : (
               <Badge variant="destructive">
                 Expired
@@ -129,7 +137,9 @@ export const BillingWidgets: React.FC = () => {
                 ? 'Reactivation available'
               : isTrialActive 
                 ? `Ends ${trialEndDate ? format(new Date(trialEndDate), 'MMM dd') : 'soon'}`
-                : 'Reactivation required'
+                : hasNeverStartedTrial
+                  ? 'Start free trial'
+                  : 'Reactivation required'
             }
           </p>
         </CardContent>
@@ -143,11 +153,15 @@ export const BillingSummaryCard: React.FC = () => {
   const {
     subscribed,
     isTrialActive,
+    trialEndDate,
     propertyCount,
     monthlyAmount,
     currency,
     loading
   } = useSubscription();
+
+  // Distinguish between "never started trial" vs "trial expired"
+  const hasNeverStartedTrial = !trialEndDate;
 
   if (loading) {
     return (
@@ -199,7 +213,14 @@ export const BillingSummaryCard: React.FC = () => {
             {propertyCount || 0} {(propertyCount || 0) === 1 ? 'property' : 'properties'} × $29 = ${displayAmount}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {subscribed ? 'Active subscription' : isTrialActive ? 'Free trial active' : 'Trial ended'}
+            {subscribed 
+              ? 'Active subscription' 
+              : isTrialActive 
+                ? 'Free trial active' 
+                : hasNeverStartedTrial
+                  ? 'Trial available'
+                  : 'Trial ended'
+            }
           </p>
         </div>
 
