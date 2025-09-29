@@ -40,13 +40,31 @@ export const BillingManagementPage: React.FC = () => {
     currency,
     loading,
     upgradeToPaid,
-    calculateBilling
+    calculateBilling,
+    startTrial
   } = useSubscription();
 
   const [showCancellation, setShowCancellation] = useState(false);
   const [showReactivation, setShowReactivation] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
+
+  const handleStartTrial = async () => {
+    setIsStartingTrial(true);
+    try {
+      const result = await startTrial();
+      if (result.success) {
+        toast.success('Welcome! Your 30-day free trial has started.');
+      } else {
+        toast.error(result.error || 'Failed to start trial');
+      }
+    } catch (error) {
+      toast.error('An error occurred while starting trial');
+    } finally {
+      setIsStartingTrial(false);
+    }
+  };
 
   const handleUpgradeToPaid = async () => {
     setIsUpgrading(true);
@@ -100,6 +118,10 @@ export const BillingManagementPage: React.FC = () => {
   const isTrialExpiring = daysRemaining !== null && daysRemaining <= 3;
   const trialEndDateFormatted = trialEndDate ? format(new Date(trialEndDate), 'PPP') : null;
   const displayAmount = monthlyAmount || 0;
+  
+  // Determine if user has never started a trial (no trialEndDate) vs expired trial
+  const hasNeverStartedTrial = !subscribed && !isTrialActive && !trialEndDate;
+  const hasExpiredTrial = !subscribed && !isTrialActive && !!trialEndDate;
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,6 +217,16 @@ export const BillingManagementPage: React.FC = () => {
                           <Clock className="w-4 h-4 text-blue-500" />
                           <span className="font-medium">Free Trial</span>
                         </>
+                      ) : hasNeverStartedTrial ? (
+                        <>
+                          <Clock className="w-4 h-4 text-blue-500" />
+                          <span className="font-medium">Trial Available</span>
+                        </>
+                      ) : hasExpiredTrial ? (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-orange-500" />
+                          <span className="font-medium">Trial Expired</span>
+                        </>
                       ) : isCancelled ? (
                         <>
                           <AlertTriangle className="w-4 h-4 text-red-500" />
@@ -203,7 +235,7 @@ export const BillingManagementPage: React.FC = () => {
                       ) : (
                         <>
                           <AlertTriangle className="w-4 h-4 text-orange-500" />
-                          <span className="font-medium">Trial Ended</span>
+                          <span className="font-medium">No Active Subscription</span>
                         </>
                       )}
                     </div>
@@ -275,6 +307,14 @@ export const BillingManagementPage: React.FC = () => {
                         Cancel Trial
                       </Button>
                     </>
+                  ) : hasNeverStartedTrial ? (
+                    <Button 
+                      onClick={handleStartTrial}
+                      disabled={isStartingTrial}
+                      size="sm"
+                    >
+                      {isStartingTrial ? 'Starting Trial...' : 'Start Free Trial'}
+                    </Button>
                   ) : (
                     <Button 
                       onClick={() => setShowReactivation(true)}
