@@ -115,16 +115,32 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
       }
       
-      // Calculate days remaining if trial is active
-      if ((row as any)?.trial_end_date && (row as any)?.is_trial_active) {
+      // Calculate trial status dynamically based on trial_end_date and cancellation status
+      // This matches the backend logic in calculate-property-billing
+      let calculatedTrialActive = false;
+      let calculatedDaysRemaining = null;
+      
+      if ((row as any)?.trial_end_date) {
         const endDate = new Date((row as any).trial_end_date);
         const now = new Date();
         const diffTime = endDate.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        setDaysRemaining(diffDays > 0 ? diffDays : 0);
-      } else {
-        setDaysRemaining(null);
+        
+        // Trial is active if: trial hasn't expired AND user isn't cancelled
+        calculatedTrialActive = diffDays > 0 && !(row as any)?.is_cancelled;
+        calculatedDaysRemaining = calculatedTrialActive ? diffDays : null;
+        
+        console.log("🟡 Trial calculation:", {
+          trialEndDate: (row as any).trial_end_date,
+          isCancelled: (row as any).is_cancelled,
+          daysRemaining: diffDays,
+          calculatedTrialActive
+        });
       }
+      
+      // Override the database is_trial_active with our calculated value
+      setIsTrialActive(calculatedTrialActive);
+      setDaysRemaining(calculatedDaysRemaining);
       
       // Calculate monthly amount based on property count
       const propCount = (row as any)?.active_properties_count || 0;
