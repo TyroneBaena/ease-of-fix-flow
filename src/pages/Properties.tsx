@@ -141,11 +141,7 @@ const PropertiesContent = () => {
 };
 
 const Properties = () => {
-  return (
-    <SubscriptionProvider>
-      <PropertiesContent />
-    </SubscriptionProvider>
-  );
+  return <PropertiesContent />;
 };
 
 export default Properties;

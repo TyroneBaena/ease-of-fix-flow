@@ -129,9 +129,11 @@ function App() {
             <Route path="/properties" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <PropertyProvider>
-                    <Properties />
-                  </PropertyProvider>
+                  <SubscriptionProvider>
+                    <PropertyProvider>
+                      <Properties />
+                    </PropertyProvider>
+                  </SubscriptionProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />

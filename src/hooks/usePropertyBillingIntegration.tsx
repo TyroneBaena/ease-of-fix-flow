@@ -17,24 +17,28 @@ export const usePropertyBillingIntegration = () => {
   const { properties } = usePropertyContext();
   const { currentUser } = useUserContext();
 
-  // Recalculate billing when properties change
+  // Recalculate billing when properties change (debounced to prevent infinite loops)
   useEffect(() => {
     const updateBillingFromProperties = async () => {
       try {
-        // Refresh property count in subscription context
-        await refreshPropertyCount();
-        
-        // Recalculate billing if user has subscription or trial
-        if (isTrialActive || subscribed) {
-          await calculateBilling();
+        // Only refresh if there's an actual change in property count
+        if (properties.length !== propertyCount) {
+          await refreshPropertyCount();
+          
+          // Recalculate billing if user has subscription or trial
+          if (isTrialActive || subscribed) {
+            await calculateBilling();
+          }
         }
       } catch (error) {
         console.error('Error updating billing from properties:', error);
       }
     };
 
-    updateBillingFromProperties();
-  }, [properties.length, refreshPropertyCount, calculateBilling, isTrialActive, subscribed]);
+    // Debounce the update to prevent infinite loops
+    const timeoutId = setTimeout(updateBillingFromProperties, 100);
+    return () => clearTimeout(timeoutId);
+  }, [properties.length, propertyCount, isTrialActive, subscribed]);
 
   // Show billing notifications when properties are added/removed during trial/subscription
   useEffect(() => {
