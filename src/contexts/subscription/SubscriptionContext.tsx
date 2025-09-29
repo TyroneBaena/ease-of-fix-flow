@@ -88,23 +88,32 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .eq("user_id", currentUser.id)
         .maybeSingle();
 
-      // No auto-trial creation - users must go through proper signup flow
+      // Handle new users without subscriber records (haven't started trial yet)
       if (!row && !fetchErr) {
         console.log("🟡 No subscriber record found for user:", currentUser.email);
-        // Just continue with null values - proper trial signup should be done via startTrial()
+        // Set explicit values for users who haven't started a trial yet
+        setSubscribed(false);
+        setSubscriptionTier(null);
+        setSubscriptionEnd(null);
+        setIsTrialActive(false); // Explicitly false - trial not started yet
+        setIsCancelled(false);
+        setTrialEndDate(null);
+        setPropertyCount(0);
+        return; // Exit early to avoid confusion
       }
         
       if (fetchErr) {
         console.error("subscribers fetch error:", fetchErr);
+        return;
       }
       
-      setSubscribed((row as any)?.subscribed ?? null);
+      setSubscribed((row as any)?.subscribed ?? false);
       setSubscriptionTier((row as any)?.subscription_tier ?? null);
       setSubscriptionEnd((row as any)?.subscription_end ?? null);
-      setIsTrialActive((row as any)?.is_trial_active ?? null);
-      setIsCancelled((row as any)?.is_cancelled ?? null);
+      setIsTrialActive((row as any)?.is_trial_active ?? false);
+      setIsCancelled((row as any)?.is_cancelled ?? false);
       setTrialEndDate((row as any)?.trial_end_date ?? null);
-      setPropertyCount((row as any)?.active_properties_count ?? null);
+      setPropertyCount((row as any)?.active_properties_count ?? 0);
       
       // Debug logging for development
       if (row) {

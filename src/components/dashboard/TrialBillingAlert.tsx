@@ -7,7 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { 
   AlertTriangle, 
   Clock, 
-  CreditCard, 
+  CreditCard,
+  Info,
   Building2, 
   TrendingUp,
   CheckCircle
@@ -197,7 +198,46 @@ export const TrialBillingAlert: React.FC = () => {
     );
   }
 
-  // Trial ended - show reactivation option
+  // Check if user hasn't started trial yet (no trial end date)
+  if (!trialEndDate) {
+    return (
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-blue-900">Start Your Free Trial</span>
+                <Badge variant="outline" className="border-blue-300 text-blue-700">Available</Badge>
+              </div>
+              <p className="text-sm text-blue-700 mb-3">
+                Get started with a 30-day free trial to access all features.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Start Free Trial
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/billing')}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                >
+                  View Plans
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Trial has ended - show reactivation option
   return (
     <Card className="border-red-200 bg-red-50/50">
       <CardContent className="p-4">
