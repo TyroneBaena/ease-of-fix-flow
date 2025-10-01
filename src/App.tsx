@@ -109,7 +109,7 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="/new-request" element={<NewRequestWrapper />} />
+            <Routexxxx path="/new-request" element={<NewRequestWrapper />} />
             
             {/* Public request detail route for QR code access */}
             <Route path="/public-request/:id" element={<PublicRequestDetail />} />
