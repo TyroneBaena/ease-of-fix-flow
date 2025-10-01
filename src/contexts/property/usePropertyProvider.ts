@@ -236,36 +236,6 @@ export const usePropertyProvider = (): PropertyContextType => {
       toast.error('An unexpected error occurred');
     }
   }, [currentUser]);
-      setProperties(prev => {
-        const deletedProperty = prev.find(p => p.id === id);
-        propertyName = deletedProperty?.name || 'Property';
-        return prev; // Don't actually update here
-      });
-
-      const { error } = await supabase
-        .from('properties')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting property:', error);
-        toast.error('Failed to delete property');
-        return;
-      }
-
-      setProperties(prev => prev.filter(property => property.id !== id));
-      
-      // Show deletion confirmation with billing impact
-      toast.success(`${propertyName} deleted successfully`);
-      
-      // Billing will be automatically recalculated by usePropertyBillingIntegration 
-      // through the properties.length change
-      
-    } catch (err) {
-      console.error('Unexpected error deleting property:', err);
-      toast.error('An unexpected error occurred');
-    }
-  }, [currentUser]);
 
   return useMemo(() => ({
     properties,

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
@@ -40,17 +40,29 @@ export const usePropertyBillingIntegration = () => {
     return () => clearTimeout(timeoutId);
   }, [properties.length, propertyCount, isTrialActive, subscribed]);
 
+  // Track if this is the initial mount to avoid false notifications
+  const isInitialMount = useRef(true);
+  const lastKnownCount = useRef<number | null>(null);
+
   // Show billing notifications when properties are added/removed during trial/subscription
   useEffect(() => {
     const currentPropertyCount = properties.length;
-    const previousPropertyCount = propertyCount || 0;
 
-    // Skip notifications on initial load or when no change
-    if (previousPropertyCount === 0 || currentPropertyCount === previousPropertyCount) {
+    // Skip on initial mount - just record the count
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      lastKnownCount.current = currentPropertyCount;
       return;
     }
 
-    const countChange = currentPropertyCount - previousPropertyCount;
+    // Skip if no previous count or no actual change
+    if (lastKnownCount.current === null || currentPropertyCount === lastKnownCount.current) {
+      return;
+    }
+
+    const countChange = currentPropertyCount - lastKnownCount.current;
+    lastKnownCount.current = currentPropertyCount;
+
     const newMonthlyAmount = currentPropertyCount * 29;
 
     const sendBillingNotification = async (changeType: 'added' | 'removed', propertiesChanged: number) => {
