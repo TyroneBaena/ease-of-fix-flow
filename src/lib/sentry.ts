@@ -7,8 +7,8 @@ import * as Sentry from '@sentry/react';
 export const initSentry = () => {
   const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
   
-  // Only initialize in production with a valid DSN
-  if (import.meta.env.PROD && sentryDsn) {
+  // Only initialize with a valid DSN (temporarily enabled for testing)
+  if (sentryDsn) {
     Sentry.init({
       dsn: sentryDsn,
       environment: import.meta.env.MODE,
@@ -66,17 +66,16 @@ export const initSentry = () => {
  * Set user context for Sentry
  */
 export const setSentryUser = (user: { id: string; email: string; name: string; role?: string } | null) => {
-  if (import.meta.env.PROD) {
-    if (user) {
-      Sentry.setUser({
-        id: user.id,
-        email: user.email,
-        username: user.name,
-        role: user.role,
-      });
-    } else {
-      Sentry.setUser(null);
-    }
+  // Temporarily enabled for testing
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+      email: user.email,
+      username: user.name,
+      role: user.role,
+    });
+  } else {
+    Sentry.setUser(null);
   }
 };
 
@@ -84,18 +83,15 @@ export const setSentryUser = (user: { id: string; email: string; name: string; r
  * Capture an exception manually
  */
 export const captureException = (error: Error | string, context?: Record<string, any>) => {
-  if (import.meta.env.PROD) {
-    if (context) {
-      Sentry.setContext('additional_context', context);
-    }
-    
-    if (typeof error === 'string') {
-      Sentry.captureMessage(error, 'error');
-    } else {
-      Sentry.captureException(error);
-    }
+  // Temporarily enabled for testing
+  if (context) {
+    Sentry.setContext('additional_context', context);
+  }
+  
+  if (typeof error === 'string') {
+    Sentry.captureMessage(error, 'error');
   } else {
-    console.error('Dev mode - Error would be sent to Sentry:', error, context);
+    Sentry.captureException(error);
   }
 };
 
@@ -103,14 +99,13 @@ export const captureException = (error: Error | string, context?: Record<string,
  * Add breadcrumb for tracking user actions
  */
 export const addBreadcrumb = (message: string, category: string, data?: Record<string, any>) => {
-  if (import.meta.env.PROD) {
-    Sentry.addBreadcrumb({
-      message,
-      category,
-      data,
-      level: 'info',
-    });
-  }
+  // Temporarily enabled for testing
+  Sentry.addBreadcrumb({
+    message,
+    category,
+    data,
+    level: 'info',
+  });
 };
 
 export default Sentry;
