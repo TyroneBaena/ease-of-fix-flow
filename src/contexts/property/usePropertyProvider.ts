@@ -185,7 +185,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('PropertyContext: Updated data from DB:', data[0]);
       console.log('PropertyContext: Updating local state...');
 
-      setProperties(properties.map(property => 
+      setProperties(prev => prev.map(property => 
         property.id === id ? { ...property, ...propertyUpdate } : property
       ));
       
@@ -195,7 +195,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('PropertyContext: Unexpected error updating property:', err);
       toast.error('An unexpected error occurred');
     }
-  }, [currentUser, properties]);
+  }, [currentUser]);
 
   const deleteProperty = useCallback(async (id: string) => {
     try {
