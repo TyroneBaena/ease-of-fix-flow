@@ -1147,16 +1147,21 @@ export type Database = {
           cancellation_date: string | null
           created_at: string
           email: string
+          failed_payment_count: number | null
           id: string
           is_cancelled: boolean | null
           is_trial_active: boolean | null
           last_billing_date: string | null
+          last_payment_attempt: string | null
           next_billing_date: string | null
           payment_method_id: string | null
+          payment_status: string | null
           setup_intent_id: string | null
           stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           subscribed: boolean
           subscription_end: string | null
+          subscription_status: string | null
           subscription_tier: string | null
           trial_end_date: string | null
           trial_start_date: string | null
@@ -1168,16 +1173,21 @@ export type Database = {
           cancellation_date?: string | null
           created_at?: string
           email: string
+          failed_payment_count?: number | null
           id?: string
           is_cancelled?: boolean | null
           is_trial_active?: boolean | null
           last_billing_date?: string | null
+          last_payment_attempt?: string | null
           next_billing_date?: string | null
           payment_method_id?: string | null
+          payment_status?: string | null
           setup_intent_id?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
+          subscription_status?: string | null
           subscription_tier?: string | null
           trial_end_date?: string | null
           trial_start_date?: string | null
@@ -1189,16 +1199,21 @@ export type Database = {
           cancellation_date?: string | null
           created_at?: string
           email?: string
+          failed_payment_count?: number | null
           id?: string
           is_cancelled?: boolean | null
           is_trial_active?: boolean | null
           last_billing_date?: string | null
+          last_payment_attempt?: string | null
           next_billing_date?: string | null
           payment_method_id?: string | null
+          payment_status?: string | null
           setup_intent_id?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
+          subscription_status?: string | null
           subscription_tier?: string | null
           trial_end_date?: string | null
           trial_start_date?: string | null
