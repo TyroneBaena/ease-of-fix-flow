@@ -1,6 +1,8 @@
 /**
  * Centralized logging utility to reduce console noise in production
+ * Integrates with Sentry for error tracking
  */
+import { captureException, addBreadcrumb } from '@/lib/sentry';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -40,11 +42,35 @@ export const logger = {
     if (shouldLog('error')) {
       console.error(`❌ ${message}`, ...args);
     }
+    
+    // Send errors to Sentry in production
+    if (import.meta.env.PROD) {
+      const error = args[0] instanceof Error ? args[0] : new Error(message);
+      captureException(error, { 
+        logger_message: message,
+        additional_args: args.slice(1)
+      });
+    }
   },
   
-  // Critical errors that should always be logged
+  // Critical errors that should always be logged and sent to Sentry
   critical: (message: string, ...args: any[]) => {
     console.error(`🚨 CRITICAL: ${message}`, ...args);
+    
+    // Always send critical errors to Sentry, even in development
+    const error = args[0] instanceof Error ? args[0] : new Error(message);
+    captureException(error, { 
+      level: 'critical',
+      logger_message: message,
+      additional_args: args.slice(1)
+    });
+  },
+  
+  // Add breadcrumb for tracking user actions (sent to Sentry on error)
+  breadcrumb: (message: string, category: string, data?: Record<string, any>) => {
+    if (import.meta.env.PROD) {
+      addBreadcrumb(message, category, data);
+    }
   }
 };
 

@@ -5,6 +5,7 @@ import { User, UserRole } from '@/types/user';
 import { toast } from '@/lib/toast';
 import { authDebugMarker } from '@/auth-debug';
 import '@/auth-debug'; // Force import to trigger debug logs
+import { setSentryUser } from '@/lib/sentry';
 
 console.log('🚀 UnifiedAuth Context loading with debug marker:', authDebugMarker);
 
@@ -221,6 +222,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const signOut = async () => {
     try {
+      // Clear Sentry user context
+      setSentryUser(null);
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast.success('Signed out successfully');
@@ -497,6 +501,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             setCurrentUser(user);
             console.log('🚀 UnifiedAuth v12.0 - User set successfully');
             
+            // Set Sentry user context
+            setSentryUser({
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role
+            });
+            
             // Fetch organizations in background
             try {
               await fetchUserOrganizations(user);
@@ -514,6 +526,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             setCurrentUser(null);
             setSession(null);
             setLoading(false);
+            
+            // Clear Sentry user context on error
+            setSentryUser(null);
           }
         }, 0);
         
@@ -524,6 +539,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setSession(null);
         setUserOrganizations([]);
         setCurrentOrganization(null);
+        
+        // Clear Sentry user context
+        setSentryUser(null);
       } else if (event === 'TOKEN_REFRESHED' && session) {
         console.log('🚀 UnifiedAuth v12.0 - TOKEN_REFRESHED event');
         setSession(session);
@@ -535,6 +553,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const user = await convertSupabaseUser(session.user);
             setCurrentUser(user);
             setSession(session);
+            
+            // Update Sentry user context
+            setSentryUser({
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role
+            });
+            
             await fetchUserOrganizations(user);
           } catch (error) {
             console.error('🚀 UnifiedAuth v12.0 - Error converting updated user:', error);
