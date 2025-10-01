@@ -40,23 +40,24 @@ export const usePropertyBillingIntegration = () => {
     return () => clearTimeout(timeoutId);
   }, [properties.length, propertyCount, isTrialActive, subscribed]);
 
-  // Track if this is the initial mount to avoid false notifications
-  const isInitialMount = useRef(true);
-  const lastKnownCount = useRef<number | null>(null);
+  // Track property count changes - only trigger notifications for real user actions
+  const lastKnownCount = useRef<number>(properties.length);
+  const hasInitialized = useRef(false);
+
+  // Initialize the count after properties have loaded
+  useEffect(() => {
+    if (!hasInitialized.current && properties.length > 0) {
+      hasInitialized.current = true;
+      lastKnownCount.current = properties.length;
+    }
+  }, [properties.length]);
 
   // Show billing notifications when properties are added/removed during trial/subscription
   useEffect(() => {
     const currentPropertyCount = properties.length;
 
-    // Skip on initial mount - just record the count
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      lastKnownCount.current = currentPropertyCount;
-      return;
-    }
-
-    // Skip if no previous count or no actual change
-    if (lastKnownCount.current === null || currentPropertyCount === lastKnownCount.current) {
+    // Don't trigger on initial load or before properties have loaded
+    if (!hasInitialized.current || currentPropertyCount === lastKnownCount.current) {
       return;
     }
 
