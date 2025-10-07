@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
@@ -433,7 +434,7 @@ export const BillingManagementPage: React.FC = () => {
           />
         )}
 
-        {showPaymentSetup && (
+        {showPaymentSetup && ReactDOM.createPortal(
           <div 
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={(e) => {
@@ -455,7 +456,8 @@ export const BillingManagementPage: React.FC = () => {
                 onSkip={() => setShowPaymentSetup(false)}
               />
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
