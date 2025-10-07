@@ -24,6 +24,7 @@ import { PropertyCountDisplay } from './PropertyCountDisplay';
 import { BillingPreview } from './BillingPreview';
 import { CancellationFlow } from './CancellationFlow';
 import { ReactivationFlow } from './ReactivationFlow';
+import { PaymentMethodSetup } from '@/components/auth/PaymentMethodSetup';
 import { toast } from 'sonner';
 
 export const BillingManagementPage: React.FC = () => {
@@ -47,6 +48,7 @@ export const BillingManagementPage: React.FC = () => {
 
   const [showCancellation, setShowCancellation] = useState(false);
   const [showReactivation, setShowReactivation] = useState(false);
+  const [showPaymentSetup, setShowPaymentSetup] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
@@ -147,6 +149,29 @@ export const BillingManagementPage: React.FC = () => {
             <p className="text-muted-foreground">Manage your subscription and billing preferences</p>
           </div>
         </div>
+
+        {/* Payment Method Setup - Show for trial users without payment method */}
+        {isTrialActive && !showPaymentSetup && (
+          <Card className="mb-6 border-blue-200 bg-blue-50/50">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <CreditCard className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-2">Add Payment Method</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Add a payment method to ensure uninterrupted service after your trial ends.
+                  </p>
+                  <Button 
+                    onClick={() => setShowPaymentSetup(true)}
+                    size="sm"
+                  >
+                    Add Payment Method
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Trial Status Alert */}
         {isTrialActive && (
@@ -406,6 +431,21 @@ export const BillingManagementPage: React.FC = () => {
           <ReactivationFlow 
             onComplete={() => setShowReactivation(false)} 
           />
+        )}
+
+        {showPaymentSetup && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="w-full max-w-lg">
+              <PaymentMethodSetup 
+                onComplete={() => {
+                  setShowPaymentSetup(false);
+                  toast.success('Payment method added successfully!');
+                  refresh();
+                }}
+                onSkip={() => setShowPaymentSetup(false)}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
