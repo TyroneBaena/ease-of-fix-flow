@@ -122,26 +122,27 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     setCompleteRef.current = setComplete;
   });
 
-  // Track if we've initialized for this open session
-  const hasInitializedForSession = React.useRef(false);
+  // Track previous isOpen state to detect true open/close transitions
+  const prevIsOpenRef = React.useRef(isOpen);
   
-  // Initialize payment setup when modal opens - ONLY ONCE PER SESSION
+  // Initialize ONLY when modal transitions from closed to open
   useEffect(() => {
-    if (isOpen && !hasInitializedForSession.current) {
+    const wasOpen = prevIsOpenRef.current;
+    const isNowOpen = isOpen;
+    
+    if (!wasOpen && isNowOpen) {
+      // Modal just opened
       console.log('[PaymentModal] Modal opened, triggering initialization...');
-      hasInitializedForSession.current = true;
       initializeRef.current();
-    }
-  }, [isOpen]); // ONLY primitive dependency
-
-  // Reset when modal closes
-  useEffect(() => {
-    if (!isOpen) {
+    } else if (wasOpen && !isNowOpen) {
+      // Modal just closed
       console.log('[PaymentModal] Modal closed, resetting...');
-      hasInitializedForSession.current = false;
       resetRef.current();
     }
-  }, [isOpen]); // ONLY primitive dependency
+    
+    // Update previous state
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const handleSuccess = useCallback(() => {
     console.log('[PaymentModal] Payment setup successful');
