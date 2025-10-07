@@ -16,7 +16,7 @@ interface PaymentFormProps {
   onCancel: () => void;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ onSuccess, onCancel }) => {
+const PaymentForm: React.FC<PaymentFormProps> = React.memo(({ onSuccess, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +95,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onSuccess, onCancel }) => {
       </div>
     </form>
   );
-};
+});
 
 interface PaymentSetupModalProps {
   isOpen: boolean;
@@ -103,7 +103,7 @@ interface PaymentSetupModalProps {
   onComplete: () => void;
 }
 
-export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, onClose, onComplete }) => {
+export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = React.memo(({ isOpen, onClose, onComplete }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +266,7 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
               </Alert>
 
               <Elements
+                key={clientSecret}
                 stripe={stripePromise}
                 options={elementsOptions}
               >
@@ -282,4 +283,4 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
   );
 
   return createPortal(modalContent, document.body);
-};
+});
