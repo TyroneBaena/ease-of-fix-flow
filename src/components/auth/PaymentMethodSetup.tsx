@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,7 +110,7 @@ interface PaymentMethodSetupProps {
  * Phase 1: Payment Method Validation at Signup
  * Requires payment method before activating trial
  */
-export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
+export const PaymentMethodSetup = React.memo<PaymentMethodSetupProps>(({
   onComplete,
   onSkip,
 }) => {
@@ -249,6 +249,14 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
     );
   }
 
+  // Memoize the Stripe Elements options to prevent re-creation
+  const stripeOptions = useMemo(() => ({
+    clientSecret: clientSecret || '',
+    appearance: {
+      theme: 'stripe' as const,
+    },
+  }), [clientSecret]);
+
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
@@ -270,12 +278,7 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
         {clientSecret && (
           <Elements
             stripe={stripePromise}
-            options={{
-              clientSecret,
-              appearance: {
-                theme: 'stripe',
-              },
-            }}
+            options={stripeOptions}
           >
             <PaymentMethodSetupForm
               clientSecret={clientSecret}
@@ -287,4 +290,4 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
