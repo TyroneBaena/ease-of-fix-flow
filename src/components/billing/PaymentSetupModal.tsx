@@ -108,8 +108,7 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
-  const hasInitialized = useRef(false);
-  const isInitializing = useRef(false); // Prevent concurrent initializations
+  const initializationAttempted = useRef(false);
   
   // Store callbacks in refs to prevent re-renders when they change
   const onCloseRef = useRef(onClose);
@@ -120,29 +119,35 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     onCompleteRef.current = onComplete;
   }, [onClose, onComplete]);
 
-  // Initialize only when modal opens for the first time
+  // Reset initialization state when modal closes
   useEffect(() => {
-    // Guard against multiple initializations
-    if (!isOpen || hasInitialized.current || isInitializing.current) {
+    if (!isOpen) {
+      // Reset everything when modal is closed
+      initializationAttempted.current = false;
+      setClientSecret(null);
+      setSetupComplete(false);
+      setLoading(false);
+      setError(null);
+    }
+  }, [isOpen]);
+
+  // Initialize payment setup when modal opens
+  useEffect(() => {
+    // Only initialize if modal is open, we haven't attempted yet, and don't have a client secret
+    if (!isOpen || initializationAttempted.current || clientSecret) {
       return;
     }
 
-    // If we already have a client secret, don't re-initialize
-    if (clientSecret) {
-      return;
-    }
-
-    isInitializing.current = true;
-    hasInitialized.current = true;
+    initializationAttempted.current = true;
     setLoading(true);
 
     const init = async () => {
       try {
+        console.log('[PaymentModal] Initializing payment setup...');
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           setError('Please log in to continue');
           setLoading(false);
-          isInitializing.current = false;
           return;
         }
 
@@ -163,14 +168,13 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
           throw new Error('Failed to initialize payment setup');
         }
 
+        console.log('[PaymentModal] Successfully fetched client secret');
         setClientSecret(data.client_secret);
         setLoading(false);
-        isInitializing.current = false;
       } catch (err) {
-        console.error('Error initializing payment setup:', err);
+        console.error('[PaymentModal] Error initializing payment setup:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
         setLoading(false);
-        isInitializing.current = false;
       }
     };
 
@@ -178,30 +182,16 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
   }, [isOpen, clientSecret]);
 
   const handleSuccess = useCallback(() => {
+    console.log('[PaymentModal] Payment setup successful');
     setSetupComplete(true);
     setTimeout(() => {
       onCompleteRef.current();
-      // Reset everything after successful completion
-      hasInitialized.current = false;
-      setClientSecret(null);
-      setSetupComplete(false);
-      setLoading(false);
-      setError(null);
-      isInitializing.current = false;
     }, 2000);
   }, []);
 
   const handleClose = useCallback(() => {
+    console.log('[PaymentModal] Modal closing');
     onCloseRef.current();
-    // Reset for next time - but keep hasInitialized to prevent duplicate calls
-    setTimeout(() => {
-      // Don't reset hasInitialized here - only reset when successfully completing or on unmount
-      setClientSecret(null);
-      setSetupComplete(false);
-      setLoading(false);
-      setError(null);
-      isInitializing.current = false;
-    }, 300);
   }, []);
 
   // Memoize elementsOptions to prevent unnecessary re-renders
