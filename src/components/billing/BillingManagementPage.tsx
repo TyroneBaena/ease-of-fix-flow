@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
@@ -25,7 +24,7 @@ import { PropertyCountDisplay } from './PropertyCountDisplay';
 import { BillingPreview } from './BillingPreview';
 import { CancellationFlow } from './CancellationFlow';
 import { ReactivationFlow } from './ReactivationFlow';
-import { PaymentMethodSetup } from '@/components/auth/PaymentMethodSetup';
+import { PaymentModal } from './PaymentModal';
 import { toast } from 'sonner';
 
 export const BillingManagementPage: React.FC = () => {
@@ -434,31 +433,15 @@ export const BillingManagementPage: React.FC = () => {
           />
         )}
 
-        {showPaymentSetup && ReactDOM.createPortal(
-          <div 
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            onClick={(e) => {
-              // Prevent closing when clicking the backdrop
-              if (e.target === e.currentTarget) {
-                e.stopPropagation();
-              }
-            }}
-          >
-            <div className="w-full max-w-lg">
-              <PaymentMethodSetup 
-                key="payment-setup-modal"
-                onComplete={() => {
-                  setShowPaymentSetup(false);
-                  toast.success('Payment method added successfully!');
-                  // Delay refresh to prevent immediate re-render
-                  setTimeout(() => refresh(), 100);
-                }}
-                onSkip={() => setShowPaymentSetup(false)}
-              />
-            </div>
-          </div>,
-          document.body
-        )}
+        <PaymentModal
+          isOpen={showPaymentSetup}
+          onClose={() => setShowPaymentSetup(false)}
+          onComplete={async () => {
+            setShowPaymentSetup(false);
+            toast.success('Payment method added successfully!');
+            await refresh();
+          }}
+        />
       </div>
     </div>
   );
