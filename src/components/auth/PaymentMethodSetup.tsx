@@ -119,6 +119,14 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
 
+  // Memoize the Stripe Elements options to prevent re-creation - MUST be before conditional returns
+  const stripeOptions = useMemo(() => ({
+    clientSecret: clientSecret || '',
+    appearance: {
+      theme: 'stripe' as const,
+    },
+  }), [clientSecret]);
+
   useEffect(() => {
     let mounted = true;
     
@@ -259,12 +267,6 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
     );
   }
 
-  const stripeOptions = useMemo(() => ({
-    clientSecret: clientSecret || '',
-    appearance: {
-      theme: 'stripe' as const,
-    },
-  }), [clientSecret]);
 
   return (
     <Card className="max-w-md mx-auto">
