@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -112,20 +112,28 @@ export const StablePaymentSetup: React.FC<StablePaymentSetupProps> = ({ onComple
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const initRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  const onSkipRef = useRef(onSkip);
 
-  console.log('🔵 StablePaymentSetup render', { loading, error, setupComplete, hasSecret: !!clientSecret, initialized });
-
-  // Initialize ONCE when component mounts - with guard
+  // Keep callback refs updated
   useEffect(() => {
-    if (initialized) {
+    onCompleteRef.current = onComplete;
+    onSkipRef.current = onSkip;
+  });
+
+  console.log('🔵 StablePaymentSetup render', { loading, error, setupComplete, hasSecret: !!clientSecret, initialized: initRef.current });
+
+  // Initialize ONCE when component mounts - with ref guard
+  useEffect(() => {
+    if (initRef.current) {
       console.log('⚠️ Already initialized, skipping');
       return;
     }
     
+    initRef.current = true;
     let mounted = true;
     console.log('🟢 Initializing payment setup - ONCE');
-    setInitialized(true);
     
     const init = async () => {
       try {
@@ -195,9 +203,14 @@ export const StablePaymentSetup: React.FC<StablePaymentSetupProps> = ({ onComple
     setSetupComplete(true);
     setTimeout(() => {
       console.log('✅ Calling onComplete');
-      onComplete();
+      onCompleteRef.current();
     }, 2000);
-  }, [onComplete]);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    console.log('❌ Payment cancelled');
+    onSkipRef.current();
+  }, []);
 
   if (loading) {
     return (
@@ -220,7 +233,7 @@ export const StablePaymentSetup: React.FC<StablePaymentSetupProps> = ({ onComple
           <CardDescription>{error}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={onSkip} className="w-full">
+          <Button onClick={handleCancel} className="w-full">
             Close
           </Button>
         </CardContent>
@@ -274,7 +287,7 @@ export const StablePaymentSetup: React.FC<StablePaymentSetupProps> = ({ onComple
         >
           <PaymentForm
             onSuccess={handleSuccess}
-            onCancel={onSkip}
+            onCancel={handleCancel}
           />
         </Elements>
       </CardContent>
