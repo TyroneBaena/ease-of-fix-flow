@@ -444,11 +444,13 @@ export const BillingManagementPage: React.FC = () => {
           />
         )}
 
-        <PaymentSetupModal
-          isOpen={showPaymentSetup}
-          onClose={handlePaymentModalClose}
-          onComplete={handlePaymentModalComplete}
-        />
+        {showPaymentSetup && (
+          <PaymentSetupModal
+            isOpen={showPaymentSetup}
+            onClose={handlePaymentModalClose}
+            onComplete={handlePaymentModalComplete}
+          />
+        )}
       </div>
     </div>
   );
