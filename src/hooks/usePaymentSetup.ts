@@ -22,23 +22,26 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
   const initializedRef = useRef(false);
 
   const initialize = useCallback(async () => {
-    // Prevent duplicate initialization attempts
-    if (initializingRef.current || initializedRef.current || state !== 'idle') {
-      console.log('[PaymentSetup] Skipping initialization - already initialized or in progress');
+    // Prevent duplicate initialization attempts using refs only
+    if (initializingRef.current || initializedRef.current) {
+      console.log('[PaymentSetup] Skipping initialization - already initialized or in progress', {
+        initializing: initializingRef.current,
+        initialized: initializedRef.current
+      });
       return;
     }
 
+    console.log('[PaymentSetup] Starting initialization...');
     initializingRef.current = true;
     setState('initializing');
 
     try {
-      console.log('[PaymentSetup] Starting initialization...');
-      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Please log in to continue');
       }
 
+      console.log('[PaymentSetup] Calling add-payment-method API...');
       const { data, error: functionError } = await supabase.functions.invoke(
         'add-payment-method',
         {
@@ -56,7 +59,7 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
         throw new Error('Failed to initialize payment setup');
       }
 
-      console.log('[PaymentSetup] Successfully initialized');
+      console.log('[PaymentSetup] Successfully initialized with client secret');
       setClientSecret(data.client_secret);
       setState('ready');
       initializedRef.current = true;
@@ -64,10 +67,14 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
       console.error('[PaymentSetup] Initialization error:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
       setState('error');
-    } finally {
       initializingRef.current = false;
+    } finally {
+      // Only reset if not already initialized successfully
+      if (!initializedRef.current) {
+        initializingRef.current = false;
+      }
     }
-  }, [state]);
+  }, []); // No dependencies - guards are handled by refs
 
   const reset = useCallback(() => {
     console.log('[PaymentSetup] Resetting state');

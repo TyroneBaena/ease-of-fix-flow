@@ -106,13 +106,13 @@ interface PaymentSetupModalProps {
 export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, onClose, onComplete }) => {
   const { state, clientSecret, error, initialize, reset, setComplete } = usePaymentSetup();
 
-  // Initialize payment setup when modal opens
+  // Initialize payment setup when modal opens - only once per open
   useEffect(() => {
-    if (isOpen && state === 'idle') {
-      console.log('[PaymentModal] Modal opened, initializing...');
+    if (isOpen) {
+      console.log('[PaymentModal] Modal opened, triggering initialization...');
       initialize();
     }
-  }, [isOpen, state, initialize]);
+  }, [isOpen, initialize]);
 
   // Reset when modal closes
   useEffect(() => {
