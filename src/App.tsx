@@ -67,9 +67,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <UnifiedAuthProvider>
           <UserProvider>
-        <Router>
-          <div className="App">
-          <Routes>
+            <SubscriptionProvider>
+              <Router>
+                <div className="App">
+                  <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -84,13 +85,11 @@ function App() {
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <SubscriptionProvider>
-                    <MaintenanceRequestProvider>
-                      <PropertyProvider>
-                        <Dashboard />
-                      </PropertyProvider>
-                    </MaintenanceRequestProvider>
-                  </SubscriptionProvider>
+                  <MaintenanceRequestProvider>
+                    <PropertyProvider>
+                      <Dashboard />
+                    </PropertyProvider>
+                  </MaintenanceRequestProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -129,11 +128,9 @@ function App() {
             <Route path="/properties" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <SubscriptionProvider>
-                    <PropertyProvider>
-                      <Properties />
-                    </PropertyProvider>
-                  </SubscriptionProvider>
+                  <PropertyProvider>
+                    <Properties />
+                  </PropertyProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -286,32 +283,29 @@ function App() {
             <Route path="/billing" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <SubscriptionProvider>
-                    <PropertyProvider>
-                      <Billing />
-                    </PropertyProvider>
-                  </SubscriptionProvider>
+                  <PropertyProvider>
+                    <Billing />
+                  </PropertyProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
             <Route path="/billing/manage" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <SubscriptionProvider>
-                    <PropertyProvider>
-                      <BillingManagePage />
-                    </PropertyProvider>
-                  </SubscriptionProvider>
+                  <PropertyProvider>
+                    <BillingManagePage />
+                  </PropertyProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
             
             {/* 404 route */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
-          </div>
-          <Toaster />
-        </Router>
+                  </Routes>
+                </div>
+                <Toaster />
+              </Router>
+            </SubscriptionProvider>
           </UserProvider>
         </UnifiedAuthProvider>
       </QueryClientProvider>

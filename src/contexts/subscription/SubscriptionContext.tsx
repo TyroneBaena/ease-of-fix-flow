@@ -471,6 +471,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     subscriptionTier, 
     subscriptionEnd, 
     loading,
+    refresh,
     isTrialActive,
     isCancelled,
     trialEndDate,

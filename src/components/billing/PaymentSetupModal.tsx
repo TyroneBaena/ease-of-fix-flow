@@ -113,14 +113,14 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
   const resetRef = React.useRef(reset);
   const setCompleteRef = React.useRef(setComplete);
   
-  // Keep refs updated
+  // Keep refs updated - run only when props/functions change
   React.useEffect(() => {
     onCloseRef.current = onClose;
     onCompleteRef.current = onComplete;
     initializeRef.current = initialize;
     resetRef.current = reset;
     setCompleteRef.current = setComplete;
-  });
+  }, [onClose, onComplete, initialize, reset, setComplete]);
 
   // Track previous isOpen state to detect true open/close transitions
   const prevIsOpenRef = React.useRef(isOpen);
