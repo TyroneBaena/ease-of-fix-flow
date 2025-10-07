@@ -109,6 +109,7 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
   const hasInitialized = useRef(false);
+  const isInitializing = useRef(false); // Prevent concurrent initializations
   
   // Store callbacks in refs to prevent re-renders when they change
   const onCloseRef = useRef(onClose);
@@ -121,10 +122,17 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
 
   // Initialize only when modal opens for the first time
   useEffect(() => {
-    if (!isOpen || hasInitialized.current) {
+    // Guard against multiple initializations
+    if (!isOpen || hasInitialized.current || isInitializing.current) {
       return;
     }
 
+    // If we already have a client secret, don't re-initialize
+    if (clientSecret) {
+      return;
+    }
+
+    isInitializing.current = true;
     hasInitialized.current = true;
     setLoading(true);
 
@@ -134,6 +142,7 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
         if (!session) {
           setError('Please log in to continue');
           setLoading(false);
+          isInitializing.current = false;
           return;
         }
 
@@ -156,38 +165,42 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
 
         setClientSecret(data.client_secret);
         setLoading(false);
+        isInitializing.current = false;
       } catch (err) {
         console.error('Error initializing payment setup:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
         setLoading(false);
+        isInitializing.current = false;
       }
     };
 
     init();
-  }, [isOpen]);
+  }, [isOpen, clientSecret]);
 
   const handleSuccess = useCallback(() => {
     setSetupComplete(true);
     setTimeout(() => {
       onCompleteRef.current();
-      // Reset for next time
+      // Reset everything after successful completion
       hasInitialized.current = false;
       setClientSecret(null);
       setSetupComplete(false);
       setLoading(false);
       setError(null);
+      isInitializing.current = false;
     }, 2000);
   }, []);
 
   const handleClose = useCallback(() => {
     onCloseRef.current();
-    // Reset for next time
+    // Reset for next time - but keep hasInitialized to prevent duplicate calls
     setTimeout(() => {
-      hasInitialized.current = false;
+      // Don't reset hasInitialized here - only reset when successfully completing or on unmount
       setClientSecret(null);
       setSetupComplete(false);
       setLoading(false);
       setError(null);
+      isInitializing.current = false;
     }, 300);
   }, []);
 
