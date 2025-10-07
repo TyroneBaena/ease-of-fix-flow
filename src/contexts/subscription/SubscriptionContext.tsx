@@ -447,7 +447,15 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     daysRemaining,
     propertyCount,
     monthlyAmount,
-    currency
+    currency,
+    refresh,
+    startTrial,
+    cancelTrial,
+    reactivateSubscription,
+    calculateBilling,
+    upgradeToPaid,
+    refreshPropertyCount,
+    debugDatabaseState
   ]);
 
   return (
