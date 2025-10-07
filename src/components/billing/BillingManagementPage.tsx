@@ -435,8 +435,12 @@ export const BillingManagementPage: React.FC = () => {
 
         <PaymentModal
           isOpen={showPaymentSetup}
-          onClose={() => setShowPaymentSetup(false)}
+          onClose={() => {
+            console.log('🔴 Closing payment modal');
+            setShowPaymentSetup(false);
+          }}
           onComplete={async () => {
+            console.log('🟢 Payment complete - closing modal');
             setShowPaymentSetup(false);
             toast.success('Payment method added successfully!');
             await refresh();
