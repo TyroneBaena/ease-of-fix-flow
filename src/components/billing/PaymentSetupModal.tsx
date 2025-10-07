@@ -131,10 +131,15 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     }
   }, [isOpen]);
 
-  // Initialize payment setup when modal opens
+  // Initialize payment setup when modal opens - ONLY ONCE
   useEffect(() => {
-    // Only initialize if modal is open, we haven't attempted yet, and don't have a client secret
-    if (!isOpen || initializationAttempted.current || clientSecret) {
+    // Only initialize if modal is open and we haven't attempted yet
+    if (!isOpen || initializationAttempted.current) {
+      return;
+    }
+
+    // If we already have a client secret, we're done
+    if (clientSecret) {
       return;
     }
 
@@ -179,7 +184,9 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     };
 
     init();
-  }, [isOpen, clientSecret]);
+    // CRITICAL: Do NOT include clientSecret in dependencies - it causes re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleSuccess = useCallback(() => {
     console.log('[PaymentModal] Payment setup successful');
