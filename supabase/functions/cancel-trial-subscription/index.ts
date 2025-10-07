@@ -124,6 +124,32 @@ Deno.serve(async (req) => {
 
     log("Successfully cancelled subscription", { subscriberId: updatedSubscriber.id });
 
+    // Send cancellation confirmation email
+    try {
+      const { data: userData } = await adminSupabase.auth.admin.getUserById(userId);
+      const userName = userData?.user?.user_metadata?.name || userEmail.split('@')[0];
+
+      await fetch(`${supabaseUrl}/functions/v1/send-cancellation-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          recipient_email: userEmail,
+          recipient_name: userName,
+          cancellation_date: updatedSubscriber.cancellation_date,
+          was_trial: subscriber.is_trial_active || false,
+          property_count: subscriber.active_properties_count || 0,
+          cancellation_reason: cancellationReason,
+        }),
+      });
+      log("Cancellation confirmation email sent");
+    } catch (emailError) {
+      log("Failed to send cancellation email", { emailError });
+      // Don't fail the whole operation if email fails
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Trial cancelled successfully',

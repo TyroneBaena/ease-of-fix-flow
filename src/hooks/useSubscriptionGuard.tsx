@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useFailedPaymentStatus } from './useFailedPaymentStatus';
 
 interface SubscriptionGuardResult {
   hasAccess: boolean;
   isLoading: boolean;
-  reason?: 'trial_expired' | 'subscription_cancelled' | 'no_payment_method' | 'no_subscription';
+  reason?: 'trial_expired' | 'subscription_cancelled' | 'no_payment_method' | 'no_subscription' | 'grace_period_expired';
   message?: string;
 }
 
 /**
- * Phase 1: Access Control Middleware
+ * Phase 2: Access Control Middleware with Grace Period
  * Blocks access for users with expired/cancelled subscriptions
+ * Allows 7-day grace period after 3rd failed payment
  */
 export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): SubscriptionGuardResult => {
   const navigate = useNavigate();
@@ -23,6 +25,12 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
     loading,
     trialEndDate,
   } = useSubscription();
+  
+  const {
+    failedCount,
+    isInGracePeriod,
+    daysRemainingInGrace,
+  } = useFailedPaymentStatus();
 
   const [guardResult, setGuardResult] = useState<SubscriptionGuardResult>({
     hasAccess: true,
@@ -98,12 +106,32 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
       return;
     }
 
+    // Check 4: Failed payment - grace period expired
+    if (subscribed && failedCount >= 3 && !isInGracePeriod) {
+      setGuardResult({
+        hasAccess: false,
+        isLoading: false,
+        reason: 'grace_period_expired',
+        message: 'Your grace period has expired due to failed payments. Please update your payment method.',
+      });
+      
+      toast.error('Access Suspended', {
+        description: 'Grace period expired. Update your payment method to restore access.',
+        action: {
+          label: 'Update Payment',
+          onClick: () => navigate('/billing'),
+        },
+        duration: 15000,
+      });
+      return;
+    }
+
     // All checks passed - user has access
     setGuardResult({
       hasAccess: true,
       isLoading: false,
     });
-  }, [subscribed, isTrialActive, isCancelled, loading, trialEndDate, requirePaymentMethod, navigate]);
+  }, [subscribed, isTrialActive, isCancelled, loading, trialEndDate, requirePaymentMethod, navigate, failedCount, isInGracePeriod]);
 
   return guardResult;
 };

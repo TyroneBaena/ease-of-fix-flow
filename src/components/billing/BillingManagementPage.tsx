@@ -26,6 +26,8 @@ import { BillingPreview } from './BillingPreview';
 import { CancellationFlow } from './CancellationFlow';
 import { ReactivationFlow } from './ReactivationFlow';
 import { PaymentSetupModal } from './PaymentSetupModal';
+import { FailedPaymentBanner } from './FailedPaymentBanner';
+import { BillingHistory } from './BillingHistory';
 import { toast } from 'sonner';
 
 export const BillingManagementPage: React.FC = () => {
@@ -194,6 +196,9 @@ export const BillingManagementPage: React.FC = () => {
             <p className="text-muted-foreground">Manage your subscription and billing preferences</p>
           </div>
         </div>
+
+        {/* Failed Payment Banner */}
+        <FailedPaymentBanner />
 
         {/* Payment Method Setup - Show for trial users without payment method */}
         {isTrialActive && !showPaymentSetup && (
@@ -421,6 +426,9 @@ export const BillingManagementPage: React.FC = () => {
 
             {/* Billing Preview */}
             <BillingPreview showDetails={true} />
+            
+            {/* Billing History */}
+            <BillingHistory />
           </div>
 
           {/* Sidebar */}
@@ -437,7 +445,7 @@ export const BillingManagementPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Per Property</span>
-                  <span className="font-medium">$29</span>
+                  <span className="font-medium">$29 AUD</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Currency</span>
@@ -462,7 +470,7 @@ export const BillingManagementPage: React.FC = () => {
                   Questions about billing or your subscription?
                 </p>
                 <div className="space-y-2 text-sm">
-                  <p>• Property-based pricing: $29/property</p>
+                  <p>• Property-based pricing: $29 AUD/property</p>
                   <p>• Monthly billing cycles</p>
                   <p>• Pro-rated adjustments</p>
                   <p>• Cancel anytime</p>

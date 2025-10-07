@@ -6,3 +6,5 @@ export { TrialBillingPage } from './TrialBillingPage';
 export { BillingManagementPage } from './BillingManagementPage';
 export { CancellationFlow } from './CancellationFlow';
 export { ReactivationFlow } from './ReactivationFlow';
+export { FailedPaymentBanner } from './FailedPaymentBanner';
+export { BillingHistory } from './BillingHistory';

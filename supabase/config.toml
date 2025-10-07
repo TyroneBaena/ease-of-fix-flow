@@ -145,3 +145,12 @@ verify_jwt = true
 
 [functions.verify-payment-method]
 verify_jwt = true
+
+[functions.send-trial-reminder]
+verify_jwt = false
+
+[functions.send-cancellation-confirmation]
+verify_jwt = false
+
+[functions.check-trial-reminders]
+verify_jwt = false
