@@ -110,7 +110,7 @@ interface PaymentMethodSetupProps {
  * Phase 1: Payment Method Validation at Signup
  * Requires payment method before activating trial
  */
-const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
+export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   onComplete,
   onSkip,
 }) => {
@@ -120,16 +120,19 @@ const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
   const [setupComplete, setSetupComplete] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          setError('Please log in to continue');
-          setLoading(false);
+          if (mounted) {
+            setError('Please log in to continue');
+            setLoading(false);
+          }
           return;
         }
 
-        // Use add-payment-method for existing trial users
         const { data, error: functionError } = await supabase.functions.invoke(
           'add-payment-method',
           {
@@ -147,17 +150,25 @@ const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
           throw new Error('Failed to initialize payment setup');
         }
 
-        setClientSecret(data.client_secret);
-        setLoading(false);
+        if (mounted) {
+          setClientSecret(data.client_secret);
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Error initializing payment setup:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
-        setLoading(false);
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
+          setLoading(false);
+        }
       }
     };
     
     init();
-  }, []); // Empty dependency array - only run once on mount
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const initializeSetupIntent = async () => {
     setLoading(true);
@@ -170,7 +181,6 @@ const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
         return;
       }
 
-      // Use add-payment-method for existing trial users
       const { data, error: functionError } = await supabase.functions.invoke(
         'add-payment-method',
         {
@@ -249,7 +259,6 @@ const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
     );
   }
 
-  // Memoize the Stripe Elements options to prevent re-creation
   const stripeOptions = useMemo(() => ({
     clientSecret: clientSecret || '',
     appearance: {
@@ -291,5 +300,3 @@ const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
     </Card>
   );
 };
-
-export const PaymentMethodSetup = React.memo(PaymentMethodSetupComponent);
