@@ -109,9 +109,16 @@ export const BillingManagementPage: React.FC = () => {
   }, []);
 
   const handlePaymentModalComplete = useCallback(async () => {
-    setShowPaymentSetup(false);
-    toast.success('Payment method added successfully!');
-    await refresh();
+    console.log('[BillingManagement] Payment complete callback triggered');
+    // Don't close immediately - let the modal show success state first
+    // The modal will handle its own closing after showing success
+    
+    // Refresh subscription data after a delay to avoid interfering with modal
+    setTimeout(async () => {
+      console.log('[BillingManagement] Refreshing subscription data...');
+      await refresh();
+      toast.success('Payment method added successfully!');
+    }, 2500);
   }, [refresh]);
 
   if (loading) {

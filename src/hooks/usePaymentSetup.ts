@@ -41,6 +41,7 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
       console.log('[PaymentSetup] Starting initialization...');
       initializingRef.current = true;
       setState('initializing');
+      setError(null); // Clear any previous errors
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -59,10 +60,12 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
         );
 
         if (functionError) {
+          console.error('[PaymentSetup] API error:', functionError);
           throw functionError;
         }
 
         if (!data?.client_secret) {
+          console.error('[PaymentSetup] No client secret in response:', data);
           throw new Error('Failed to initialize payment setup');
         }
 
@@ -72,13 +75,15 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
         initializedRef.current = true;
       } catch (err) {
         console.error('[PaymentSetup] Initialization error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to initialize payment setup';
+        setError(errorMessage);
         setState('error');
         initializingRef.current = false;
+        initializedRef.current = false;
       } finally {
         // Clear the promise reference
         initializePromiseRef.current = null;
-        // Only reset if not already initialized successfully
+        // Only reset initializing flag if not successfully initialized
         if (!initializedRef.current) {
           initializingRef.current = false;
         }

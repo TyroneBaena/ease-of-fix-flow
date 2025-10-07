@@ -155,11 +155,17 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
       return;
     }
     successCalledRef.current = true;
-    console.log('[PaymentModal] Payment setup successful');
+    console.log('[PaymentModal] Payment setup successful, showing success state');
     setCompleteRef.current();
+    
+    // Show success message for 2 seconds, then close and trigger completion
     setTimeout(() => {
-      onCompleteRef.current();
-      successCalledRef.current = false; // Reset for next time
+      console.log('[PaymentModal] Closing modal and triggering completion callback');
+      onCloseRef.current(); // Close the modal first
+      setTimeout(() => {
+        onCompleteRef.current(); // Then trigger the completion callback
+        successCalledRef.current = false; // Reset for next time
+      }, 100);
     }, 2000);
   }, []); // NO dependencies
 
