@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -103,12 +103,21 @@ interface PaymentSetupModalProps {
   onComplete: () => void;
 }
 
-export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = React.memo(({ isOpen, onClose, onComplete }) => {
+export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, onClose, onComplete }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
   const hasInitialized = useRef(false);
+  
+  // Store callbacks in refs to prevent re-renders when they change
+  const onCloseRef = useRef(onClose);
+  const onCompleteRef = useRef(onComplete);
+  
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    onCompleteRef.current = onComplete;
+  }, [onClose, onComplete]);
 
   // Initialize only when modal opens for the first time
   useEffect(() => {
@@ -157,10 +166,10 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = React.memo(({
     init();
   }, [isOpen]);
 
-  const handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     setSetupComplete(true);
     setTimeout(() => {
-      onComplete();
+      onCompleteRef.current();
       // Reset for next time
       hasInitialized.current = false;
       setClientSecret(null);
@@ -168,10 +177,10 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = React.memo(({
       setLoading(false);
       setError(null);
     }, 2000);
-  };
+  }, []);
 
-  const handleClose = () => {
-    onClose();
+  const handleClose = useCallback(() => {
+    onCloseRef.current();
     // Reset for next time
     setTimeout(() => {
       hasInitialized.current = false;
@@ -180,7 +189,7 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = React.memo(({
       setLoading(false);
       setError(null);
     }, 300);
-  };
+  }, []);
 
   // Memoize elementsOptions to prevent unnecessary re-renders
   const elementsOptions: StripeElementsOptions | null = useMemo(() => {
@@ -283,4 +292,4 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = React.memo(({
   );
 
   return createPortal(modalContent, document.body);
-});
+};
