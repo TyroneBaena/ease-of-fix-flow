@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, memo } from 'react';
 import { X } from 'lucide-react';
-import { PaymentMethodSetup } from '@/components/auth/PaymentMethodSetup';
+import { StablePaymentSetup } from './StablePaymentSetup';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -21,15 +21,15 @@ const PaymentModalContent = memo<PaymentModalProps>(({ isOpen, onClose, onComple
   
   useEffect(() => {
     renderCount.current += 1;
-    console.log('🔵 PaymentModalContent render count:', renderCount.current, 'isOpen:', isOpen);
+    console.log('🔵 PaymentModal render count:', renderCount.current, 'isOpen:', isOpen);
   });
 
   if (!isOpen) {
-    console.log('🔴 PaymentModal closed');
+    console.log('🔴 PaymentModal closed - returning null');
     return null;
   }
 
-  console.log('🟢 PaymentModal rendering');
+  console.log('🟢 PaymentModal open - rendering content');
 
   return (
     <div 
@@ -49,7 +49,7 @@ const PaymentModalContent = memo<PaymentModalProps>(({ isOpen, onClose, onComple
           <X className="h-4 w-4" />
         </button>
         
-        <PaymentMethodSetup
+        <StablePaymentSetup
           onComplete={() => onCompleteRef.current()}
           onSkip={() => onCloseRef.current()}
         />
@@ -58,7 +58,11 @@ const PaymentModalContent = memo<PaymentModalProps>(({ isOpen, onClose, onComple
   );
 }, (prevProps, nextProps) => {
   // Only re-render if isOpen changes
-  return prevProps.isOpen === nextProps.isOpen;
+  const shouldSkipRender = prevProps.isOpen === nextProps.isOpen;
+  if (shouldSkipRender) {
+    console.log('⚡ Skipping PaymentModal re-render - isOpen unchanged');
+  }
+  return shouldSkipRender;
 });
 
 PaymentModalContent.displayName = 'PaymentModalContent';
