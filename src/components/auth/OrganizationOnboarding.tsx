@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface OrganizationOnboardingProps {
 }
 
 export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ user, onComplete }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -204,9 +206,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.log('Calling onComplete despite user organization membership error');
       } else {
         console.log('User organization membership created:', userOrgData);
-        toast.success("Organization created successfully!");
+        toast.success("Organization created successfully! Setting up your free trial...");
         
-        console.log('Calling onComplete to refresh organization context');
+        console.log('Redirecting to billing to start trial');
       }
 
       // Force a user metadata update to trigger auth state change
@@ -222,8 +224,10 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.warn('Error updating user metadata:', metaError);
       }
 
-      // Always call onComplete to refresh
-      onComplete();
+      // Redirect to billing page to start trial
+      setTimeout(() => {
+        navigate('/billing', { replace: true });
+      }, 500);
     } catch (error: any) {
       console.error('Error creating organization:', error);
       setError(error.message || "Failed to create organization");

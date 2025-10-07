@@ -219,13 +219,13 @@ useEffect(() => {
   };
 
   const handleOrganizationComplete = async () => {
-    console.log('🚀 Signup - Organization setup completed - redirecting to dashboard');
+    console.log('🚀 Signup - Organization setup completed - redirecting to billing setup');
     
-    toast.success("Organization setup complete! Redirecting to dashboard...");
+    toast.success("Organization setup complete! Setting up your free trial...");
     
-    // Shorter delay for better UX
+    // Redirect to billing page to start trial setup
     setTimeout(() => {
-      navigate('/dashboard', { replace: true });
+      navigate('/billing', { replace: true });
     }, 500);
   };
 
