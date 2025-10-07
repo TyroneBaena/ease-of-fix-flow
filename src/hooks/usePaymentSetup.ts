@@ -91,12 +91,15 @@ export const usePaymentSetup = (): UsePaymentSetupReturn => {
 
   const reset = useCallback(() => {
     console.log('[PaymentSetup] Resetting state');
+    // Clear promise first to prevent any pending operations
+    initializePromiseRef.current = null;
+    initializingRef.current = false;
+    initializedRef.current = false;
+    
+    // Then reset UI state
     setState('idle');
     setClientSecret(null);
     setError(null);
-    initializingRef.current = false;
-    initializedRef.current = false;
-    initializePromiseRef.current = null;
   }, []);
 
   const setComplete = useCallback(() => {

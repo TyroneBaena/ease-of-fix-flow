@@ -42,15 +42,17 @@ const PaymentForm: React.FC<PaymentFormProps> = React.memo(({ onSuccess, onCance
       });
 
       if (submitError) {
+        console.error('[PaymentForm] Stripe error:', submitError);
         setError(submitError.message || 'Failed to setup payment method');
         setProcessing(false);
         return;
       }
 
+      console.log('[PaymentForm] Payment setup confirmed successfully');
       onSuccess();
     } catch (err) {
-      console.error('Payment setup error:', err);
-      setError('An unexpected error occurred');
+      console.error('[PaymentForm] Unexpected error:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setProcessing(false);
     }
   };
@@ -144,11 +146,20 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
+  // Track if success has been called to prevent duplicate calls
+  const successCalledRef = React.useRef(false);
+
   const handleSuccess = useCallback(() => {
+    if (successCalledRef.current) {
+      console.log('[PaymentModal] Success already called, ignoring duplicate');
+      return;
+    }
+    successCalledRef.current = true;
     console.log('[PaymentModal] Payment setup successful');
     setCompleteRef.current();
     setTimeout(() => {
       onCompleteRef.current();
+      successCalledRef.current = false; // Reset for next time
     }, 2000);
   }, []); // NO dependencies
 
