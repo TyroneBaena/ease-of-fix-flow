@@ -105,35 +105,56 @@ interface PaymentSetupModalProps {
 
 export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, onClose, onComplete }) => {
   const { state, clientSecret, error, initialize, reset, setComplete } = usePaymentSetup();
+  
+  // Store callbacks in refs to avoid them as dependencies
+  const onCloseRef = React.useRef(onClose);
+  const onCompleteRef = React.useRef(onComplete);
+  const initializeRef = React.useRef(initialize);
+  const resetRef = React.useRef(reset);
+  const setCompleteRef = React.useRef(setComplete);
+  
+  // Keep refs updated
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+    onCompleteRef.current = onComplete;
+    initializeRef.current = initialize;
+    resetRef.current = reset;
+    setCompleteRef.current = setComplete;
+  });
 
-  // Initialize payment setup when modal opens - only once per open
+  // Track if we've initialized for this open session
+  const hasInitializedForSession = React.useRef(false);
+  
+  // Initialize payment setup when modal opens - ONLY ONCE PER SESSION
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasInitializedForSession.current) {
       console.log('[PaymentModal] Modal opened, triggering initialization...');
-      initialize();
+      hasInitializedForSession.current = true;
+      initializeRef.current();
     }
-  }, [isOpen, initialize]);
+  }, [isOpen]); // ONLY primitive dependency
 
   // Reset when modal closes
   useEffect(() => {
     if (!isOpen) {
       console.log('[PaymentModal] Modal closed, resetting...');
-      reset();
+      hasInitializedForSession.current = false;
+      resetRef.current();
     }
-  }, [isOpen, reset]);
+  }, [isOpen]); // ONLY primitive dependency
 
   const handleSuccess = useCallback(() => {
     console.log('[PaymentModal] Payment setup successful');
-    setComplete();
+    setCompleteRef.current();
     setTimeout(() => {
-      onComplete();
+      onCompleteRef.current();
     }, 2000);
-  }, [onComplete, setComplete]);
+  }, []); // NO dependencies
 
   const handleClose = useCallback(() => {
     console.log('[PaymentModal] User closed modal');
-    onClose();
-  }, [onClose]);
+    onCloseRef.current();
+  }, []); // NO dependencies
 
   // Memoize elementsOptions to prevent unnecessary re-renders
   const elementsOptions: StripeElementsOptions | null = useMemo(() => {
