@@ -434,13 +434,23 @@ export const BillingManagementPage: React.FC = () => {
         )}
 
         {showPaymentSetup && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={(e) => {
+              // Prevent closing when clicking the backdrop
+              if (e.target === e.currentTarget) {
+                e.stopPropagation();
+              }
+            }}
+          >
             <div className="w-full max-w-lg">
               <PaymentMethodSetup 
+                key="payment-setup-modal"
                 onComplete={() => {
                   setShowPaymentSetup(false);
                   toast.success('Payment method added successfully!');
-                  refresh();
+                  // Delay refresh to prevent immediate re-render
+                  setTimeout(() => refresh(), 100);
                 }}
                 onSkip={() => setShowPaymentSetup(false)}
               />
