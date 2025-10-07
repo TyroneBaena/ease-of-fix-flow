@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { PaymentMethodSetup } from '@/components/auth/PaymentMethodSetup';
 
@@ -9,7 +9,19 @@ interface PaymentModalProps {
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onComplete }) => {
-  if (!isOpen) return null;
+  const renderCount = useRef(0);
+  
+  useEffect(() => {
+    renderCount.current += 1;
+    console.log('🔵 PaymentModal render count:', renderCount.current, 'isOpen:', isOpen);
+  });
+
+  if (!isOpen) {
+    console.log('🔴 PaymentModal closed');
+    return null;
+  }
+
+  console.log('🟢 PaymentModal rendering');
 
   return (
     <div 
@@ -30,6 +42,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onC
         </button>
         
         <PaymentMethodSetup
+          key="payment-setup-stable"
           onComplete={onComplete}
           onSkip={onClose}
         />

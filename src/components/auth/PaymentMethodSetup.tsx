@@ -118,29 +118,44 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  console.log('🔵 PaymentMethodSetup render:', { loading, error, setupComplete, clientSecret: !!clientSecret, initialized });
 
   // Memoize the Stripe Elements options to prevent re-creation - MUST be before conditional returns
-  const stripeOptions = useMemo(() => ({
-    clientSecret: clientSecret || '',
-    appearance: {
-      theme: 'stripe' as const,
-    },
-  }), [clientSecret]);
+  const stripeOptions = useMemo(() => {
+    console.log('🟡 Creating stripeOptions with clientSecret:', !!clientSecret);
+    return {
+      clientSecret: clientSecret || '',
+      appearance: {
+        theme: 'stripe' as const,
+      },
+    };
+  }, [clientSecret]);
 
   useEffect(() => {
+    // Prevent re-initialization
+    if (initialized) {
+      console.log('🟠 Skipping initialization - already initialized');
+      return;
+    }
+
     let mounted = true;
+    console.log('🟢 Starting payment setup initialization');
     
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           if (mounted) {
+            console.log('🔴 No session found');
             setError('Please log in to continue');
             setLoading(false);
           }
           return;
         }
 
+        console.log('🟢 Calling add-payment-method function');
         const { data, error: functionError } = await supabase.functions.invoke(
           'add-payment-method',
           {
@@ -159,11 +174,13 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
         }
 
         if (mounted) {
+          console.log('🟢 Successfully got client_secret');
           setClientSecret(data.client_secret);
           setLoading(false);
+          setInitialized(true);
         }
       } catch (err) {
-        console.error('Error initializing payment setup:', err);
+        console.error('🔴 Error initializing payment setup:', err);
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
           setLoading(false);
@@ -174,9 +191,10 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
     init();
     
     return () => {
+      console.log('🔴 PaymentMethodSetup cleanup');
       mounted = false;
     };
-  }, []);
+  }, [initialized]);
 
   const initializeSetupIntent = async () => {
     setLoading(true);
@@ -216,8 +234,10 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   };
 
   const handleSuccess = () => {
+    console.log('🟢 Payment setup successful!');
     setSetupComplete(true);
     setTimeout(() => {
+      console.log('🟢 Calling onComplete callback');
       onComplete();
     }, 2000);
   };
