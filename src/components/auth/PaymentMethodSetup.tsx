@@ -132,8 +132,9 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
         return;
       }
 
+      // Use add-payment-method for existing trial users
       const { data, error: functionError } = await supabase.functions.invoke(
-        'create-trial-subscription',
+        'add-payment-method',
         {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
