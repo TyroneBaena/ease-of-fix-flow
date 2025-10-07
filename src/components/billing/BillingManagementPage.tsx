@@ -24,7 +24,7 @@ import { PropertyCountDisplay } from './PropertyCountDisplay';
 import { BillingPreview } from './BillingPreview';
 import { CancellationFlow } from './CancellationFlow';
 import { ReactivationFlow } from './ReactivationFlow';
-import { PaymentModal } from './PaymentModal';
+import { PaymentSetupModal } from './PaymentSetupModal';
 import { toast } from 'sonner';
 
 export const BillingManagementPage: React.FC = () => {
@@ -52,18 +52,6 @@ export const BillingManagementPage: React.FC = () => {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
-
-  const handleClosePaymentModal = useCallback(() => {
-    console.log('🔴 Closing payment modal');
-    setShowPaymentSetup(false);
-  }, []);
-
-  const handlePaymentComplete = useCallback(async () => {
-    console.log('🟢 Payment complete - closing modal');
-    setShowPaymentSetup(false);
-    toast.success('Payment method added successfully!');
-    await refresh();
-  }, [refresh]);
 
   const handleStartTrial = async () => {
     setIsStartingTrial(true);
@@ -445,10 +433,14 @@ export const BillingManagementPage: React.FC = () => {
           />
         )}
 
-        <PaymentModal
+        <PaymentSetupModal
           isOpen={showPaymentSetup}
-          onClose={handleClosePaymentModal}
-          onComplete={handlePaymentComplete}
+          onClose={() => setShowPaymentSetup(false)}
+          onComplete={async () => {
+            setShowPaymentSetup(false);
+            toast.success('Payment method added successfully!');
+            await refresh();
+          }}
         />
       </div>
     </div>
