@@ -77,6 +77,12 @@ serve(async (req) => {
           status: subscription.status,
         });
 
+        // Get property count from metadata
+        const propertyCount = parseInt(subscription.metadata?.property_count || '0');
+
+        // Calculate next billing date
+        const nextBillingDate = new Date(subscription.current_period_end * 1000).toISOString();
+
         const { error } = await supabase
           .from('subscribers')
           .update({
@@ -87,6 +93,8 @@ serve(async (req) => {
             trial_end_date: subscription.trial_end 
               ? new Date(subscription.trial_end * 1000).toISOString()
               : null,
+            active_properties_count: propertyCount,
+            next_billing_date: nextBillingDate,
             payment_status: 'active',
             failed_payment_count: 0,
             updated_at: new Date().toISOString(),
@@ -136,6 +144,13 @@ serve(async (req) => {
           amount: invoice.amount_paid,
         });
 
+        // Get subscriber details for email
+        const { data: subscriber } = await supabase
+          .from('subscribers')
+          .select('email, user_id, active_properties_count')
+          .eq('stripe_customer_id', invoice.customer)
+          .single();
+
         const { error } = await supabase
           .from('subscribers')
           .update({
@@ -154,6 +169,37 @@ serve(async (req) => {
           log('Error updating subscriber for successful payment', error);
         } else {
           log('Subscriber updated successfully for successful payment');
+          
+          // Send payment success email
+          if (subscriber?.email && invoice.subscription) {
+            try {
+              const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
+              const userName = userData?.user?.user_metadata?.name || subscriber.email.split('@')[0];
+
+              await fetch(`${supabaseUrl}/functions/v1/send-payment-success`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  recipient_email: subscriber.email,
+                  recipient_name: userName,
+                  amount_paid: invoice.amount_paid / 100,
+                  property_count: subscriber.active_properties_count,
+                  billing_period_start: new Date(invoice.period_start * 1000).toISOString(),
+                  billing_period_end: new Date(invoice.period_end * 1000).toISOString(),
+                  next_billing_date: invoice.period_end 
+                    ? new Date(invoice.period_end * 1000).toISOString()
+                    : null,
+                  invoice_url: invoice.invoice_pdf,
+                }),
+              });
+              log('Payment success email sent', { email: subscriber.email });
+            } catch (emailError) {
+              log('Failed to send payment success email', emailError);
+            }
+          }
         }
         break;
       }
@@ -166,20 +212,21 @@ serve(async (req) => {
           attemptCount: invoice.attempt_count,
         });
 
-        // Get current failed payment count
+        // Get current failed payment count and subscriber details
         const { data: subscriber } = await supabase
           .from('subscribers')
-          .select('failed_payment_count')
+          .select('failed_payment_count, email, user_id')
           .eq('stripe_customer_id', invoice.customer)
           .single();
 
         const currentFailedCount = subscriber?.failed_payment_count || 0;
+        const newFailedCount = currentFailedCount + 1;
 
         const { error } = await supabase
           .from('subscribers')
           .update({
             payment_status: 'past_due',
-            failed_payment_count: currentFailedCount + 1,
+            failed_payment_count: newFailedCount,
             last_payment_attempt: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -188,7 +235,37 @@ serve(async (req) => {
         if (error) {
           log('Error updating subscriber for failed payment', error);
         } else {
-          log('Subscriber updated successfully for failed payment');
+          log('Subscriber updated successfully for failed payment', { attemptCount: newFailedCount });
+          
+          // Send payment failed email
+          if (subscriber?.email) {
+            try {
+              const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
+              const userName = userData?.user?.user_metadata?.name || subscriber.email.split('@')[0];
+
+              const nextAttemptDate = invoice.next_payment_attempt
+                ? new Date(invoice.next_payment_attempt * 1000).toISOString()
+                : null;
+
+              await fetch(`${supabaseUrl}/functions/v1/send-payment-failed`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  recipient_email: subscriber.email,
+                  recipient_name: userName,
+                  amount_due: invoice.amount_due / 100,
+                  attempt_count: newFailedCount,
+                  next_attempt_date: nextAttemptDate,
+                }),
+              });
+              log('Payment failed email sent', { email: subscriber.email });
+            } catch (emailError) {
+              log('Failed to send payment failed email', emailError);
+            }
+          }
         }
         break;
       }
