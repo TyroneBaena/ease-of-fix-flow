@@ -8,6 +8,8 @@ interface SubscriptionContextValue {
   subscriptionEnd: string | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  pauseAutoRefresh: () => void;
+  resumeAutoRefresh: () => void;
   
   // Trial and property-based billing data
   isTrialActive: boolean | null;
@@ -40,6 +42,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [autoRefreshPaused, setAutoRefreshPaused] = useState(false);
   
   // Trial and billing state
   const [isTrialActive, setIsTrialActive] = useState<boolean | null>(null);
@@ -405,18 +408,42 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 
+  // Pause/resume functions for auto-refresh
+  const pauseAutoRefresh = useCallback(() => {
+    console.log('[SubscriptionContext] Auto-refresh paused');
+    setAutoRefreshPaused(true);
+  }, []);
+
+  const resumeAutoRefresh = useCallback(() => {
+    console.log('[SubscriptionContext] Auto-refresh resumed');
+    setAutoRefreshPaused(false);
+  }, []);
+
   // Set up automatic refresh when billing might change
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id || autoRefreshPaused) {
+      console.log('[SubscriptionContext] Auto-refresh skipped:', { 
+        hasUser: !!currentUser?.id, 
+        paused: autoRefreshPaused 
+      });
+      return;
+    }
     
+    console.log('[SubscriptionContext] Starting auto-refresh interval (30s)');
     const interval = setInterval(() => {
-      refresh();
+      if (!autoRefreshPaused) {
+        console.log('[SubscriptionContext] Auto-refresh triggered');
+        refresh();
+      }
     }, 30000); // Refresh every 30 seconds
     
-    return () => clearInterval(interval);
+    return () => {
+      console.log('[SubscriptionContext] Clearing auto-refresh interval');
+      clearInterval(interval);
+    };
     // We intentionally exclude refresh from deps to avoid re-creating interval
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id]);
+  }, [currentUser?.id, autoRefreshPaused]);
 
   const debugDatabaseState = useCallback(async () => {
     if (!currentUser?.id) {
@@ -444,6 +471,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     subscriptionEnd,
     loading,
     refresh,
+    pauseAutoRefresh,
+    resumeAutoRefresh,
     
     // Trial and property-based billing data
     isTrialActive,
@@ -472,6 +501,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     subscriptionEnd, 
     loading,
     refresh,
+    pauseAutoRefresh,
+    resumeAutoRefresh,
     isTrialActive,
     isCancelled,
     trialEndDate,

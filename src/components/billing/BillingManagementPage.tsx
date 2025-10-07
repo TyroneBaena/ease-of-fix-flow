@@ -43,7 +43,9 @@ export const BillingManagementPage: React.FC = () => {
     upgradeToPaid,
     calculateBilling,
     startTrial,
-    refresh
+    refresh,
+    pauseAutoRefresh,
+    resumeAutoRefresh
   } = useSubscription();
 
   const [showCancellation, setShowCancellation] = useState(false);
@@ -105,8 +107,10 @@ export const BillingManagementPage: React.FC = () => {
 
   // Stable callbacks for PaymentSetupModal to prevent re-renders
   const handlePaymentModalClose = useCallback(() => {
+    console.log('[BillingManagement] Payment modal closing, resuming auto-refresh');
     setShowPaymentSetup(false);
-  }, []);
+    resumeAutoRefresh();
+  }, [resumeAutoRefresh]);
 
   const handlePaymentModalComplete = useCallback(async () => {
     console.log('[BillingManagement] Payment complete callback triggered');
@@ -115,11 +119,12 @@ export const BillingManagementPage: React.FC = () => {
     
     // Refresh subscription data after a delay to avoid interfering with modal
     setTimeout(async () => {
-      console.log('[BillingManagement] Refreshing subscription data...');
+      console.log('[BillingManagement] Refreshing subscription data and resuming auto-refresh...');
+      resumeAutoRefresh();
       await refresh();
       toast.success('Payment method added successfully!');
     }, 2500);
-  }, [refresh]);
+  }, [refresh, resumeAutoRefresh]);
 
   if (loading) {
     return (
@@ -180,7 +185,11 @@ export const BillingManagementPage: React.FC = () => {
                     Add a payment method to ensure uninterrupted service after your trial ends.
                   </p>
                   <Button 
-                    onClick={() => setShowPaymentSetup(true)}
+                    onClick={() => {
+                      console.log('[BillingManagement] Opening payment modal, pausing auto-refresh');
+                      pauseAutoRefresh();
+                      setShowPaymentSetup(true);
+                    }}
                     size="sm"
                   >
                     Add Payment Method
