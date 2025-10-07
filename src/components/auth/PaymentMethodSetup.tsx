@@ -120,10 +120,48 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   const [setupComplete, setSetupComplete] = useState(false);
 
   useEffect(() => {
-    initializeSetupIntent();
-  }, []);
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('Please log in to continue');
+          setLoading(false);
+          return;
+        }
+
+        // Use add-payment-method for existing trial users
+        const { data, error: functionError } = await supabase.functions.invoke(
+          'add-payment-method',
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (functionError) {
+          throw functionError;
+        }
+
+        if (!data?.client_secret) {
+          throw new Error('Failed to initialize payment setup');
+        }
+
+        setClientSecret(data.client_secret);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error initializing payment setup:', err);
+        setError(err instanceof Error ? err.message : 'Failed to initialize payment setup');
+        setLoading(false);
+      }
+    };
+    
+    init();
+  }, []); // Empty dependency array - only run once on mount
 
   const initializeSetupIntent = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
