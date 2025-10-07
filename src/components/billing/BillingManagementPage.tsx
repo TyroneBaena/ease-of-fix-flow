@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -102,6 +103,27 @@ export const BillingManagementPage: React.FC = () => {
       toast.error('An error occurred while calculating billing');
     } finally {
       setIsCalculating(false);
+    }
+  };
+
+  // Debug function to verify payment method
+  const handleVerifyPaymentMethod = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke('verify-payment-method', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      console.log('Payment method verification:', data);
+      if (data?.hasPaymentMethod) {
+        toast.success(`Payment method found: ${data.paymentMethods[0]?.card?.brand} ending in ${data.paymentMethods[0]?.card?.last4}`);
+      } else {
+        toast.error('No payment method found');
+      }
+    } catch (error) {
+      toast.error('Verification failed');
     }
   };
 
@@ -385,6 +407,13 @@ export const BillingManagementPage: React.FC = () => {
                     size="sm"
                   >
                     {isCalculating ? 'Calculating...' : 'Refresh Billing'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleVerifyPaymentMethod}
+                    size="sm"
+                  >
+                    Verify Payment
                   </Button>
                 </div>
               </CardContent>

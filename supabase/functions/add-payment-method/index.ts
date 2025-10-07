@@ -92,14 +92,18 @@ Deno.serve(async (req) => {
 
     log("Created SetupIntent", { setupIntentId: setupIntent.id });
 
-    // Update subscriber with setup intent
-    await adminSupabase
+    // Update subscriber with setup intent (correct column name)
+    const { error: updateError } = await adminSupabase
       .from('subscribers')
       .update({ 
-        stripe_setup_intent_id: setupIntent.id,
+        setup_intent_id: setupIntent.id,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId);
+
+    if (updateError) {
+      log("Error updating subscriber with setup intent", { error: updateError });
+    }
 
     return new Response(JSON.stringify({
       success: true,
