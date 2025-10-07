@@ -112,13 +112,20 @@ export const StablePaymentSetup: React.FC<StablePaymentSetupProps> = ({ onComple
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  console.log('🔵 StablePaymentSetup render', { loading, error, setupComplete, hasSecret: !!clientSecret });
+  console.log('🔵 StablePaymentSetup render', { loading, error, setupComplete, hasSecret: !!clientSecret, initialized });
 
-  // Initialize ONCE when component mounts
+  // Initialize ONCE when component mounts - with guard
   useEffect(() => {
+    if (initialized) {
+      console.log('⚠️ Already initialized, skipping');
+      return;
+    }
+    
     let mounted = true;
     console.log('🟢 Initializing payment setup - ONCE');
+    setInitialized(true);
     
     const init = async () => {
       try {

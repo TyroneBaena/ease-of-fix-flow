@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
@@ -52,6 +52,18 @@ export const BillingManagementPage: React.FC = () => {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+
+  const handleClosePaymentModal = useCallback(() => {
+    console.log('🔴 Closing payment modal');
+    setShowPaymentSetup(false);
+  }, []);
+
+  const handlePaymentComplete = useCallback(async () => {
+    console.log('🟢 Payment complete - closing modal');
+    setShowPaymentSetup(false);
+    toast.success('Payment method added successfully!');
+    await refresh();
+  }, [refresh]);
 
   const handleStartTrial = async () => {
     setIsStartingTrial(true);
@@ -435,16 +447,8 @@ export const BillingManagementPage: React.FC = () => {
 
         <PaymentModal
           isOpen={showPaymentSetup}
-          onClose={() => {
-            console.log('🔴 Closing payment modal');
-            setShowPaymentSetup(false);
-          }}
-          onComplete={async () => {
-            console.log('🟢 Payment complete - closing modal');
-            setShowPaymentSetup(false);
-            toast.success('Payment method added successfully!');
-            await refresh();
-          }}
+          onClose={handleClosePaymentModal}
+          onComplete={handlePaymentComplete}
         />
       </div>
     </div>
