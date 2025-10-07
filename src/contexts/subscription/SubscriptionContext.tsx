@@ -65,7 +65,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const refresh = useCallback(async () => {
     if (!currentUser?.id) {
-      clear();
+      setSubscribed(null);
+      setSubscriptionTier(null);
+      setSubscriptionEnd(null);
+      setIsTrialActive(null);
+      setIsCancelled(null);
+      setTrialEndDate(null);
+      setDaysRemaining(null);
+      setPropertyCount(null);
+      setMonthlyAmount(null);
+      setCurrency(null);
       setLoading(false);
       return;
     }
@@ -163,19 +172,28 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoading(false);
     }
-  }, [currentUser, clear]);
+  }, [currentUser?.id]);
 
   // Separate function to refresh property count specifically
   const refreshPropertyCount = useCallback(async () => {
     if (!currentUser?.id) return;
 
     try {
-      // Refresh the subscription data which should get updated property counts
-      await refresh();
+      // Directly query and update property count
+      const { data: row } = await supabase
+        .from("subscribers")
+        .select("active_properties_count")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      
+      if (row) {
+        setPropertyCount((row as any)?.active_properties_count ?? 0);
+        setMonthlyAmount(((row as any)?.active_properties_count || 0) * 29);
+      }
     } catch (error) {
       console.error("Property count refresh error:", error);
     }
-  }, [currentUser, refresh]);
+  }, [currentUser?.id]);
 
   const startTrial = useCallback(async () => {
     if (!currentUser) {
@@ -448,7 +466,6 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     propertyCount,
     monthlyAmount,
     currency,
-    refresh,
     startTrial,
     cancelTrial,
     reactivateSubscription,
