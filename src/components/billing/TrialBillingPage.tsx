@@ -19,6 +19,7 @@ import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { TrialStatusBanner } from './TrialStatusBanner';
 import { BillingPreview } from './BillingPreview';
 import { PropertyCountDisplay } from './PropertyCountDisplay';
+import { SubscriptionStatusDebugger } from './SubscriptionStatusDebugger';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -139,6 +140,11 @@ export const TrialBillingPage: React.FC = () => {
             Manage your subscription and billing preferences
           </p>
         </div>
+
+        {/* Phase 1 Debug Panel - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <SubscriptionStatusDebugger />
+        )}
 
         {/* Trial Status Banner */}
         <TrialStatusBanner 

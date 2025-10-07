@@ -6,6 +6,7 @@ import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContex
 import { isUserAdmin } from '@/utils/userRoles';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
+import { SubscriptionGuard } from '@/components/billing/SubscriptionGuard';
 
 import { PropertyCreationWithBilling } from '@/components/property/PropertyCreationWithBilling';
 import { PropertyAccessGuard } from '@/components/property/PropertyAccessGuard';
@@ -53,10 +54,11 @@ const PropertiesContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <PropertyAccessGuard action="view">
+    <SubscriptionGuard>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        
+        <PropertyAccessGuard action="view">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -136,7 +138,8 @@ const PropertiesContent = () => {
         )}
         </main>
       </PropertyAccessGuard>
-    </div>
+      </div>
+    </SubscriptionGuard>
   );
 };
 

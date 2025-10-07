@@ -7,3 +7,5 @@ export { BillingManagementPage } from './BillingManagementPage';
 export { CancellationFlow } from './CancellationFlow';
 export { ReactivationFlow } from './ReactivationFlow';
 export { PropertyBillingAlert } from './PropertyBillingAlert';
+export { SubscriptionGuard } from './SubscriptionGuard';
+export { SubscriptionStatusDebugger } from './SubscriptionStatusDebugger';
