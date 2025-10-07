@@ -224,6 +224,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.warn('Error updating user metadata:', metaError);
       }
 
+      // Call onComplete callback to update parent state
+      onComplete();
+      
       // Redirect to billing page to start trial
       setTimeout(() => {
         navigate('/billing', { replace: true });
