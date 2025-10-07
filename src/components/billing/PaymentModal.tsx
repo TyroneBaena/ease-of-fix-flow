@@ -23,27 +23,27 @@ const PaymentModalContent = memo<PaymentModalProps>(({ isOpen, onClose, onComple
     console.log('🔵 PaymentModal render count:', renderCount.current, 'isOpen:', isOpen);
   });
 
-  if (!isOpen) {
-    console.log('🔴 PaymentModal closed - returning null');
-    return null;
-  }
+  console.log('🟢 PaymentModal rendering - isOpen:', isOpen);
 
-  console.log('🟢 PaymentModal open - rendering content');
-
+  // Don't unmount - just hide with CSS
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      className={`fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 transition-opacity ${
+        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
       onClick={(e) => {
-        if (e.target === e.currentTarget) {
+        if (e.target === e.currentTarget && isOpen) {
           onCloseRef.current();
         }
       }}
     >
       <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-        <StablePaymentSetup
-          onComplete={() => onCompleteRef.current()}
-          onSkip={() => onCloseRef.current()}
-        />
+        <div style={{ display: isOpen ? 'block' : 'none' }}>
+          <StablePaymentSetup
+            onComplete={() => onCompleteRef.current()}
+            onSkip={() => onCloseRef.current()}
+          />
+        </div>
       </div>
     </div>
   );
