@@ -235,7 +235,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("Start trial exception:", error);
       return { success: false, error: "Failed to start trial" };
     }
-  }, [currentUser, refresh]);
+  }, [currentUser?.id]);
 
   const cancelTrial = useCallback(async (reason: string) => {
     if (!currentUser) {
@@ -275,7 +275,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("🔴 SubscriptionContext: Cancel trial exception:", error);
       return { success: false, error: "Failed to cancel trial" };
     }
-  }, [currentUser, refresh]);
+  }, [currentUser?.id]);
 
   const reactivateSubscription = useCallback(async () => {
     if (!currentUser) {
@@ -308,7 +308,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("Reactivate subscription exception:", error);
       return { success: false, error: "Failed to reactivate subscription" };
     }
-  }, [currentUser, refresh]);
+  }, [currentUser?.id]);
 
   const calculateBilling = useCallback(async () => {
     if (!currentUser) {
@@ -345,7 +345,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("Calculate billing exception:", error);
       return { success: false, error: "Failed to calculate billing" };
     }
-  }, [currentUser, refresh]);
+  }, [currentUser?.id]);
 
   const upgradeToPaid = useCallback(async () => {
     if (!currentUser) {
@@ -382,14 +382,24 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("Upgrade to paid exception:", error);
       return { success: false, error: "Failed to upgrade to paid subscription" };
     }
-  }, [currentUser, refresh, refreshPropertyCount]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     // When auth user changes, refresh subscription state
     if (currentUser?.id) {
       refresh();
     } else {
-      clear();
+      setSubscribed(null);
+      setSubscriptionTier(null);
+      setSubscriptionEnd(null);
+      setIsTrialActive(null);
+      setIsCancelled(null);
+      setTrialEndDate(null);
+      setDaysRemaining(null);
+      setPropertyCount(null);
+      setMonthlyAmount(null);
+      setCurrency(null);
+      setLoading(false);
     }
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -404,7 +414,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }, 30000); // Refresh every 30 seconds
     
     return () => clearInterval(interval);
-  }, [currentUser?.id, refresh]);
+    // We intentionally exclude refresh from deps to avoid re-creating interval
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   const debugDatabaseState = useCallback(async () => {
     if (!currentUser?.id) {
