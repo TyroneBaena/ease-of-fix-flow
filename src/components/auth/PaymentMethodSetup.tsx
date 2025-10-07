@@ -110,7 +110,7 @@ interface PaymentMethodSetupProps {
  * Phase 1: Payment Method Validation at Signup
  * Requires payment method before activating trial
  */
-export const PaymentMethodSetup = React.memo<PaymentMethodSetupProps>(({
+const PaymentMethodSetupComponent: React.FC<PaymentMethodSetupProps> = ({
   onComplete,
   onSkip,
 }) => {
@@ -290,4 +290,6 @@ export const PaymentMethodSetup = React.memo<PaymentMethodSetupProps>(({
       </CardContent>
     </Card>
   );
-});
+};
+
+export const PaymentMethodSetup = React.memo(PaymentMethodSetupComponent);
