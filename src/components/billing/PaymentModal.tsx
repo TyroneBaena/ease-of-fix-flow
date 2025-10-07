@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, memo } from 'react';
-import { X } from 'lucide-react';
 import { StablePaymentSetup } from './StablePaymentSetup';
 
 interface PaymentModalProps {
@@ -41,14 +40,6 @@ const PaymentModalContent = memo<PaymentModalProps>(({ isOpen, onClose, onComple
       }}
     >
       <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={() => onCloseRef.current()}
-          className="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 z-10"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        
         <StablePaymentSetup
           onComplete={() => onCompleteRef.current()}
           onSkip={() => onCloseRef.current()}
