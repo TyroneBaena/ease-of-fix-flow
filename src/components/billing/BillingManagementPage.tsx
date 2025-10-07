@@ -103,6 +103,17 @@ export const BillingManagementPage: React.FC = () => {
     }
   };
 
+  // Stable callbacks for PaymentSetupModal to prevent re-renders
+  const handlePaymentModalClose = useCallback(() => {
+    setShowPaymentSetup(false);
+  }, []);
+
+  const handlePaymentModalComplete = useCallback(async () => {
+    setShowPaymentSetup(false);
+    toast.success('Payment method added successfully!');
+    await refresh();
+  }, [refresh]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -435,12 +446,8 @@ export const BillingManagementPage: React.FC = () => {
 
         <PaymentSetupModal
           isOpen={showPaymentSetup}
-          onClose={() => setShowPaymentSetup(false)}
-          onComplete={async () => {
-            setShowPaymentSetup(false);
-            toast.success('Payment method added successfully!');
-            await refresh();
-          }}
+          onClose={handlePaymentModalClose}
+          onComplete={handlePaymentModalComplete}
         />
       </div>
     </div>
