@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -182,16 +182,21 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     }, 300);
   };
 
+  // Memoize elementsOptions to prevent unnecessary re-renders
+  const elementsOptions: StripeElementsOptions | null = useMemo(() => {
+    if (!clientSecret) return null;
+    
+    return {
+      clientSecret,
+      appearance: {
+        theme: 'stripe' as const,
+      },
+    };
+  }, [clientSecret]);
+
   if (!isOpen) {
     return null;
   }
-
-  const elementsOptions: StripeElementsOptions = {
-    clientSecret: clientSecret || '',
-    appearance: {
-      theme: 'stripe' as const,
-    },
-  };
 
   const modalContent = (
     <div 
@@ -242,7 +247,7 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
           </Card>
         )}
 
-        {clientSecret && !loading && !error && !setupComplete && (
+        {clientSecret && elementsOptions && !loading && !error && !setupComplete && (
           <Card className="max-w-md mx-auto">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
