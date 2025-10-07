@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-const stripePromise = loadStripe('pk_test_51QXxs1ERrSyHgYuutvb61jMVqmCtEHW80wYjNv7aqDfGLlgYVz2iKN1kKYmMOQsqNcuIjQwLjmjN6Bc0aAy6EcWp00i9vkLkJT');
+const stripePromise = loadStripe('pk_test_51RvCRkERrSyHgYuuVYKfaGpq95rXEdqPsJqpBiBbyLz3vhb0sNaohYoLT7Fi1mYF9ox5kyrJgtLqOs0tdIgUeICb00zSDCxUXs');
 
 interface PaymentMethodSetupFormProps {
   clientSecret: string;
