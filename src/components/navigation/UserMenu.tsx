@@ -72,14 +72,14 @@ export const UserMenu = () => {
           </DropdownMenuItem>
         )}
         
-        {/* Admin Settings (Billing & Security) - admin only */}
+        {/* Billing & Security - admin only */}
         {isAdmin && (
           <DropdownMenuItem 
             className="cursor-pointer"
-            onClick={() => navigate('/admin-settings')}
+            onClick={() => navigate('/billing-security')}
           >
             <Shield className="mr-2 h-4 w-4" />
-            <span>Admin Settings</span>
+            <span>Billing & Security</span>
           </DropdownMenuItem>
         )}
         

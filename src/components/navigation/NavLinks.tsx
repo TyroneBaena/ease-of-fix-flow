@@ -31,9 +31,9 @@ export const NavLinks = () => {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
     
-    // Add Admin Settings (Billing & Security) for admin only
+    // Add Billing & Security for admin only
     if (isAdmin) {
-      items.push({ name: 'Admin', icon: <Shield className="h-5 w-5" />, path: '/admin-settings' });
+      items.push({ name: 'Billing & Security', icon: <Shield className="h-5 w-5" />, path: '/billing-security' });
     }
     
     return items;
