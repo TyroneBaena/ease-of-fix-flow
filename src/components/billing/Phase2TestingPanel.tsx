@@ -78,20 +78,13 @@ export const Phase2TestingPanel: React.FC = () => {
     try {
       console.log('[Phase2TestingPanel] Starting billing adjustment invocation...');
       toast({
-        title: "🔄 Adjusting Billing",
-        description: "Updating Stripe subscriptions based on property counts... This may take up to 3 minutes.",
+        title: "🔄 Checking Billing",
+        description: "Checking active subscriptions and property counts...",
       });
       
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout after 180 seconds')), 180000)
-      );
-      
-      const invokePromise = supabase.functions.invoke('adjust-subscription-billing', {
+      const { data, error } = await supabase.functions.invoke('adjust-subscription-billing', {
         body: {}
       });
-      
-      console.log('[Phase2TestingPanel] Waiting for response...');
-      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
       
       console.log('[Phase2TestingPanel] Response received:', { data, error });
       
@@ -104,24 +97,18 @@ export const Phase2TestingPanel: React.FC = () => {
       const details = data?.details || [];
       
       // Show detailed info about what happened
-      let description = `Processed ${adjustmentsCount} subscription${adjustmentsCount !== 1 ? 's' : ''}`;
+      const wouldAdjust = details.filter((d: any) => d.status === 'would_adjust').length;
+      const noChange = details.filter((d: any) => d.status === 'no_change_needed').length;
+      const wouldCancel = details.filter((d: any) => d.status === 'would_cancel').length;
       
-      if (adjustmentsCount === 0) {
-        description = 'No active subscriptions found to adjust';
-      } else {
-        const adjusted = details.filter((d: any) => d.status === 'adjusted').length;
-        const noChange = details.filter((d: any) => d.status === 'no_change_needed').length;
-        const cancelled = details.filter((d: any) => d.status === 'cancelled_no_properties').length;
-        
-        if (adjusted > 0) description += ` (${adjusted} adjusted`;
-        if (noChange > 0) description += adjusted > 0 ? `, ${noChange} unchanged` : ` (${noChange} unchanged`;
-        if (cancelled > 0) description += adjusted > 0 || noChange > 0 ? `, ${cancelled} cancelled` : ` (${cancelled} cancelled`;
-        description += ')';
-      }
+      let description = `Checked ${adjustmentsCount} subscription${adjustmentsCount !== 1 ? 's' : ''}`;
+      if (wouldAdjust > 0) description += ` - ${wouldAdjust} would adjust`;
+      if (noChange > 0) description += `, ${noChange} OK`;
+      if (wouldCancel > 0) description += `, ${wouldCancel} would cancel`;
       
       setResults({ type: 'billing-adjustment', data });
       toast({
-        title: "✅ Billing Adjustment Completed",
+        title: "✅ Billing Check Complete",
         description,
         duration: 8000,
       });
@@ -526,24 +513,46 @@ export const Phase2TestingPanel: React.FC = () => {
               {results.type === 'billing-adjustment' && (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Adjustments Processed:</span>
-                    <Badge>{results.data.adjustments_processed}</Badge>
+                    <span className="font-medium">Billing Checks Processed:</span>
+                    <Badge>{results.data.adjustments_processed || 0}</Badge>
                   </div>
-                  {results.data.details?.map((detail: any, idx: number) => (
-                    <div key={idx} className="border-t pt-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{detail.email}</span>
-                        <Badge variant={detail.status === 'adjusted' ? 'default' : 'secondary'}>
-                          {detail.status}
-                        </Badge>
-                      </div>
-                      {detail.old_amount && detail.new_amount && (
-                        <div className="text-xs text-muted-foreground">
-                          ${detail.old_amount} → ${detail.new_amount} ({detail.property_count} properties)
+                  {results.data.details?.length > 0 ? (
+                    <>
+                      {results.data.details.map((detail: any, idx: number) => (
+                        <div key={idx} className="border-t pt-2 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm">{detail.email}</span>
+                            <Badge variant={
+                              detail.status === 'no_change_needed' ? 'secondary' :
+                              detail.status === 'would_adjust' ? 'default' :
+                              detail.status === 'would_cancel' ? 'destructive' :
+                              'outline'
+                            }>
+                              {detail.status.replace(/_/g, ' ')}
+                            </Badge>
+                          </div>
+                          {detail.property_count !== undefined && (
+                            <div className="text-xs text-muted-foreground">
+                              {detail.property_count} {detail.property_count === 1 ? 'property' : 'properties'}
+                              {detail.current_amount && ` - $${detail.current_amount}/month`}
+                              {detail.old_amount && detail.new_amount && 
+                                ` - Would change from $${detail.old_amount} to $${detail.new_amount}/month`
+                              }
+                            </div>
+                          )}
+                          {detail.note && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 italic">
+                              {detail.note}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground border-t pt-2">
+                      No active subscriptions found
                     </div>
-                  ))}
+                  )}
                 </>
               )}
 
