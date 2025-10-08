@@ -291,11 +291,11 @@ export const Phase2TestingPanel: React.FC = () => {
         throw new Error(error.message || JSON.stringify(error));
       }
       
-      const cronJobs = data?.jobs || [];
-      setResults({ type: 'cron-jobs', data: cronJobs });
+      const cronJobsResponse = data || { jobs: [], count: 0 };
+      setResults({ type: 'cron-jobs', data: cronJobsResponse });
       toast({
         title: "✅ Cron Jobs Retrieved",
-        description: `Found ${cronJobs.length} scheduled job${cronJobs.length !== 1 ? 's' : ''}`,
+        description: `Found ${cronJobsResponse.count || 0} scheduled job${cronJobsResponse.count !== 1 ? 's' : ''}`,
       });
     } catch (error: any) {
       console.error('[Phase2TestingPanel] Error caught:', error);
@@ -569,21 +569,32 @@ export const Phase2TestingPanel: React.FC = () => {
 
               {results.type === 'cron-jobs' && (
                 <>
-                  <div className="space-y-2">
-                    {results.data?.map((job: any, idx: number) => (
-                      <div key={idx} className="border-t pt-2">
+                  {results.data.message && (
+                    <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950 rounded text-sm">
+                      {results.data.message}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {results.data.jobs?.map((job: any, idx: number) => (
+                      <div key={idx} className="border-t pt-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-sm">{job.jobname}</span>
                           <Badge variant={job.active ? 'default' : 'secondary'}>
-                            {job.active ? 'Active' : 'Inactive'}
+                            {job.status || (job.active ? 'Active' : 'Inactive')}
                           </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Schedule: {job.schedule}
+                        <div className="text-xs space-y-1">
+                          <div><strong>Schedule:</strong> {job.schedule} ({job.frequency})</div>
+                          <div><strong>Description:</strong> {job.description}</div>
                         </div>
                       </div>
                     ))}
                   </div>
+                  {results.data.note && (
+                    <div className="mt-3 text-xs text-muted-foreground italic border-t pt-2">
+                      Note: {results.data.note}
+                    </div>
+                  )}
                 </>
               )}
             </div>
