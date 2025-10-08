@@ -292,12 +292,10 @@ export const Phase2TestingPanel: React.FC = () => {
       }
       
       const cronJobsResponse = data || { jobs: [], count: 0 };
-      console.log('[Phase2TestingPanel] Setting results with:', cronJobsResponse);
-      console.log('[Phase2TestingPanel] Jobs array:', cronJobsResponse.jobs);
       setResults({ type: 'cron-jobs', data: cronJobsResponse });
       toast({
         title: "✅ Cron Jobs Retrieved",
-        description: `Found ${cronJobsResponse.count || 0} scheduled job${cronJobsResponse.count !== 1 ? 's' : ''}`,
+        description: `Found ${cronJobsResponse.count || 0} expected cron job${cronJobsResponse.count !== 1 ? 's' : ''}`,
       });
     } catch (error: any) {
       console.error('[Phase2TestingPanel] Error caught:', error);
@@ -571,14 +569,12 @@ export const Phase2TestingPanel: React.FC = () => {
 
               {results.type === 'cron-jobs' && (
                 <>
-                  {console.log('[Phase2TestingPanel] Rendering cron jobs results:', results.data)}
                   {results.data?.message && (
                     <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950 rounded text-sm">
                       {results.data.message}
                     </div>
                   )}
                   <div className="space-y-3">
-                    {console.log('[Phase2TestingPanel] Jobs to render:', results.data?.jobs)}
                     {results.data?.jobs?.map((job: any, idx: number) => (
                       <div key={idx} className="border-t pt-3 space-y-2">
                         <div className="flex items-center justify-between">
