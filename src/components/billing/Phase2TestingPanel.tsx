@@ -197,6 +197,64 @@ export const Phase2TestingPanel: React.FC = () => {
     }
   };
 
+  const setupTestData = async () => {
+    setTesting(true);
+    setResults(null);
+    
+    try {
+      console.log('[Phase2TestingPanel] Setting up real Stripe test data...');
+      
+      toast({
+        title: "🔄 Creating Test Data",
+        description: "Setting up Stripe customers, subscriptions, and test scenarios...",
+      });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 90 seconds')), 90000)
+      );
+      
+      const invokePromise = supabase.functions.invoke('setup-phase2-test-data', {
+        body: {}
+      });
+      
+      console.log('[Phase2TestingPanel] Waiting for test data setup...');
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      
+      console.log('[Phase2TestingPanel] Setup response:', { data, error });
+      
+      if (error) {
+        console.error('[Phase2TestingPanel] Function returned error:', error);
+        throw new Error(error.message || JSON.stringify(error));
+      }
+      
+      setResults({ type: 'test-setup', data: data });
+      toast({
+        title: "✅ Test Data Created",
+        description: `Created ${data?.test_scenarios?.length || 0} test scenarios with real Stripe integration`,
+        duration: 10000,
+      });
+    } catch (error: any) {
+      console.error('[Phase2TestingPanel] Error caught:', error);
+      
+      const errorMessage = error.message || error.toString() || 'Unknown error occurred';
+      
+      toast({
+        title: "❌ Test Data Setup Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 8000,
+      });
+      
+      setResults({ 
+        type: 'test-setup', 
+        data: { error: errorMessage } 
+      });
+    } finally {
+      setTesting(false);
+      console.log('[Phase2TestingPanel] Test data setup process finished');
+    }
+  };
+
   const checkCronJobs = async () => {
     setTesting(true);
     setResults(null);
@@ -267,6 +325,26 @@ export const Phase2TestingPanel: React.FC = () => {
             Use this panel only for testing and verification.
           </AlertDescription>
         </Alert>
+
+        {/* Setup Test Data Button */}
+        <Button
+          onClick={setupTestData}
+          disabled={testing}
+          className="h-24 flex-col gap-2"
+          variant="default"
+        >
+          {testing ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : (
+            <>
+              <Zap className="h-6 w-6" />
+              <div className="text-center">
+                <div className="font-bold text-base">Setup Real Test Data</div>
+                <div className="text-xs opacity-80">Creates Stripe customers & test scenarios</div>
+              </div>
+            </>
+          )}
+        </Button>
 
         {/* Action Buttons */}
         <div className="grid gap-4 md:grid-cols-2">
@@ -351,6 +429,7 @@ export const Phase2TestingPanel: React.FC = () => {
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">
+                {results.type === 'test-setup' && 'Test Data Setup Results'}
                 {results.type === 'auto-convert' && 'Auto-Convert Results'}
                 {results.type === 'billing-adjustment' && 'Billing Adjustment Results'}
                 {results.type === 'trial-reminders' && 'Trial Reminder Results'}
@@ -366,6 +445,49 @@ export const Phase2TestingPanel: React.FC = () => {
             </div>
 
             <div className="bg-muted rounded-lg p-4 space-y-3">
+              {results.type === 'test-setup' && (
+                <>
+                  {results.data.test_scenarios?.map((scenario: any, idx: number) => (
+                    <div key={idx} className="border-t pt-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{scenario.scenario}</span>
+                        <Badge variant="default">{scenario.status}</Badge>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <div><strong>Email:</strong> {scenario.email}</div>
+                        {scenario.stripe_customer_id && (
+                          <div><strong>Stripe Customer:</strong> {scenario.stripe_customer_id}</div>
+                        )}
+                        {scenario.stripe_subscription_id && (
+                          <div><strong>Subscription:</strong> {scenario.stripe_subscription_id}</div>
+                        )}
+                        {scenario.expected_amount && (
+                          <div><strong>Expected Amount:</strong> {scenario.expected_amount}</div>
+                        )}
+                        {scenario.adjustment_needed && (
+                          <div className="text-orange-600 dark:text-orange-400">
+                            <strong>Adjustment:</strong> {scenario.adjustment_needed}
+                          </div>
+                        )}
+                        {scenario.trial_end_date && (
+                          <div><strong>Trial Ends:</strong> {scenario.trial_end_date}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {results.data.next_steps && (
+                    <div className="border-t pt-3 mt-3">
+                      <div className="font-semibold mb-2">Next Steps:</div>
+                      <ul className="text-xs space-y-1">
+                        {results.data.next_steps.map((step: string, idx: number) => (
+                          <li key={idx}>{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+              
               {results.type === 'auto-convert' && (
                 <>
                   <div className="flex items-center justify-between">
