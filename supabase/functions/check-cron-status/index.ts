@@ -26,25 +26,68 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Query cron.job table to get scheduled jobs
-    const { data: cronJobs, error: cronError } = await supabaseAdmin
-      .from('cron.job')
-      .select('*')
-      .order('jobname');
+    // Use analytics_query to access cron schema
+    console.log('📊 [Check Cron Status] Querying cron.job table via analytics_query...');
+    
+    const { data: jobsData, error: jobsError } = await supabaseAdmin.rpc('analytics_query', {
+      query: `
+        SELECT 
+          jobid,
+          schedule,
+          command,
+          nodename,
+          database,
+          username,
+          active,
+          jobname
+        FROM cron.job
+        ORDER BY jobid;
+      `
+    });
 
-    if (cronError) {
-      console.error('❌ [Check Cron Status] Error querying cron jobs:', cronError);
-      throw cronError;
+    if (jobsError) {
+      console.error('❌ [Check Cron Status] Error querying cron jobs:', jobsError);
+      throw jobsError;
     }
 
-    console.log(`✅ [Check Cron Status] Found ${cronJobs?.length || 0} cron jobs`);
+    const cronJobs = Array.isArray(jobsData) ? jobsData : (jobsData ? [jobsData] : []);
+    console.log(`✅ [Check Cron Status] Found ${cronJobs.length} cron jobs`);
+
+    // Get recent job runs
+    console.log('📊 [Check Cron Status] Querying recent job runs...');
+    
+    const { data: runsData, error: runsError } = await supabaseAdmin.rpc('analytics_query', {
+      query: `
+        SELECT 
+          jobid,
+          runid,
+          database,
+          username,
+          status,
+          return_message,
+          start_time,
+          end_time
+        FROM cron.job_run_details
+        ORDER BY start_time DESC
+        LIMIT 10;
+      `
+    });
+
+    const recentRuns = Array.isArray(runsData) ? runsData : (runsData ? [runsData] : []);
+    
+    if (runsError) {
+      console.warn('⚠️ [Check Cron Status] Could not fetch recent runs:', runsError);
+    } else {
+      console.log(`✅ [Check Cron Status] Found ${recentRuns.length} recent job runs`);
+    }
 
     // Return the cron jobs data
     return new Response(
       JSON.stringify({
         success: true,
-        jobs: cronJobs || [],
-        count: cronJobs?.length || 0
+        jobs: cronJobs,
+        recent_runs: recentRuns,
+        count: cronJobs.length
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
