@@ -199,27 +199,53 @@ export const Phase2TestingPanel: React.FC = () => {
 
   const checkCronJobs = async () => {
     setTesting(true);
+    setResults(null);
+    
     try {
-      const { data, error } = await supabase.rpc('analytics_query', {
-        query: 'SELECT * FROM cron.job ORDER BY jobname'
+      console.log('[Phase2TestingPanel] Checking cron jobs via edge function...');
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 30 seconds')), 30000)
+      );
+      
+      const invokePromise = supabase.functions.invoke('check-cron-status', {
+        body: {}
       });
       
-      if (error) throw error;
+      console.log('[Phase2TestingPanel] Waiting for cron status...');
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
       
-      const cronJobs = Array.isArray(data) ? data : [];
+      console.log('[Phase2TestingPanel] Cron status received:', { data, error });
+      
+      if (error) {
+        console.error('[Phase2TestingPanel] Function returned error:', error);
+        throw new Error(error.message || JSON.stringify(error));
+      }
+      
+      const cronJobs = data?.jobs || [];
       setResults({ type: 'cron-jobs', data: cronJobs });
       toast({
-        title: "Cron Jobs Retrieved",
-        description: `Found ${cronJobs.length} scheduled jobs`,
+        title: "✅ Cron Jobs Retrieved",
+        description: `Found ${cronJobs.length} scheduled job${cronJobs.length !== 1 ? 's' : ''}`,
       });
     } catch (error: any) {
+      console.error('[Phase2TestingPanel] Error caught:', error);
+      
+      const errorMessage = error.message || error.toString() || 'Unknown error occurred';
+      
       toast({
-        title: "Error",
-        description: error.message,
+        title: "❌ Failed to Retrieve Cron Jobs",
+        description: errorMessage,
         variant: "destructive",
+      });
+      
+      setResults({ 
+        type: 'cron-jobs', 
+        data: [] 
       });
     } finally {
       setTesting(false);
+      console.log('[Phase2TestingPanel] Check cron jobs process finished');
     }
   };
 
