@@ -269,14 +269,12 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Billing & Security Settings (admin only) */}
+            {/* Billing & Security Settings - Billing for all users, Security for admins */}
             <Route path="/billing-security" element={
               <ProtectedRoute>
                 <OrganizationGuard>
                   <PropertyProvider>
-                    <AdminRouteGuard>
-                      <AdminSettings />
-                    </AdminRouteGuard>
+                    <AdminSettings />
                   </PropertyProvider>
                 </OrganizationGuard>
               </ProtectedRoute>

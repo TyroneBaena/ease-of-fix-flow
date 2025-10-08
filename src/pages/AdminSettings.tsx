@@ -8,8 +8,10 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Shield, CreditCard, AlertTriangle, Users, Activity } from "lucide-react";
+import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 
 const AdminSettings: React.FC = () => {
+  const { isAdmin } = useSimpleAuth();
   const [activeTab, setActiveTab] = useState("billing");
   const { metrics, loading, error } = useSecurityAnalytics();
 
@@ -28,22 +30,25 @@ const AdminSettings: React.FC = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className={`grid w-full max-w-md ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <TabsTrigger value="billing" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
                 Billing
               </TabsTrigger>
-              <TabsTrigger value="security" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Security
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="security" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Security
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="billing" className="mt-6">
               <BillingManagementPage />
             </TabsContent>
 
-            <TabsContent value="security" className="mt-6 space-y-6">
+            {isAdmin && (
+              <TabsContent value="security" className="mt-6 space-y-6">
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>
@@ -96,7 +101,8 @@ const AdminSettings: React.FC = () => {
                   Security data is refreshed every 5 minutes and shows activity from the last 24 hours.
                 </AlertDescription>
               </Alert>
-            </TabsContent>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
