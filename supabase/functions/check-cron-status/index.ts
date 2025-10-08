@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🔍 [Check Cron Status] Checking expected cron jobs configuration...');
+    console.log('🔍 [Check Cron Status] Fetching expected cron job configurations...');
 
     // Since we can't directly query cron.job table from edge functions,
     // we'll return information about what cron jobs SHOULD be configured
