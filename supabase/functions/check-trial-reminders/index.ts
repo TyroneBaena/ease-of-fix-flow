@@ -42,27 +42,16 @@ serve(async (req) => {
 
       // Send reminders at 7, 3, and 1 day before trial ends
       if (daysUntilEnd === 7 || daysUntilEnd === 3 || daysUntilEnd === 1) {
-        console.log(`[CHECK-TRIAL-REMINDERS] Would send ${daysUntilEnd}-day reminder to:`, subscriber.email);
+        console.log(`[CHECK-TRIAL-REMINDERS] Sending ${daysUntilEnd}-day reminder to:`, subscriber.email);
 
         const monthlyAmount = (subscriber.active_properties_count || 0) * 29;
 
-        // For testing, we'll just log what would be sent without actually sending
-        // In production, this would call send-trial-reminder
-        reminders.push({
-          email: subscriber.email,
-          days_remaining: daysUntilEnd,
-          property_count: subscriber.active_properties_count || 0,
-          monthly_amount: monthlyAmount,
-          status: 'would_send',
-          note: 'Email sending disabled for testing - configure RESEND_API_KEY to enable'
-        });
-        
-        /* Production code - uncomment when RESEND_API_KEY is configured:
+        // Production code - Email sending enabled with NEW_RESEND_API_KEY
         try {
           const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
           const userName = userData?.user?.user_metadata?.name || subscriber.email.split('@')[0];
 
-          await fetch(`${supabaseUrl}/functions/v1/send-trial-reminder`, {
+          const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-trial-reminder`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -78,21 +67,36 @@ serve(async (req) => {
             }),
           });
 
-          reminders.push({
-            email: subscriber.email,
-            days_remaining: daysUntilEnd,
-            status: 'sent',
-          });
+          if (emailResponse.ok) {
+            console.log(`[CHECK-TRIAL-REMINDERS] Successfully sent reminder to ${subscriber.email}`);
+            reminders.push({
+              email: subscriber.email,
+              days_remaining: daysUntilEnd,
+              property_count: subscriber.active_properties_count || 0,
+              monthly_amount: monthlyAmount,
+              status: 'sent',
+            });
+          } else {
+            const errorText = await emailResponse.text();
+            console.error(`[CHECK-TRIAL-REMINDERS] Email API returned error for ${subscriber.email}:`, errorText);
+            reminders.push({
+              email: subscriber.email,
+              days_remaining: daysUntilEnd,
+              status: 'failed',
+              error: `Email API error: ${errorText}`,
+            });
+          }
         } catch (emailError) {
           console.error(`[CHECK-TRIAL-REMINDERS] Failed to send reminder to ${subscriber.email}:`, emailError);
           reminders.push({
             email: subscriber.email,
             days_remaining: daysUntilEnd,
+            property_count: subscriber.active_properties_count || 0,
+            monthly_amount: monthlyAmount,
             status: 'failed',
             error: emailError.message,
           });
         }
-        */
       } else {
         console.log(`[CHECK-TRIAL-REMINDERS] ${subscriber.email}: ${daysUntilEnd} days remaining (no reminder needed)`);
       }

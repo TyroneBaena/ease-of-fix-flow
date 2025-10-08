@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Zap, Calendar, DollarSign, Users, CheckCircle, XCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Zap, Calendar, DollarSign, Users, CheckCircle, XCircle, AlertTriangle, Clock, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -420,6 +421,80 @@ export const Phase2TestingPanel: React.FC = () => {
               </>
             )}
           </Button>
+        </div>
+
+        {/* Emergency Fix Section */}
+        <Separator className="my-4" />
+        
+        <div className="space-y-3 p-4 bg-destructive/5 rounded-lg border border-destructive/20">
+          <h4 className="text-sm font-semibold text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Emergency Fixes
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Manual functions to fix data inconsistencies found during testing
+          </p>
+          
+          <div className="grid gap-2">
+            <Button 
+              onClick={async () => {
+                setTesting(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('fix-expired-trials');
+                  if (error) throw error;
+                  toast({
+                    title: "✅ Fixed Expired Trials",
+                    description: `Updated ${data?.trials_fixed || 0} records`,
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "❌ Fix Failed",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                } finally {
+                  setTesting(false);
+                }
+              }}
+              disabled={testing}
+              className="h-14"
+              variant="destructive"
+              size="sm"
+            >
+              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-2 h-4 w-4" />}
+              Fix Expired Trials
+            </Button>
+            
+            <Button 
+              onClick={async () => {
+                setTesting(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('test-cron-execution');
+                  if (error) throw error;
+                  toast({
+                    title: "✅ Cron Test Complete",
+                    description: `Tested ${data?.results?.functions_tested?.length || 0} functions`,
+                  });
+                  setResults({ type: 'cron-test', data });
+                } catch (error: any) {
+                  toast({
+                    title: "❌ Test Failed",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                } finally {
+                  setTesting(false);
+                }
+              }}
+              disabled={testing}
+              className="h-14"
+              variant="outline"
+              size="sm"
+            >
+              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+              Test Cron Execution
+            </Button>
+          </div>
         </div>
 
         {/* Results Display */}

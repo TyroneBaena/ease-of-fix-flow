@@ -160,3 +160,9 @@ verify_jwt = false
 
 [functions.adjust-subscription-billing]
 verify_jwt = false
+
+[functions.fix-expired-trials]
+verify_jwt = false
+
+[functions.test-cron-execution]
+verify_jwt = false
