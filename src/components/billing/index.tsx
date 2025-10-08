@@ -8,3 +8,4 @@ export { CancellationFlow } from './CancellationFlow';
 export { ReactivationFlow } from './ReactivationFlow';
 export { FailedPaymentBanner } from './FailedPaymentBanner';
 export { BillingHistory } from './BillingHistory';
+export { Phase2TestingPanel } from './Phase2TestingPanel';

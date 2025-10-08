@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillingManagementPage } from "@/components/billing/BillingManagementPage";
+import { Phase2TestingPanel } from "@/components/billing/Phase2TestingPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
@@ -43,8 +44,14 @@ const AdminSettings: React.FC = () => {
               )}
             </TabsList>
 
-            <TabsContent value="billing" className="mt-6">
+            <TabsContent value="billing" className="mt-6 space-y-6">
               <BillingManagementPage />
+              
+              {isAdmin && (
+                <div className="mt-8">
+                  <Phase2TestingPanel />
+                </div>
+              )}
             </TabsContent>
 
             {isAdmin && (

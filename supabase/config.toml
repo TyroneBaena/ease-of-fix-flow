@@ -154,3 +154,9 @@ verify_jwt = false
 
 [functions.check-trial-reminders]
 verify_jwt = false
+
+[functions.auto-convert-trials]
+verify_jwt = false
+
+[functions.adjust-subscription-billing]
+verify_jwt = false
