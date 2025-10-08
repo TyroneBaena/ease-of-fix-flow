@@ -18,10 +18,14 @@ export const Phase2TestingPanel: React.FC = () => {
     
     try {
       console.log('[Phase2TestingPanel] Starting auto-convert-trials invocation...');
+      toast({
+        title: "🔄 Processing Trials",
+        description: "Converting expired trials with payment methods... This may take up to 2 minutes.",
+      });
       
-      // Add timeout to prevent infinite loading
+      // Increase timeout for Stripe operations (creating products, prices, subscriptions)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('Request timeout after 120 seconds')), 120000)
       );
       
       const invokePromise = supabase.functions.invoke('auto-convert-trials', {
