@@ -223,6 +223,66 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_org_property_audit: {
+        Row: {
+          cleaned_at: string | null
+          cleaned_by: string | null
+          id: string
+          property_id: string
+          property_org_id: string | null
+          request_id: string
+          request_org_id: string | null
+        }
+        Insert: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          id?: string
+          property_id: string
+          property_org_id?: string | null
+          request_id: string
+          request_org_id?: string | null
+        }
+        Update: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          id?: string
+          property_id?: string
+          property_org_id?: string | null
+          request_id?: string
+          request_org_id?: string | null
+        }
+        Relationships: []
+      }
+      cross_org_user_audit: {
+        Row: {
+          cleaned_at: string | null
+          cleaned_by: string | null
+          id: string
+          request_id: string
+          request_org_id: string | null
+          user_id: string
+          user_org_id: string | null
+        }
+        Insert: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          id?: string
+          request_id: string
+          request_org_id?: string | null
+          user_id: string
+          user_org_id?: string | null
+        }
+        Update: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          id?: string
+          request_id?: string
+          request_org_id?: string | null
+          user_id?: string
+          user_org_id?: string | null
+        }
+        Relationships: []
+      }
       email_relay_keys: {
         Row: {
           actor_type: string
