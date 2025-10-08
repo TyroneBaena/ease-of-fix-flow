@@ -77,10 +77,13 @@ export const Phase2TestingPanel: React.FC = () => {
     
     try {
       console.log('[Phase2TestingPanel] Starting billing adjustment invocation...');
-      console.log('[Phase2TestingPanel] This may take 30-60 seconds if there are many subscriptions...');
+      toast({
+        title: "🔄 Adjusting Billing",
+        description: "Updating Stripe subscriptions based on property counts... This may take up to 3 minutes.",
+      });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout after 90 seconds - function may still be running')), 90000)
+        setTimeout(() => reject(new Error('Request timeout after 180 seconds')), 180000)
       );
       
       const invokePromise = supabase.functions.invoke('adjust-subscription-billing', {
@@ -153,9 +156,13 @@ export const Phase2TestingPanel: React.FC = () => {
     
     try {
       console.log('[Phase2TestingPanel] Starting trial reminders invocation...');
+      toast({
+        title: "🔄 Sending Reminders",
+        description: "Sending trial reminder emails... This may take up to 2 minutes.",
+      });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('Request timeout after 120 seconds')), 120000)
       );
       
       const invokePromise = supabase.functions.invoke('check-trial-reminders', {
