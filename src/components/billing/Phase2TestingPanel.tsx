@@ -73,9 +73,10 @@ export const Phase2TestingPanel: React.FC = () => {
     
     try {
       console.log('[Phase2TestingPanel] Starting billing adjustment invocation...');
+      console.log('[Phase2TestingPanel] This may take 30-60 seconds if there are many subscriptions...');
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('Request timeout after 90 seconds - function may still be running')), 90000)
       );
       
       const invokePromise = supabase.functions.invoke('adjust-subscription-billing', {
@@ -92,10 +93,30 @@ export const Phase2TestingPanel: React.FC = () => {
         throw new Error(error.message || JSON.stringify(error));
       }
       
+      const adjustmentsCount = data?.adjustments_processed || 0;
+      const details = data?.details || [];
+      
+      // Show detailed info about what happened
+      let description = `Processed ${adjustmentsCount} subscription${adjustmentsCount !== 1 ? 's' : ''}`;
+      
+      if (adjustmentsCount === 0) {
+        description = 'No active subscriptions found to adjust';
+      } else {
+        const adjusted = details.filter((d: any) => d.status === 'adjusted').length;
+        const noChange = details.filter((d: any) => d.status === 'no_change_needed').length;
+        const cancelled = details.filter((d: any) => d.status === 'cancelled_no_properties').length;
+        
+        if (adjusted > 0) description += ` (${adjusted} adjusted`;
+        if (noChange > 0) description += adjusted > 0 ? `, ${noChange} unchanged` : ` (${noChange} unchanged`;
+        if (cancelled > 0) description += adjusted > 0 || noChange > 0 ? `, ${cancelled} cancelled` : ` (${cancelled} cancelled`;
+        description += ')';
+      }
+      
       setResults({ type: 'billing-adjustment', data });
       toast({
         title: "✅ Billing Adjustment Completed",
-        description: `Processed ${data?.adjustments_processed || 0} billing adjustments`,
+        description,
+        duration: 8000,
       });
     } catch (error: any) {
       console.error('[Phase2TestingPanel] Error caught:', error);
@@ -106,6 +127,7 @@ export const Phase2TestingPanel: React.FC = () => {
         title: "❌ Billing Adjustment Failed",
         description: errorMessage,
         variant: "destructive",
+        duration: 8000,
       });
       
       setResults({ 
