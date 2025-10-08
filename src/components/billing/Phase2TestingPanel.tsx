@@ -14,20 +14,30 @@ export const Phase2TestingPanel: React.FC = () => {
 
   const triggerAutoConvert = async () => {
     setTesting(true);
+    setResults(null);
     try {
-      const { data, error } = await supabase.functions.invoke('auto-convert-trials');
+      console.log('[Phase2TestingPanel] Invoking auto-convert-trials...');
+      const { data, error } = await supabase.functions.invoke('auto-convert-trials', {
+        body: {}
+      });
       
-      if (error) throw error;
+      console.log('[Phase2TestingPanel] Response:', { data, error });
+      
+      if (error) {
+        console.error('[Phase2TestingPanel] Error:', error);
+        throw error;
+      }
       
       setResults({ type: 'auto-convert', data });
       toast({
         title: "Auto-Convert Triggered",
-        description: `Processed ${data.conversions_processed} trial conversions`,
+        description: `Processed ${data?.conversions_processed || 0} trial conversions`,
       });
     } catch (error: any) {
+      console.error('[Phase2TestingPanel] Caught error:', error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error Triggering Auto-Convert",
+        description: error.message || 'Unknown error occurred',
         variant: "destructive",
       });
     } finally {
@@ -37,20 +47,30 @@ export const Phase2TestingPanel: React.FC = () => {
 
   const triggerBillingAdjustment = async () => {
     setTesting(true);
+    setResults(null);
     try {
-      const { data, error } = await supabase.functions.invoke('adjust-subscription-billing');
+      console.log('[Phase2TestingPanel] Invoking adjust-subscription-billing...');
+      const { data, error } = await supabase.functions.invoke('adjust-subscription-billing', {
+        body: {}
+      });
       
-      if (error) throw error;
+      console.log('[Phase2TestingPanel] Response:', { data, error });
+      
+      if (error) {
+        console.error('[Phase2TestingPanel] Error:', error);
+        throw error;
+      }
       
       setResults({ type: 'billing-adjustment', data });
       toast({
         title: "Billing Adjustment Triggered",
-        description: `Processed ${data.adjustments_processed} billing adjustments`,
+        description: `Processed ${data?.adjustments_processed || 0} billing adjustments`,
       });
     } catch (error: any) {
+      console.error('[Phase2TestingPanel] Caught error:', error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error Triggering Billing Adjustment",
+        description: error.message || 'Unknown error occurred',
         variant: "destructive",
       });
     } finally {
@@ -60,20 +80,30 @@ export const Phase2TestingPanel: React.FC = () => {
 
   const triggerTrialReminders = async () => {
     setTesting(true);
+    setResults(null);
     try {
-      const { data, error } = await supabase.functions.invoke('check-trial-reminders');
+      console.log('[Phase2TestingPanel] Invoking check-trial-reminders...');
+      const { data, error } = await supabase.functions.invoke('check-trial-reminders', {
+        body: {}
+      });
       
-      if (error) throw error;
+      console.log('[Phase2TestingPanel] Response:', { data, error });
+      
+      if (error) {
+        console.error('[Phase2TestingPanel] Error:', error);
+        throw error;
+      }
       
       setResults({ type: 'trial-reminders', data });
       toast({
         title: "Trial Reminders Triggered",
-        description: `Sent ${data.reminders_sent} reminder emails`,
+        description: `Sent ${data?.reminders_sent || 0} reminder emails`,
       });
     } catch (error: any) {
+      console.error('[Phase2TestingPanel] Caught error:', error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error Triggering Trial Reminders",
+        description: error.message || 'Unknown error occurred',
         variant: "destructive",
       });
     } finally {
