@@ -15,99 +15,163 @@ export const Phase2TestingPanel: React.FC = () => {
   const triggerAutoConvert = async () => {
     setTesting(true);
     setResults(null);
+    
     try {
-      console.log('[Phase2TestingPanel] Invoking auto-convert-trials...');
-      const { data, error } = await supabase.functions.invoke('auto-convert-trials', {
+      console.log('[Phase2TestingPanel] Starting auto-convert-trials invocation...');
+      
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 60 seconds')), 60000)
+      );
+      
+      const invokePromise = supabase.functions.invoke('auto-convert-trials', {
         body: {}
       });
       
-      console.log('[Phase2TestingPanel] Response:', { data, error });
+      console.log('[Phase2TestingPanel] Waiting for response...');
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      
+      console.log('[Phase2TestingPanel] Response received:', { data, error });
       
       if (error) {
-        console.error('[Phase2TestingPanel] Error:', error);
-        throw error;
+        console.error('[Phase2TestingPanel] Function returned error:', error);
+        throw new Error(error.message || JSON.stringify(error));
       }
       
       setResults({ type: 'auto-convert', data });
       toast({
-        title: "Auto-Convert Triggered",
+        title: "✅ Auto-Convert Completed",
         description: `Processed ${data?.conversions_processed || 0} trial conversions`,
       });
     } catch (error: any) {
-      console.error('[Phase2TestingPanel] Caught error:', error);
+      console.error('[Phase2TestingPanel] Error caught:', error);
+      
+      const errorMessage = error.message || error.toString() || 'Unknown error occurred';
+      
       toast({
-        title: "Error Triggering Auto-Convert",
-        description: error.message || 'Unknown error occurred',
+        title: "❌ Auto-Convert Failed",
+        description: errorMessage,
         variant: "destructive",
+      });
+      
+      setResults({ 
+        type: 'auto-convert', 
+        data: { 
+          error: errorMessage,
+          conversions_processed: 0 
+        } 
       });
     } finally {
       setTesting(false);
+      console.log('[Phase2TestingPanel] Auto-convert process finished');
     }
   };
 
   const triggerBillingAdjustment = async () => {
     setTesting(true);
     setResults(null);
+    
     try {
-      console.log('[Phase2TestingPanel] Invoking adjust-subscription-billing...');
-      const { data, error } = await supabase.functions.invoke('adjust-subscription-billing', {
+      console.log('[Phase2TestingPanel] Starting billing adjustment invocation...');
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 60 seconds')), 60000)
+      );
+      
+      const invokePromise = supabase.functions.invoke('adjust-subscription-billing', {
         body: {}
       });
       
-      console.log('[Phase2TestingPanel] Response:', { data, error });
+      console.log('[Phase2TestingPanel] Waiting for response...');
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      
+      console.log('[Phase2TestingPanel] Response received:', { data, error });
       
       if (error) {
-        console.error('[Phase2TestingPanel] Error:', error);
-        throw error;
+        console.error('[Phase2TestingPanel] Function returned error:', error);
+        throw new Error(error.message || JSON.stringify(error));
       }
       
       setResults({ type: 'billing-adjustment', data });
       toast({
-        title: "Billing Adjustment Triggered",
+        title: "✅ Billing Adjustment Completed",
         description: `Processed ${data?.adjustments_processed || 0} billing adjustments`,
       });
     } catch (error: any) {
-      console.error('[Phase2TestingPanel] Caught error:', error);
+      console.error('[Phase2TestingPanel] Error caught:', error);
+      
+      const errorMessage = error.message || error.toString() || 'Unknown error occurred';
+      
       toast({
-        title: "Error Triggering Billing Adjustment",
-        description: error.message || 'Unknown error occurred',
+        title: "❌ Billing Adjustment Failed",
+        description: errorMessage,
         variant: "destructive",
+      });
+      
+      setResults({ 
+        type: 'billing-adjustment', 
+        data: { 
+          error: errorMessage,
+          adjustments_processed: 0 
+        } 
       });
     } finally {
       setTesting(false);
+      console.log('[Phase2TestingPanel] Billing adjustment process finished');
     }
   };
 
   const triggerTrialReminders = async () => {
     setTesting(true);
     setResults(null);
+    
     try {
-      console.log('[Phase2TestingPanel] Invoking check-trial-reminders...');
-      const { data, error } = await supabase.functions.invoke('check-trial-reminders', {
+      console.log('[Phase2TestingPanel] Starting trial reminders invocation...');
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 60 seconds')), 60000)
+      );
+      
+      const invokePromise = supabase.functions.invoke('check-trial-reminders', {
         body: {}
       });
       
-      console.log('[Phase2TestingPanel] Response:', { data, error });
+      console.log('[Phase2TestingPanel] Waiting for response...');
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      
+      console.log('[Phase2TestingPanel] Response received:', { data, error });
       
       if (error) {
-        console.error('[Phase2TestingPanel] Error:', error);
-        throw error;
+        console.error('[Phase2TestingPanel] Function returned error:', error);
+        throw new Error(error.message || JSON.stringify(error));
       }
       
       setResults({ type: 'trial-reminders', data });
       toast({
-        title: "Trial Reminders Triggered",
+        title: "✅ Trial Reminders Sent",
         description: `Sent ${data?.reminders_sent || 0} reminder emails`,
       });
     } catch (error: any) {
-      console.error('[Phase2TestingPanel] Caught error:', error);
+      console.error('[Phase2TestingPanel] Error caught:', error);
+      
+      const errorMessage = error.message || error.toString() || 'Unknown error occurred';
+      
       toast({
-        title: "Error Triggering Trial Reminders",
-        description: error.message || 'Unknown error occurred',
+        title: "❌ Trial Reminders Failed",
+        description: errorMessage,
         variant: "destructive",
+      });
+      
+      setResults({ 
+        type: 'trial-reminders', 
+        data: { 
+          error: errorMessage,
+          reminders_sent: 0 
+        } 
       });
     } finally {
       setTesting(false);
+      console.log('[Phase2TestingPanel] Trial reminders process finished');
     }
   };
 
