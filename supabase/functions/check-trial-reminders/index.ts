@@ -48,9 +48,17 @@ serve(async (req) => {
 
         // Production code - Email sending enabled with NEW_RESEND_API_KEY
         try {
-          const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
+          // Get user metadata for personalization
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(subscriber.user_id);
+          
+          if (userError) {
+            console.error(`[CHECK-TRIAL-REMINDERS] Failed to get user data for ${subscriber.email}:`, userError);
+          }
+          
           const userName = userData?.user?.user_metadata?.name || subscriber.email.split('@')[0];
 
+          console.log(`[CHECK-TRIAL-REMINDERS] Sending email to ${subscriber.email} via send-trial-reminder function`);
+          
           const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-trial-reminder`, {
             method: 'POST',
             headers: {

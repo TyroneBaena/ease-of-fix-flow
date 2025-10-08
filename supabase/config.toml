@@ -166,3 +166,6 @@ verify_jwt = false
 
 [functions.test-cron-execution]
 verify_jwt = false
+
+[functions.send-trial-reminder]
+verify_jwt = false

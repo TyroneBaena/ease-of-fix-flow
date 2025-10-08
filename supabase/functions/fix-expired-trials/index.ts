@@ -25,9 +25,10 @@ serve(async (req) => {
     const now = new Date();
     
     // Get all trials that ended but are still marked as active
+    // This is an EMERGENCY function to fix data inconsistencies
     const { data: expiredTrials, error: fetchError } = await supabase
       .from("subscribers")
-      .select("user_id, email, trial_end_date, active_properties_count, payment_method_id")
+      .select("user_id, email, trial_end_date, active_properties_count, payment_method_id, is_cancelled")
       .eq("is_trial_active", true)
       .eq("subscribed", false)
       .not("trial_end_date", "is", null)
@@ -43,7 +44,13 @@ serve(async (req) => {
     const updates = [];
 
     for (const trial of expiredTrials || []) {
-      console.log(`[FIX-EXPIRED-TRIALS] Processing ${trial.email}`);
+      console.log(`[FIX-EXPIRED-TRIALS] Processing ${trial.email} - Trial ended: ${trial.trial_end_date}`);
+      
+      // Calculate how long ago trial expired
+      const trialEndDate = new Date(trial.trial_end_date);
+      const daysExpired = Math.floor((now.getTime() - trialEndDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      console.log(`[FIX-EXPIRED-TRIALS] Trial expired ${daysExpired} days ago`);
       
       // Mark trial as inactive
       const { error: updateError } = await supabase
@@ -60,14 +67,17 @@ serve(async (req) => {
           email: trial.email,
           status: 'failed',
           error: updateError.message,
+          days_expired: daysExpired,
         });
       } else {
         console.log(`[FIX-EXPIRED-TRIALS] Successfully marked trial as inactive for ${trial.email}`);
         updates.push({
           email: trial.email,
           status: 'fixed',
+          days_expired: daysExpired,
           had_payment_method: !!trial.payment_method_id,
           property_count: trial.active_properties_count || 0,
+          was_cancelled: trial.is_cancelled || false,
         });
       }
     }

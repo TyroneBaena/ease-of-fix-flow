@@ -28,6 +28,7 @@ serve(async (req) => {
     const now = new Date();
     
     // Get all trials that ended today or earlier and haven't been converted
+    // CRITICAL: Only select trials WITH payment methods to prevent failed conversions
     const { data: expiredTrials, error: fetchError } = await supabase
       .from("subscribers")
       .select("user_id, email, trial_end_date, active_properties_count, stripe_customer_id, payment_method_id")
@@ -35,7 +36,8 @@ serve(async (req) => {
       .eq("subscribed", false)
       .eq("is_cancelled", false)
       .not("trial_end_date", "is", null)
-      .not("payment_method_id", "is", null)
+      .not("payment_method_id", "is", null) // MUST have payment method
+      .not("stripe_customer_id", "is", null) // MUST have Stripe customer
       .lte("trial_end_date", now.toISOString());
 
     if (fetchError) {
@@ -48,9 +50,20 @@ serve(async (req) => {
     const conversions = [];
 
     for (const trial of expiredTrials || []) {
-      console.log(`[AUTO-CONVERT-TRIALS] Converting trial for user ${trial.email}`);
+      console.log(`[AUTO-CONVERT-TRIALS] Processing trial for user ${trial.email}`);
       
       try {
+        // VALIDATION: Ensure payment method exists (double-check from query)
+        if (!trial.payment_method_id || !trial.stripe_customer_id) {
+          console.error(`[AUTO-CONVERT-TRIALS] User ${trial.email} missing payment method or customer ID, skipping`);
+          conversions.push({
+            email: trial.email,
+            status: 'failed',
+            error: 'Missing payment method or Stripe customer',
+          });
+          continue;
+        }
+
         const propertyCount = trial.active_properties_count || 0;
         const monthlyAmount = propertyCount * 29; // $29 per property
 

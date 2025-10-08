@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // CRITICAL: Use NEW_RESEND_API_KEY for production email sending
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
+    
+    if (!resendApiKey) {
+      console.error("[SEND-TRIAL-REMINDER] CRITICAL: NEW_RESEND_API_KEY not configured");
+      throw new Error("Email service not configured - missing NEW_RESEND_API_KEY");
+    }
+    
+    const resend = new Resend(resendApiKey);
+
     const {
       recipient_email,
       recipient_name,
@@ -28,6 +39,8 @@ const handler = async (req: Request): Promise<Response> => {
       property_count,
       monthly_amount,
     }: TrialReminderRequest = await req.json();
+
+    console.log(`[SEND-TRIAL-REMINDER] Sending ${days_remaining}-day reminder to ${recipient_email}`);
 
     const trialEndFormatted = new Date(trial_end_date).toLocaleDateString('en-AU', {
       year: 'numeric',
@@ -103,24 +116,26 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("NEW_RESEND_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Property Management <onboarding@resend.dev>",
-        to: [recipient_email],
-        subject: subject,
-        html: htmlContent,
-      }),
+    const { data, error } = await resend.emails.send({
+      from: "Property Management <noreply@updates.lovable.dev>",
+      to: [recipient_email],
+      subject: subject,
+      html: htmlContent,
     });
 
-    const emailResponse = await resendResponse.json();
-    console.log(`Trial reminder email sent (${days_remaining} days):`, emailResponse);
+    if (error) {
+      console.error(`[SEND-TRIAL-REMINDER] Resend error for ${recipient_email}:`, error);
+      throw error;
+    }
 
-    return new Response(JSON.stringify(emailResponse), {
+    console.log(`[SEND-TRIAL-REMINDER] Successfully sent ${days_remaining}-day reminder to ${recipient_email}, Email ID: ${data?.id}`);
+
+    return new Response(JSON.stringify({
+      success: true,
+      email_id: data?.id,
+      recipient: recipient_email,
+      days_remaining,
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -128,9 +143,12 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error in send-trial-reminder function:", error);
+    console.error("[SEND-TRIAL-REMINDER] Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString(),
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
