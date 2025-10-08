@@ -42,15 +42,26 @@ serve(async (req) => {
 
       // Send reminders at 7, 3, and 1 day before trial ends
       if (daysUntilEnd === 7 || daysUntilEnd === 3 || daysUntilEnd === 1) {
-        console.log(`[CHECK-TRIAL-REMINDERS] Sending ${daysUntilEnd}-day reminder to:`, subscriber.email);
-
-        // Get user data for name
-        const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
-        const userName = userData?.user?.user_metadata?.name || subscriber.email.split('@')[0];
+        console.log(`[CHECK-TRIAL-REMINDERS] Would send ${daysUntilEnd}-day reminder to:`, subscriber.email);
 
         const monthlyAmount = (subscriber.active_properties_count || 0) * 29;
 
+        // For testing, we'll just log what would be sent without actually sending
+        // In production, this would call send-trial-reminder
+        reminders.push({
+          email: subscriber.email,
+          days_remaining: daysUntilEnd,
+          property_count: subscriber.active_properties_count || 0,
+          monthly_amount: monthlyAmount,
+          status: 'would_send',
+          note: 'Email sending disabled for testing - configure RESEND_API_KEY to enable'
+        });
+        
+        /* Production code - uncomment when RESEND_API_KEY is configured:
         try {
+          const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
+          const userName = userData?.user?.user_metadata?.name || subscriber.email.split('@')[0];
+
           await fetch(`${supabaseUrl}/functions/v1/send-trial-reminder`, {
             method: 'POST',
             headers: {
@@ -81,10 +92,13 @@ serve(async (req) => {
             error: emailError.message,
           });
         }
+        */
+      } else {
+        console.log(`[CHECK-TRIAL-REMINDERS] ${subscriber.email}: ${daysUntilEnd} days remaining (no reminder needed)`);
       }
     }
 
-    console.log(`[CHECK-TRIAL-REMINDERS] Sent ${reminders.length} reminders`);
+    console.log(`[CHECK-TRIAL-REMINDERS] Processed ${reminders.length} reminder checks`);
 
     return new Response(
       JSON.stringify({

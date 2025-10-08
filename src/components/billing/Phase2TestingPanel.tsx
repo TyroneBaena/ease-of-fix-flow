@@ -550,20 +550,39 @@ export const Phase2TestingPanel: React.FC = () => {
               {results.type === 'trial-reminders' && (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Reminders Sent:</span>
-                    <Badge>{results.data.reminders_sent}</Badge>
+                    <span className="font-medium">Reminders Checked:</span>
+                    <Badge>{results.data.reminders_sent || 0}</Badge>
                   </div>
-                  {results.data.details?.map((detail: any, idx: number) => (
-                    <div key={idx} className="border-t pt-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{detail.email}</span>
-                        <Badge>{detail.days_remaining} days left</Badge>
-                        <Badge variant={detail.status === 'sent' ? 'default' : 'destructive'}>
-                          {detail.status}
-                        </Badge>
-                      </div>
+                  {results.data.details?.length > 0 ? (
+                    <>
+                      {results.data.details.map((detail: any, idx: number) => (
+                        <div key={idx} className="border-t pt-2 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm">{detail.email}</span>
+                            <Badge variant="secondary">{detail.days_remaining} days left</Badge>
+                            <Badge variant={detail.status === 'sent' ? 'default' : 'outline'}>
+                              {detail.status}
+                            </Badge>
+                          </div>
+                          {detail.property_count !== undefined && (
+                            <div className="text-xs text-muted-foreground">
+                              {detail.property_count} {detail.property_count === 1 ? 'property' : 'properties'} 
+                              {detail.monthly_amount && ` - $${detail.monthly_amount}/month`}
+                            </div>
+                          )}
+                          {detail.note && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 italic">
+                              {detail.note}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground border-t pt-2">
+                      No trials requiring reminders at this time (reminders sent at 7, 3, and 1 day before expiry)
                     </div>
-                  ))}
+                  )}
                 </>
               )}
 
