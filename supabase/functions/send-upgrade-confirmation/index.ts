@@ -87,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Property Management <onboarding@resend.dev>",
+        from: "Property Management <onboarding@housinghub.app>",
         to: [recipient_email],
         subject: subject,
         html: htmlContent,

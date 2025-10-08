@@ -31,7 +31,7 @@ export async function sendInvitationEmail(
     console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
     
     const { data, error } = await resend.emails.send({
-      from: 'Property Manager <onboarding@resend.dev>',
+      from: 'Property Manager <onboarding@housinghub.app>',
       to: [emailRecipient],
       subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager`,
       html: isTestMode 

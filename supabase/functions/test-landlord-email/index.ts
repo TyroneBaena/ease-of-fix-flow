@@ -44,7 +44,7 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
     
     const sendResult = await resend.emails.send({
-      from: "Property Manager <onboarding@resend.dev>",
+      from: "Property Manager <onboarding@housinghub.app>",
       to: [test_email],
       subject: "Test Email - Landlord Assignment Notification",
       html: `
