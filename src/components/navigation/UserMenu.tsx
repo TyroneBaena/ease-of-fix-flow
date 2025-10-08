@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, User, CreditCard } from 'lucide-react';
+import { LogOut, Settings, Shield } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -61,7 +61,7 @@ export const UserMenu = () => {
         </div>
         <DropdownMenuSeparator />
         
-        {/* Show Settings link for both admin and manager - updated to use isAdmin as boolean */}
+        {/* General Settings for admin and manager */}
         {(isAdmin || currentUser?.role === 'manager') && (
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -72,13 +72,16 @@ export const UserMenu = () => {
           </DropdownMenuItem>
         )}
         
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => navigate('/billing')}
-        >
-          <CreditCard className="mr-2 h-4 w-4" />
-          <span>Billing</span>
-        </DropdownMenuItem>
+        {/* Admin Settings (Billing & Security) - admin only */}
+        {isAdmin && (
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => navigate('/admin-settings')}
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Admin Settings</span>
+          </DropdownMenuItem>
+        )}
         
         <DropdownMenuItem 
           className="cursor-pointer"

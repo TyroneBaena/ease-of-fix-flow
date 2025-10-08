@@ -33,14 +33,14 @@ export const MobileMenu = () => {
       { name: 'Reports', icon: <MenuIcon className="h-5 w-5" />, path: '/reports' },
     ];
     
-    // Add Settings for admin and manager - updated to use isAdmin as boolean
+    // Add Settings for admin and manager
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
     
-    // Add Security for admin only
+    // Add Admin Settings (Billing & Security) for admin only
     if (isAdmin) {
-      items.push({ name: 'Security', icon: <Shield className="h-5 w-5" />, path: '/security' });
+      items.push({ name: 'Admin Settings', icon: <Shield className="h-5 w-5" />, path: '/admin-settings' });
     }
     
     return items;
