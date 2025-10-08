@@ -17,24 +17,23 @@ export const NavLinks = () => {
     return location.pathname === path;
   };
   
-  // Define navigation items based on user role - updated to use isAdmin as boolean
+  // Define navigation items based on user role
   const getNavItems = () => {
     const items: NavItem[] = [
       { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard' },
       { name: 'Properties', icon: <Building className="h-5 w-5" />, path: '/properties' },
       { name: 'Requests', icon: <ClipboardList className="h-5 w-5" />, path: '/requests' },
       { name: 'Reports', icon: <FileText className="h-5 w-5" />, path: '/reports' },
-      { name: 'Billing', icon: <CreditCard className="h-5 w-5" />, path: '/billing' },
     ];
     
-    // Add Settings for admin and manager - updated to use isAdmin as boolean
+    // Add Settings (general) for admin and manager
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });
     }
     
-    // Add Security for admin only
+    // Add Admin Settings (Billing & Security) for admin only
     if (isAdmin) {
-      items.push({ name: 'Security', icon: <Shield className="h-5 w-5" />, path: '/security' });
+      items.push({ name: 'Admin', icon: <Shield className="h-5 w-5" />, path: '/admin-settings' });
     }
     
     return items;

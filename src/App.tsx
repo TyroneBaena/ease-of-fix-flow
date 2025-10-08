@@ -54,9 +54,8 @@ import { ContractorRouteGuard } from './components/contractor/ContractorRouteGua
 
 // New pages
 import Pricing from '@/pages/Pricing';
-import Billing from '@/pages/Billing';
-import Security from '@/pages/Security';
-import { BillingManagePage } from '@/components/billing/BillingManagePage';
+import AdminSettings from '@/pages/AdminSettings';
+import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { EnhancedSignupFlow } from '@/components/auth/EnhancedSignupFlow';
 
 const queryClient = new QueryClient();
@@ -270,30 +269,14 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Security Dashboard (admin only) */}
-            <Route path="/security" element={
-              <ProtectedRoute>
-                <OrganizationGuard>
-                  <Security />
-                </OrganizationGuard>
-              </ProtectedRoute>
-            } />
-
-            {/* Billing (protected) */}
-            <Route path="/billing" element={
+            {/* Admin Settings - Billing & Security (admin only) */}
+            <Route path="/admin-settings" element={
               <ProtectedRoute>
                 <OrganizationGuard>
                   <PropertyProvider>
-                    <Billing />
-                  </PropertyProvider>
-                </OrganizationGuard>
-              </ProtectedRoute>
-            } />
-            <Route path="/billing/manage" element={
-              <ProtectedRoute>
-                <OrganizationGuard>
-                  <PropertyProvider>
-                    <BillingManagePage />
+                    <AdminRouteGuard>
+                      <AdminSettings />
+                    </AdminRouteGuard>
                   </PropertyProvider>
                 </OrganizationGuard>
               </ProtectedRoute>
