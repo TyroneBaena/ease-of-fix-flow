@@ -292,6 +292,8 @@ export const Phase2TestingPanel: React.FC = () => {
       }
       
       const cronJobsResponse = data || { jobs: [], count: 0 };
+      console.log('[Phase2TestingPanel] Setting results with:', cronJobsResponse);
+      console.log('[Phase2TestingPanel] Jobs array:', cronJobsResponse.jobs);
       setResults({ type: 'cron-jobs', data: cronJobsResponse });
       toast({
         title: "✅ Cron Jobs Retrieved",
@@ -569,13 +571,15 @@ export const Phase2TestingPanel: React.FC = () => {
 
               {results.type === 'cron-jobs' && (
                 <>
-                  {results.data.message && (
+                  {console.log('[Phase2TestingPanel] Rendering cron jobs results:', results.data)}
+                  {results.data?.message && (
                     <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950 rounded text-sm">
                       {results.data.message}
                     </div>
                   )}
                   <div className="space-y-3">
-                    {results.data.jobs?.map((job: any, idx: number) => (
+                    {console.log('[Phase2TestingPanel] Jobs to render:', results.data?.jobs)}
+                    {results.data?.jobs?.map((job: any, idx: number) => (
                       <div key={idx} className="border-t pt-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-sm">{job.jobname}</span>
@@ -590,7 +594,7 @@ export const Phase2TestingPanel: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  {results.data.note && (
+                  {results.data?.note && (
                     <div className="mt-3 text-xs text-muted-foreground italic border-t pt-2">
                       Note: {results.data.note}
                     </div>
