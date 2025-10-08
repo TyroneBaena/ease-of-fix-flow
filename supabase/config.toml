@@ -169,3 +169,6 @@ verify_jwt = false
 
 [functions.send-trial-reminder]
 verify_jwt = false
+
+[functions.send-property-billing-update]
+verify_jwt = false

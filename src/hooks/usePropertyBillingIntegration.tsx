@@ -66,62 +66,96 @@ export const usePropertyBillingIntegration = () => {
 
     const newMonthlyAmount = currentPropertyCount * 29;
 
-    const sendBillingNotification = async (changeType: 'added' | 'removed', propertiesChanged: number) => {
+    const sendBillingNotification = async (
+      changeType: 'added' | 'removed', 
+      propertiesChanged: number,
+      oldAmount: number
+    ) => {
       if (!currentUser?.email) return;
 
       try {
-        await supabase.functions.invoke('send-billing-notification', {
+        // Calculate prorated amount if subscribed (approximately 1/30th per day remaining)
+        const today = new Date();
+        const nextBillingDate = new Date(today);
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+        const daysRemaining = Math.ceil((nextBillingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const dailyRate = (propertiesChanged * 29) / 30;
+        const proratedAmount = subscribed ? dailyRate * daysRemaining : undefined;
+
+        await supabase.functions.invoke('send-property-billing-update', {
           body: {
             recipient_email: currentUser.email,
             recipient_name: currentUser.name || currentUser.email.split('@')[0],
             property_count: currentPropertyCount,
+            old_property_count: lastKnownCount.current,
             monthly_amount: newMonthlyAmount,
+            old_monthly_amount: oldAmount,
             change_type: changeType,
             properties_changed: propertiesChanged,
+            next_billing_date: nextBillingDate.toISOString(),
+            prorated_amount: proratedAmount,
             is_trial: isTrialActive || false,
             is_subscribed: subscribed || false
           }
         });
-        console.log(`Billing notification email sent for ${changeType} properties`);
+        console.log(`Property billing update email sent for ${changeType} properties`);
       } catch (error) {
-        console.error('Failed to send billing notification email:', error);
+        console.error('Failed to send property billing update email:', error);
       }
     };
 
     if (countChange > 0 && (isTrialActive || subscribed)) {
       // Property added
       const addedCount = countChange;
+      const oldAmount = lastKnownCount.current * 29;
       
-      // Send email notification
-      sendBillingNotification('added', addedCount);
+      // Send enhanced email notification with proration details
+      sendBillingNotification('added', addedCount, oldAmount);
       
       if (isTrialActive) {
         toast.info(
-          `🏢 Property added! Your billing after trial will be $${newMonthlyAmount} AUD/month for ${currentPropertyCount} ${currentPropertyCount === 1 ? 'property' : 'properties'}. Check your email for details.`,
+          `🏢 Property added! Your billing after trial will be $${newMonthlyAmount} AUD/month for ${currentPropertyCount} ${currentPropertyCount === 1 ? 'property' : 'properties'}. Check your email for full details.`,
           { duration: 6000 }
         );
       } else if (subscribed) {
+        // Calculate approximate prorated charge
+        const daysInMonth = 30;
+        const today = new Date();
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const daysRemaining = Math.ceil((nextMonth.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const proratedCharge = ((addedCount * 29) / daysInMonth) * daysRemaining;
+        
         toast.info(
-          `🏢 Property added! Your next billing cycle will include $${addedCount * 29} AUD for the new ${addedCount === 1 ? 'property' : 'properties'}. Check your email for details.`,
-          { duration: 6000 }
+          `🏢 Property added! Prorated charge of ~$${proratedCharge.toFixed(2)} AUD will be added to your next invoice. New monthly rate: $${newMonthlyAmount} AUD. Check your email for details.`,
+          { duration: 8000 }
         );
       }
     } else if (countChange < 0 && (isTrialActive || subscribed)) {
       // Property removed
       const removedCount = Math.abs(countChange);
+      const oldAmount = lastKnownCount.current * 29;
       
-      // Send email notification
-      sendBillingNotification('removed', removedCount);
+      // Send enhanced email notification with credit details
+      sendBillingNotification('removed', removedCount, oldAmount);
       
       if (isTrialActive) {
         toast.info(
-          `🏢 Property removed! Your billing after trial will be $${newMonthlyAmount} AUD/month for ${currentPropertyCount} ${currentPropertyCount === 1 ? 'property' : 'properties'}. Check your email for details.`,
+          `🏢 Property removed! Your billing after trial will be $${newMonthlyAmount} AUD/month for ${currentPropertyCount} ${currentPropertyCount === 1 ? 'property' : 'properties'}. Check your email for full details.`,
           { duration: 6000 }
         );
       } else if (subscribed) {
+        // Calculate approximate credit
+        const daysInMonth = 30;
+        const today = new Date();
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const daysRemaining = Math.ceil((nextMonth.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const creditAmount = ((removedCount * 29) / daysInMonth) * daysRemaining;
+        
         toast.info(
-          `🏢 Property removed! Your billing will decrease by $${removedCount * 29} AUD starting next cycle. Check your email for details.`,
-          { duration: 6000 }
+          `🏢 Property removed! Credit of ~$${creditAmount.toFixed(2)} AUD will be applied to your next invoice. New monthly rate: $${newMonthlyAmount} AUD. Check your email for details.`,
+          { duration: 8000 }
         );
       }
     }
