@@ -47,7 +47,9 @@ const PropertyDetail = () => {
   
   // Use context data for authenticated users, temporary data for QR access
   const property = isTemporaryAccess ? temporaryProperty : (id ? getProperty(id) : undefined);
-  const [requests, setRequests] = useState<MaintenanceRequest[]>(id ? getRequestsForProperty(id) : []);
+  
+  // Get requests directly from context - no need for local state since context is already memoized
+  const requests = id ? getRequestsForProperty(id) : [];
   const [dialogOpen, setDialogOpen] = useState(false);
   
   // Check for temporary session on mount
@@ -100,14 +102,6 @@ const PropertyDetail = () => {
 
     checkTemporarySession();
   }, [id]);
-
-  // Re-fetch requests when property changes (in case property ID dependencies change)
-  useEffect(() => {
-    if (id && !isTemporaryAccess) {
-      const updatedRequests = getRequestsForProperty(id);
-      setRequests(updatedRequests);
-    }
-  }, [id, getRequestsForProperty, properties, isTemporaryAccess]); // Re-run when properties context changes
   
   // Only load budget data if we have a valid property ID
   const { maintenanceSpend, currentFinancialYear, loading: budgetLoading, getBudgetAnalysis } = useBudgetData(id || '');
