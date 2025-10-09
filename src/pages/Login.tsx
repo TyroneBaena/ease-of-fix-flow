@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Info } from 'lucide-react';
+import { AlertCircle, Info, Loader2 } from 'lucide-react';
 import { signInWithEmailPassword } from '@/hooks/auth/authOperations';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { getRedirectPathByRole } from '@/services/userService';
@@ -71,18 +71,6 @@ const Login = () => {
       navigate(redirectPath, { replace: true });
     }
   }, [currentUser, authLoading, navigate, location.search]);
-
-  // Add timeout to prevent infinite loading
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (authLoading) {
-        console.warn('🚀 Login - Auth loading timeout, forcing completion');
-        setError('Authentication timeout. Please try refreshing the page.');
-      }
-    }, 10000); // 10 second timeout
-
-    return () => clearTimeout(timeout);
-  }, [authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,14 +153,12 @@ const Login = () => {
     }
   };
 
-  // Show loading while checking auth state
-  if (authLoading) {
+  // CRITICAL: Don't render login UI while checking auth or if user is already authenticated
+  // This prevents the flash of login page during page refresh
+  if (authLoading || currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
