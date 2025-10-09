@@ -221,7 +221,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // User management state
   const [users, setUsers] = useState<User[]>([]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // Clear Sentry user context
       setSentryUser(null);
@@ -233,7 +233,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error signing out:', error);
       toast.error('Error signing out');
     }
-  };
+  }, []);
 
   const fetchUserOrganizations = async (user: User) => {
     if (!user?.id) {
@@ -336,7 +336,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const switchOrganization = async (organizationId: string) => {
+  const switchOrganization = useCallback(async (organizationId: string) => {
     try {
       const targetOrgData = userOrganizations.find(
         uo => uo.organization_id === organizationId
@@ -361,15 +361,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error switching organization:', error);
       toast.error('Failed to switch organization');
     }
-  };
+  }, [userOrganizations]);
 
-  const refreshOrganizations = async () => {
+  const refreshOrganizations = useCallback(async () => {
     if (currentUser) {
       await fetchUserOrganizations(currentUser);
     }
-  };
+  }, [currentUser]);
 
-  const getCurrentUserRole = (): string => {
+  const getCurrentUserRole = useCallback((): string => {
     if (!currentOrganization || !currentUser?.id) {
       return currentUser?.role || 'manager';
     }
@@ -379,10 +379,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
 
     return userOrg?.role || currentUser?.role || 'manager';
-  };
+  }, [currentOrganization?.id, currentUser?.id, currentUser?.role, userOrganizations]);
 
   // Use organization role when available, fallback to profile role
-  const getUserEffectiveRole = (): string => {
+  // CRITICAL: Memoize effectiveRole to prevent infinite re-renders
+  const effectiveRole = useMemo(() => {
     if (!currentUser) return 'manager';
     
     // If user has organizations, use the organization role
@@ -397,22 +398,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     // Fallback to profile role
     return currentUser.role || 'manager';
-  };
+  }, [currentUser?.id, currentUser?.role, currentOrganization?.id, userOrganizations]);
 
-  const effectiveRole = getUserEffectiveRole();
-  const isAdmin = effectiveRole === 'admin' || false;
+  const isAdmin = useMemo(() => effectiveRole === 'admin', [effectiveRole]);
 
-  const canAccessProperty = (propertyId: string): boolean => {
+  const canAccessProperty = useCallback((propertyId: string): boolean => {
     if (!currentUser) return false;
     if (effectiveRole === 'admin') return true;
     return currentUser.assignedProperties?.includes(propertyId) || false;
-  };
+  }, [currentUser?.id, currentUser?.assignedProperties, effectiveRole]);
 
   // Create enhanced currentUser with effective role
-  const enhancedCurrentUser = currentUser ? {
+  const enhancedCurrentUser = useMemo(() => currentUser ? {
     ...currentUser,
     role: effectiveRole as UserRole
-  } : null;
+  } : null, [currentUser, effectiveRole]);
 
   // User management functions
   const fetchUsers = useCallback(async () => {
@@ -451,7 +451,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [effectiveRole]);
 
-  const addUser = async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
+  const addUser = useCallback(async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
     // Basic implementation - would be replaced with actual service call
     console.log('addUser called:', { email, name, role, assignedProperties });
     return {
@@ -459,25 +459,25 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       message: 'User management not fully implemented yet',
       email
     };
-  };
+  }, []);
 
-  const updateUser = async (user: User) => {
+  const updateUser = useCallback(async (user: User) => {
     console.log('updateUser called:', user);
-  };
+  }, []);
 
-  const removeUser = async (userId: string) => {
+  const removeUser = useCallback(async (userId: string) => {
     console.log('removeUser called:', userId);
-  };
+  }, []);
 
-  const resetPassword = async (userId: string, email: string) => {
+  const resetPassword = useCallback(async (userId: string, email: string) => {
     console.log('resetPassword called:', { userId, email });
     return { success: false, message: 'Not implemented' };
-  };
+  }, []);
 
-  const adminResetPassword = async (userId: string, email: string) => {
+  const adminResetPassword = useCallback(async (userId: string, email: string) => {
     console.log('adminResetPassword called:', { userId, email });
     return { success: false, message: 'Not implemented' };
-  };
+  }, []);
 
   useEffect(() => {
     console.log('🚀 UnifiedAuth v6.0 - Setting up SINGLE auth listener (FIXED VERSION)', { authDebugMarker });
