@@ -172,3 +172,9 @@ verify_jwt = false
 
 [functions.send-property-billing-update]
 verify_jwt = false
+
+[functions.calculate-billing-metered]
+verify_jwt = true
+
+[functions.preview-billing-change]
+verify_jwt = true
