@@ -261,7 +261,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const { data, error } = await resend.emails.send({
-      from: "Property Management <billing@resend.dev>",
+      from: "Property Management <billing@housinghub.app>",
       to: [recipient_email],
       subject: subject,
       html: htmlContent,
