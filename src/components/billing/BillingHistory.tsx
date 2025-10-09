@@ -33,27 +33,50 @@ export const BillingHistory: React.FC = () => {
       }
 
       try {
-        // Get subscriber data
-        const { data: subscriber, error: subError } = await supabase
-          .from('subscribers')
-          .select('stripe_customer_id, stripe_subscription_id')
-          .eq('user_id', currentUser.id)
-          .single();
-
-        if (subError || !subscriber?.stripe_subscription_id) {
-          console.log('No subscription found for billing history');
+        // Get session for authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.log('No session found');
           setInvoices([]);
           setLoading(false);
           return;
         }
 
-        // In a real implementation, you would fetch invoices from Stripe
-        // via an edge function. For now, we'll show a placeholder message
-        setInvoices([]);
+        // Fetch invoices from Stripe via edge function
+        const { data, error } = await supabase.functions.invoke('get-invoice-history', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+
+        if (error) {
+          console.error('Error fetching invoices:', error);
+          setInvoices([]);
+          setLoading(false);
+          return;
+        }
+
+        if (data?.success && data.invoices) {
+          // Map Stripe invoice data to our Invoice interface
+          const mappedInvoices: Invoice[] = data.invoices.map((inv: any) => ({
+            id: inv.id,
+            amount: inv.amount,
+            status: inv.status,
+            date: inv.date,
+            period_start: inv.line_items?.[0]?.period_start || inv.date,
+            period_end: inv.line_items?.[0]?.period_end || inv.date,
+            invoice_url: inv.pdf_url || inv.hosted_url,
+            property_count: inv.line_items?.[0]?.quantity || 0,
+          }));
+
+          setInvoices(mappedInvoices);
+        } else {
+          setInvoices([]);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error('Error fetching billing history:', error);
         toast.error('Failed to load billing history');
+        setInvoices([]);
         setLoading(false);
       }
     };

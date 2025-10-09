@@ -115,24 +115,41 @@ serve(async (req) => {
         subscriber.stripe_subscription_id
       );
 
-      if (subscription.items.data.length > 0) {
-        const subscriptionItemId = subscription.items.data[0].id;
+      log('Retrieved subscription', { 
+        subscriptionId: subscription.id,
+        status: subscription.status,
+        itemsCount: subscription.items.data.length
+      });
 
-        // Report current usage
-        await stripe.subscriptionItems.createUsageRecord(
-          subscriptionItemId,
-          {
-            quantity: actualCount,
-            timestamp: Math.floor(Date.now() / 1000),
-            action: 'set'
-          }
-        );
-
-        log('Usage reported to Stripe', { 
-          subscriptionItemId, 
-          quantity: actualCount 
-        });
+      if (subscription.items.data.length === 0) {
+        throw new Error('No subscription items found');
       }
+
+      const subscriptionItem = subscription.items.data[0];
+      const subscriptionItemId = subscriptionItem.id;
+
+      // Verify this is a metered price
+      const price = await stripe.prices.retrieve(subscriptionItem.price.id);
+      if (price.recurring?.usage_type !== 'metered') {
+        log('Warning: Subscription is not metered', { priceId: price.id });
+        throw new Error('Subscription must use metered billing. Please contact support.');
+      }
+
+      // Report current usage with 'set' action to replace previous value
+      const usageRecord = await stripe.subscriptionItems.createUsageRecord(
+        subscriptionItemId,
+        {
+          quantity: actualCount,
+          timestamp: Math.floor(Date.now() / 1000),
+          action: 'set', // Replace the quantity for this billing period
+        }
+      );
+
+      log('Usage reported to Stripe', { 
+        subscriptionItemId, 
+        quantity: actualCount,
+        usageRecordId: usageRecord.id
+      });
 
       // Update local database
       const { error: updateError } = await supabase

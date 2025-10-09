@@ -25,9 +25,21 @@ export const usePropertyBillingIntegration = () => {
         if (properties.length !== propertyCount) {
           await refreshPropertyCount();
           
-          // Recalculate billing if user has subscription or trial
+          // Use metered billing calculation if user has subscription or trial
           if (isTrialActive || subscribed) {
-            await calculateBilling();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            // Call the metered billing endpoint
+            const { data, error } = await supabase.functions.invoke('calculate-billing-metered', {
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (error) {
+              console.error('Error calculating metered billing:', error);
+            } else {
+              console.log('Metered billing updated:', data);
+            }
           }
         }
       } catch (error) {
@@ -36,7 +48,7 @@ export const usePropertyBillingIntegration = () => {
     };
 
     // Debounce the update to prevent infinite loops
-    const timeoutId = setTimeout(updateBillingFromProperties, 100);
+    const timeoutId = setTimeout(updateBillingFromProperties, 500);
     return () => clearTimeout(timeoutId);
   }, [properties.length, propertyCount, isTrialActive, subscribed]);
 
@@ -74,13 +86,30 @@ export const usePropertyBillingIntegration = () => {
       if (!currentUser?.email) return;
 
       try {
-        // Calculate prorated amount if subscribed (approximately 1/30th per day remaining)
-        const today = new Date();
-        const nextBillingDate = new Date(today);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-        const daysRemaining = Math.ceil((nextBillingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        const dailyRate = (propertiesChanged * 29) / 30;
-        const proratedAmount = subscribed ? dailyRate * daysRemaining : undefined;
+        // Get accurate proration preview from Stripe
+        let proratedAmount: number | undefined;
+        let nextBillingDate: Date | undefined;
+
+        if (subscribed) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const { data: previewData } = await supabase.functions.invoke('preview-billing-change', {
+              body: { newPropertyCount: currentPropertyCount },
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (previewData?.success) {
+              proratedAmount = previewData.prorated_amount;
+              nextBillingDate = previewData.next_invoice_date ? new Date(previewData.next_invoice_date) : undefined;
+            }
+          }
+        }
+
+        if (!nextBillingDate) {
+          const today = new Date();
+          nextBillingDate = new Date(today);
+          nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+        }
 
         await supabase.functions.invoke('send-property-billing-update', {
           body: {
