@@ -638,7 +638,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('UnifiedAuth - Conditions met, calling fetchUsers');
       fetchUsers();
     }
-  }, [isAdmin, loading, currentOrganization?.id, fetchUsers]);
+  }, [isAdmin, loading, currentOrganization?.id]); // Remove fetchUsers from dependencies to prevent loop
 
   const value: UnifiedAuthContextType = useMemo(() => ({
     currentUser: enhancedCurrentUser,
