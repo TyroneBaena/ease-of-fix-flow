@@ -1538,7 +1538,7 @@ export type Database = {
         }[]
       }
       get_security_metrics: {
-        Args: { hours_back?: number }
+        Args: { hours_back?: number; p_organization_id?: string }
         Returns: {
           failed_logins: number
           recent_events: Json

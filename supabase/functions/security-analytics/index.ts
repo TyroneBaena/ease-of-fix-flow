@@ -36,9 +36,28 @@ serve(async (req) => {
     
     console.log('🔍 [Security Analytics] Debug user info:', debugData, debugError)
 
-    // Get security metrics from database
+    // Get user's organization ID from their profile
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', debugData?.[0]?.user_id)
+      .single()
+
+    const userOrgId = profileData?.organization_id
+
+    console.log('🏢 [Security Analytics] User organization ID:', userOrgId)
+
+    if (!userOrgId) {
+      console.error('❌ [Security Analytics] No organization found for user')
+      throw new Error('User must belong to an organization')
+    }
+
+    // Get security metrics from database with explicit org ID
     const { data: metricsData, error: metricsError } = await supabase
-      .rpc('get_security_metrics', { hours_back: 24 })
+      .rpc('get_security_metrics', { 
+        hours_back: 24,
+        p_organization_id: userOrgId 
+      })
 
     if (metricsError) {
       console.error('❌ [Security Analytics] Error fetching metrics:', metricsError)
