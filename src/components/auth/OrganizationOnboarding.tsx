@@ -229,7 +229,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       
       // Redirect to billing page to start trial
       setTimeout(() => {
-        navigate('/billing', { replace: true });
+        navigate('/billing-security', { replace: true });
       }, 500);
     } catch (error: any) {
       console.error('Error creating organization:', error);
