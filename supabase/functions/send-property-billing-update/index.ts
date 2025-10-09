@@ -269,6 +269,26 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('Resend API error:', error);
+      
+      // Handle Resend testing mode limitation (403 error)
+      if (error.statusCode === 403 && error.message?.includes('verify a domain')) {
+        console.log('⚠️  Resend is in testing mode. Email would be sent to:', recipient_email);
+        console.log('📧 To send emails in production, verify your domain at: https://resend.com/domains');
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            testing_mode: true,
+            message: 'Email skipped in testing mode. Please verify your domain on Resend.',
+            recipient_email: recipient_email
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
       throw error;
     }
 
