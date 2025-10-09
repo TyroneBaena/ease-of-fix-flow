@@ -18,7 +18,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
     const authHeader = req.headers.get('Authorization');
@@ -53,7 +53,8 @@ serve(async (req) => {
       log('JWT decode error', { error: String(e) });
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    // CRITICAL FIX: Use Service Role key for edge functions to properly verify JWT
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       global: { headers: { Authorization: authHeader } }
     });
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
