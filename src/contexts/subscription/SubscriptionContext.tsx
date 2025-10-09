@@ -419,31 +419,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setAutoRefreshPaused(false);
   }, []);
 
-  // Set up automatic refresh when billing might change
-  useEffect(() => {
-    if (!currentUser?.id || autoRefreshPaused) {
-      console.log('[SubscriptionContext] Auto-refresh skipped:', { 
-        hasUser: !!currentUser?.id, 
-        paused: autoRefreshPaused 
-      });
-      return;
-    }
-    
-    console.log('[SubscriptionContext] Starting auto-refresh interval (30s)');
-    const interval = setInterval(() => {
-      if (!autoRefreshPaused) {
-        console.log('[SubscriptionContext] Auto-refresh triggered');
-        refresh();
-      }
-    }, 30000); // Refresh every 30 seconds
-    
-    return () => {
-      console.log('[SubscriptionContext] Clearing auto-refresh interval');
-      clearInterval(interval);
-    };
-    // We intentionally exclude refresh from deps to avoid re-creating interval
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, autoRefreshPaused]);
+  // Auto-refresh removed - use real-time subscriptions or manual refresh instead
+  // The continuous polling was causing unnecessary re-renders
 
   const debugDatabaseState = useCallback(async () => {
     if (!currentUser?.id) {
