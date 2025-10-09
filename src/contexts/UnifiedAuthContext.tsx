@@ -416,9 +416,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // User management functions
   const fetchUsers = useCallback(async () => {
-    console.log('UnifiedAuth - fetchUsers called, isAdmin:', isAdmin, 'currentOrganization:', !!currentOrganization);
+    console.log('UnifiedAuth - fetchUsers called, effectiveRole:', effectiveRole, 'currentOrganization:', !!currentOrganization);
     
-    if (!isAdmin) {
+    const isAdminRole = effectiveRole === 'admin';
+    
+    if (!isAdminRole) {
       console.log('UnifiedAuth - Not fetching users (not admin)');
       return;
     }
@@ -447,7 +449,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch (error) {
       console.error('UnifiedAuth - Error fetching users:', error);
     }
-  }, [isAdmin]);
+  }, [effectiveRole]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
     // Basic implementation - would be replaced with actual service call
@@ -636,7 +638,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('UnifiedAuth - Conditions met, calling fetchUsers');
       fetchUsers();
     }
-  }, [isAdmin, loading, currentOrganization, fetchUsers]);
+  }, [isAdmin, loading, currentOrganization?.id, fetchUsers]);
 
   const value: UnifiedAuthContextType = useMemo(() => ({
     currentUser: enhancedCurrentUser,
