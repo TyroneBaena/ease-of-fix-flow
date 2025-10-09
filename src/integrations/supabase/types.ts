@@ -1172,6 +1172,7 @@ export type Database = {
           id: string
           ip_address: unknown | null
           metadata: Json | null
+          organization_id: string | null
           session_id: string | null
           user_agent: string | null
           user_email: string | null
@@ -1183,6 +1184,7 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           metadata?: Json | null
+          organization_id?: string | null
           session_id?: string | null
           user_agent?: string | null
           user_email?: string | null
@@ -1194,12 +1196,21 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           metadata?: Json | null
+          organization_id?: string | null
           session_id?: string | null
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "security_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscribers: {
         Row: {
