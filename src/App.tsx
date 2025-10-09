@@ -5,8 +5,9 @@ import { Toaster } from '@/components/ui/sonner';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import OrganizationGuard from '@/components/OrganizationGuard';
 import ErrorBoundary from '@/components/ui/error-boundary';
-import { UnifiedAuthProvider } from '@/contexts/UnifiedAuthContext';
+import { UnifiedAuthProvider, useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { UserProvider } from '@/contexts/UserContext';
+import { Loader2 } from 'lucide-react';
 
 // Import all pages
 import Index from '@/pages/Index';
@@ -60,16 +61,20 @@ import { EnhancedSignupFlow } from '@/components/auth/EnhancedSignupFlow';
 
 const queryClient = new QueryClient();
 
-function App() {
+function AppRoutes() {
+  const { loading } = useSimpleAuth();
+
+  // Show loading screen while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <UnifiedAuthProvider>
-          <UserProvider>
-            <SubscriptionProvider>
-              <Router>
-                <div className="App">
-                  <Routes>
+    <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -282,7 +287,20 @@ function App() {
             
             {/* 404 route */}
             <Route path="*" element={<NotFound />} />
-                  </Routes>
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <UnifiedAuthProvider>
+          <UserProvider>
+            <SubscriptionProvider>
+              <Router>
+                <div className="App">
+                  <AppRoutes />
                 </div>
                 <Toaster />
               </Router>
