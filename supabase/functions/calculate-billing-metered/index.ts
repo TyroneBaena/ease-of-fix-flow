@@ -18,7 +18,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
     const authHeader = req.headers.get('Authorization');
@@ -53,14 +53,20 @@ serve(async (req) => {
       log('JWT decode error', { error: String(e) });
     }
     
-    // CRITICAL FIX: Use Service Role key for edge functions to properly verify JWT
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      global: { headers: { Authorization: authHeader } }
+    // Create Supabase client - use ANON key with JWT token for user validation
+    // This properly validates the user's JWT token
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
     });
+    
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-    // Authenticate user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Authenticate user - the JWT will be validated against the ANON key
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
       log('Auth error details', { 
@@ -75,6 +81,16 @@ serve(async (req) => {
       log('No user found despite successful auth');
       throw new Error('Unauthorized: User not found');
     }
+
+    log('User authenticated', { userId: user.id });
+
+    // Now use Service Role key for database operations to bypass RLS
+    const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
 
     log('User authenticated', { userId: user.id });
 
