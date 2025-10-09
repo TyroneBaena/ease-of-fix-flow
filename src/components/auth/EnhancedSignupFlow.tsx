@@ -34,7 +34,6 @@ const CardSetupForm: React.FC<{
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
 
   const createSetupIntent = async () => {
-    setIsLoading(true);
     try {
       // Validation first
       if (!formData.email || !formData.password || !formData.name) {
@@ -120,13 +119,14 @@ const CardSetupForm: React.FC<{
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    // Set loading state immediately when button is clicked
+    setIsLoading(true);
+
     if (!setupIntentClientSecret) {
       // First create the account and setup intent
       await createSetupIntent();
       return;
     }
-
-    setIsLoading(true);
     if (!stripe || !elements) {
       onError('Payment system not ready');
       setIsLoading(false);
@@ -333,8 +333,11 @@ export const EnhancedSignupFlow: React.FC = () => {
   const handlePaymentError = (errorMessage: string) => {
     setError(errorMessage);
     setIsLoading(false);
-    // Scroll to top to show error
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll to the signup container to show error
+    const container = document.getElementById('signup-container');
+    if (container) {
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   if (step === 'complete') {
@@ -373,7 +376,13 @@ export const EnhancedSignupFlow: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-lg" id="signup-container">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl text-center">Create Your Account</CardTitle>
@@ -388,12 +397,6 @@ export const EnhancedSignupFlow: React.FC = () => {
             </p>
           </CardHeader>
           <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
             <div className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
