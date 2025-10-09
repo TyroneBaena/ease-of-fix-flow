@@ -21,7 +21,16 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    
+    // Check if Authorization header exists
+    if (!authHeader) {
+      log('Missing Authorization header');
+      throw new Error('Unauthorized: No Authorization header provided');
+    }
+
+    log('Auth header present', { hasBearer: authHeader.startsWith('Bearer ') });
+    
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -29,8 +38,19 @@ serve(async (req) => {
 
     // Authenticate user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('Unauthorized');
+    
+    if (userError) {
+      log('Auth error details', { 
+        error: userError.message, 
+        status: userError.status,
+        name: userError.name 
+      });
+      throw new Error(`Unauthorized: ${userError.message}`);
+    }
+    
+    if (!user) {
+      log('No user found despite successful auth');
+      throw new Error('Unauthorized: User not found');
     }
 
     log('User authenticated', { userId: user.id });
