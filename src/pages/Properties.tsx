@@ -35,7 +35,7 @@ import { toast } from '@/lib/toast';
 import { EnhancedPropertyForm } from '@/components/property/EnhancedPropertyForm';
 
 const PropertiesContent = () => {
-  const { properties } = usePropertyContext();
+  const { properties, loading } = usePropertyContext();
   const { currentUser } = useUserContext();
   const isAdmin = isUserAdmin(currentUser);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,7 +87,15 @@ const PropertiesContent = () => {
           </PropertyAccessGuard>
         </div>
         
-        {properties.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-64 bg-gray-200 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        ) : properties.length === 0 ? (
           <PropertyAccessGuard action="create">
             <PropertyCreationWithBilling 
               onCreateProperty={() => setDialogOpen(true)}
