@@ -29,7 +29,29 @@ serve(async (req) => {
       throw new Error('Unauthorized: No Authorization header provided');
     }
 
-    log('Auth header present', { hasBearer: authHeader.startsWith('Bearer ') });
+    log('Auth header present', { 
+      hasBearer: authHeader.startsWith('Bearer '),
+      tokenLength: authHeader.split(' ')[1]?.length || 0
+    });
+    
+    // Extract the JWT token for debugging
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Decode JWT to check if it's valid (without verification, just to see the payload)
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        log('JWT payload info', { 
+          sub: payload.sub?.substring(0, 8), 
+          exp: payload.exp,
+          iat: payload.iat,
+          isExpired: payload.exp < Math.floor(Date.now() / 1000)
+        });
+      }
+    } catch (e) {
+      log('JWT decode error', { error: String(e) });
+    }
     
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }

@@ -28,9 +28,22 @@ export const usePropertyBillingIntegration = () => {
           // Use metered billing calculation if user has subscription or trial
           if (isTrialActive || subscribed) {
             try {
-              console.log('Calling calculate-billing-metered...');
+              // CRITICAL: Verify we have a valid session before calling the edge function
+              const { data: { session }, error: sessionError } = await supabase.auth.getSession();
               
-              // Supabase automatically includes the auth token, no need to manually add it
+              if (sessionError) {
+                console.error('Session error before billing calculation:', sessionError);
+                return;
+              }
+              
+              if (!session || !session.access_token) {
+                console.warn('No valid session available for billing calculation, skipping...');
+                return;
+              }
+              
+              console.log('Valid session confirmed, calling calculate-billing-metered...');
+              
+              // Supabase automatically includes the auth token from the session
               const { data, error } = await supabase.functions.invoke('calculate-billing-metered');
 
               if (error) {
