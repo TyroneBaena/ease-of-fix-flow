@@ -26,27 +26,32 @@ const CardSetupForm: React.FC<{
   onSuccess: (setupIntentId: string) => void;
   onError: (error: string) => void;
   isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
   formData: SignupFormData;
-}> = ({ onSuccess, onError, isLoading, formData }) => {
+}> = ({ onSuccess, onError, isLoading, setIsLoading, formData }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
 
   const createSetupIntent = async () => {
+    setIsLoading(true);
     try {
       // Validation first
       if (!formData.email || !formData.password || !formData.name) {
         onError('Please fill in all required fields');
+        setIsLoading(false);
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
         onError('Passwords do not match');
+        setIsLoading(false);
         return;
       }
 
       if (formData.password.length < 6) {
         onError('Password must be at least 6 characters long');
+        setIsLoading(false);
         return;
       }
 
@@ -65,16 +70,19 @@ const CardSetupForm: React.FC<{
 
       if (signUpError) {
         onError(signUpError.message);
+        setIsLoading(false);
         return;
       }
 
       if (data.user && !data.session) {
         onError('Please check your email and click the confirmation link before proceeding.');
+        setIsLoading(false);
         return;
       }
 
       if (!data.session) {
         onError('Failed to create user session');
+        setIsLoading(false);
         return;
       }
 
@@ -105,6 +113,7 @@ const CardSetupForm: React.FC<{
     } catch (error) {
       console.error('Setup intent creation error:', error);
       onError('Failed to initialize payment setup');
+      setIsLoading(false);
     }
   };
 
@@ -117,14 +126,17 @@ const CardSetupForm: React.FC<{
       return;
     }
 
+    setIsLoading(true);
     if (!stripe || !elements) {
       onError('Payment system not ready');
+      setIsLoading(false);
       return;
     }
 
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
       onError('Card information is required');
+      setIsLoading(false);
       return;
     }
 
@@ -140,6 +152,7 @@ const CardSetupForm: React.FC<{
 
     if (error) {
       onError(error.message || 'Payment setup failed');
+      setIsLoading(false);
     } else if (setupIntent) {
       onSuccess(setupIntent.id);
     }
@@ -320,6 +333,8 @@ export const EnhancedSignupFlow: React.FC = () => {
   const handlePaymentError = (errorMessage: string) => {
     setError(errorMessage);
     setIsLoading(false);
+    // Scroll to top to show error
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (step === 'complete') {
@@ -373,13 +388,13 @@ export const EnhancedSignupFlow: React.FC = () => {
             </p>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-6">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium">Full Name</label>
@@ -455,6 +470,7 @@ export const EnhancedSignupFlow: React.FC = () => {
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
                     isLoading={isLoading}
+                    setIsLoading={setIsLoading}
                     formData={formData}
                   />
                 </Elements>
