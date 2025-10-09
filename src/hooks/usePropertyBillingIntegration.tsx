@@ -27,18 +27,19 @@ export const usePropertyBillingIntegration = () => {
           
           // Use metered billing calculation if user has subscription or trial
           if (isTrialActive || subscribed) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            try {
+              console.log('Calling calculate-billing-metered...');
+              
+              // Supabase automatically includes the auth token, no need to manually add it
+              const { data, error } = await supabase.functions.invoke('calculate-billing-metered');
 
-            // Call the metered billing endpoint
-            const { data, error } = await supabase.functions.invoke('calculate-billing-metered', {
-              headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-
-            if (error) {
-              console.error('Error calculating metered billing:', error);
-            } else {
-              console.log('Metered billing updated:', data);
+              if (error) {
+                console.error('Error calculating metered billing:', error);
+              } else {
+                console.log('Metered billing updated successfully:', data);
+              }
+            } catch (err) {
+              console.error('Exception in metered billing calculation:', err);
             }
           }
         }
@@ -91,17 +92,13 @@ export const usePropertyBillingIntegration = () => {
         let nextBillingDate: Date | undefined;
 
         if (subscribed) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const { data: previewData } = await supabase.functions.invoke('preview-billing-change', {
-              body: { newPropertyCount: currentPropertyCount },
-              headers: { Authorization: `Bearer ${session.access_token}` }
-            });
+          const { data: previewData } = await supabase.functions.invoke('preview-billing-change', {
+            body: { newPropertyCount: currentPropertyCount }
+          });
 
-            if (previewData?.success) {
-              proratedAmount = previewData.prorated_amount;
-              nextBillingDate = previewData.next_invoice_date ? new Date(previewData.next_invoice_date) : undefined;
-            }
+          if (previewData?.success) {
+            proratedAmount = previewData.prorated_amount;
+            nextBillingDate = previewData.next_invoice_date ? new Date(previewData.next_invoice_date) : undefined;
           }
         }
 
