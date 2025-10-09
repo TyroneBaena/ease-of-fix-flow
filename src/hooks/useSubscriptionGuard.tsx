@@ -106,17 +106,17 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
       return;
     }
 
-    // Check 4: Failed payment - grace period expired
-    if (subscribed && failedCount >= 3 && !isInGracePeriod) {
+    // Check 4: Payment suspended after 3 failed attempts
+    if (subscribed && failedCount >= 3) {
       setGuardResult({
         hasAccess: false,
         isLoading: false,
         reason: 'grace_period_expired',
-        message: 'Your grace period has expired due to failed payments. Please update your payment method.',
+        message: 'Your account has been suspended due to failed payments. Please update your payment method.',
       });
       
-      toast.error('Access Suspended', {
-        description: 'Grace period expired. Update your payment method to restore access.',
+      toast.error('Account Suspended', {
+        description: 'Your account has been suspended. Update your payment method to restore access immediately.',
         action: {
           label: 'Update Payment',
           onClick: () => navigate('/billing'),

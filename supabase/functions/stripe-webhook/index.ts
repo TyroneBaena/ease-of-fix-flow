@@ -215,17 +215,23 @@ serve(async (req) => {
         // Get current failed payment count and subscriber details
         const { data: subscriber } = await supabase
           .from('subscribers')
-          .select('failed_payment_count, email, user_id')
+          .select('failed_payment_count, email, user_id, stripe_subscription_id')
           .eq('stripe_customer_id', invoice.customer)
           .single();
 
         const currentFailedCount = subscriber?.failed_payment_count || 0;
         const newFailedCount = currentFailedCount + 1;
 
+        // PHASE 4: Smart Retry Logic
+        // - Attempt 1: Set past_due, retry in 3 days (Stripe handles automatically)
+        // - Attempt 2: Set past_due, retry in 3 days (Stripe handles automatically)
+        // - Attempt 3: Set suspended, block access
+        const paymentStatus = newFailedCount >= 3 ? 'suspended' : 'past_due';
+
         const { error } = await supabase
           .from('subscribers')
           .update({
-            payment_status: 'past_due',
+            payment_status: paymentStatus,
             failed_payment_count: newFailedCount,
             last_payment_attempt: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -235,9 +241,12 @@ serve(async (req) => {
         if (error) {
           log('Error updating subscriber for failed payment', error);
         } else {
-          log('Subscriber updated successfully for failed payment', { attemptCount: newFailedCount });
+          log('Subscriber updated successfully for failed payment', { 
+            attemptCount: newFailedCount,
+            status: paymentStatus,
+          });
           
-          // Send payment failed email
+          // PHASE 4: Differentiated email messages based on attempt count
           if (subscriber?.email) {
             try {
               const { data: userData } = await supabase.auth.admin.getUserById(subscriber.user_id);
@@ -246,6 +255,11 @@ serve(async (req) => {
               const nextAttemptDate = invoice.next_payment_attempt
                 ? new Date(invoice.next_payment_attempt * 1000).toISOString()
                 : null;
+
+              // Determine email type based on failure count
+              let emailType = 'first_failure';
+              if (newFailedCount === 2) emailType = 'second_failure';
+              if (newFailedCount >= 3) emailType = 'final_notice';
 
               await fetch(`${supabaseUrl}/functions/v1/send-payment-failed`, {
                 method: 'POST',
@@ -259,11 +273,30 @@ serve(async (req) => {
                   amount_due: invoice.amount_due / 100,
                   attempt_count: newFailedCount,
                   next_attempt_date: nextAttemptDate,
+                  email_type: emailType,
+                  is_suspended: newFailedCount >= 3,
                 }),
               });
-              log('Payment failed email sent', { email: subscriber.email });
+              log('Payment failed email sent', { 
+                email: subscriber.email,
+                type: emailType,
+              });
             } catch (emailError) {
               log('Failed to send payment failed email', emailError);
+            }
+          }
+
+          // PHASE 4: If 3rd failure, pause subscription to prevent further charges
+          if (newFailedCount >= 3 && subscriber?.stripe_subscription_id) {
+            try {
+              await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
+                pause_collection: {
+                  behavior: 'void',
+                },
+              });
+              log('Subscription paused after 3 failed attempts');
+            } catch (pauseError) {
+              log('Failed to pause subscription', pauseError);
             }
           }
         }

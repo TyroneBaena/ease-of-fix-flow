@@ -11,6 +11,8 @@ interface PaymentFailedRequest {
   amount_due: number;
   attempt_count: number;
   next_attempt_date?: string;
+  email_type?: 'first_failure' | 'second_failure' | 'final_notice';
+  is_suspended?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -25,12 +27,31 @@ const handler = async (req: Request): Promise<Response> => {
       amount_due,
       attempt_count,
       next_attempt_date,
+      email_type = 'first_failure',
+      is_suspended = false,
     }: PaymentFailedRequest = await req.json();
 
-    const subject = `⚠️ Payment Failed - Action Required ($${amount_due} AUD)`;
+    // PHASE 4: Differentiated email messages based on attempt count
+    let subject = "Payment Failed - Action Required";
+    let headerText = "⚠️ Payment Failed";
+    let urgencyText = "";
+    
+    if (email_type === 'first_failure') {
+      subject = `Payment Failed - We'll Try Again in 3 Days ($${amount_due} AUD)`;
+      headerText = "⚠️ Payment Failed";
+      urgencyText = "We were unable to process your payment. Don't worry - we'll automatically retry in 3 days.";
+    } else if (email_type === 'second_failure') {
+      subject = `IMPORTANT: Payment Failed Again - Final Attempt in 3 Days ($${amount_due} AUD)`;
+      headerText = "⚠️ Second Payment Failure";
+      urgencyText = "This is your second failed payment attempt. Please update your payment method immediately. We'll make one final automatic attempt in 3 days.";
+    } else if (email_type === 'final_notice') {
+      subject = `🚨 URGENT: Account Suspended - Update Payment Method Now`;
+      headerText = "🚨 Account Suspended";
+      urgencyText = "Your account has been suspended after 3 failed payment attempts. All features are currently disabled. Update your payment method now to restore immediate access.";
+    }
     
     let nextAttemptText = '';
-    if (next_attempt_date) {
+    if (!is_suspended && next_attempt_date) {
       const formattedDate = new Date(next_attempt_date).toLocaleDateString('en-AU', {
         year: 'numeric',
         month: 'long',
@@ -41,39 +62,46 @@ const handler = async (req: Request): Promise<Response> => {
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #dc2626;">⚠️ Payment Failed</h1>
+        <h1 style="color: #dc2626;">${headerText}</h1>
         <p>Hi ${recipient_name},</p>
-        <p>We were unable to process your subscription payment of <strong>$${amount_due} AUD</strong>.</p>
         
-        <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #dc2626;">Action Required</h3>
-          <p>This is payment attempt <strong>#${attempt_count}</strong>. Please update your payment method to avoid service interruption.</p>
+        ${is_suspended ? `
+        <div style="background-color: #fee2e2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px;">
+          <h2 style="margin-top: 0; color: #dc2626;">🚨 YOUR ACCOUNT IS SUSPENDED</h2>
+          <p style="margin: 0; font-size: 15px;">All features are currently disabled. Update your payment method immediately to restore access.</p>
         </div>
+        ` : ''}
         
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Payment Details</h3>
+        <p>${urgencyText}</p>
+        
+        <div style="background-color: ${is_suspended ? '#fee2e2' : '#fef2f2'}; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #dc2626;">Payment Attempt #${attempt_count}</h3>
           <p><strong>Amount Due:</strong> $${amount_due} AUD</p>
-          <p><strong>Failed Attempts:</strong> ${attempt_count}</p>
-          ${nextAttemptText}
+          ${is_suspended 
+            ? '<p style="margin: 0; font-weight: 600; color: #dc2626;">Your account is suspended. Update payment method to restore access.</p>' 
+            : nextAttemptText}
         </div>
         
-        <h3>What You Can Do</h3>
+        <h3>What You Need To Do</h3>
         <ol>
           <li>Log in to your billing dashboard</li>
-          <li>Update your payment method</li>
+          <li>Update your payment method with a valid card</li>
           <li>Ensure sufficient funds are available</li>
+          ${is_suspended ? '<li>Click "Reactivate" to restore your account immediately</li>' : ''}
         </ol>
         
         <div style="margin: 30px 0;">
-          <a href="https://your-app-url.com/billing" 
-             style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Update Payment Method
+          <a href="https://ltjlswzrdgtoddyqmydo.supabase.co/billing" 
+             style="display: inline-block; background-color: ${is_suspended ? '#dc2626' : '#2563eb'}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+            ${is_suspended ? '🚨 Update Payment & Restore Access' : 'Update Payment Method'}
           </a>
         </div>
         
+        ${!is_suspended ? `
         <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 0;"><strong>Note:</strong> If payment continues to fail, your subscription may be suspended after 3 attempts.</p>
+          <p style="margin: 0;"><strong>Warning:</strong> After 3 failed attempts, your account will be suspended and all features will be disabled.</p>
         </div>
+        ` : ''}
         
         <p>If you believe this is an error or need assistance, please contact our support team immediately.</p>
         
@@ -101,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const emailResponse = await resendResponse.json();
-    console.log("Payment failed email sent successfully:", emailResponse);
+    console.log("Payment failed email sent successfully:", emailResponse, "Type:", email_type);
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,

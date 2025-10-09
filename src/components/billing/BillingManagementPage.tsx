@@ -27,8 +27,10 @@ import { CancellationFlow } from './CancellationFlow';
 import { ReactivationFlow } from './ReactivationFlow';
 import { PaymentSetupModal } from './PaymentSetupModal';
 import { FailedPaymentBanner } from './FailedPaymentBanner';
+import { SuspendedAccountBanner } from './SuspendedAccountBanner';
 import { BillingHistory } from './BillingHistory';
 import { toast } from 'sonner';
+import { useFailedPaymentStatus } from '@/hooks/useFailedPaymentStatus';
 
 export const BillingManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,6 +52,9 @@ export const BillingManagementPage: React.FC = () => {
     pauseAutoRefresh,
     resumeAutoRefresh
   } = useSubscription();
+
+  // PHASE 4: Track failed payment status
+  const failedPaymentStatus = useFailedPaymentStatus();
 
   const [showCancellation, setShowCancellation] = useState(false);
   const [showReactivation, setShowReactivation] = useState(false);
@@ -199,6 +204,14 @@ export const BillingManagementPage: React.FC = () => {
 
         {/* Failed Payment Banner */}
         <FailedPaymentBanner />
+        
+        {/* PHASE 4: Suspended Account Banner */}
+        {failedPaymentStatus.failedCount >= 3 && (
+          <SuspendedAccountBanner 
+            failedCount={failedPaymentStatus.failedCount}
+            daysRemaining={failedPaymentStatus.daysRemainingInGrace}
+          />
+        )}
 
         {/* Payment Method Setup - Show for trial users without payment method */}
         {isTrialActive && !showPaymentSetup && (
