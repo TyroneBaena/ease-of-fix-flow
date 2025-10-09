@@ -106,30 +106,18 @@ const PropertyDetail = () => {
   // Only load budget data if we have a valid property ID
   const { maintenanceSpend, currentFinancialYear, loading: budgetLoading, getBudgetAnalysis } = useBudgetData(id || '');
 
+  // Handle property not found - only check once after initial load
   useEffect(() => {
-    console.log('PropertyDetail: Effect triggered', { 
-      id, 
-      isTemporaryAccess, 
-      propertiesCount: properties.length, 
-      loading,
-      property: property ? `Found: ${property.name}` : 'Not found'
-    });
+    // Skip checks during loading or for temporary access
+    if (loading || isTemporaryAccess) return;
     
-    if (id && !isTemporaryAccess) {
-      const propertyData = getProperty(id);
-      console.log('PropertyDetail: Looking for property with ID:', id);
-      console.log('PropertyDetail: Available properties:', properties.length);
-      console.log('PropertyDetail: Available property IDs:', properties.map(p => p.id));
-      console.log('PropertyDetail: Found property:', propertyData);
-      console.log('PropertyDetail: Loading state:', loading);
-      
-      if (!propertyData && !loading && properties.length > 0) {
-        console.log('PropertyDetail: Property not found, redirecting to properties page');
-        toast.error('Property not found');
-        navigate('/properties');
-      }
+    // Only check if we have properties loaded and no property found
+    if (id && !property && properties.length > 0) {
+      console.log('PropertyDetail: Property not found, redirecting');
+      toast.error('Property not found');
+      navigate('/properties');
     }
-  }, [id, getProperty, navigate, isTemporaryAccess, properties, loading, property]);
+  }, [id, property, properties.length, loading, isTemporaryAccess, navigate]);
 
   const { handleRestrictedAction } = usePropertyAccessControl();
 

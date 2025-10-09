@@ -119,16 +119,11 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   const getProperty = useCallback((id: string): Property | undefined => {
     console.log('PropertyContext: getProperty called with ID:', id);
-    // Use ref or state callback to avoid circular dependency
-    let foundProperty: Property | undefined;
-    setProperties(prev => {
-      foundProperty = prev.find(property => property.id === id);
-      console.log('PropertyContext: Available properties:', prev.map(p => ({ id: p.id, name: p.name })));
-      console.log('PropertyContext: Found property:', foundProperty);
-      return prev; // Don't actually update state
-    });
+    console.log('PropertyContext: Available properties:', properties.map(p => ({ id: p.id, name: p.name })));
+    const foundProperty = properties.find(property => property.id === id);
+    console.log('PropertyContext: Found property:', foundProperty);
     return foundProperty;
-  }, []);
+  }, [properties]);
 
   const updateProperty = useCallback(async (id: string, propertyUpdate: Partial<Property>) => {
     console.log('PropertyContext: updateProperty called with ID:', id);
