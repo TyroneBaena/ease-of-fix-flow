@@ -212,6 +212,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
   
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
@@ -567,6 +568,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             console.error('🚀 UnifiedAuth v12.0 - Error converting updated user:', error);
           }
         }, 0);
+      } else if (event === 'INITIAL_SESSION') {
+        // Don't set loading to false on INITIAL_SESSION - let getSession() handle it
+        console.log('🚀 UnifiedAuth v12.0 - INITIAL_SESSION event - waiting for getSession()');
       } else {
         console.log('🚀 UnifiedAuth v12.0 - Other auth event:', event);
         setLoading(false);
@@ -600,6 +604,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             
             // Only set loading to false after everything is complete
             setLoading(false);
+            setInitialCheckDone(true);
             console.log('🚀 UnifiedAuth v12.0 - Initial loading complete');
             
           } catch (error) {
@@ -607,12 +612,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             setCurrentUser(null);
             setSession(null);
             setLoading(false);
+            setInitialCheckDone(true);
           }
         }, 0);
       } else {
         setCurrentUser(null);
         setSession(null);
         setLoading(false);
+        setInitialCheckDone(true);
       }
     });
 
@@ -685,7 +692,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   return (
     <UnifiedAuthContext.Provider value={value}>
-      {loading ? (
+      {!initialCheckDone ? (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
