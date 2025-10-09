@@ -70,7 +70,7 @@ export const TrialBillingAlert: React.FC = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/billing')}
+              onClick={() => navigate('/billing-security')}
               className="border-green-300 text-green-700 hover:bg-green-100"
             >
               Manage
@@ -132,7 +132,7 @@ export const TrialBillingAlert: React.FC = () => {
               <div className="flex gap-2">
                 <Button 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   disabled={!propertyCount}
                 >
                   <CreditCard className="w-3 h-3 mr-1" />
@@ -141,7 +141,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                 >
                   View Billing
                 </Button>
@@ -177,7 +177,7 @@ export const TrialBillingAlert: React.FC = () => {
               <div className="flex gap-2">
                 <Button 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Reactivate
@@ -185,7 +185,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   className="border-gray-300 text-gray-700 hover:bg-gray-100"
                 >
                   View Options
@@ -216,7 +216,7 @@ export const TrialBillingAlert: React.FC = () => {
               <div className="flex gap-2">
                 <Button 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Start Free Trial
@@ -224,7 +224,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   className="border-blue-300 text-blue-700 hover:bg-blue-100"
                 >
                   View Plans
@@ -254,7 +254,7 @@ export const TrialBillingAlert: React.FC = () => {
               <div className="flex gap-2">
                 <Button 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Reactivate
@@ -262,7 +262,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing')}
+                  onClick={() => navigate('/billing-security')}
                   className="border-red-300 text-red-700 hover:bg-red-100"
                 >
                   View Options
