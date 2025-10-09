@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import Navbar from '@/components/Navbar';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/lib/supabase';
@@ -39,6 +40,8 @@ const PropertyDetail = () => {
   const navigate = useNavigate();
   const { getProperty, deleteProperty, properties, loading } = usePropertyContext();
   const { getRequestsForProperty } = useMaintenanceRequestContext();
+  const { currentUser } = useUserContext();
+  
   
   // Check for temporary session
   const [temporarySession, setTemporarySession] = useState<TemporarySession | null>(null);
@@ -108,6 +111,9 @@ const PropertyDetail = () => {
 
   // Handle property not found - only check once after initial load
   useEffect(() => {
+    // Skip all checks if user is not logged in (ProtectedRoute will handle redirect)
+    if (!currentUser) return;
+    
     // Skip checks during loading or for temporary access
     if (loading || isTemporaryAccess) return;
     
@@ -117,7 +123,7 @@ const PropertyDetail = () => {
       toast.error('Property not found');
       navigate('/properties');
     }
-  }, [id, property, properties.length, loading, isTemporaryAccess, navigate]);
+  }, [id, property, properties.length, loading, isTemporaryAccess, currentUser, navigate]);
 
   const { handleRestrictedAction } = usePropertyAccessControl();
 
