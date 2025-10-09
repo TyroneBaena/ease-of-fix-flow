@@ -17,18 +17,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     timestamp: new Date().toISOString()
   });
 
-  // Show loading while authentication is in progress
+  // CRITICAL: Show loading while authentication is in progress
+  // This prevents the flash of login page during initial load
   if (loading) {
     console.log('🔒 ProtectedRoute - Showing loading state');
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
-  if (!currentUser) {
+  // Only redirect to login after loading is complete and user is not authenticated
+  if (!loading && !currentUser) {
     console.log("🔒 ProtectedRoute: User not authenticated, redirecting to login");
     return <Navigate to="/login" replace />;
   }
