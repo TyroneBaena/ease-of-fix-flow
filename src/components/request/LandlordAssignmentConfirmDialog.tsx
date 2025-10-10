@@ -38,6 +38,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
 }) => {
   const [notes, setNotes] = useState('');
   const [landlordEmail, setLandlordEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [reportOptions, setReportOptions] = useState({
     summary: true,
     property: true,
@@ -65,6 +66,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
       return;
     }
     
+    setIsSubmitting(true);
     try {
       // Send landlord report email
       const { data, error } = await supabase.functions.invoke('send-landlord-report', {
@@ -101,6 +103,8 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
     } catch (error) {
       console.error('Error sending email:', error);
       toast.error('Failed to send email to landlord. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -300,11 +304,11 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={loading}>
+          <Button variant="outline" onClick={handleCancel} disabled={isSubmitting || loading}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={loading}>
-            {loading ? 'Sending Report...' : 'Send Report & Assign to Landlord'}
+          <Button onClick={handleConfirm} disabled={isSubmitting || loading}>
+            {isSubmitting || loading ? 'Sending Report...' : 'Send Report & Assign to Landlord'}
           </Button>
         </DialogFooter>
       </DialogContent>
