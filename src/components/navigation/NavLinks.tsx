@@ -50,14 +50,14 @@ export const NavLinks = () => {
         <Link
           key={item.name}
           to={item.path}
-          className={`flex items-center px-2 py-1.5 rounded-md transition-colors ${
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors whitespace-nowrap ${
             isActive(item.path)
               ? 'text-blue-600 font-medium'
               : 'text-gray-600 hover:text-blue-600'
           }`}
         >
-          <span className="mr-2">{item.icon}</span>
-          {item.name}
+          {item.icon}
+          <span>{item.name}</span>
         </Link>
       ))}
     </nav>
