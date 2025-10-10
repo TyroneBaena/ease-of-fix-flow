@@ -23,7 +23,7 @@ const DashboardSidebar = () => {
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => navigate('/billing')}
+              onClick={() => navigate('/billing-security')}
             >
               <CreditCard className="mr-2 h-4 w-4" />
               Billing

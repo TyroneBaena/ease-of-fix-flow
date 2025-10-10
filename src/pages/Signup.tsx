@@ -225,7 +225,7 @@ useEffect(() => {
     
     // Redirect to billing page to start trial setup
     setTimeout(() => {
-      navigate('/billing', { replace: true });
+      navigate('/billing-security', { replace: true });
     }, 500);
   };
 

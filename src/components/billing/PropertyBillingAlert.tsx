@@ -91,7 +91,7 @@ export const PropertyBillingAlert: React.FC = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/billing')} 
+                onClick={() => navigate('/billing-security')} 
                 size="sm"
               >
                 Manage Trial
@@ -124,7 +124,7 @@ export const PropertyBillingAlert: React.FC = () => {
             </Alert>
             
             <Button 
-              onClick={() => navigate('/billing')} 
+              onClick={() => navigate('/billing-security')} 
               size="sm"
               className="flex items-center gap-1"
             >

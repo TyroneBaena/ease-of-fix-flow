@@ -78,7 +78,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
           
           <div className="flex gap-3 justify-center">
             <Button 
-              onClick={() => navigate('/billing')}
+              onClick={() => navigate('/billing-security')}
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
@@ -156,7 +156,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
       </CardHeader>
       <CardContent className="text-center">
         <Button 
-          onClick={() => navigate('/billing')}
+          onClick={() => navigate('/billing-security')}
           className="flex items-center gap-2 mx-auto"
         >
           <CreditCard className="h-4 w-4" />

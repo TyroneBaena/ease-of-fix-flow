@@ -58,7 +58,7 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
           description: 'Please upgrade to continue using the platform.',
           action: {
             label: 'Upgrade Now',
-            onClick: () => navigate('/billing'),
+            onClick: () => navigate('/billing-security'),
           },
           duration: 10000,
         });
@@ -79,7 +79,7 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
         description: 'Please reactivate your subscription to continue.',
         action: {
           label: 'Reactivate',
-          onClick: () => navigate('/billing'),
+          onClick: () => navigate('/billing-security'),
         },
         duration: 10000,
       });
@@ -99,7 +99,7 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
         description: 'Start your free trial to access this feature.',
         action: {
           label: 'Start Free Trial',
-          onClick: () => navigate('/billing'),
+          onClick: () => navigate('/billing-security'),
         },
         duration: 10000,
       });
@@ -119,7 +119,7 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
         description: 'Your account has been suspended. Update your payment method to restore access immediately.',
         action: {
           label: 'Update Payment',
-          onClick: () => navigate('/billing'),
+          onClick: () => navigate('/billing-security'),
         },
         duration: 15000,
       });

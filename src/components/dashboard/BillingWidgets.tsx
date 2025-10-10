@@ -227,7 +227,7 @@ export const BillingSummaryCard: React.FC = () => {
         <Button 
           variant="outline" 
           className="w-full" 
-          onClick={() => navigate('/billing')}
+          onClick={() => navigate('/billing-security')}
         >
           Manage Billing
         </Button>

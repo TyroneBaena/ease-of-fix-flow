@@ -69,7 +69,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
       toast.error("Your subscription is cancelled. Please reactivate to continue.", {
         action: {
           label: "Reactivate",
-          onClick: () => navigate('/billing')
+          onClick: () => navigate('/billing-security')
         },
         duration: 6000
       });
@@ -81,7 +81,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
         toast.error("Start your free trial to access property management.", {
           action: {
             label: "Start Trial",
-            onClick: () => navigate('/billing')
+            onClick: () => navigate('/billing-security')
           },
           duration: 6000
         });
