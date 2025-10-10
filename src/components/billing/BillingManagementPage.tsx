@@ -119,6 +119,18 @@ export const BillingManagementPage: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // First try to sync payment method from Stripe
+      const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-payment-method', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (!syncError && syncData?.success) {
+        toast.success(`Payment method synced: ${syncData.card_brand} ending in ${syncData.card_last4}`);
+        await refresh();
+        return;
+      }
+
+      // If sync fails, try verification
       const { data, error } = await supabase.functions.invoke('verify-payment-method', {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });

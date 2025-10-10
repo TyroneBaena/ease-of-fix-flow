@@ -66,6 +66,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setPropertyCount(null);
     setMonthlyAmount(null);
     setCurrency(null);
+    setHasPaymentMethod(null);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -80,6 +81,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setPropertyCount(null);
       setMonthlyAmount(null);
       setCurrency(null);
+      setHasPaymentMethod(null);
       setLoading(false);
       return;
     }
@@ -114,6 +116,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setIsCancelled(false);
         setTrialEndDate(null);
         setPropertyCount(0);
+        setHasPaymentMethod(false);
         return; // Exit early to avoid confusion
       }
         
@@ -130,6 +133,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setTrialEndDate((row as any)?.trial_end_date ?? null);
       setPropertyCount((row as any)?.active_properties_count ?? 0);
       setHasPaymentMethod(!!((row as any)?.payment_method_id));
+      
+      // Debug logging
+      console.log('🟢 Subscription Context - Payment Method Check:', {
+        payment_method_id: (row as any)?.payment_method_id,
+        hasPaymentMethod: !!((row as any)?.payment_method_id),
+        isTrialActive: (row as any)?.is_trial_active,
+        subscribed: (row as any)?.subscribed
+      });
       
       // Debug logging for development
       if (row) {

@@ -236,6 +236,34 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   const handleSuccess = () => {
     console.log('🟢 Payment setup successful!');
     setSetupComplete(true);
+    
+    // Call confirm-payment-method to save the payment method ID
+    const confirmPaymentMethod = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { error } = await supabase.functions.invoke(
+          'confirm-payment-method',
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (error) {
+          console.error('Failed to confirm payment method:', error);
+        } else {
+          console.log('🟢 Payment method ID saved to database');
+        }
+      } catch (err) {
+        console.error('Error confirming payment method:', err);
+      }
+    };
+
+    confirmPaymentMethod();
+    
     setTimeout(() => {
       console.log('🟢 Calling onComplete callback');
       onComplete();

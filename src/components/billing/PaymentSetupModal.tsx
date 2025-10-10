@@ -158,6 +158,33 @@ export const PaymentSetupModal: React.FC<PaymentSetupModalProps> = ({ isOpen, on
     console.log('[PaymentModal] Payment setup successful, showing success state');
     setCompleteRef.current();
     
+    // Call confirm-payment-method to save the payment method ID
+    const confirmPaymentMethod = async () => {
+      try {
+        const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+        if (!session) return;
+
+        const { error } = await (await import('@/lib/supabase')).supabase.functions.invoke(
+          'confirm-payment-method',
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (error) {
+          console.error('[PaymentModal] Failed to confirm payment method:', error);
+        } else {
+          console.log('[PaymentModal] Payment method ID saved to database');
+        }
+      } catch (err) {
+        console.error('[PaymentModal] Error confirming payment method:', err);
+      }
+    };
+
+    confirmPaymentMethod();
+    
     // Show success message for 2 seconds, then close and trigger completion
     setTimeout(() => {
       console.log('[PaymentModal] Closing modal and triggering completion callback');

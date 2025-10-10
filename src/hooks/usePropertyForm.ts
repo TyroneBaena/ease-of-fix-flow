@@ -76,6 +76,14 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     console.log('PropertyForm: Current form state:', form);
     
     // Enforce 1-property limit for trial users without payment method
+    console.log('🟡 PropertyForm - Property Limit Check:', {
+      existingProperty: !!existingProperty,
+      isTrialActive,
+      hasPaymentMethod,
+      propertyCount,
+      propertiesLength: properties?.length
+    });
+    
     if (!existingProperty && isTrialActive && !hasPaymentMethod) {
       const currentPropertyCount = propertyCount || properties?.length || 0;
       
