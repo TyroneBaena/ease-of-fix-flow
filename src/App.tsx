@@ -44,6 +44,7 @@ import ContractorNotifications from '@/pages/ContractorNotifications';
 import QuoteSubmission from './pages/contractor/QuoteSubmission';
 import PropertyDetailWrapper from '@/components/PropertyDetailWrapper';
 import NewRequestWrapper from '@/components/NewRequestWrapper';
+import PaymentMethodSetup from '@/pages/PaymentMethodSetup';
 
 // Context providers for specific features
 import { SubscriptionProvider } from './contexts/subscription/SubscriptionContext';
@@ -281,6 +282,15 @@ function AppRoutes() {
                   <PropertyProvider>
                     <AdminSettings />
                   </PropertyProvider>
+                </OrganizationGuard>
+              </ProtectedRoute>
+            } />
+            
+            {/* Payment Method Setup Page */}
+            <Route path="/billing/payment-method" element={
+              <ProtectedRoute>
+                <OrganizationGuard>
+                  <PaymentMethodSetup />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />

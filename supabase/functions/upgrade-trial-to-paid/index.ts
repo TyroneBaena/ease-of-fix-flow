@@ -172,11 +172,13 @@ serve(async (req) => {
     });
 
     // Update subscriber record to end trial and activate paid subscription
+    // CRITICAL FIX: Save stripe_subscription_id for metered billing
     const { error: updateError } = await supabase
       .from('subscribers')
       .update({
         subscribed: true,
         subscription_tier: 'paid',
+        stripe_subscription_id: newSubscription.id, // ✅ FIXED: Added missing subscription ID
         is_trial_active: false,
         last_billing_date: new Date().toISOString(),
         next_billing_date: new Date(newSubscription.current_period_end * 1000).toISOString(),

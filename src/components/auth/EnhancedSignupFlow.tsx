@@ -11,9 +11,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreditCard, Building, Shield, Check, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { STRIPE_CONFIG } from '@/config/stripe';
 
-// Initialize Stripe - Unified key across application
-const stripePromise = loadStripe('pk_test_51RvCRkERrSyHgYuuVYKfaGpq95rXEdqPsJqpBiBbyLz3vhb0sNaohYoLT7Fi1mYF9ox5kyrJgtLqOs0tdIgUeICb00zSDCxUXs');
+// Initialize Stripe using centralized configuration
+const stripePromise = loadStripe(STRIPE_CONFIG.publishableKey);
 
 interface SignupFormData {
   email: string;
