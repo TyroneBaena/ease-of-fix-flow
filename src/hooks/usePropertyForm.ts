@@ -11,7 +11,7 @@ import { STRIPE_CONFIG } from '@/config/stripe';
 export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormProps) => {
   const { addProperty, updateProperty, properties } = usePropertyContext();
   const { users } = useUserContext();
-  const { isTrialActive, propertyCount, subscribed } = useSubscription();
+  const { isTrialActive, propertyCount, hasPaymentMethod } = useSubscription();
   const [managers, setManagers] = useState<User[]>([]);
   
   const [form, setForm] = useState<PropertyFormData>({
@@ -76,7 +76,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     console.log('PropertyForm: Current form state:', form);
     
     // Enforce 1-property limit for trial users without payment method
-    if (!existingProperty && isTrialActive && !subscribed) {
+    if (!existingProperty && isTrialActive && !hasPaymentMethod) {
       const currentPropertyCount = propertyCount || properties?.length || 0;
       
       if (currentPropertyCount >= 1) {

@@ -19,6 +19,7 @@ interface SubscriptionContextValue {
   propertyCount: number | null;
   monthlyAmount: number | null;
   currency: string | null;
+  hasPaymentMethod: boolean | null;
   
   // Trial management functions
   startTrial: () => Promise<{ success: boolean; error?: string }>;
@@ -52,6 +53,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
   const [monthlyAmount, setMonthlyAmount] = useState<number | null>(null);
   const [currency, setCurrency] = useState<string | null>(null);
+  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
 
   const clear = useCallback(() => {
     setSubscribed(null);
@@ -95,7 +97,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           is_trial_active,
           is_cancelled,
           trial_end_date,
-          active_properties_count
+          active_properties_count,
+          payment_method_id
         `)
         .eq("user_id", currentUser.id)
         .maybeSingle();
@@ -126,6 +129,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsCancelled((row as any)?.is_cancelled ?? false);
       setTrialEndDate((row as any)?.trial_end_date ?? null);
       setPropertyCount((row as any)?.active_properties_count ?? 0);
+      setHasPaymentMethod(!!((row as any)?.payment_method_id));
       
       // Debug logging for development
       if (row) {
@@ -460,6 +464,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     propertyCount,
     monthlyAmount,
     currency,
+    hasPaymentMethod,
     
     // Trial management functions
     startTrial,
@@ -488,6 +493,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     propertyCount,
     monthlyAmount,
     currency,
+    hasPaymentMethod,
     startTrial,
     cancelTrial,
     reactivateSubscription,
