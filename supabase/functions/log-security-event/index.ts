@@ -35,9 +35,23 @@ Deno.serve(async (req) => {
 
     console.log('🔐 [SecurityEvent] Extracted IP:', clientIP);
 
+    // Get user_id from email to properly set organization_id
+    let userId = null;
+    if (user_email) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, organization_id')
+        .eq('email', user_email)
+        .single();
+      
+      userId = profileData?.id || null;
+      console.log('🔐 [SecurityEvent] Found user_id:', userId, 'for email:', user_email);
+    }
+
     // Log the security event to database using the correct parameter names
     console.log('🔐 [SecurityEvent] About to insert event data:', {
       event_type,
+      user_id: userId,
       user_email,
       ip_address: clientIP,
       user_agent,
@@ -47,7 +61,7 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase
       .rpc('log_security_event', {
         p_event_type: event_type,
-        p_user_id: null, // We don't have user_id at login time
+        p_user_id: userId, // Now we pass the actual user_id
         p_user_email: user_email,
         p_ip_address: clientIP,
         p_user_agent: user_agent,
