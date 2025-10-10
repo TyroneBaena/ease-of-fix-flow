@@ -19,21 +19,24 @@ export const ContractorHeader = () => {
   const { signOut, currentUser, loading } = useUserContext();
   const { contractor, loading: contractorLoading } = useContractorProfileData();
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (e?: React.MouseEvent) => {
+    // Prevent any default behavior and event bubbling
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     try {
-      console.log("ContractorHeader: Starting sign out process");
-      
-      // Immediately navigate to login to prevent UI issues
-      navigate('/login', { replace: true });
-      
-      // Then perform the actual sign out
+      console.log("ContractorHeader: Starting sign out");
       await signOut();
+      console.log("ContractorHeader: Sign out completed, forcing redirect");
       
-      console.log("ContractorHeader: Sign out completed successfully");
+      // Force a full page redirect to ensure complete cleanup
+      window.location.href = '/login';
     } catch (error) {
       console.error("ContractorHeader: Error during sign out:", error);
-      // Even if there's an error, ensure we're on the login page
-      navigate('/login', { replace: true });
+      // Even if there's an error, still force redirect to login
+      window.location.href = '/login';
     }
   };
 

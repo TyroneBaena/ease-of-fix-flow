@@ -20,16 +20,22 @@ export const UserMenu = () => {
     ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'U';
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (e: React.MouseEvent) => {
+    // Prevent any default behavior and event bubbling
+    e.preventDefault();
+    e.stopPropagation();
+    
     try {
       console.log("UserMenu: Starting sign out");
       await signOut();
-      console.log("UserMenu: Sign out completed, navigating to login");
-      navigate('/login', { replace: true });
+      console.log("UserMenu: Sign out completed, forcing redirect");
+      
+      // Force a full page redirect to ensure complete cleanup
+      window.location.href = '/login';
     } catch (error) {
       console.error("UserMenu: Error during sign out:", error);
-      // Even if there's an error, still navigate to login
-      navigate('/login', { replace: true });
+      // Even if there's an error, still force redirect to login
+      window.location.href = '/login';
     }
   };
 

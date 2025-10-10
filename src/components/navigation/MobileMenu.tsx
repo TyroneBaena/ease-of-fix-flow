@@ -50,16 +50,24 @@ export const MobileMenu = () => {
     return location.pathname === path;
   };
   
-  const handleSignOut = async () => {
+  const handleSignOut = async (e?: React.MouseEvent) => {
+    // Prevent any default behavior and event bubbling
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     try {
       console.log("MobileMenu: Starting sign out");
       await signOut();
-      console.log("MobileMenu: Sign out completed, navigating to login");
-      navigate('/login', { replace: true });
+      console.log("MobileMenu: Sign out completed, forcing redirect");
+      
+      // Force a full page redirect to ensure complete cleanup
+      window.location.href = '/login';
     } catch (error) {
       console.error("MobileMenu: Error during sign out:", error);
-      // Even if there's an error, still navigate to login
-      navigate('/login', { replace: true });
+      // Even if there's an error, still force redirect to login
+      window.location.href = '/login';
     }
   };
 
