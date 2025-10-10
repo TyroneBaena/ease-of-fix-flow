@@ -14,13 +14,22 @@ export const useMaintenanceRequestProvider = () => {
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
 
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER - Current user changed:', currentUser);
-    console.log('🔍 MAINTENANCE PROVIDER - User ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER - User role:', currentUser?.role);
-    console.log('🔍 MAINTENANCE PROVIDER - User organization_id:', currentUser?.organization_id);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - Current user changed:', currentUser?.email);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User role:', currentUser?.role);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User organization_id:', currentUser?.organization_id);
     
-    if (currentUser && currentUser.organization_id) {
-      console.log('🔍 MAINTENANCE PROVIDER - User authenticated with organization, loading requests');
+    // CRITICAL FIX: Load requests if user is authenticated, even without organization_id yet
+    // The organization_id will be available from the profile or will be set shortly
+    if (currentUser?.id) {
+      console.log('🔍 MAINTENANCE PROVIDER v2.0 - User authenticated, loading requests');
+      
+      // Add a small delay to allow organization data to load if needed
+      const timer = setTimeout(() => {
+        loadRequests();
+      }, 100);
+      
+      // Also load immediately for better perceived performance
       loadRequests();
       
       // Set up real-time subscription for maintenance requests
@@ -46,29 +55,32 @@ export const useMaintenanceRequestProvider = () => {
         });
 
       return () => {
+        clearTimeout(timer);
         console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
         supabase.removeChannel(channel);
       };
     } else {
-      console.log('🔍 MAINTENANCE PROVIDER - No current user or organization, clearing requests and stopping loading');
+      console.log('🔍 MAINTENANCE PROVIDER v2.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
     }
-  }, [currentUser?.id, currentUser?.role, currentUser?.organization_id]); // Watch for organization changes too
+  }, [currentUser?.id]); // Only watch user ID changes to prevent excessive re-renders
 
   const loadRequests = useCallback(async () => {
-    console.log('🔍 LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
+    console.log('🔍 LOADING REQUESTS v2.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
     
-    if (!currentUser || !currentUser.organization_id) {
-      console.log('🔍 LOADING REQUESTS - No user or organization, skipping');
+    if (!currentUser?.id) {
+      console.log('🔍 LOADING REQUESTS v2.0 - No user, skipping');
       setLoading(false);
       return [];
     }
     
+    // CRITICAL FIX: Try to load requests even if organization_id is not yet set
+    // The backend RLS will handle filtering, and organization_id should be available from profile
     setLoading(true);
     try {
       const fetchedRequests = await fetchRequests();
-      console.log('🔍 LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
+      console.log('🔍 LOADING REQUESTS v2.0 - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
         // Use formatRequestData to properly convert database objects to MaintenanceRequest type

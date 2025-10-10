@@ -237,16 +237,17 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const fetchUserOrganizations = async (user: User) => {
     if (!user?.id) {
+      console.log('UnifiedAuth - No user ID, clearing organizations');
       setUserOrganizations([]);
       setCurrentOrganization(null);
-      return;
+      return null;
     }
 
     try {
       console.log('UnifiedAuth - Fetching organizations for user:', user.id);
 
-      // Fetch user organizations
-      const { data: userOrgs, error: userOrgsError } = await supabase
+      // Fetch user organizations with timeout
+      const fetchPromise = supabase
         .from('user_organizations')
         .select(`
           id,
@@ -261,22 +262,34 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .eq('user_id', user.id)
         .eq('is_active', true);
 
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Organization fetch timeout')), 3000)
+      );
+
+      const { data: userOrgs, error: userOrgsError } = await Promise.race([
+        fetchPromise,
+        timeoutPromise
+      ]).catch((err) => {
+        console.warn('UnifiedAuth - Organization fetch timed out or failed:', err);
+        return { data: null, error: err };
+      }) as any;
+
       if (userOrgsError) {
         console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
         setUserOrganizations([]);
         setCurrentOrganization(null);
-        return;
+        return user.organization_id || null; // Return fallback org ID from profile
       }
 
       if (!userOrgs || userOrgs.length === 0) {
-        console.log('UnifiedAuth - No organizations found for user');
+        console.log('UnifiedAuth - No organizations found, using profile organization_id');
         setUserOrganizations([]);
         setCurrentOrganization(null);
-        return;
+        return user.organization_id || null; // Return fallback org ID
       }
 
       // Fetch organization details
-      const orgIds = userOrgs.map(uo => uo.organization_id);
+      const orgIds = userOrgs.map((uo: any) => uo.organization_id);
       const { data: organizations, error: orgsError } = await supabase
         .from('organizations')
         .select('*')
@@ -286,16 +299,16 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.warn('UnifiedAuth - Error fetching organizations:', orgsError);
         setUserOrganizations([]);
         setCurrentOrganization(null);
-        return;
+        return user.organization_id || null; // Return fallback org ID
       }
 
-      const mappedUserOrganizations = userOrgs.map(uo => {
+      const mappedUserOrganizations = userOrgs.map((uo: any) => {
         const organization = organizations?.find(org => org.id === uo.organization_id);
         return {
           ...uo,
           organization: organization as Organization
         };
-      }).filter(uo => uo.organization);
+      }).filter((uo: any) => uo.organization);
 
       setUserOrganizations(mappedUserOrganizations);
 
@@ -306,7 +319,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Try session organization first
         if (user.session_organization_id) {
           const sessionOrg = mappedUserOrganizations.find(
-            uo => uo.organization_id === user.session_organization_id
+            (uo: any) => uo.organization_id === user.session_organization_id
           );
           if (sessionOrg) {
             targetOrg = sessionOrg.organization;
@@ -315,7 +328,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         // Fallback to default organization
         if (!targetOrg) {
-          const defaultOrg = mappedUserOrganizations.find(uo => uo.is_default);
+          const defaultOrg = mappedUserOrganizations.find((uo: any) => uo.is_default);
           if (defaultOrg) {
             targetOrg = defaultOrg.organization;
           }
@@ -328,11 +341,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         setCurrentOrganization(targetOrg);
         console.log('UnifiedAuth - Set current organization:', targetOrg?.name);
+        return targetOrg?.id || null;
       }
+      
+      return user.organization_id || null;
     } catch (error) {
       console.error('UnifiedAuth - Error in fetchUserOrganizations:', error);
       setUserOrganizations([]);
       setCurrentOrganization(null);
+      return user.organization_id || null; // Return fallback org ID
     }
   };
 
@@ -497,12 +514,16 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // This is the official Supabase recommendation to avoid auth callback deadlocks
         setTimeout(async () => {
           try {
-            console.log('🚀 UnifiedAuth v12.0 - Starting deferred user conversion...');
+            console.log('🚀 UnifiedAuth v13.0 - Starting deferred user conversion...');
             const user = await convertSupabaseUser(session.user);
-            console.log('🚀 UnifiedAuth v12.0 - User converted successfully:', user.email);
+            console.log('🚀 UnifiedAuth v13.0 - User converted:', user.email, 'org_id:', user.organization_id);
             
+            // CRITICAL: Set user first so components can start rendering
             setCurrentUser(user);
-            console.log('🚀 UnifiedAuth v12.0 - User set successfully');
+            console.log('🚀 UnifiedAuth v13.0 - User set, marking auth as loaded');
+            
+            // Mark loading as false FIRST so UI can start rendering
+            setLoading(false);
             
             // Set Sentry user context
             setSentryUser({
@@ -512,20 +533,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               role: user.role
             });
             
-            // Fetch organizations in background
-            try {
-              await fetchUserOrganizations(user);
-              console.log('🚀 UnifiedAuth v12.0 - Organizations fetched successfully');
-            } catch (orgError) {
-              console.warn('🚀 UnifiedAuth v12.0 - Non-critical org fetch error:', orgError);
-            }
-            
-            // Only set loading to false after everything is complete
-            setLoading(false);
-            console.log('🚀 UnifiedAuth v12.0 - Loading set to false after user data loaded');
+            // Fetch organizations in background WITHOUT blocking UI
+            fetchUserOrganizations(user).catch((orgError) => {
+              console.warn('🚀 UnifiedAuth v13.0 - Non-critical org fetch error:', orgError);
+            });
             
           } catch (error) {
-            console.error('🚀 UnifiedAuth v12.0 - Error in deferred user conversion:', error);
+            console.error('🚀 UnifiedAuth v13.0 - Error in deferred user conversion:', error);
             setCurrentUser(null);
             setSession(null);
             setLoading(false);
@@ -591,26 +605,23 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Use setTimeout to defer async calls for initial session too
         setTimeout(async () => {
           try {
-            console.log('🚀 UnifiedAuth v12.0 - Processing initial session for:', session.user.email);
+            console.log('🚀 UnifiedAuth v13.0 - Processing initial session for:', session.user.email);
             const user = await convertSupabaseUser(session.user);
-            console.log('🚀 UnifiedAuth v12.0 - Initial user converted:', user.email);
+            console.log('🚀 UnifiedAuth v13.0 - Initial user converted:', user.email, 'org_id:', user.organization_id);
+            
+            // CRITICAL: Set user and mark as ready FIRST
             setCurrentUser(user);
-            
-            // Fetch organizations in background
-            try {
-              await fetchUserOrganizations(user);
-              console.log('🚀 UnifiedAuth v12.0 - Initial organizations fetched');
-            } catch (orgError) {
-              console.error('🚀 UnifiedAuth v12.0 - Non-critical org error on initial load:', orgError);
-            }
-            
-            // Only set loading to false after everything is complete
             setLoading(false);
             setInitialCheckDone(true);
-            console.log('🚀 UnifiedAuth v12.0 - Initial loading complete');
+            console.log('🚀 UnifiedAuth v13.0 - Initial auth complete, starting background org fetch');
+            
+            // Fetch organizations in background WITHOUT blocking UI
+            fetchUserOrganizations(user).catch((orgError) => {
+              console.error('🚀 UnifiedAuth v13.0 - Non-critical org error on initial load:', orgError);
+            });
             
           } catch (error) {
-            console.error('🚀 UnifiedAuth v12.0 - Error converting initial user:', error);
+            console.error('🚀 UnifiedAuth v13.0 - Error converting initial user:', error);
             setCurrentUser(null);
             setSession(null);
             setLoading(false);
