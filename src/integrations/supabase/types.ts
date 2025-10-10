@@ -1474,6 +1474,10 @@ export type Database = {
           profile_exists: boolean
         }[]
       }
+      expire_trials: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_property_access_token: {
         Args: { p_expires_hours?: number; p_property_id: string }
         Returns: string
@@ -1635,6 +1639,10 @@ export type Database = {
       }
       send_comment_email_notifications_v2: {
         Args: { comment_id: string }
+        Returns: undefined
+      }
+      send_trial_expiration_warnings: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       submit_public_maintenance_request: {
