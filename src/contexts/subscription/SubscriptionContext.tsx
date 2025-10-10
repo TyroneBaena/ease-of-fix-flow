@@ -137,16 +137,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       // Calculate days remaining based on trial_end_date
+      // TRUST DATABASE: Only calculate if database says trial is active
       let calculatedDaysRemaining = null;
       
-      if ((row as any)?.trial_end_date) {
+      if ((row as any)?.is_trial_active && (row as any)?.trial_end_date) {
         const endDate = new Date((row as any).trial_end_date);
         const now = new Date();
         const diffTime = endDate.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        // Only calculate days remaining if trial is actually active
-        if ((row as any)?.is_trial_active && diffDays > 0) {
+        // Only set days remaining if positive (trial hasn't expired)
+        if (diffDays > 0) {
           calculatedDaysRemaining = diffDays;
         }
         
@@ -159,7 +160,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
       }
       
-      // Trust the database value for is_trial_active instead of overriding it
+      // Trust the database value for is_trial_active
       setDaysRemaining(calculatedDaysRemaining);
       
       // Calculate monthly amount based on property count

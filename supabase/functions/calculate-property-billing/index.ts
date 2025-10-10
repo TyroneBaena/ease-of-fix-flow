@@ -120,12 +120,23 @@ Deno.serve(async (req) => {
         const subscription = subscriptions.data[0];
         log("Found existing subscription", { subscriptionId: subscription.id });
 
-        // Update subscription with current property count
+        // Update subscription with current property count and billing amount
         const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+          items: [{
+            id: subscription.items.data[0].id,
+            price_data: {
+              currency: 'aud',
+              product: subscription.items.data[0].price.product as string,
+              unit_amount: monthlyAmount * 100, // cents
+              recurring: { interval: 'month' }
+            },
+            quantity: 1
+          }],
           metadata: {
             property_count: propertyCount.toString(),
             monthly_amount: monthlyAmount.toString(),
           },
+          proration_behavior: 'always_invoice', // Pro-rate for property count changes
         });
 
         // Update subscriber record

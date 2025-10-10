@@ -75,20 +75,78 @@ serve(async (req) => {
     const paymentMethod = paymentMethods.data[0];
     console.log(`[REACTIVATE-SUBSCRIPTION] Found payment method ${paymentMethod.id}`);
 
-    // Resume subscription if paused
-    const subscription = await stripe.subscriptions.retrieve(subscriber.stripe_subscription_id);
+    // Get current subscription or create new one
+    let subscription;
     
-    if (subscription.pause_collection) {
-      await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
-        pause_collection: null,
-        default_payment_method: paymentMethod.id,
+    if (subscriber.stripe_subscription_id) {
+      // Try to retrieve existing subscription
+      try {
+        subscription = await stripe.subscriptions.retrieve(subscriber.stripe_subscription_id);
+        
+        if (subscription.status === 'canceled') {
+          // Subscription was cancelled, create new one
+          console.log(`[REACTIVATE-SUBSCRIPTION] Subscription cancelled, creating new one`);
+          subscription = null;
+        } else if (subscription.pause_collection) {
+          // Resume paused subscription
+          subscription = await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
+            pause_collection: null,
+            default_payment_method: paymentMethod.id,
+          });
+          console.log(`[REACTIVATE-SUBSCRIPTION] Subscription resumed`);
+        } else {
+          // Update payment method on active subscription
+          await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
+            default_payment_method: paymentMethod.id,
+          });
+        }
+      } catch (error) {
+        console.log(`[REACTIVATE-SUBSCRIPTION] Subscription not found, creating new one`);
+        subscription = null;
+      }
+    }
+    
+    // Create new subscription if needed
+    if (!subscription) {
+      const propertyCount = subscriber.active_properties_count || 0;
+      const monthlyAmount = propertyCount * 29 * 100; // cents
+      
+      if (propertyCount === 0) {
+        throw new Error('Cannot reactivate with zero properties');
+      }
+      
+      const product = await stripe.products.create({
+        name: `Property Management - ${propertyCount} properties`,
+        description: `Property management billing for ${propertyCount} properties at $29 AUD each`
       });
-      console.log(`[REACTIVATE-SUBSCRIPTION] Subscription resumed`);
-    } else {
-      // Just update payment method
-      await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
+      
+      subscription = await stripe.subscriptions.create({
+        customer: subscriber.stripe_customer_id,
         default_payment_method: paymentMethod.id,
+        items: [{
+          price_data: {
+            currency: 'aud',
+            product: product.id,
+            unit_amount: monthlyAmount,
+            recurring: { interval: 'month' }
+          },
+          quantity: 1
+        }],
+        metadata: {
+          property_count: propertyCount.toString(),
+          supabase_user_id: user.id,
+        }
       });
+      
+      console.log(`[REACTIVATE-SUBSCRIPTION] New subscription created`);
+      
+      // Update subscriber with new subscription ID
+      await supabase
+        .from('subscribers')
+        .update({
+          stripe_subscription_id: subscription.id,
+        })
+        .eq('user_id', user.id);
     }
 
     // PHASE 4: Reset failed payment count and restore access

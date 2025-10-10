@@ -12,8 +12,8 @@ import { CreditCard, Building, Shield, Check, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-// Initialize Stripe
-const stripePromise = loadStripe('pk_test_51QSoSsEJyHnvO4TtBD7jz8MJhMDBk5l2YfXPZGvNxFYyNj09UKHtUpfPGdGjkZMqLcMUH4wnSWB88y8fV4DaV5YH006fMD38E2');
+// Initialize Stripe - Unified key across application
+const stripePromise = loadStripe('pk_test_51RvCRkERrSyHgYuuVYKfaGpq95rXEdqPsJqpBiBbyLz3vhb0sNaohYoLT7Fi1mYF9ox5kyrJgtLqOs0tdIgUeICb00zSDCxUXs');
 
 interface SignupFormData {
   email: string;
