@@ -75,30 +75,6 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     console.log('PropertyForm: Form submit triggered');
     console.log('PropertyForm: Current form state:', form);
     
-    // ✅ CRITICAL FIX: Property limit enforcement for trial users
-    if (!existingProperty && isTrialActive && !subscribed) {
-      const currentPropertyCount = propertyCount || properties?.length || 0;
-      
-      if (currentPropertyCount >= STRIPE_CONFIG.trial.maxProperties) {
-        console.log('PropertyForm: Trial property limit reached', { 
-          currentCount: currentPropertyCount, 
-          limit: STRIPE_CONFIG.trial.maxProperties 
-        });
-        
-        toast.error(
-          `Trial accounts are limited to ${STRIPE_CONFIG.trial.maxProperties} property. Please upgrade to add more properties.`,
-          {
-            action: {
-              label: 'Upgrade Now',
-              onClick: () => window.location.href = '/billing-security'
-            },
-            duration: 10000,
-          }
-        );
-        return;
-      }
-    }
-    
     const requiredFields = ['name', 'address', 'contactNumber', 'email', 'practiceLeader'];
     const missingFields = requiredFields.filter(field => {
       const value = form[field as keyof typeof form];
