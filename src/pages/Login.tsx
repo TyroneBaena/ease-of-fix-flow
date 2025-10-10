@@ -92,15 +92,10 @@ const Login = () => {
       if (error) {
         console.error('🚀 Login - Sign in error:', error);
         
-        // Log failed login attempt
-        console.log('🔐 [Login] About to log FAILED login attempt for:', email);
-        await logSecurityEvent('login_failed', email, {
-          reason: error.message,
-          timestamp: new Date().toISOString(),
-          browser: navigator.userAgent.split(' ').pop()
-        });
-        console.log('🔐 [Login] Finished logging FAILED login attempt');
+        // CRITICAL: Reset loading state FIRST before any async operations
+        setIsLoading(false);
         
+        // Set error message
         if (error.message?.includes('Invalid login credentials')) {
           setError('Invalid email or password. Please check your credentials and try again.');
         } else if (error.message?.includes('Email not confirmed')) {
@@ -108,7 +103,19 @@ const Login = () => {
         } else {
           setError(error.message || 'Login failed');
         }
-        setIsLoading(false); // Reset loading state on error
+        
+        // Log failed login attempt (async, but doesn't block UI)
+        console.log('🔐 [Login] About to log FAILED login attempt for:', email);
+        logSecurityEvent('login_failed', email, {
+          reason: error.message,
+          timestamp: new Date().toISOString(),
+          browser: navigator.userAgent.split(' ').pop()
+        }).then(() => {
+          console.log('🔐 [Login] Finished logging FAILED login attempt');
+        }).catch((err) => {
+          console.error('🔐 [Login] Error logging failed login:', err);
+        });
+        
         return;
       }
       
@@ -139,17 +146,21 @@ const Login = () => {
     } catch (error: any) {
       console.error('🚀 Login - Unexpected login error:', error);
       
-      // Log unexpected login error
+      // CRITICAL: Reset loading state FIRST
+      setIsLoading(false);
+      setError(error.message || 'An unexpected error occurred. Please try again.');
+      
+      // Log unexpected login error (async, but doesn't block UI)
       console.log('🔐 [Login] About to log UNEXPECTED ERROR for:', email);
-      await logSecurityEvent('login_failed', email, {
+      logSecurityEvent('login_failed', email, {
         reason: 'unexpected_error',
         error_message: error.message,
         timestamp: new Date().toISOString()
+      }).then(() => {
+        console.log('🔐 [Login] Finished logging UNEXPECTED ERROR');
+      }).catch((err) => {
+        console.error('🔐 [Login] Error logging unexpected error:', err);
       });
-      console.log('🔐 [Login] Finished logging UNEXPECTED ERROR');
-      
-      setError(error.message || 'An unexpected error occurred. Please try again.');
-      setIsLoading(false);
     }
   };
 
