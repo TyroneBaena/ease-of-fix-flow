@@ -14,8 +14,6 @@ import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
 
-import { AuthTestingPanel } from '@/components/testing/AuthTestingPanel';
-
 
 const Settings = () => {
   const { currentUser, loading } = useSimpleAuth();
@@ -103,7 +101,6 @@ const Settings = () => {
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            {isAdmin && <TabsTrigger value="testing">Phase Testing</TabsTrigger>}
           </TabsList>
           
           {isAdmin && (
@@ -137,14 +134,6 @@ const Settings = () => {
               {currentUser && <NotificationSettings user={currentUser} />}
             </Card>
           </TabsContent>
-          
-          {isAdmin && (
-            <TabsContent value="testing">
-              <div className="space-y-6">
-                <AuthTestingPanel />
-              </div>
-            </TabsContent>
-          )}
         </Tabs>
       </main>
     </div>
