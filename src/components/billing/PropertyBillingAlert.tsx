@@ -82,7 +82,7 @@ export const PropertyBillingAlert: React.FC = () => {
             
             <div className="flex gap-2">
               <Button 
-                onClick={() => navigate('/pricing')} 
+                onClick={() => navigate('/billing-security')} 
                 size="sm"
                 className="flex items-center gap-1"
               >
