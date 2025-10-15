@@ -196,9 +196,25 @@ export const invitationCodeService = {
   // Get all invitation codes for the current organization
   async getOrganizationCodes(): Promise<{ codes: InvitationCode[]; error: Error | null }> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { codes: [], error: new Error('User not authenticated') };
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.organization_id) {
+        return { codes: [], error: new Error('User does not belong to an organization') };
+      }
+
       const { data, error } = await supabase
         .from('invitation_codes')
         .select('*')
+        .eq('organization_id', profile.organization_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
