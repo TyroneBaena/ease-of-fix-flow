@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PaymentMethodSetup } from './PaymentMethodSetup';
 import { invitationCodeService } from '@/services/invitationCodeService';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 
 interface OrganizationOnboardingProps {
   user: any;
@@ -19,6 +20,7 @@ interface OrganizationOnboardingProps {
 
 export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ user, onComplete }) => {
   const navigate = useNavigate();
+  const { refreshUser } = useSimpleAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentSetup, setShowPaymentSetup] = useState(false);
@@ -32,6 +34,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [joiningOrg, setJoiningOrg] = useState(false);
   const [showLoginReminder, setShowLoginReminder] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const generateSlug = (name: string) => {
     return name
@@ -345,14 +348,36 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
           
           <div className="flex justify-end gap-2 pt-4">
             <Button
-              onClick={() => {
-                setShowLoginReminder(false);
-                onComplete();
-                navigate('/dashboard', { replace: true });
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  // Refresh auth context to pick up new organization and role
+                  console.log('🔄 Refreshing auth context after joining organization...');
+                  await refreshUser();
+                  
+                  // Wait a bit for the context to fully update
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  console.log('✅ Auth context refreshed, navigating to dashboard');
+                  setShowLoginReminder(false);
+                  onComplete();
+                  
+                  // Force a hard navigation to ensure proper re-render
+                  window.location.href = '/dashboard';
+                } catch (error) {
+                  console.error('Error refreshing auth:', error);
+                  // Still navigate even if refresh fails
+                  setShowLoginReminder(false);
+                  onComplete();
+                  navigate('/dashboard', { replace: true });
+                } finally {
+                  setIsRefreshing(false);
+                }
               }}
               className="w-full"
+              disabled={isRefreshing}
             >
-              Continue to Dashboard
+              {isRefreshing ? 'Loading...' : 'Continue to Dashboard'}
             </Button>
           </div>
         </DialogContent>
