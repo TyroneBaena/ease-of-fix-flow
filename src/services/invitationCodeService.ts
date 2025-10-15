@@ -85,7 +85,9 @@ export const invitationCodeService = {
   // Validate an invitation code
   async validateCode(code: string): Promise<{ valid: boolean; data: InvitationCode | null; error: Error | null }> {
     try {
-      const { data, error } = await supabase
+      console.log('📝 InvitationCodeService - Validating code:', code);
+      
+      const validatePromise = supabase
         .from('invitation_codes')
         .select('*')
         .eq('code', code.toUpperCase())
@@ -93,21 +95,34 @@ export const invitationCodeService = {
         .gt('expires_at', new Date().toISOString())
         .single();
 
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Code validation timed out')), 10000);
+      });
+
+      const { data, error } = await Promise.race([validatePromise, timeoutPromise]).catch((err) => {
+        console.error('📝 InvitationCodeService - Validation failed:', err);
+        return { data: null, error: err };
+      }) as any;
+
       if (error) {
+        console.error('📝 InvitationCodeService - Validation error:', error);
         return { valid: false, data: null, error };
       }
 
       if (!data) {
+        console.warn('📝 InvitationCodeService - Invalid code (not found)');
         return { valid: false, data: null, error: new Error('Invalid code') };
       }
 
       if (data.current_uses >= data.max_uses) {
+        console.warn('📝 InvitationCodeService - Code has reached maximum uses');
         return { valid: false, data: null, error: new Error('Code has reached maximum uses') };
       }
 
+      console.log('📝 InvitationCodeService - Code is valid');
       return { valid: true, data: data as InvitationCode, error: null };
     } catch (error) {
-      console.error('Error validating invitation code:', error);
+      console.error('📝 InvitationCodeService - Error validating invitation code:', error);
       return { valid: false, data: null, error: error as Error };
     }
   },
@@ -135,6 +150,14 @@ export const invitationCodeService = {
 
       console.log('📝 InvitationCodeService - Code validated successfully');
       const invitationCode = validation.data;
+      
+      // CRITICAL: Log the invitation code details to verify role
+      console.log('📝 InvitationCodeService - Invitation code details:', {
+        id: invitationCode.id,
+        assigned_role: invitationCode.assigned_role,
+        organization_id: invitationCode.organization_id,
+        code: invitationCode.code
+      });
 
       // Check if this user has already used this invitation code
       console.log('📝 InvitationCodeService - Checking for existing usage...');
@@ -186,25 +209,29 @@ export const invitationCodeService = {
         throw updateError;
       }
 
-      console.log('📝 InvitationCodeService - Updating user profile...');
+      console.log('📝 InvitationCodeService - Updating user profile with role:', invitationCode.assigned_role);
       // Update user's profile with organization and role
-      const { error: profileError } = await supabase
+      const { data: updatedProfile, error: profileError } = await supabase
         .from('profiles')
         .update({
           organization_id: invitationCode.organization_id,
           session_organization_id: invitationCode.organization_id,
           role: invitationCode.assigned_role,
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select('role, organization_id')
+        .single();
 
       if (profileError) {
         console.error('📝 InvitationCodeService - Error updating profile:', profileError);
         throw profileError;
       }
+      
+      console.log('📝 InvitationCodeService - Profile updated successfully:', updatedProfile);
 
-      console.log('📝 InvitationCodeService - Creating user organization membership...');
+      console.log('📝 InvitationCodeService - Creating user organization membership with role:', invitationCode.assigned_role);
       // Create or update user organization membership
-      const { error: membershipError } = await supabase
+      const { data: membershipData, error: membershipError } = await supabase
         .from('user_organizations')
         .upsert({
           user_id: user.id,
@@ -214,12 +241,15 @@ export const invitationCodeService = {
           is_default: true,
         }, {
           onConflict: 'user_id,organization_id'
-        });
+        })
+        .select('role');
 
       if (membershipError) {
         console.error('📝 InvitationCodeService - Membership error:', membershipError);
         throw membershipError;
       }
+      
+      console.log('📝 InvitationCodeService - Membership created/updated:', membershipData);
 
       // If contractor role, create contractor profile if it doesn't exist
       if (invitationCode.assigned_role === 'contractor') {
