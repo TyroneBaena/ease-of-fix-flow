@@ -11,13 +11,16 @@ import {
   Info,
   Building2, 
   TrendingUp,
-  CheckCircle
+  CheckCircle,
+  Eye
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { format } from 'date-fns';
 
 export const TrialBillingAlert: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useUnifiedAuth();
   const {
     subscribed,
     isTrialActive,
@@ -30,6 +33,9 @@ export const TrialBillingAlert: React.FC = () => {
     loading,
     debugDatabaseState
   } = useSubscription();
+
+  // Check if user is admin (can manage billing) or manager (view only)
+  const isAdmin = currentUser?.role === 'admin';
 
   if (loading) return null;
 
@@ -73,7 +79,7 @@ export const TrialBillingAlert: React.FC = () => {
               onClick={() => navigate('/billing-security')}
               className="border-green-300 text-green-700 hover:bg-green-100"
             >
-              Manage
+              {isAdmin ? 'Manage' : 'View Details'}
             </Button>
           </div>
         </CardContent>
@@ -130,19 +136,22 @@ export const TrialBillingAlert: React.FC = () => {
               )}
 
               <div className="flex gap-2">
+                {isAdmin && (
+                  <Button 
+                    size="sm"
+                    onClick={() => navigate('/billing-security')}
+                    disabled={!propertyCount}
+                  >
+                    <CreditCard className="w-3 h-3 mr-1" />
+                    Manage Subscription
+                  </Button>
+                )}
                 <Button 
+                  variant={isAdmin ? "outline" : "default"}
                   size="sm"
                   onClick={() => navigate('/billing-security')}
-                  disabled={!propertyCount}
                 >
-                  <CreditCard className="w-3 h-3 mr-1" />
-                  Manage Subscription
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/billing-security')}
-                >
+                  <Eye className="w-3 h-3 mr-1" />
                   View Billing
                 </Button>
               </div>
@@ -175,20 +184,22 @@ export const TrialBillingAlert: React.FC = () => {
                 Your subscription has been cancelled. You can reactivate at any time to continue using all features.
               </p>
               <div className="flex gap-2">
-                <Button 
-                  size="sm"
-                  onClick={() => navigate('/billing-security')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Reactivate
-                </Button>
+                {isAdmin && (
+                  <Button 
+                    size="sm"
+                    onClick={() => navigate('/billing-security')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Reactivate
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/billing-security')}
                   className="border-gray-300 text-gray-700 hover:bg-gray-100"
                 >
-                  View Options
+                  View {isAdmin ? 'Options' : 'Details'}
                 </Button>
               </div>
             </div>
@@ -214,20 +225,22 @@ export const TrialBillingAlert: React.FC = () => {
                 Get started with a 30-day free trial to access all features.
               </p>
               <div className="flex gap-2">
-                <Button 
-                  size="sm"
-                  onClick={() => navigate('/billing-security')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Start Free Trial
-                </Button>
+                {isAdmin && (
+                  <Button 
+                    size="sm"
+                    onClick={() => navigate('/billing-security')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Start Free Trial
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/billing-security')}
                   className="border-blue-300 text-blue-700 hover:bg-blue-100"
                 >
-                  View Plans
+                  View {isAdmin ? 'Plans' : 'Details'}
                 </Button>
               </div>
             </div>
@@ -252,29 +265,33 @@ export const TrialBillingAlert: React.FC = () => {
                 Your free trial has ended. Upgrade to continue accessing all features.
               </p>
               <div className="flex gap-2">
-                <Button 
-                  size="sm"
-                  onClick={() => navigate('/billing-security')}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Reactivate
-                </Button>
+                {isAdmin && (
+                  <Button 
+                    size="sm"
+                    onClick={() => navigate('/billing-security')}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Reactivate
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/billing-security')}
                   className="border-red-300 text-red-700 hover:bg-red-100"
                 >
-                  View Options
+                  View {isAdmin ? 'Options' : 'Details'}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => debugDatabaseState()}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                >
-                  Debug DB
-                </Button>
+                {isAdmin && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => debugDatabaseState()}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                  >
+                    Debug DB
+                  </Button>
+                )}
               </div>
           </div>
         </div>

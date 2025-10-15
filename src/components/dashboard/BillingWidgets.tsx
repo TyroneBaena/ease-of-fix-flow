@@ -8,14 +8,17 @@ import {
   TrendingUp, 
   Calendar,
   Clock,
-  CreditCard
+  CreditCard,
+  Eye
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
 export const BillingWidgets: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useUnifiedAuth();
   const {
     subscribed,
     isTrialActive,
@@ -150,6 +153,7 @@ export const BillingWidgets: React.FC = () => {
 
 export const BillingSummaryCard: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useUnifiedAuth();
   const {
     subscribed,
     isTrialActive,
@@ -162,6 +166,7 @@ export const BillingSummaryCard: React.FC = () => {
 
   // Distinguish between "never started trial" vs "trial expired"
   const hasNeverStartedTrial = !trialEndDate;
+  const isAdmin = currentUser?.role === 'admin';
 
   if (loading) {
     return (
@@ -229,7 +234,8 @@ export const BillingSummaryCard: React.FC = () => {
           className="w-full" 
           onClick={() => navigate('/billing-security')}
         >
-          Manage Billing
+          <Eye className="w-4 h-4 mr-2" />
+          {isAdmin ? 'Manage Billing' : 'View Billing Details'}
         </Button>
       </CardContent>
     </Card>

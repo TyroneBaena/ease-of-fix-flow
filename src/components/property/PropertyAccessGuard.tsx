@@ -7,9 +7,11 @@ import {
   Clock, 
   AlertTriangle, 
   CreditCard, 
-  RefreshCw
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 import { usePropertyAccessControl } from '@/hooks/usePropertyAccessControl';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useNavigate } from 'react-router-dom';
 
 interface PropertyAccessGuardProps {
@@ -32,7 +34,10 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
     showReactivationPrompt,
     getAccessMessage
   } = usePropertyAccessControl();
+  const { currentUser } = useUnifiedAuth();
   const navigate = useNavigate();
+
+  const isAdmin = currentUser?.role === 'admin';
 
   // Check if user has access for the specific action
   const hasAccess = () => {
@@ -76,18 +81,20 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
           </Alert>
           
           <div className="flex gap-3 justify-center">
+            {isAdmin && (
+              <Button 
+                onClick={() => navigate('/billing-security')}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reactivate Subscription
+              </Button>
+            )}
             <Button 
+              variant={isAdmin ? "outline" : "default"}
               onClick={() => navigate('/billing-security')}
-              className="flex items-center gap-2"
             >
-              <RefreshCw className="h-4 w-4" />
-              Reactivate Subscription
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/dashboard')}
-            >
-              Back to Dashboard
+              {isAdmin ? 'Back to Dashboard' : 'View Billing Details'}
             </Button>
           </div>
         </CardContent>
@@ -121,18 +128,20 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             </p>
             
             <div className="flex gap-3 justify-center">
-            <Button 
-                onClick={() => navigate('/billing-security')}
-                className="flex items-center gap-2"
-              >
-                <CreditCard className="h-4 w-4" />
-                Go to Billing
-              </Button>
+            {isAdmin && (
               <Button 
-                variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/billing-security')}
+                  className="flex items-center gap-2"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  Go to Billing
+                </Button>
+            )}
+              <Button 
+                variant={isAdmin ? "outline" : "default"}
+                onClick={() => navigate(isAdmin ? '/dashboard' : '/billing-security')}
               >
-                Back to Dashboard
+                {isAdmin ? 'Back to Dashboard' : 'View Billing Details'}
               </Button>
             </div>
           </div>
@@ -158,8 +167,8 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
           onClick={() => navigate('/billing-security')}
           className="flex items-center gap-2 mx-auto"
         >
-          <CreditCard className="h-4 w-4" />
-          Manage Subscription
+          <Eye className="h-4 w-4" />
+          {isAdmin ? 'Manage Subscription' : 'View Billing Details'}
         </Button>
       </CardContent>
     </Card>

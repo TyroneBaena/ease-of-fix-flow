@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Calendar, 
   CreditCard, 
@@ -18,7 +19,9 @@ import {
   Clock,
   DollarSign,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  ShieldAlert
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { PropertyCountDisplay } from './PropertyCountDisplay';
@@ -34,7 +37,7 @@ import { useFailedPaymentStatus } from '@/hooks/useFailedPaymentStatus';
 
 export const BillingManagementPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useUserContext();
+  const { currentUser } = useUnifiedAuth();
   const {
     subscribed,
     isTrialActive,
@@ -62,6 +65,9 @@ export const BillingManagementPage: React.FC = () => {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+
+  // Check if user is admin (can manage) or manager (view only)
+  const isAdmin = currentUser?.role === 'admin';
 
   const handleStartTrial = async () => {
     setIsStartingTrial(true);
@@ -195,6 +201,16 @@ export const BillingManagementPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Non-Admin Warning Banner */}
+        {!isAdmin && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <Eye className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-900">
+              You're viewing billing details in <strong>read-only mode</strong>. Only organization admins can manage subscriptions and payment methods.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -210,7 +226,9 @@ export const BillingManagementPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Billing & Subscription</h1>
-            <p className="text-muted-foreground">Manage your subscription and billing preferences</p>
+            <p className="text-muted-foreground">
+              {isAdmin ? 'Manage your subscription and billing preferences' : 'View subscription and billing information'}
+            </p>
           </div>
         </div>
 
@@ -226,7 +244,7 @@ export const BillingManagementPage: React.FC = () => {
         )}
 
         {/* Payment Method Setup - Manage payment method */}
-        {!showPaymentSetup && (
+        {!showPaymentSetup && isAdmin && (
           <Card className="mb-6 border-blue-200 bg-blue-50/50">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
@@ -277,20 +295,22 @@ export const BillingManagementPage: React.FC = () => {
                     Your free trial {isTrialExpiring ? 'expires' : 'ends'} on {trialEndDateFormatted}
                   </p>
                   <Progress value={trialProgress} className="h-2 mb-3" />
-                  <div className="flex items-center gap-3">
-                    <Button 
-                      onClick={handleUpgradeToPaid}
-                      disabled={isUpgrading || !propertyCount}
-                      size="sm"
-                    >
-                      {isUpgrading ? 'Upgrading...' : 'Upgrade to Paid'}
-                    </Button>
-                    {!propertyCount && (
-                      <p className="text-xs text-muted-foreground">
-                        Add properties to enable billing
-                      </p>
-                    )}
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-3">
+                      <Button 
+                        onClick={handleUpgradeToPaid}
+                        disabled={isUpgrading || !propertyCount}
+                        size="sm"
+                      >
+                        {isUpgrading ? 'Upgrading...' : 'Upgrade to Paid'}
+                      </Button>
+                      {!propertyCount && (
+                        <p className="text-xs text-muted-foreground">
+                          Add properties to enable billing
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -391,62 +411,74 @@ export const BillingManagementPage: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  {subscribed ? (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowCancellation(true)}
-                      size="sm"
-                    >
-                      Cancel Subscription
-                    </Button>
-                  ) : isTrialActive ? (
+                  {isAdmin && (
                     <>
+                      {subscribed ? (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowCancellation(true)}
+                          size="sm"
+                        >
+                          Cancel Subscription
+                        </Button>
+                      ) : isTrialActive ? (
+                        <>
+                          <Button 
+                            onClick={handleUpgradeToPaid}
+                            disabled={isUpgrading || !propertyCount}
+                            size="sm"
+                          >
+                            {isUpgrading ? 'Upgrading...' : 'Upgrade to Paid'}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setShowCancellation(true)}
+                            size="sm"
+                          >
+                            Cancel Trial
+                          </Button>
+                        </>
+                      ) : hasNeverStartedTrial ? (
+                        <Button 
+                          onClick={handleStartTrial}
+                          disabled={isStartingTrial}
+                          size="sm"
+                        >
+                          {isStartingTrial ? 'Starting Trial...' : 'Start Free Trial'}
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={() => setShowReactivation(true)}
+                          size="sm"
+                        >
+                          Reactivate Subscription
+                        </Button>
+                      )}
                       <Button 
-                        onClick={handleUpgradeToPaid}
-                        disabled={isUpgrading || !propertyCount}
+                        variant="outline" 
+                        onClick={handleCalculateBilling}
+                        disabled={isCalculating}
                         size="sm"
                       >
-                        {isUpgrading ? 'Upgrading...' : 'Upgrade to Paid'}
+                        {isCalculating ? 'Calculating...' : 'Refresh Billing'}
                       </Button>
                       <Button 
                         variant="outline" 
-                        onClick={() => setShowCancellation(true)}
+                        onClick={handleVerifyPaymentMethod}
                         size="sm"
                       >
-                        Cancel Trial
+                        Verify Payment
                       </Button>
                     </>
-                  ) : hasNeverStartedTrial ? (
-                    <Button 
-                      onClick={handleStartTrial}
-                      disabled={isStartingTrial}
-                      size="sm"
-                    >
-                      {isStartingTrial ? 'Starting Trial...' : 'Start Free Trial'}
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={() => setShowReactivation(true)}
-                      size="sm"
-                    >
-                      Reactivate Subscription
-                    </Button>
                   )}
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCalculateBilling}
-                    disabled={isCalculating}
-                    size="sm"
-                  >
-                    {isCalculating ? 'Calculating...' : 'Refresh Billing'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleVerifyPaymentMethod}
-                    size="sm"
-                  >
-                    Verify Payment
-                  </Button>
+                  {!isAdmin && (
+                    <Alert className="border-blue-200 bg-blue-50">
+                      <ShieldAlert className="h-4 w-4 text-blue-600" />
+                      <AlertDescription className="text-blue-900">
+                        Contact your organization admin to manage subscription changes
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </CardContent>
             </Card>
