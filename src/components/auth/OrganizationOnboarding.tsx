@@ -379,15 +379,45 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                   console.log('🔄 Refreshing auth context after joining organization...');
                   await refreshUser();
                   
-                  // Wait a bit for the context to fully update
-                  await new Promise(resolve => setTimeout(resolve, 500));
+                  // Wait for the context to fully update
+                  await new Promise(resolve => setTimeout(resolve, 800));
                   
-                  console.log('✅ Auth context refreshed, navigating to dashboard');
-                  setShowLoginReminder(false);
-                  onComplete();
+                  console.log('✅ Auth context refreshed');
                   
-                  // Force a hard navigation to ensure proper re-render
-                  window.location.href = '/dashboard';
+                  // Get the updated user role to determine correct dashboard
+                  const { data: { user: updatedUser } } = await supabase.auth.getUser();
+                  if (updatedUser) {
+                    const { data: profile } = await supabase
+                      .from('profiles')
+                      .select('role, organization_id')
+                      .eq('id', updatedUser.id)
+                      .single();
+                    
+                    console.log('📋 Updated profile:', profile);
+                    
+                    // Determine the correct dashboard based on role
+                    let targetPath = '/dashboard';
+                    
+                    // Only route to contractor dashboard if user has contractor role AND a contractor profile
+                    if (profile?.role === 'contractor') {
+                      const { data: contractorProfile } = await supabase
+                        .from('contractors')
+                        .select('id')
+                        .eq('user_id', updatedUser.id)
+                        .maybeSingle();
+                      
+                      if (contractorProfile) {
+                        targetPath = '/contractor-dashboard';
+                      }
+                    }
+                    
+                    console.log('🎯 Navigating to:', targetPath);
+                    setShowLoginReminder(false);
+                    onComplete();
+                    
+                    // Use hard navigation to ensure proper re-render with new role
+                    window.location.href = targetPath;
+                  }
                 } catch (error) {
                   console.error('Error refreshing auth:', error);
                   // Still navigate even if refresh fails
