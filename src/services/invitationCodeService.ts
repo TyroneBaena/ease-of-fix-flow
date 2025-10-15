@@ -221,6 +221,49 @@ export const invitationCodeService = {
         throw membershipError;
       }
 
+      // If contractor role, create contractor profile if it doesn't exist
+      if (invitationCode.assigned_role === 'contractor') {
+        console.log('📝 InvitationCodeService - Checking for contractor profile...');
+        
+        const { data: existingContractor } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!existingContractor) {
+          console.log('📝 InvitationCodeService - Creating contractor profile...');
+          
+          // Get user's email and name for contractor profile
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('email, name')
+            .eq('id', user.id)
+            .single();
+
+          const { error: contractorError } = await supabase
+            .from('contractors')
+            .insert({
+              user_id: user.id,
+              organization_id: invitationCode.organization_id,
+              company_name: userProfile?.name || user.email?.split('@')[0] || 'New Contractor',
+              contact_name: userProfile?.name || 'Contractor',
+              email: userProfile?.email || user.email || '',
+              phone: '',
+              specialties: []
+            });
+
+          if (contractorError) {
+            console.warn('📝 InvitationCodeService - Could not create contractor profile:', contractorError);
+            // Don't throw - allow user to complete profile later
+          } else {
+            console.log('📝 InvitationCodeService - Contractor profile created successfully');
+          }
+        } else {
+          console.log('📝 InvitationCodeService - Contractor profile already exists');
+        }
+      }
+
       console.log('📝 InvitationCodeService - SUCCESS! User joined organization');
       return {
         success: true,

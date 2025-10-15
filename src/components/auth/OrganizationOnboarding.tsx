@@ -400,6 +400,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                 try {
                   console.log('🔄 Starting post-join refresh...');
                   
+                  // Give database a moment to propagate changes
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
                   // Get fresh user data to determine dashboard (don't wait for slow org fetch)
                   const { data: { user: updatedUser } } = await supabase.auth.getUser();
                   if (!updatedUser) {
@@ -422,17 +425,32 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                   // 1. User has contractor role
                   // 2. User has a contractor profile in contractors table
                   if (profile?.role === 'contractor') {
-                    const { data: contractorProfile } = await supabase
+                    console.log('👷 User has contractor role, checking for contractor profile...');
+                    
+                    // Wait a bit more for contractor profile creation
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    const { data: contractorProfile, error: contractorError } = await supabase
                       .from('contractors')
                       .select('id')
                       .eq('user_id', updatedUser.id)
                       .maybeSingle();
                     
+                    if (contractorError) {
+                      console.error('Error checking contractor profile:', contractorError);
+                    }
+                    
+                    console.log('👷 Contractor profile check:', { 
+                      exists: !!contractorProfile, 
+                      id: contractorProfile?.id 
+                    });
+                    
                     if (contractorProfile) {
                       targetPath = '/contractor-dashboard';
                       console.log('🎯 Routing to contractor dashboard');
                     } else {
-                      console.log('⚠️ User has contractor role but no contractor profile - routing to regular dashboard');
+                      console.warn('⚠️ User has contractor role but no contractor profile - routing to regular dashboard');
+                      toast.info('Your contractor profile is being set up. Please refresh if you don\'t see it shortly.');
                     }
                   } else {
                     console.log('🎯 Routing to regular dashboard (role:', profile?.role, ')');
