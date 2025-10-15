@@ -121,6 +121,16 @@ Deno.serve(async (req) => {
     }
 
     console.log('🔐 Profile updated successfully:', updatedProfile);
+    
+    // VERIFY the role was actually set
+    if (updatedProfile.role !== invitationCode.assigned_role) {
+      console.error('🔐 CRITICAL: Role mismatch after update!', {
+        expected: invitationCode.assigned_role,
+        actual: updatedProfile.role
+      });
+      throw new Error(`Role verification failed: expected ${invitationCode.assigned_role} but got ${updatedProfile.role}`);
+    }
+    console.log('🔐 ✅ Role verified successfully:', updatedProfile.role);
 
     console.log('🔐 Creating user organization membership...');
     // Create user organization membership
@@ -158,7 +168,7 @@ Deno.serve(async (req) => {
           .eq('id', user_id)
           .single();
 
-        const { error: contractorError } = await supabase
+        const { data: newContractor, error: contractorError } = await supabase
           .from('contractors')
           .insert({
             user_id: user_id,
@@ -168,23 +178,36 @@ Deno.serve(async (req) => {
             email: userProfile?.email || '',
             phone: '',
             specialties: []
-          });
+          })
+          .select('id')
+          .single();
 
         if (contractorError) {
-          console.warn('🔐 Contractor profile creation warning:', contractorError);
-          // Don't fail - user can complete profile later
+          console.error('🔐 CRITICAL: Contractor profile creation failed:', contractorError);
+          throw new Error(`Failed to create contractor profile: ${contractorError.message}`);
         } else {
-          console.log('🔐 Contractor profile created successfully');
+          console.log('🔐 ✅ Contractor profile created successfully:', newContractor.id);
         }
+      } else {
+        console.log('🔐 Contractor profile already exists:', existingContractor.id);
       }
     }
 
     console.log('🔐 SUCCESS - User joined organization');
     
+    // Final verification before responding
+    const { data: finalProfile } = await supabase
+      .from('profiles')
+      .select('role, organization_id')
+      .eq('id', user_id)
+      .single();
+    
+    console.log('🔐 Final verification:', finalProfile);
+    
     const response: UseCodeResponse = {
       success: true,
       organization_id: invitationCode.organization_id,
-      assigned_role: invitationCode.assigned_role,
+      assigned_role: finalProfile?.role || invitationCode.assigned_role,
       error: null
     };
 

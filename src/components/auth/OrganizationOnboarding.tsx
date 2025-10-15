@@ -303,6 +303,37 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       }
 
       console.log('Successfully joined organization:', { organization_id, assigned_role });
+      
+      // VERIFY the role in the database immediately
+      console.log('🔍 Verifying role assignment in database...');
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('role, organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (verifyError) {
+        console.error('❌ Failed to verify role:', verifyError);
+        setError('Failed to verify role assignment. Please refresh the page.');
+        toast.error('Failed to verify role assignment');
+        setJoiningOrg(false);
+        return;
+      }
+      
+      console.log('📋 Verified profile data:', verifyProfile);
+      
+      if (verifyProfile.role !== assigned_role) {
+        console.error('❌ ROLE MISMATCH!', {
+          expected: assigned_role,
+          actual: verifyProfile.role
+        });
+        setError(`Role mismatch detected. Expected: ${assigned_role}, Got: ${verifyProfile.role}`);
+        toast.error('Role assignment error. Please contact support.');
+        setJoiningOrg(false);
+        return;
+      }
+      
+      console.log('✅ Role verified successfully:', verifyProfile.role);
       toast.success(`Successfully joined organization as ${assigned_role}!`);
 
       // Force a user metadata update to trigger auth state change
@@ -428,73 +459,75 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                   if (profile?.role === 'contractor') {
                     console.log('👷 User has contractor role, checking for contractor profile...');
                     
-                    // Wait a bit more for contractor profile creation from edge function
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Retry logic with exponential backoff for contractor profile
+                    let contractorProfile = null;
+                    let attempts = 0;
+                    const maxAttempts = 3;
                     
-                    const { data: contractorProfile, error: contractorError } = await supabase
-                      .from('contractors')
-                      .select('id')
-                      .eq('user_id', updatedUser.id)
-                      .maybeSingle();
-                    
-                    if (contractorError) {
-                      console.error('Error checking contractor profile:', contractorError);
-                    }
-                    
-                    console.log('👷 Contractor profile check:', { 
-                      exists: !!contractorProfile, 
-                      id: contractorProfile?.id 
-                    });
-                    
-                    if (contractorProfile) {
-                      targetPath = '/contractor-dashboard';
-                      console.log('🎯 Routing to contractor dashboard');
-                    } else {
-                      console.warn('⚠️ User has contractor role but no contractor profile yet');
-                      toast.info('Setting up your contractor profile...');
+                    while (!contractorProfile && attempts < maxAttempts) {
+                      attempts++;
+                      console.log(`👷 Contractor profile check attempt ${attempts}/${maxAttempts}`);
                       
-                      // Wait one more time and check again
-                      await new Promise(resolve => setTimeout(resolve, 1500));
-                      const { data: retryProfile } = await supabase
+                      const { data, error: contractorError } = await supabase
                         .from('contractors')
                         .select('id')
                         .eq('user_id', updatedUser.id)
                         .maybeSingle();
                       
-                      if (retryProfile) {
-                        targetPath = '/contractor-dashboard';
-                        console.log('🎯 Contractor profile found on retry - routing to contractor dashboard');
+                      if (contractorError) {
+                        console.error(`❌ Attempt ${attempts} - Error checking contractor profile:`, contractorError);
+                      } else if (data) {
+                        contractorProfile = data;
+                        console.log(`✅ Attempt ${attempts} - Contractor profile found:`, data.id);
                       } else {
-                        console.warn('⚠️ Contractor profile still not found - routing to regular dashboard');
-                        toast.warning('Please complete your contractor profile in settings');
+                        console.warn(`⚠️ Attempt ${attempts} - Contractor profile not found yet`);
+                        if (attempts < maxAttempts) {
+                          await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
+                        }
                       }
                     }
+                    
+                    if (contractorProfile) {
+                      targetPath = '/contractor-dashboard';
+                      console.log('🎯 Routing to contractor dashboard');
+                    } else {
+                      console.error('❌ CRITICAL: Contractor profile not found after all attempts');
+                      toast.error('Failed to create contractor profile. Redirecting to main dashboard...');
+                      // Fallback to regular dashboard
+                      targetPath = '/dashboard';
+                    }
+                  } else if (profile?.role === 'admin') {
+                    console.log('👑 User has admin role, routing to admin dashboard');
+                    targetPath = '/dashboard';
+                  } else if (profile?.role === 'manager') {
+                    console.log('📊 User has manager role, routing to manager dashboard');
+                    targetPath = '/dashboard';
                   } else {
-                    console.log('🎯 Routing to regular dashboard (role:', profile?.role, ')');
+                    console.warn('⚠️ Unknown role, defaulting to dashboard:', profile?.role);
+                    targetPath = '/dashboard';
                   }
                   
-                  onComplete();
+                  // Small delay before navigation to ensure state is synced
+                  await new Promise(resolve => setTimeout(resolve, 500));
                   
-                  // Refresh auth context in background (don't await)
-                  refreshUser().catch(err => console.warn('Background refresh failed:', err));
-                  
-                  // Use regular navigation to avoid full page reload
+                  console.log(`🚀 Final navigation to: ${targetPath}`);
                   navigate(targetPath, { replace: true });
-                } catch (error) {
-                  console.error('Error during post-join navigation:', error);
                   onComplete();
+                } catch (refreshError) {
+                  console.error('Error during refresh:', refreshError);
+                  toast.error('Navigation error. Please refresh the page.');
                   navigate('/dashboard', { replace: true });
+                  onComplete();
                 } finally {
                   setIsRefreshing(false);
                 }
               }}
-              className="w-full"
               disabled={isRefreshing}
             >
               {isRefreshing ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Loading Dashboard...
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Setting up...
                 </>
               ) : (
                 'Continue to Dashboard'
@@ -504,116 +537,177 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-white" />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="w-full max-w-2xl mx-4 shadow-lg">
+          <CardHeader className="space-y-1 text-center pb-4">
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-primary/10 p-3">
+                <Building2 className="h-8 w-8 text-primary" />
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">Complete Your Setup</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            You need to create or join an organization to continue
-          </p>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert className="mb-4 border-red-200 bg-red-50 text-red-800">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+            <CardTitle className="text-2xl font-bold">Complete Your Setup</CardTitle>
+            <p className="text-muted-foreground">
+              Create a new organization or join an existing one to get started
+            </p>
+          </CardHeader>
 
-          <Tabs defaultValue={initialInvitationCode ? "join" : "create"} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="create">Create Organization</TabsTrigger>
-              <TabsTrigger value="join">Join Organization</TabsTrigger>
-            </TabsList>
+          <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-            <TabsContent value="create" className="space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <CheckCircle className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-800">You'll become the admin of this organization</span>
-              </div>
+            <Tabs defaultValue={initialInvitationCode ? "join" : "create"} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="create" className="gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Create Organization
+                </TabsTrigger>
+                <TabsTrigger value="join" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Join Organization
+                </TabsTrigger>
+              </TabsList>
 
-              <form onSubmit={handleCreateOrganization} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="orgName" className="text-sm font-medium">
-                    Organization Name
-                  </label>
-                  <Input
-                    id="orgName"
-                    value={orgName}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setOrgName(value);
-                      if (value.trim()) {
-                        setOrgSlug(generateSlug(value));
-                      } else {
-                        setOrgSlug('');
-                      }
-                    }}
-                    placeholder="Acme Property Management"
-                    required
-                  />
+              <TabsContent value="create" className="space-y-4">
+                <form onSubmit={handleCreateOrganization} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="orgName" className="text-sm font-medium">
+                      Organization Name <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="orgName"
+                      placeholder="Acme Corp"
+                      value={orgName}
+                      onChange={(e) => {
+                        setOrgName(e.target.value);
+                        setOrgSlug(generateSlug(e.target.value));
+                      }}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="orgSlug" className="text-sm font-medium">
+                      Organization URL Slug <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="orgSlug"
+                      placeholder="acme-corp"
+                      value={orgSlug}
+                      onChange={(e) => setOrgSlug(generateSlug(e.target.value))}
+                      disabled={isLoading}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This will be used in your organization's URL
+                    </p>
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Organization...
+                      </>
+                    ) : (
+                      'Create Organization'
+                    )}
+                  </Button>
+                </form>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      What happens next?
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="orgSlug" className="text-sm font-medium">
-                    Organization Identifier
-                  </label>
-                  <Input
-                    id="orgSlug"
-                    value={orgSlug}
-                    onChange={(e) => setOrgSlug(e.target.value)}
-                    placeholder="acme-property-management"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This will be used in URLs and must be unique
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>You'll become the organization admin with full access</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Start with a free trial period</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span>Invite team members to join your organization</span>
                   </p>
                 </div>
+              </TabsContent>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Organization"}
-                </Button>
-              </form>
-            </TabsContent>
+              <TabsContent value="join" className="space-y-4">
+                <form onSubmit={handleJoinWithCode} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="inviteCode" className="text-sm font-medium">
+                      Invitation Code <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id="inviteCode"
+                      placeholder="JOIN-2024-XXXXXX"
+                      value={invitationCode}
+                      onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
+                      disabled={joiningOrg}
+                      required
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter the invitation code provided by your organization admin
+                    </p>
+                  </div>
 
-            <TabsContent value="join" className="space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                <Users className="h-4 w-4 text-amber-600" />
-                <span className="text-sm text-amber-800">You'll join as a team member</span>
-              </div>
+                  <Button type="submit" className="w-full" disabled={joiningOrg}>
+                    {joiningOrg ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Joining Organization...
+                      </>
+                    ) : (
+                      'Join Organization'
+                    )}
+                  </Button>
+                </form>
 
-              <form onSubmit={handleJoinWithCode} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="invitationCode" className="text-sm font-medium">
-                    Invitation Code
-                  </label>
-                  <Input
-                    id="invitationCode"
-                    value={invitationCode}
-                    onChange={(e) => setInvitationCode(e.target.value.toUpperCase())}
-                    placeholder="JOIN-2025-ABC123"
-                    className="font-mono"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Enter the code provided by your organization admin
-                  </p>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Need help?
+                    </span>
+                  </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={joiningOrg}>
-                  {joiningOrg ? "Joining..." : "Join Organization"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span>Ask your organization admin for an invitation code</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span>Codes are case-insensitive and expire after a set period</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span>You'll get the role assigned by the invitation code</span>
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 };
