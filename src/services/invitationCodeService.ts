@@ -139,171 +139,57 @@ export const invitationCodeService = {
       }
 
       console.log('📝 InvitationCodeService - User authenticated:', user.email);
+      console.log('📝 InvitationCodeService - Calling secure edge function...');
 
-      // Validate the code first
-      console.log('📝 InvitationCodeService - Validating code...');
-      const validation = await this.validateCode(code);
-      if (!validation.valid || !validation.data) {
-        console.error('📝 InvitationCodeService - Code validation failed:', validation.error);
-        return { success: false, organization_id: null, assigned_role: null, error: validation.error };
-      }
-
-      console.log('📝 InvitationCodeService - Code validated successfully');
-      const invitationCode = validation.data;
-      
-      // CRITICAL: Log the invitation code details to verify role
-      console.log('📝 InvitationCodeService - Invitation code details:', {
-        id: invitationCode.id,
-        assigned_role: invitationCode.assigned_role,
-        organization_id: invitationCode.organization_id,
-        code: invitationCode.code
+      // Call the secure edge function with service role permissions
+      const { data, error } = await supabase.functions.invoke('use-invitation-code', {
+        body: {
+          code: code.trim().toUpperCase(),
+          user_id: user.id
+        }
       });
 
-      // Check if this user has already used this invitation code
-      console.log('📝 InvitationCodeService - Checking for existing usage...');
-      const { data: existingUsage, error: usageCheckError } = await supabase
-        .from('invitation_code_usage')
-        .select('id, used_at')
-        .eq('invitation_code_id', invitationCode.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
+      console.log('📝 InvitationCodeService - Edge function response:', { data, error });
 
-      if (usageCheckError && usageCheckError.code !== 'PGRST116') {
-        console.error('📝 InvitationCodeService - Error checking usage:', usageCheckError);
-        throw usageCheckError;
-      }
-
-      if (existingUsage) {
-        console.warn('📝 InvitationCodeService - Code already used by this user');
+      if (error) {
+        console.error('📝 InvitationCodeService - Edge function error:', error);
         return { 
           success: false, 
           organization_id: null, 
           assigned_role: null, 
-          error: new Error('You have already used this invitation code. Each code can only be used once per user.') 
+          error: new Error(error.message || 'Failed to join organization') 
         };
       }
 
-      console.log('📝 InvitationCodeService - Recording usage...');
-      // Record usage
-      const { error: usageError } = await supabase
-        .from('invitation_code_usage')
-        .insert({
-          invitation_code_id: invitationCode.id,
-          user_id: user.id,
-        });
-
-      if (usageError) {
-        console.error('📝 InvitationCodeService - Error recording usage:', usageError);
-        throw usageError;
+      if (!data.success) {
+        console.error('📝 InvitationCodeService - Join failed:', data.error);
+        return { 
+          success: false, 
+          organization_id: null, 
+          assigned_role: null, 
+          error: new Error(data.error || 'Failed to join organization') 
+        };
       }
 
-      console.log('📝 InvitationCodeService - Incrementing usage count...');
-      // Increment usage count
-      const { error: updateError } = await supabase
-        .from('invitation_codes')
-        .update({ current_uses: invitationCode.current_uses + 1 })
-        .eq('id', invitationCode.id);
+      console.log('📝 InvitationCodeService - SUCCESS! User joined organization:', {
+        organization_id: data.organization_id,
+        assigned_role: data.assigned_role
+      });
 
-      if (updateError) {
-        console.error('📝 InvitationCodeService - Error updating count:', updateError);
-        throw updateError;
-      }
-
-      console.log('📝 InvitationCodeService - Updating user profile with role:', invitationCode.assigned_role);
-      // Update user's profile with organization and role
-      const { data: updatedProfile, error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          organization_id: invitationCode.organization_id,
-          session_organization_id: invitationCode.organization_id,
-          role: invitationCode.assigned_role,
-        })
-        .eq('id', user.id)
-        .select('role, organization_id')
-        .single();
-
-      if (profileError) {
-        console.error('📝 InvitationCodeService - Error updating profile:', profileError);
-        throw profileError;
-      }
-      
-      console.log('📝 InvitationCodeService - Profile updated successfully:', updatedProfile);
-
-      console.log('📝 InvitationCodeService - Creating user organization membership with role:', invitationCode.assigned_role);
-      // Create or update user organization membership
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('user_organizations')
-        .upsert({
-          user_id: user.id,
-          organization_id: invitationCode.organization_id,
-          role: invitationCode.assigned_role,
-          is_active: true,
-          is_default: true,
-        }, {
-          onConflict: 'user_id,organization_id'
-        })
-        .select('role');
-
-      if (membershipError) {
-        console.error('📝 InvitationCodeService - Membership error:', membershipError);
-        throw membershipError;
-      }
-      
-      console.log('📝 InvitationCodeService - Membership created/updated:', membershipData);
-
-      // If contractor role, create contractor profile if it doesn't exist
-      if (invitationCode.assigned_role === 'contractor') {
-        console.log('📝 InvitationCodeService - Checking for contractor profile...');
-        
-        const { data: existingContractor } = await supabase
-          .from('contractors')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (!existingContractor) {
-          console.log('📝 InvitationCodeService - Creating contractor profile...');
-          
-          // Get user's email and name for contractor profile
-          const { data: userProfile } = await supabase
-            .from('profiles')
-            .select('email, name')
-            .eq('id', user.id)
-            .single();
-
-          const { error: contractorError } = await supabase
-            .from('contractors')
-            .insert({
-              user_id: user.id,
-              organization_id: invitationCode.organization_id,
-              company_name: userProfile?.name || user.email?.split('@')[0] || 'New Contractor',
-              contact_name: userProfile?.name || 'Contractor',
-              email: userProfile?.email || user.email || '',
-              phone: '',
-              specialties: []
-            });
-
-          if (contractorError) {
-            console.warn('📝 InvitationCodeService - Could not create contractor profile:', contractorError);
-            // Don't throw - allow user to complete profile later
-          } else {
-            console.log('📝 InvitationCodeService - Contractor profile created successfully');
-          }
-        } else {
-          console.log('📝 InvitationCodeService - Contractor profile already exists');
-        }
-      }
-
-      console.log('📝 InvitationCodeService - SUCCESS! User joined organization');
       return {
         success: true,
-        organization_id: invitationCode.organization_id,
-        assigned_role: invitationCode.assigned_role,
+        organization_id: data.organization_id,
+        assigned_role: data.assigned_role,
         error: null,
       };
     } catch (error) {
       console.error('📝 InvitationCodeService - CRITICAL ERROR:', error);
-      return { success: false, organization_id: null, assigned_role: null, error: error as Error };
+      return { 
+        success: false, 
+        organization_id: null, 
+        assigned_role: null, 
+        error: error as Error 
+      };
     }
   },
 

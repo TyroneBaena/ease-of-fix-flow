@@ -276,13 +276,13 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       console.log('✅ Active session verified');
       console.log('Joining organization with code:', invitationCode.trim().toUpperCase());
 
-      // Add timeout wrapper to prevent hanging
+      // Add timeout wrapper to prevent hanging (increased to 20 seconds for edge function)
       const joinPromise = invitationCodeService.useCode(
         invitationCode.trim().toUpperCase()
       );
       
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Join organization request timed out. Please try again.')), 15000);
+        setTimeout(() => reject(new Error('Join organization request timed out. Please try again.')), 20000);
       });
 
       const { success, organization_id, assigned_role, error: joinError } = await Promise.race([
@@ -400,10 +400,11 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                 try {
                   console.log('🔄 Starting post-join refresh...');
                   
-                  // Give database a moment to propagate changes
-                  await new Promise(resolve => setTimeout(resolve, 500));
+                  // Edge function has already updated everything, just need to route correctly
+                  // Give database a moment to propagate (edge function is fast but propagation takes time)
+                  await new Promise(resolve => setTimeout(resolve, 1000));
                   
-                  // Get fresh user data to determine dashboard (don't wait for slow org fetch)
+                  // Get fresh user data to determine dashboard
                   const { data: { user: updatedUser } } = await supabase.auth.getUser();
                   if (!updatedUser) {
                     console.error('No user found after refresh');
@@ -427,8 +428,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                   if (profile?.role === 'contractor') {
                     console.log('👷 User has contractor role, checking for contractor profile...');
                     
-                    // Wait a bit more for contractor profile creation
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Wait a bit more for contractor profile creation from edge function
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                     
                     const { data: contractorProfile, error: contractorError } = await supabase
                       .from('contractors')
@@ -449,8 +450,24 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                       targetPath = '/contractor-dashboard';
                       console.log('🎯 Routing to contractor dashboard');
                     } else {
-                      console.warn('⚠️ User has contractor role but no contractor profile - routing to regular dashboard');
-                      toast.info('Your contractor profile is being set up. Please refresh if you don\'t see it shortly.');
+                      console.warn('⚠️ User has contractor role but no contractor profile yet');
+                      toast.info('Setting up your contractor profile...');
+                      
+                      // Wait one more time and check again
+                      await new Promise(resolve => setTimeout(resolve, 1500));
+                      const { data: retryProfile } = await supabase
+                        .from('contractors')
+                        .select('id')
+                        .eq('user_id', updatedUser.id)
+                        .maybeSingle();
+                      
+                      if (retryProfile) {
+                        targetPath = '/contractor-dashboard';
+                        console.log('🎯 Contractor profile found on retry - routing to contractor dashboard');
+                      } else {
+                        console.warn('⚠️ Contractor profile still not found - routing to regular dashboard');
+                        toast.warning('Please complete your contractor profile in settings');
+                      }
                     }
                   } else {
                     console.log('🎯 Routing to regular dashboard (role:', profile?.role, ')');
