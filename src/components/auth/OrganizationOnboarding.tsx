@@ -276,13 +276,13 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       console.log('✅ Active session verified');
       console.log('Joining organization with code:', invitationCode.trim().toUpperCase());
 
-      // Add timeout wrapper to prevent hanging (increased to 20 seconds for edge function)
+      // Add timeout wrapper to prevent hanging (increased to 30 seconds for edge function)
       const joinPromise = invitationCodeService.useCode(
         invitationCode.trim().toUpperCase()
       );
       
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Join organization request timed out. Please try again.')), 20000);
+        setTimeout(() => reject(new Error('Join organization request timed out. Please try again.')), 30000);
       });
 
       const { success, organization_id, assigned_role, error: joinError } = await Promise.race([
@@ -336,6 +336,15 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       console.log('✅ Role verified successfully:', verifyProfile.role);
       toast.success(`Successfully joined organization as ${assigned_role}!`);
 
+      // Force auth context to refetch organizations after successful join
+      // Wait a moment for database propagation
+      console.log('⏳ Waiting for database propagation...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Trigger a full user data refresh by updating metadata
+      console.log('🔄 Triggering user data refresh...');
+      await supabase.auth.refreshSession();
+
       // Force a user metadata update to trigger auth state change
       try {
         const { error: updateError } = await supabase.auth.updateUser({
@@ -349,7 +358,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.warn('Error updating user metadata:', metaError);
       }
 
-      // Immediately update state to enable button - don't wait for org fetch
+      // Immediately update state to enable button
       setJoiningOrg(false);
       
       // Show login reminder dialog with user's email

@@ -263,7 +263,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .eq('is_active', true);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Organization fetch timeout')), 10000)
+        setTimeout(() => reject(new Error('Organization fetch timeout')), 30000)
       );
 
       const { data: userOrgs, error: userOrgsError } = await Promise.race([
@@ -276,15 +276,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (userOrgsError) {
         console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
-        setUserOrganizations([]);
-        setCurrentOrganization(null);
+        // Don't clear organizations immediately on timeout - might be mid-join
+        if (userOrgsError.message !== 'Organization fetch timeout') {
+          setUserOrganizations([]);
+          setCurrentOrganization(null);
+        }
         return user.organization_id || null; // Return fallback org ID from profile
       }
 
       if (!userOrgs || userOrgs.length === 0) {
         console.log('UnifiedAuth - No organizations found, using profile organization_id');
-        setUserOrganizations([]);
-        setCurrentOrganization(null);
+        // Don't clear if we already have organizations - might be mid-update
+        if (userOrganizations.length === 0) {
+          setUserOrganizations([]);
+          setCurrentOrganization(null);
+        }
         return user.organization_id || null; // Return fallback org ID
       }
 
