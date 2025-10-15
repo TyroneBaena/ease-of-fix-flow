@@ -113,7 +113,6 @@ export const GenerateCodeDialog = ({ onCodeGenerated }: GenerateCodeDialogProps)
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="contractor">Contractor</SelectItem>
                 </SelectContent>
