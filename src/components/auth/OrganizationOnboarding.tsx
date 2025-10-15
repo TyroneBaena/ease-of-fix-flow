@@ -209,13 +209,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.warn('Error updating user metadata:', metaError);
       }
 
-      // Call onComplete callback to update parent state
-      onComplete();
-      
-      // Show payment setup instead of redirecting
-      setTimeout(() => {
-        setShowPaymentSetup(true);
-      }, 500);
+      // Show payment setup - don't call onComplete yet
+      // onComplete will be called after payment setup is done or skipped
+      setShowPaymentSetup(true);
     } catch (error: any) {
       console.error('Error creating organization:', error);
       setError(error.message || "Failed to create organization");
@@ -232,9 +228,11 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         <PaymentMethodSetup
           onComplete={() => {
             toast.success('Free trial activated!');
+            onComplete(); // Call parent's onComplete after payment setup
             navigate('/dashboard', { replace: true });
           }}
           onSkip={() => {
+            onComplete(); // Call parent's onComplete even if skipped
             navigate('/dashboard', { replace: true });
           }}
         />
