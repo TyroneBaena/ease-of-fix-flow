@@ -304,6 +304,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.warn('Error updating user metadata:', metaError);
       }
 
+      // Immediately update state to enable button - don't wait for org fetch
+      setJoiningOrg(false);
+      
       // Show login reminder dialog with user's email
       setUserEmail(user.email || '');
       setShowLoginReminder(true);
@@ -311,7 +314,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       console.error('Error joining organization:', error);
       setError(error.message || "Failed to join organization");
       toast.error(`Failed to join organization: ${error.message || "Unknown error"}`);
-    } finally {
       setJoiningOrg(false);
     }
   };
@@ -379,15 +381,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                 try {
                   console.log('🔄 Starting post-join refresh...');
                   
-                  // Wait for the auth context to fully refresh
-                  await refreshUser();
-                  
-                  // Give it a moment to propagate through React state
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  
-                  console.log('✅ Auth context refreshed');
-                  
-                  // Get fresh user data to determine dashboard
+                  // Get fresh user data to determine dashboard (don't wait for slow org fetch)
                   const { data: { user: updatedUser } } = await supabase.auth.getUser();
                   if (!updatedUser) {
                     console.error('No user found after refresh');
@@ -426,6 +420,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                   }
                   
                   onComplete();
+                  
+                  // Refresh auth context in background (don't await)
+                  refreshUser().catch(err => console.warn('Background refresh failed:', err));
                   
                   // Use regular navigation to avoid full page reload
                   navigate(targetPath, { replace: true });

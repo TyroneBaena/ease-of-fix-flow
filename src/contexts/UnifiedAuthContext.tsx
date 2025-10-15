@@ -146,7 +146,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
 
     // Create timeout promise
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile query timeout')), 3000);
+      setTimeout(() => reject(new Error('Profile query timeout')), 10000);
     });
 
     let profile = null;
@@ -263,7 +263,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .eq('is_active', true);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Organization fetch timeout')), 3000)
+        setTimeout(() => reject(new Error('Organization fetch timeout')), 10000)
       );
 
       const { data: userOrgs, error: userOrgsError } = await Promise.race([
