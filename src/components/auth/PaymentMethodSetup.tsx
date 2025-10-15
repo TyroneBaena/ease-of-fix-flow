@@ -73,10 +73,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess }) =>
 
 interface PaymentMethodSetupProps {
   onComplete: () => void;
-  onSkip: () => void;
 }
 
-export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComplete, onSkip }) => {
+export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComplete }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -162,14 +161,6 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComple
           </Alert>
         )}
 
-        {/* Skip Option */}
-        {!success && !loading && (
-          <div className="text-center">
-            <Button variant="ghost" onClick={onSkip}>
-              Skip for now
-            </Button>
-          </div>
-        )}
 
         {/* Security Notice */}
         <div className="text-center text-sm text-muted-foreground">

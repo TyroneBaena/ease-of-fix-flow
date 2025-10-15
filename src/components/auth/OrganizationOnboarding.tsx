@@ -231,10 +231,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
             onComplete(); // Call parent's onComplete after payment setup
             navigate('/dashboard', { replace: true });
           }}
-          onSkip={() => {
-            onComplete(); // Call parent's onComplete even if skipped
-            navigate('/dashboard', { replace: true });
-          }}
         />
       </div>
     );
