@@ -7,8 +7,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
-import { Shield, CreditCard, AlertTriangle, Users, Activity } from "lucide-react";
+import { Shield, CreditCard, AlertTriangle, Users, Activity, UsersIcon } from "lucide-react";
 import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
+import { TeamManagement } from "./TeamManagement";
 
 const AdminSettings: React.FC = () => {
   const { isAdmin } = useSimpleAuth();
@@ -30,16 +31,22 @@ const AdminSettings: React.FC = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`grid w-full max-w-md ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <TabsList className={`grid w-full max-w-2xl ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
               <TabsTrigger value="billing" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
                 Billing
               </TabsTrigger>
               {isAdmin && (
-                <TabsTrigger value="security" className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Security
-                </TabsTrigger>
+                <>
+                  <TabsTrigger value="team" className="flex items-center gap-2">
+                    <UsersIcon className="h-4 w-4" />
+                    Team Management
+                  </TabsTrigger>
+                  <TabsTrigger value="security" className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Security
+                  </TabsTrigger>
+                </>
               )}
             </TabsList>
 
@@ -48,7 +55,12 @@ const AdminSettings: React.FC = () => {
             </TabsContent>
 
             {isAdmin && (
-              <TabsContent value="security" className="mt-6 space-y-6">
+              <>
+                <TabsContent value="team" className="mt-6">
+                  <TeamManagement />
+                </TabsContent>
+
+                <TabsContent value="security" className="mt-6 space-y-6">
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>
@@ -102,6 +114,7 @@ const AdminSettings: React.FC = () => {
                 </AlertDescription>
               </Alert>
               </TabsContent>
+            </>
             )}
           </Tabs>
         </div>

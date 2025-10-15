@@ -59,6 +59,7 @@ import Pricing from '@/pages/Pricing';
 import AdminSettings from '@/pages/AdminSettings';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { EnhancedSignupFlow } from '@/components/auth/EnhancedSignupFlow';
+import { TeamManagement } from '@/pages/TeamManagement';
 
 const queryClient = new QueryClient();
 
@@ -290,6 +291,17 @@ function AppRoutes() {
               <ProtectedRoute>
                 <OrganizationGuard>
                   <PaymentMethodSetup />
+                </OrganizationGuard>
+              </ProtectedRoute>
+            } />
+            
+            {/* Team Management - Admin Only */}
+            <Route path="/team-management" element={
+              <ProtectedRoute>
+                <OrganizationGuard>
+                  <AdminRouteGuard>
+                    <TeamManagement />
+                  </AdminRouteGuard>
                 </OrganizationGuard>
               </ProtectedRoute>
             } />

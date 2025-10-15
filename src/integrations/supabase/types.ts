@@ -327,6 +327,88 @@ export type Database = {
           },
         ]
       }
+      invitation_code_usage: {
+        Row: {
+          id: string
+          invitation_code_id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invitation_code_id: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invitation_code_id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_code_usage_invitation_code_id_fkey"
+            columns: ["invitation_code_id"]
+            isOneToOne: false
+            referencedRelation: "invitation_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitation_codes: {
+        Row: {
+          assigned_role: string
+          code: string
+          created_at: string
+          created_by: string
+          current_uses: number
+          expires_at: string
+          id: string
+          internal_note: string | null
+          is_active: boolean
+          max_uses: number
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_role?: string
+          code: string
+          created_at?: string
+          created_by: string
+          current_uses?: number
+          expires_at: string
+          id?: string
+          internal_note?: string | null
+          is_active?: boolean
+          max_uses?: number
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_role?: string
+          code?: string
+          created_at?: string
+          created_by?: string
+          current_uses?: number
+          expires_at?: string
+          id?: string
+          internal_note?: string | null
+          is_active?: boolean
+          max_uses?: number
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_codes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           contractor_id: string
