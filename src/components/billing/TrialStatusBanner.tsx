@@ -139,7 +139,7 @@ export const TrialStatusBanner: React.FC<TrialStatusBannerProps> = ({
                 )}
               >
                 <CreditCard className="h-3 w-3 mr-1" />
-                Upgrade Now
+                Go to Billing
               </Button>
               {onManageTrial && (
                 <Button 

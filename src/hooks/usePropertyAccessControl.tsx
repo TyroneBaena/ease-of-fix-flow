@@ -88,8 +88,8 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
       } else {
         toast.error("Your trial has expired. Please upgrade to continue.", {
           action: {
-            label: "Upgrade Now",
-            onClick: () => navigate('/pricing')
+            label: "Go to Billing",
+            onClick: () => navigate('/billing-security')
           },
           duration: 6000
         });

@@ -113,7 +113,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
                 className="bg-red-600 hover:bg-red-700"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
-                {isCancelled ? 'Reactivate' : 'Upgrade Now'}
+                {isCancelled ? 'Reactivate' : 'Go to Billing'}
               </Button>
               <Button 
                 variant="outline"

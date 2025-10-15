@@ -58,8 +58,8 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
         toast.error('Trial Expired', {
           description: 'Please upgrade to continue using the platform.',
           action: {
-            label: 'Upgrade Now',
-            onClick: () => navigate('/billing'),
+            label: 'Go to Billing',
+            onClick: () => navigate('/billing-security'),
           },
           duration: 10000,
         });

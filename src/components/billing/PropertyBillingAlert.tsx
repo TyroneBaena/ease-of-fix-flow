@@ -86,15 +86,8 @@ export const PropertyBillingAlert: React.FC = () => {
                 size="sm"
                 className="flex items-center gap-1"
               >
-                <Zap className="h-3 w-3" />
-                Upgrade Now
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/billing-security')} 
-                size="sm"
-              >
-                Manage Trial
+                <CreditCard className="h-3 w-3" />
+                View Billing Details
               </Button>
             </div>
           </div>

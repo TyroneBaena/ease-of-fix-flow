@@ -7,8 +7,7 @@ import {
   Clock, 
   AlertTriangle, 
   CreditCard, 
-  RefreshCw,
-  Zap
+  RefreshCw
 } from 'lucide-react';
 import { usePropertyAccessControl } from '@/hooks/usePropertyAccessControl';
 import { useNavigate } from 'react-router-dom';
@@ -122,12 +121,12 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             </p>
             
             <div className="flex gap-3 justify-center">
-              <Button 
-                onClick={() => navigate('/pricing')}
+            <Button 
+                onClick={() => navigate('/billing-security')}
                 className="flex items-center gap-2"
               >
-                <Zap className="h-4 w-4" />
-                Upgrade Now
+                <CreditCard className="h-4 w-4" />
+                Go to Billing
               </Button>
               <Button 
                 variant="outline" 
