@@ -80,8 +80,7 @@ function AppRoutes() {
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<EnhancedSignupFlow />} />
-            <Route path="/signup-basic" element={<Signup />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/setup-password" element={<SetupPassword />} />
             <Route path="/email-confirm" element={<EmailConfirm />} />
