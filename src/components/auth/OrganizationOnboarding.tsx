@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, AlertCircle, CheckCircle, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Building2, AlertCircle, CheckCircle, Users, Mail, Key } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PaymentMethodSetup } from './PaymentMethodSetup';
@@ -29,6 +30,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   // Join organization with invitation code
   const [invitationCode, setInvitationCode] = useState('');
   const [joiningOrg, setJoiningOrg] = useState(false);
+  const [showLoginReminder, setShowLoginReminder] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   const generateSlug = (name: string) => {
     return name
@@ -274,9 +277,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.warn('Error updating user metadata:', metaError);
       }
 
-      // Complete onboarding - no payment setup needed when joining
-      onComplete();
-      navigate('/dashboard', { replace: true });
+      // Show login reminder dialog with user's email
+      setUserEmail(user.email || '');
+      setShowLoginReminder(true);
     } catch (error: any) {
       console.error('Error joining organization:', error);
       setError(error.message || "Failed to join organization");
@@ -302,8 +305,61 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
+    <>
+      {/* Login Reminder Dialog - Only shown after joining via invitation code */}
+      <Dialog open={showLoginReminder} onOpenChange={setShowLoginReminder}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Successfully Joined Organization!
+            </DialogTitle>
+            <DialogDescription className="space-y-4 pt-4">
+              <p>You can now access the platform. Here are your login credentials for future reference:</p>
+              
+              <div className="space-y-3 bg-muted p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Email Address</p>
+                    <p className="font-mono text-sm break-all">{userEmail}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Key className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Password</p>
+                    <p className="text-sm">The password you set during registration</p>
+                  </div>
+                </div>
+              </div>
+
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertDescription className="text-sm text-blue-800">
+                  💡 Tip: Save these credentials securely. You'll need them to login next time.
+                </AlertDescription>
+              </Alert>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              onClick={() => {
+                setShowLoginReminder(false);
+                onComplete();
+                navigate('/dashboard', { replace: true });
+              }}
+              className="w-full"
+            >
+              Continue to Dashboard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center">
@@ -412,5 +468,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         </CardContent>
       </Card>
     </div>
+    </>
   );
 };
