@@ -118,11 +118,26 @@ Deno.serve(async (req) => {
     // Create service role client for admin operations
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if user already has a subscriber record (no trial for existing users)
+    // Get user's organization_id from profiles
+    const { data: profile, error: profileError } = await adminSupabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile?.organization_id) {
+      log("Error fetching user profile or missing organization", { profileError, hasOrgId: !!profile?.organization_id });
+      throw new Error('User must belong to an organization to start a trial');
+    }
+
+    const organizationId = profile.organization_id;
+    log("Retrieved user organization", { organizationId });
+
+    // Check if organization already has a subscriber record
     const { data: existingSubscriber, error: checkError } = await adminSupabase
       .from('subscribers')
       .select('id, trial_start_date, subscribed')
-      .eq('user_id', userId)
+      .eq('organization_id', organizationId)
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
@@ -131,19 +146,20 @@ Deno.serve(async (req) => {
     }
 
     if (existingSubscriber) {
-      log("User already has subscription record - no trial available", { 
+      log("Organization already has subscription record - no trial available", { 
         subscriberId: existingSubscriber.id,
         hadTrial: !!existingSubscriber.trial_start_date,
         isSubscribed: existingSubscriber.subscribed
       });
-      throw new Error('Trial is only available for first-time users');
+      throw new Error('Trial is only available for first-time organizations');
     }
 
-    // Create new subscriber record for first-time user
+    // Create new subscriber record for first-time organization
     const { data: subscriber, error: subscriberError } = await adminSupabase
       .from('subscribers')
       .insert({
         user_id: userId,
+        organization_id: organizationId,
         email: userEmail,
         stripe_customer_id: customer.id,
         setup_intent_id: setupIntent.id,
@@ -153,6 +169,8 @@ Deno.serve(async (req) => {
         is_cancelled: false,
         active_properties_count: propertyCount,
         subscribed: false,
+        subscription_status: 'trialing',
+        payment_status: 'active',
       })
       .select()
       .single();
