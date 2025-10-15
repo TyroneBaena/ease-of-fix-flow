@@ -168,46 +168,39 @@ useEffect(() => {
       console.log('Signup response:', { data, error: signUpError });
       
       if (signUpError) {
+        // Check for "user already registered" error specifically
+        if (signUpError.message?.toLowerCase().includes('user already registered') ||
+            signUpError.message?.toLowerCase().includes('already registered')) {
+          setError("An account with this email already exists. Please sign in instead.");
+          toast.error("Account already exists. Please sign in instead.");
+          
+          setTimeout(() => {
+            navigate('/login', { replace: true });
+          }, 2000);
+          return;
+        }
         throw signUpError;
       }
       
-      // Check if user already exists by examining the response pattern
-      if (data.user && !data.session) {
-        // When a user already exists, Supabase returns the user but no session
-        console.log("User already exists - no session returned:", data.user.email);
-        setError("An account with this email already exists. Please sign in instead.");
-        toast.error("Account already exists. Please sign in instead.");
-        
-        // Clear the form
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setName('');
-        
-        // Redirect to login after a delay
-        setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 2000);
-        return;
-      }
-      
       if (data.user) {
-        console.log("New account created successfully:", data.user.id, "confirmed:", !!data.user.email_confirmed_at);
+        console.log("Account created:", data.user.id, "confirmed:", !!data.user.email_confirmed_at);
         
         if (data.session) {
           // User is immediately signed in (email confirmation disabled)
           toast.success("Account created successfully!");
+          setInfo("Account created successfully! Setting up your profile...");
         } else {
           // User created but needs email confirmation
-          toast.success("Account created! Please check your email for confirmation.");
-          setInfo("Account created successfully. Please check your email for confirmation.");
+          toast.success("Check your email for the confirmation link!");
+          setInfo("Account created successfully. Please check your email and click the confirmation link to continue.");
+          setEmailConfirmationRequired(true);
         }
         
-        // The auth state change listener will handle setting the correct state
+        // The auth state change listener will handle the rest
       } else {
         console.log("Unexpected signup response - no user returned");
+        toast.info("Please check your email for confirmation.");
         setInfo("Account created successfully. Please check your email for confirmation.");
-        toast.info("Account created! Please check your email for confirmation.");
       }
     } catch (error: any) {
       console.error('Signup error:', error);
