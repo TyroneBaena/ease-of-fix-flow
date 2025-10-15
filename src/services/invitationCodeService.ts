@@ -115,20 +115,29 @@ export const invitationCodeService = {
   // Use an invitation code (join organization)
   async useCode(code: string): Promise<{ success: boolean; organization_id: string | null; assigned_role: string | null; error: Error | null }> {
     try {
+      console.log('📝 InvitationCodeService.useCode - START:', code);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.error('📝 InvitationCodeService - No authenticated user');
         return { success: false, organization_id: null, assigned_role: null, error: new Error('User not authenticated') };
       }
 
+      console.log('📝 InvitationCodeService - User authenticated:', user.email);
+
       // Validate the code first
+      console.log('📝 InvitationCodeService - Validating code...');
       const validation = await this.validateCode(code);
       if (!validation.valid || !validation.data) {
+        console.error('📝 InvitationCodeService - Code validation failed:', validation.error);
         return { success: false, organization_id: null, assigned_role: null, error: validation.error };
       }
 
+      console.log('📝 InvitationCodeService - Code validated successfully');
       const invitationCode = validation.data;
 
       // Check if this user has already used this invitation code
+      console.log('📝 InvitationCodeService - Checking for existing usage...');
       const { data: existingUsage, error: usageCheckError } = await supabase
         .from('invitation_code_usage')
         .select('id, used_at')
@@ -137,11 +146,12 @@ export const invitationCodeService = {
         .maybeSingle();
 
       if (usageCheckError && usageCheckError.code !== 'PGRST116') {
-        console.error('Error checking invitation code usage:', usageCheckError);
+        console.error('📝 InvitationCodeService - Error checking usage:', usageCheckError);
         throw usageCheckError;
       }
 
       if (existingUsage) {
+        console.warn('📝 InvitationCodeService - Code already used by this user');
         return { 
           success: false, 
           organization_id: null, 
@@ -150,6 +160,7 @@ export const invitationCodeService = {
         };
       }
 
+      console.log('📝 InvitationCodeService - Recording usage...');
       // Record usage
       const { error: usageError } = await supabase
         .from('invitation_code_usage')
@@ -158,16 +169,24 @@ export const invitationCodeService = {
           user_id: user.id,
         });
 
-      if (usageError) throw usageError;
+      if (usageError) {
+        console.error('📝 InvitationCodeService - Error recording usage:', usageError);
+        throw usageError;
+      }
 
+      console.log('📝 InvitationCodeService - Incrementing usage count...');
       // Increment usage count
       const { error: updateError } = await supabase
         .from('invitation_codes')
         .update({ current_uses: invitationCode.current_uses + 1 })
         .eq('id', invitationCode.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('📝 InvitationCodeService - Error updating count:', updateError);
+        throw updateError;
+      }
 
+      console.log('📝 InvitationCodeService - Updating user profile...');
       // Update user's profile with organization and role
       const { error: profileError } = await supabase
         .from('profiles')
@@ -178,8 +197,12 @@ export const invitationCodeService = {
         })
         .eq('id', user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('📝 InvitationCodeService - Error updating profile:', profileError);
+        throw profileError;
+      }
 
+      console.log('📝 InvitationCodeService - Creating user organization membership...');
       // Create or update user organization membership
       const { error: membershipError } = await supabase
         .from('user_organizations')
@@ -194,10 +217,11 @@ export const invitationCodeService = {
         });
 
       if (membershipError) {
-        console.error('Membership error:', membershipError);
+        console.error('📝 InvitationCodeService - Membership error:', membershipError);
         throw membershipError;
       }
 
+      console.log('📝 InvitationCodeService - SUCCESS! User joined organization');
       return {
         success: true,
         organization_id: invitationCode.organization_id,
@@ -205,7 +229,7 @@ export const invitationCodeService = {
         error: null,
       };
     } catch (error) {
-      console.error('Error using invitation code:', error);
+      console.error('📝 InvitationCodeService - CRITICAL ERROR:', error);
       return { success: false, organization_id: null, assigned_role: null, error: error as Error };
     }
   },

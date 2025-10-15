@@ -276,12 +276,26 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       console.log('✅ Active session verified');
       console.log('Joining organization with code:', invitationCode.trim().toUpperCase());
 
-      const { success, organization_id, assigned_role, error: joinError } = await invitationCodeService.useCode(
+      // Add timeout wrapper to prevent hanging
+      const joinPromise = invitationCodeService.useCode(
         invitationCode.trim().toUpperCase()
       );
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Join organization request timed out. Please try again.')), 15000);
+      });
+
+      const { success, organization_id, assigned_role, error: joinError } = await Promise.race([
+        joinPromise,
+        timeoutPromise
+      ]).catch((err) => {
+        console.error('Join operation failed:', err);
+        return { success: false, organization_id: null, assigned_role: null, error: err };
+      }) as any;
 
       if (!success || joinError) {
         const errorMessage = joinError?.message || "Failed to join organization";
+        console.error('Join failed:', errorMessage);
         setError(errorMessage);
         toast.error(errorMessage);
         setJoiningOrg(false);
@@ -311,9 +325,14 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       setUserEmail(user.email || '');
       setShowLoginReminder(true);
     } catch (error: any) {
-      console.error('Error joining organization:', error);
-      setError(error.message || "Failed to join organization");
-      toast.error(`Failed to join organization: ${error.message || "Unknown error"}`);
+      console.error('🚨 CRITICAL: Error joining organization:', error);
+      const errorMsg = error.message || "Failed to join organization";
+      setError(errorMsg);
+      toast.error(`Failed to join organization: ${errorMsg}`);
+      setJoiningOrg(false);
+    } finally {
+      // Safety net: ensure button is always re-enabled
+      console.log('🔄 Join flow complete, ensuring button is enabled');
       setJoiningOrg(false);
     }
   };
