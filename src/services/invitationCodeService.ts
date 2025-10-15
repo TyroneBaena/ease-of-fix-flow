@@ -251,15 +251,46 @@ export const invitationCodeService = {
   // Delete an invitation code
   async deleteCode(codeId: string): Promise<{ success: boolean; error: Error | null }> {
     try {
+      console.log('🗑️ Attempting to delete invitation code:', codeId);
+      
+      // First, let's verify the current user has admin role and organization access
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('🗑️ No authenticated user');
+        return { success: false, error: new Error('User not authenticated') };
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id, role')
+        .eq('id', user.id)
+        .single();
+
+      console.log('🗑️ User profile:', profile);
+
+      // Get the invitation code to verify organization match
+      const { data: codeData } = await supabase
+        .from('invitation_codes')
+        .select('organization_id, code')
+        .eq('id', codeId)
+        .single();
+
+      console.log('🗑️ Invitation code data:', codeData);
+
       const { error } = await supabase
         .from('invitation_codes')
         .delete()
         .eq('id', codeId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('🗑️ Delete error:', error);
+        throw error;
+      }
+      
+      console.log('🗑️ Successfully deleted invitation code');
       return { success: true, error: null };
     } catch (error) {
-      console.error('Error deleting invitation code:', error);
+      console.error('🗑️ Error deleting invitation code:', error);
       return { success: false, error: error as Error };
     }
   },
