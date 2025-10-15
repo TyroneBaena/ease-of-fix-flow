@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, AlertCircle, CheckCircle } from 'lucide-react';
+import { Building2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,16 +15,12 @@ interface OrganizationOnboardingProps {
 
 export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ user, onComplete }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Create organization form
   const [orgName, setOrgName] = useState('');
   const [orgSlug, setOrgSlug] = useState('');
-  
-  // Join organization form
-  const [inviteCode, setInviteCode] = useState('');
 
   const generateSlug = (name: string) => {
     return name
@@ -71,16 +66,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     }
 
     return slug;
-  };
-
-  const handleOrgNameChange = (value: string) => {
-    setOrgName(value);
-    if (value.trim()) {
-      // Generate basic slug immediately for UI feedback
-      setOrgSlug(generateSlug(value));
-    } else {
-      setOrgSlug('');
-    }
   };
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
@@ -240,29 +225,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     }
   };
 
-  const handleJoinOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!inviteCode.trim()) {
-      setError("Invite code is required");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      console.log('Joining organization with code:', inviteCode);
-
-      // For now, show a message that this feature will be available later
-      setError("Organization invitation system will be available in a future update. Please create your own organization for now.");
-    } catch (error: any) {
-      console.error('Error joining organization:', error);
-      setError(error.message || "Failed to join organization");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
@@ -272,9 +234,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
               <Building2 className="h-6 w-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Complete Your Setup</CardTitle>
+          <CardTitle className="text-2xl font-bold">Create Your Organization</CardTitle>
           <p className="text-sm text-muted-foreground">
-            You need to create or join an organization to continue
+            Set up your organization to get started
           </p>
         </CardHeader>
         <CardContent>
@@ -285,92 +247,54 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
             </Alert>
           )}
 
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'create' | 'join')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="create">Create Organization</TabsTrigger>
-              <TabsTrigger value="join">Join Organization</TabsTrigger>
-            </TabsList>
+          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md mb-4">
+            <CheckCircle className="h-4 w-4 text-blue-600" />
+            <span className="text-sm text-blue-800">You'll become the admin of this organization</span>
+          </div>
 
-            <TabsContent value="create" className="space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <CheckCircle className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-800">You'll become the admin of this organization</span>
-              </div>
+          <form onSubmit={handleCreateOrganization} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="orgName" className="text-sm font-medium">
+                Organization Name
+              </label>
+              <Input
+                id="orgName"
+                value={orgName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setOrgName(value);
+                  // Use a simple slug generation for immediate feedback
+                  if (value.trim()) {
+                    setOrgSlug(generateSlug(value));
+                  } else {
+                    setOrgSlug('');
+                  }
+                }}
+                placeholder="Acme Property Management"
+                required
+              />
+            </div>
 
-              <form onSubmit={handleCreateOrganization} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="orgName" className="text-sm font-medium">
-                    Organization Name
-                  </label>
-                  <Input
-                    id="orgName"
-                    value={orgName}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setOrgName(value);
-                      // Use a simple slug generation for immediate feedback
-                      if (value.trim()) {
-                        setOrgSlug(generateSlug(value));
-                      } else {
-                        setOrgSlug('');
-                      }
-                    }}
-                    placeholder="Acme Property Management"
-                    required
-                  />
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="orgSlug" className="text-sm font-medium">
+                Organization Identifier
+              </label>
+              <Input
+                id="orgSlug"
+                value={orgSlug}
+                onChange={(e) => setOrgSlug(e.target.value)}
+                placeholder="acme-property-management"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                This will be used in URLs and must be unique
+              </p>
+            </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="orgSlug" className="text-sm font-medium">
-                    Organization Identifier
-                  </label>
-                  <Input
-                    id="orgSlug"
-                    value={orgSlug}
-                    onChange={(e) => setOrgSlug(e.target.value)}
-                    placeholder="acme-property-management"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This will be used in URLs and must be unique
-                  </p>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Organization"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="join" className="space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                <Users className="h-4 w-4 text-amber-600" />
-                <span className="text-sm text-amber-800">You'll join as a team member</span>
-              </div>
-
-              <form onSubmit={handleJoinOrganization} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="inviteCode" className="text-sm font-medium">
-                    Invitation Code
-                  </label>
-                  <Input
-                    id="inviteCode"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value)}
-                    placeholder="Enter invitation code"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Enter the code provided by your organization admin
-                  </p>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Joining..." : "Join Organization"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Organization"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
