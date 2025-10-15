@@ -235,7 +235,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
-  const fetchUserOrganizations = async (user: User) => {
+  const fetchUserOrganizations = async (user: User, retryCount = 0, maxRetries = 3) => {
     if (!user?.id) {
       console.log('UnifiedAuth - No user ID, clearing organizations');
       setUserOrganizations([]);
@@ -244,9 +244,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     try {
-      console.log('UnifiedAuth - Fetching organizations for user:', user.id);
+      console.log(`UnifiedAuth - Fetching organizations for user (attempt ${retryCount + 1}/${maxRetries + 1}):`, user.id);
 
-      // Fetch user organizations with timeout
+      // Fetch user organizations with timeout (longer on retries)
+      const timeoutDuration = 30000 + (retryCount * 5000); // 30s, 35s, 40s, 45s
       const fetchPromise = supabase
         .from('user_organizations')
         .select(`
@@ -263,19 +264,28 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .eq('is_active', true);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Organization fetch timeout')), 30000)
+        setTimeout(() => reject(new Error('Organization fetch timeout')), timeoutDuration)
       );
 
       const { data: userOrgs, error: userOrgsError } = await Promise.race([
         fetchPromise,
         timeoutPromise
       ]).catch((err) => {
-        console.warn('UnifiedAuth - Organization fetch timed out or failed:', err);
+        console.warn(`UnifiedAuth - Organization fetch attempt ${retryCount + 1} timed out or failed:`, err);
         return { data: null, error: err };
       }) as any;
 
       if (userOrgsError) {
         console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
+        
+        // If timeout and retries remaining, retry with exponential backoff
+        if (userOrgsError.message === 'Organization fetch timeout' && retryCount < maxRetries) {
+          const backoffDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+          console.log(`UnifiedAuth - Retrying in ${backoffDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffDelay));
+          return fetchUserOrganizations(user, retryCount + 1, maxRetries);
+        }
+        
         // Don't clear organizations immediately on timeout - might be mid-join
         if (userOrgsError.message !== 'Organization fetch timeout') {
           setUserOrganizations([]);
