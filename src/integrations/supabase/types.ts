@@ -1299,6 +1299,7 @@ export type Database = {
           active_properties_count: number | null
           cancellation_date: string | null
           created_at: string
+          created_by: string | null
           email: string
           failed_payment_count: number | null
           id: string
@@ -1307,6 +1308,7 @@ export type Database = {
           last_billing_date: string | null
           last_payment_attempt: string | null
           next_billing_date: string | null
+          organization_id: string
           payment_method_id: string | null
           payment_status: string | null
           setup_intent_id: string | null
@@ -1325,6 +1327,7 @@ export type Database = {
           active_properties_count?: number | null
           cancellation_date?: string | null
           created_at?: string
+          created_by?: string | null
           email: string
           failed_payment_count?: number | null
           id?: string
@@ -1333,6 +1336,7 @@ export type Database = {
           last_billing_date?: string | null
           last_payment_attempt?: string | null
           next_billing_date?: string | null
+          organization_id: string
           payment_method_id?: string | null
           payment_status?: string | null
           setup_intent_id?: string | null
@@ -1351,6 +1355,7 @@ export type Database = {
           active_properties_count?: number | null
           cancellation_date?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string
           failed_payment_count?: number | null
           id?: string
@@ -1359,6 +1364,7 @@ export type Database = {
           last_billing_date?: string | null
           last_payment_attempt?: string | null
           next_billing_date?: string | null
+          organization_id?: string
           payment_method_id?: string | null
           payment_status?: string | null
           setup_intent_id?: string | null
@@ -1373,7 +1379,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscribers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       temporary_sessions: {
         Row: {
@@ -1607,6 +1621,21 @@ export type Database = {
       get_current_user_role_safe: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_organization_subscription: {
+        Args: { org_id: string }
+        Returns: {
+          active_properties_count: number
+          id: string
+          is_cancelled: boolean
+          is_trial_active: boolean
+          organization_id: string
+          payment_method_id: string
+          subscribed: boolean
+          subscription_status: string
+          subscription_tier: string
+          trial_end_date: string
+        }[]
       }
       get_property_maintenance_spend: {
         Args: { p_financial_year?: number; p_property_id: string }

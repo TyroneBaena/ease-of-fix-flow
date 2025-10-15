@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useUserContext } from "@/contexts/UnifiedAuthContext";
+import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
 
 interface SubscriptionContextValue {
   subscribed: boolean | null;
@@ -38,7 +38,7 @@ interface SubscriptionContextValue {
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useUserContext();
+  const { currentUser, currentOrganization } = useUnifiedAuth();
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!currentUser?.id) {
+    if (!currentUser?.id || !currentOrganization?.id) {
       setSubscribed(null);
       setSubscriptionTier(null);
       setSubscriptionEnd(null);
@@ -89,7 +89,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       setLoading(true);
       
-      // Directly query the database to avoid function caching issues
+      console.log('🔄 SubscriptionContext - Fetching for organization:', currentOrganization.id);
+      
+      // Query by organization_id instead of user_id
       let { data: row, error: fetchErr } = await supabase
         .from("subscribers")
         .select(`
@@ -102,13 +104,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           active_properties_count,
           payment_method_id
         `)
-        .eq("user_id", currentUser.id)
+        .eq("organization_id", currentOrganization.id)
         .maybeSingle();
 
-      // Handle new users without subscriber records (haven't started trial yet)
+      // Handle organizations without subscriber records (haven't started trial yet)
       if (!row && !fetchErr) {
-        console.log("🟡 No subscriber record found for user:", currentUser.email);
-        // Set explicit values for users who haven't started a trial yet
+        console.log("🟡 No subscription found for organization:", currentOrganization.name);
+        // Set explicit values for organizations that haven't started a trial yet
         setSubscribed(false);
         setSubscriptionTier(null);
         setSubscriptionEnd(null);
@@ -117,7 +119,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setTrialEndDate(null);
         setPropertyCount(0);
         setHasPaymentMethod(false);
-        return; // Exit early to avoid confusion
+        return; // Exit early
       }
         
       if (fetchErr) {
@@ -135,16 +137,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setHasPaymentMethod(!!((row as any)?.payment_method_id));
       
       // Debug logging
-      console.log('🟢 Subscription Context - Payment Method Check:', {
+      console.log('🟢 Organization Subscription Status:', {
+        organization_id: currentOrganization.id,
+        organization_name: currentOrganization.name,
         payment_method_id: (row as any)?.payment_method_id,
         hasPaymentMethod: !!((row as any)?.payment_method_id),
         isTrialActive: (row as any)?.is_trial_active,
-        subscribed: (row as any)?.subscribed
+        subscribed: (row as any)?.subscribed,
+        user_role: currentUser.role
       });
       
       // Debug logging for development
       if (row) {
-        console.log("🟡 Subscription state loaded:", {
+        console.log("🟡 Organization subscription loaded:", {
           subscribed: (row as any)?.subscribed,
           isTrialActive: (row as any)?.is_trial_active,
           trialEndDate: (row as any)?.trial_end_date
@@ -191,18 +196,18 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentOrganization?.id]);
 
   // Separate function to refresh property count specifically
   const refreshPropertyCount = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentOrganization?.id) return;
 
     try {
-      // Directly query and update property count
+      // Directly query and update property count for organization
       const { data: row } = await supabase
         .from("subscribers")
         .select("active_properties_count")
-        .eq("user_id", currentUser.id)
+        .eq("organization_id", currentOrganization.id)
         .maybeSingle();
       
       if (row) {
@@ -212,7 +217,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error("Property count refresh error:", error);
     }
-  }, [currentUser?.id]);
+  }, [currentOrganization?.id]);
 
   const startTrial = useCallback(async () => {
     if (!currentUser) {
@@ -404,8 +409,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [currentUser?.id]);
 
   useEffect(() => {
-    // When auth user changes, refresh subscription state
-    if (currentUser?.id) {
+    // When user or organization changes, refresh subscription state
+    if (currentUser?.id && currentOrganization?.id) {
       refresh();
     } else {
       setSubscribed(null);
@@ -422,7 +427,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentOrganization?.id]);
 
   // Pause/resume functions for auto-refresh
   const pauseAutoRefresh = useCallback(() => {
@@ -439,8 +444,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // The continuous polling was causing unnecessary re-renders
 
   const debugDatabaseState = useCallback(async () => {
-    if (!currentUser?.id) {
-      console.log("🔴 No current user");
+    if (!currentOrganization?.id) {
+      console.log("🔴 No current organization");
       return;
     }
     
@@ -448,15 +453,15 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { data: row, error } = await supabase
         .from("subscribers")
         .select("*")
-        .eq("user_id", currentUser.id)
+        .eq("organization_id", currentOrganization.id)
         .maybeSingle();
         
-      console.log("🟡 Full database record:", row);
+      console.log("🟡 Full organization subscription record:", row);
       console.log("🟡 Error (if any):", error);
     } catch (error) {
       console.error("🔴 Debug query error:", error);
     }
-  }, [currentUser]);
+  }, [currentOrganization]);
 
   const value: SubscriptionContextValue = useMemo(() => ({
     subscribed,

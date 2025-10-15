@@ -276,21 +276,23 @@ export const EnhancedSignupFlow: React.FC = () => {
       const { data: subscriberCheck } = await supabase
         .from('subscribers')
         .select('is_trial_active, trial_start_date')
-        .eq('user_id', user.id)
+        .eq('organization_id', organization.id)
         .single();
 
       if (!subscriberCheck || !subscriberCheck.is_trial_active) {
-        console.log('Trial not found, creating directly in database...');
+        console.log('Trial not found, creating organization subscription...');
         
         // Calculate trial end date (30 days from now)
         const trialEndDate = new Date();
         trialEndDate.setDate(trialEndDate.getDate() + 30);
         
-        // Create subscriber record directly with upsert to handle potential conflicts
+        // Create subscriber record for the organization
         const { data: newSubscriber, error: createError } = await supabase
           .from('subscribers')
           .upsert({
-            user_id: user.id,
+            organization_id: organization.id,
+            user_id: user.id, // Keep for Stripe compatibility
+            created_by: user.id,
             email: user.email!,
             is_trial_active: true,
             trial_start_date: new Date().toISOString(),
@@ -299,7 +301,7 @@ export const EnhancedSignupFlow: React.FC = () => {
             active_properties_count: 0,
             subscribed: false,
           }, {
-            onConflict: 'user_id'
+            onConflict: 'organization_id'
           })
           .select()
           .single();
