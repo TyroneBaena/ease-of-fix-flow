@@ -38,6 +38,7 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
   });
 
   useEffect(() => {
+    // CRITICAL: Keep showing loading state until subscription data is fully loaded
     if (loading) {
       setGuardResult({ hasAccess: false, isLoading: true });
       return;
@@ -87,7 +88,8 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
     }
 
     // Check 3: No active subscription or trial
-    if (!subscribed && !isTrialActive) {
+    // Only block access if explicitly false (not null/undefined from loading)
+    if (subscribed === false && isTrialActive === false) {
       setGuardResult({
         hasAccess: false,
         isLoading: false,
