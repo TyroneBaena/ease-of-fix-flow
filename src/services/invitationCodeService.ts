@@ -158,18 +158,23 @@ export const invitationCodeService = {
 
       if (profileError) throw profileError;
 
-      // Create user organization membership
+      // Create or update user organization membership
       const { error: membershipError } = await supabase
         .from('user_organizations')
-        .insert({
+        .upsert({
           user_id: user.id,
           organization_id: invitationCode.organization_id,
           role: invitationCode.assigned_role,
           is_active: true,
           is_default: true,
+        }, {
+          onConflict: 'user_id,organization_id'
         });
 
-      if (membershipError) throw membershipError;
+      if (membershipError) {
+        console.error('Membership error:', membershipError);
+        throw membershipError;
+      }
 
       return {
         success: true,
