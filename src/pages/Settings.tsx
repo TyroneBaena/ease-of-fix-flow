@@ -13,6 +13,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
+import { TeamManagement } from '@/pages/TeamManagement';
 
 
 const Settings = () => {
@@ -99,6 +100,7 @@ const Settings = () => {
             {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
             {/* Only show contractor management to admins, not managers */}
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="team">Team Management</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -117,6 +119,13 @@ const Settings = () => {
               <Card className="p-6">
                 <ContractorManagement />
               </Card>
+            </TabsContent>
+          )}
+          
+          {/* Team management is restricted to admins only */}
+          {isAdmin && (
+            <TabsContent value="team">
+              <TeamManagement />
             </TabsContent>
           )}
           
