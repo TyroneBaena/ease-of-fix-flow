@@ -9,6 +9,7 @@ interface PropertyAccessControl {
   showTrialExpiredWarning: boolean;
   showCancelledWarning: boolean;
   showReactivationPrompt: boolean;
+  loading: boolean;
   getAccessMessage: () => string;
   handleRestrictedAction: (action: string) => void;
 }
@@ -117,6 +118,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
     showTrialExpiredWarning,
     showCancelledWarning,
     showReactivationPrompt,
+    loading,
     getAccessMessage,
     handleRestrictedAction
   };

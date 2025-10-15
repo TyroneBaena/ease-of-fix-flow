@@ -32,6 +32,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
     showTrialExpiredWarning,
     showCancelledWarning,
     showReactivationPrompt,
+    loading,
     getAccessMessage
   } = usePropertyAccessControl();
   const { currentUser } = useUnifiedAuth();
@@ -53,6 +54,11 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
         return canCreateProperty || canUpdateProperty; // Allow view if any access
     }
   };
+
+  // Show loading state while subscription data is being fetched
+  if (loading) {
+    return <>{children}</>;  // Show children with loading state to avoid flickering
+  }
 
   // If user has access, render children normally
   if (hasAccess()) {

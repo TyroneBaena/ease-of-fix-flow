@@ -17,7 +17,7 @@ export const PropertyCreationWithBilling: React.FC<PropertyCreationWithBillingPr
   onCreateProperty,
   className
 }) => {
-  const { isTrialActive, subscribed, propertyCount, monthlyAmount } = useSubscription();
+  const { isTrialActive, subscribed, propertyCount, monthlyAmount, loading } = useSubscription();
   const { properties } = usePropertyContext();
   const { billingAmount } = usePropertyBillingIntegration();
   const [showBillingPreview, setShowBillingPreview] = useState(false);
@@ -92,6 +92,25 @@ export const PropertyCreationWithBilling: React.FC<PropertyCreationWithBillingPr
             <Button variant="outline" onClick={() => setShowBillingPreview(false)}>
               Cancel
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show loading state while subscription data is being fetched
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardContent className="p-6">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto animate-pulse">
+              <Building2 className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <div className="h-6 bg-muted rounded w-3/4 mx-auto mb-2 animate-pulse" />
+              <div className="h-4 bg-muted rounded w-full mx-auto animate-pulse" />
+            </div>
           </div>
         </CardContent>
       </Card>
