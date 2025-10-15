@@ -28,7 +28,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   
   // Create organization form
   const [orgName, setOrgName] = useState('');
-  const [orgSlug, setOrgSlug] = useState('');
   
   // Join organization with invitation code
   const [invitationCode, setInvitationCode] = useState(initialInvitationCode || '');
@@ -92,11 +91,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       return;
     }
 
-    if (!orgSlug.trim()) {
-      setError("Organization slug is required");
-      return;
-    }
-
     if (!user?.id) {
       setError("User authentication error. Please sign in again.");
       return;
@@ -105,7 +99,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     try {
       setIsLoading(true);
       setError(null); // Clear any previous errors
-      console.log('Creating organization:', { orgName, orgSlug, userId: user.id });
+      console.log('Creating organization:', { orgName, userId: user.id });
 
       // Generate final unique slug before creation
       const finalSlug = await generateUniqueSlug(orgName.trim());
@@ -590,30 +584,10 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                       id="orgName"
                       placeholder="Acme Corp"
                       value={orgName}
-                      onChange={(e) => {
-                        setOrgName(e.target.value);
-                        setOrgSlug(generateSlug(e.target.value));
-                      }}
+                      onChange={(e) => setOrgName(e.target.value)}
                       disabled={isLoading}
                       required
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="orgSlug" className="text-sm font-medium">
-                      Organization URL Slug <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      id="orgSlug"
-                      placeholder="acme-corp"
-                      value={orgSlug}
-                      onChange={(e) => setOrgSlug(generateSlug(e.target.value))}
-                      disabled={isLoading}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      This will be used in your organization's URL
-                    </p>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
