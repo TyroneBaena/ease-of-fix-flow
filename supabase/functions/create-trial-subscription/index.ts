@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       .from('subscribers')
       .select('id, trial_start_date, subscribed')
       .eq('organization_id', organizationId)
-      .single();
+      .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {
       log("Error checking existing subscriber", { checkError });
