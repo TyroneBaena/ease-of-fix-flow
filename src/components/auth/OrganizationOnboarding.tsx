@@ -241,8 +241,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       return;
     }
 
+    setJoiningOrg(true);
+    
     try {
-      setJoiningOrg(true);
       console.log('Joining organization with code:', invitationCode.trim().toUpperCase());
 
       const { success, organization_id, assigned_role, error: joinError } = await invitationCodeService.useCode(
@@ -250,8 +251,10 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       );
 
       if (!success || joinError) {
-        setError(joinError?.message || "Failed to join organization");
-        toast.error(joinError?.message || "Invalid or expired invitation code");
+        const errorMessage = joinError?.message || "Failed to join organization";
+        setError(errorMessage);
+        toast.error(errorMessage);
+        setJoiningOrg(false);
         return;
       }
 
