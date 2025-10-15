@@ -336,30 +336,30 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       console.log('✅ Role verified successfully:', verifyProfile.role);
       toast.success(`Successfully joined organization as ${assigned_role}!`);
 
-      // Force auth context to refetch organizations after successful join
-      // Wait a moment for database propagation
-      console.log('⏳ Waiting for database propagation...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Trigger a full user data refresh by updating metadata
-      console.log('🔄 Triggering user data refresh...');
-      await supabase.auth.refreshSession();
-
-      // Force a user metadata update to trigger auth state change
-      try {
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: { last_organization_update: Date.now() }
-        });
-
-        if (updateError) {
-          console.warn('Failed to update user metadata:', updateError);
-        }
-      } catch (metaError) {
-        console.warn('Error updating user metadata:', metaError);
-      }
-
-      // Immediately update state to enable button
+      // Immediately update state to enable button FIRST
+      console.log('✅ Join successful, enabling button immediately');
       setJoiningOrg(false);
+      
+      // Then trigger background refresh (non-blocking)
+      console.log('🔄 Starting background organization refresh...');
+      setTimeout(async () => {
+        try {
+          // Wait for database propagation
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Trigger refresh in background
+          console.log('🔄 Triggering auth refresh...');
+          await supabase.auth.refreshSession();
+          
+          // Update user metadata to force context refresh
+          await supabase.auth.updateUser({
+            data: { last_organization_update: Date.now() }
+          });
+          console.log('✅ Background refresh completed');
+        } catch (refreshError) {
+          console.warn('Background refresh error (non-critical):', refreshError);
+        }
+      }, 0);
       
       // Show login reminder dialog with user's email
       setUserEmail(user.email || '');
