@@ -27,13 +27,9 @@ const Dashboard = () => {
   // Enable proactive contractor profile monitoring for admin users
   useContractorProfileMonitoring();
   
-  // Redirect contractors to their specific dashboard
-  useEffect(() => {
-    if (!userLoading && currentUser?.role === 'contractor') {
-      console.log('Dashboard - Contractor detected, redirecting to contractor dashboard');
-      navigate('/contractor-dashboard', { replace: true });
-    }
-  }, [currentUser, userLoading, navigate]);
+  // Note: Removed auto-redirect for contractors to prevent infinite loops
+  // Contractors should access /contractor-dashboard directly
+  // The router guards will handle access control
   
   // Show loading while user or requests are loading
   const isLoading = userLoading || requestsLoading;

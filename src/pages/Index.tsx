@@ -10,14 +10,11 @@ const Index = () => {
   const navigate = useNavigate();
   const { currentUser, loading } = useSimpleAuth();
 
-  // Redirect authenticated users to their appropriate dashboard
+  // Redirect authenticated users to dashboard
+  // Note: Always go to /dashboard - let OrganizationOnboarding handle contractor routing
   useEffect(() => {
     if (!loading && currentUser) {
-      if (currentUser.role === 'contractor') {
-        navigate('/contractor-dashboard', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+      navigate('/dashboard', { replace: true });
     }
   }, [currentUser, loading, navigate]);
 
