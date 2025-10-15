@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,17 +20,31 @@ const Signup = () => {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Auth, organization and billing step state
   const [isAuthed, setIsAuthed] = useState(false);
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
   const [hasOrganization, setHasOrganization] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [invitationCodeFromState, setInvitationCodeFromState] = useState<string | null>(null);
   type Interval = 'month' | 'year';
   type Plan = 'starter' | 'pro';
   const [interval, setInterval] = useState<Interval>('month');
   const [selectedPlan, setSelectedPlan] = useState<Plan>('starter');
   const [loadingPlan, setLoadingPlan] = useState(false);
+
+  // Check for invitation code from location state (from login redirect)
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.invitationCode) {
+      console.log('📨 Invitation code found in state:', state.invitationCode);
+      setInvitationCodeFromState(state.invitationCode);
+      if (state.returnFromLogin) {
+        setInfo('Please complete joining your organization with the invitation code provided.');
+      }
+    }
+  }, [location.state]);
 
   // Function to check user organization status
   const checkUserOrganization = async (user: any) => {
@@ -315,7 +329,8 @@ return (
       // Show organization onboarding when user is authenticated but has no organization
       <OrganizationOnboarding 
         user={currentUser} 
-        onComplete={handleOrganizationComplete} 
+        onComplete={handleOrganizationComplete}
+        initialInvitationCode={invitationCodeFromState || undefined}
       />
     ) : emailConfirmationRequired ? (
       // Show email confirmation message

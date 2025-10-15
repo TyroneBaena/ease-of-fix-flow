@@ -15,9 +15,18 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, loading: authLoading } = useSimpleAuth();
+
+  // Check for invitation code and message from redirect
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.message) {
+      setInfoMessage(state.message);
+    }
+  }, [location.state]);
 
   // Helper function to log security events via edge function
   const logSecurityEvent = async (eventType: string, userEmail: string, metadata?: any) => {
@@ -53,8 +62,21 @@ const Login = () => {
       const redirectTo = urlParams.get('redirectTo');
       const propertyId = urlParams.get('propertyId');
       
+      // Check for invitation code from state
+      const state = location.state as any;
+      const invitationCode = state?.invitationCode;
+      
       let redirectPath;
-      if (redirectTo && propertyId) {
+      if (invitationCode) {
+        // If there's an invitation code, redirect to signup to complete organization joining
+        redirectPath = '/signup';
+        console.log(`🚀 Login - User authenticated with invitation code, redirecting to signup`);
+        navigate(redirectPath, { 
+          replace: true, 
+          state: { invitationCode, returnFromLogin: true } 
+        });
+        return;
+      } else if (redirectTo && propertyId) {
         // Redirect to the intended page with property ID
         redirectPath = `${redirectTo}?propertyId=${propertyId}`;
         console.log(`🚀 Login - User authenticated, redirecting to QR code flow: ${redirectPath}`);
@@ -70,7 +92,7 @@ const Login = () => {
       
       navigate(redirectPath, { replace: true });
     }
-  }, [currentUser, authLoading, navigate, location.search]);
+  }, [currentUser, authLoading, navigate, location.search, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +209,13 @@ const Login = () => {
           <p className="text-sm text-gray-500">Sign in to your HousingHub account</p>
         </CardHeader>
         <CardContent>
+          {infoMessage && (
+            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
+              <Info className="h-4 w-4" />
+              <AlertDescription>{infoMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           {error && (
             <Alert className="mb-4 bg-red-50 text-red-800 border-red-200">
               <AlertCircle className="h-4 w-4 mr-2" />

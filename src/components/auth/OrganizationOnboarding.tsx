@@ -16,9 +16,10 @@ import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 interface OrganizationOnboardingProps {
   user: any;
   onComplete: () => void;
+  initialInvitationCode?: string;
 }
 
-export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ user, onComplete }) => {
+export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ user, onComplete, initialInvitationCode }) => {
   const navigate = useNavigate();
   const { refreshUser } = useSimpleAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +31,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [orgSlug, setOrgSlug] = useState('');
   
   // Join organization with invitation code
-  const [invitationCode, setInvitationCode] = useState('');
+  const [invitationCode, setInvitationCode] = useState(initialInvitationCode || '');
   const [joiningOrg, setJoiningOrg] = useState(false);
   const [showLoginReminder, setShowLoginReminder] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -250,6 +251,29 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     setJoiningOrg(true);
     
     try {
+      // Verify active Supabase session before proceeding
+      console.log('🔐 Verifying Supabase session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('❌ No active session found:', sessionError);
+        setError("Your session has expired. Please log in again to join an organization.");
+        toast.error("Session expired. Please log in again.");
+        setJoiningOrg(false);
+        
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          navigate('/login', { 
+            state: { 
+              message: 'Please log in to join your organization',
+              invitationCode: invitationCode.trim().toUpperCase()
+            } 
+          });
+        }, 2000);
+        return;
+      }
+
+      console.log('✅ Active session verified');
       console.log('Joining organization with code:', invitationCode.trim().toUpperCase());
 
       const { success, organization_id, assigned_role, error: joinError } = await invitationCodeService.useCode(
@@ -404,7 +428,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
             </Alert>
           )}
 
-          <Tabs defaultValue="create" className="w-full">
+          <Tabs defaultValue={initialInvitationCode ? "join" : "create"} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="create">Create Organization</TabsTrigger>
               <TabsTrigger value="join">Join Organization</TabsTrigger>
