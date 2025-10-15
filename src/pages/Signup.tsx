@@ -212,14 +212,10 @@ useEffect(() => {
   };
 
   const handleOrganizationComplete = async () => {
-    console.log('🚀 Signup - Organization setup completed - redirecting to billing setup');
+    console.log('🚀 Signup - Organization setup completed - payment collection handled in onboarding flow');
     
-    toast.success("Organization setup complete! Setting up your free trial...");
-    
-    // Redirect to billing page to start trial setup
-    setTimeout(() => {
-      navigate('/billing-security', { replace: true });
-    }, 500);
+    // Payment collection is now handled within the OrganizationOnboarding component
+    // No need to redirect to billing-security
   };
 
 return (

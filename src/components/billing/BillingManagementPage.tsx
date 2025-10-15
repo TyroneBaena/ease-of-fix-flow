@@ -225,16 +225,18 @@ export const BillingManagementPage: React.FC = () => {
           />
         )}
 
-        {/* Payment Method Setup - Show for trial users without payment method */}
-        {isTrialActive && !showPaymentSetup && (
+        {/* Payment Method Setup - Manage payment method */}
+        {!showPaymentSetup && (
           <Card className="mb-6 border-blue-200 bg-blue-50/50">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <CreditCard className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-2">Add Payment Method</h3>
+                  <h3 className="font-semibold mb-2">Payment Method</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Add a payment method to ensure uninterrupted service after your trial ends.
+                    {isTrialActive 
+                      ? "Your payment method was collected during onboarding. Update or verify it here."
+                      : "Manage your payment method to ensure uninterrupted service."}
                   </p>
                   <Button 
                     onClick={() => {
@@ -244,7 +246,7 @@ export const BillingManagementPage: React.FC = () => {
                     }}
                     size="sm"
                   >
-                    Add Payment Method
+                    Update Payment Method
                   </Button>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { PaymentMethodSetup } from './PaymentMethodSetup';
 
 interface OrganizationOnboardingProps {
   user: any;
@@ -17,6 +18,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPaymentSetup, setShowPaymentSetup] = useState(false);
   
   // Create organization form
   const [orgName, setOrgName] = useState('');
@@ -191,9 +193,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         console.log('Calling onComplete despite user organization membership error');
       } else {
         console.log('User organization membership created:', userOrgData);
-        toast.success("Organization created successfully! Setting up your free trial...");
-        
-        console.log('Redirecting to billing to start trial');
+        toast.success("Organization created successfully!");
       }
 
       // Force a user metadata update to trigger auth state change
@@ -212,9 +212,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       // Call onComplete callback to update parent state
       onComplete();
       
-      // Redirect to billing page to start trial
+      // Show payment setup instead of redirecting
       setTimeout(() => {
-        navigate('/billing-security', { replace: true });
+        setShowPaymentSetup(true);
       }, 500);
     } catch (error: any) {
       console.error('Error creating organization:', error);
@@ -224,6 +224,23 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       setIsLoading(false);
     }
   };
+
+  // Show payment setup after organization creation
+  if (showPaymentSetup) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <PaymentMethodSetup
+          onComplete={() => {
+            toast.success('Free trial activated!');
+            navigate('/dashboard', { replace: true });
+          }}
+          onSkip={() => {
+            navigate('/dashboard', { replace: true });
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">

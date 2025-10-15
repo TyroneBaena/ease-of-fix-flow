@@ -36,7 +36,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess }) =>
       const { error } = await stripe.confirmSetup({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/billing-security`,
+          return_url: `${window.location.origin}/billing`,
         },
         redirect: 'if_required',
       });
@@ -124,7 +124,7 @@ const PaymentMethodSetup: React.FC = () => {
     });
     
     setTimeout(() => {
-      navigate('/billing-security');
+      navigate('/billing');
     }, 2000);
   };
 
@@ -133,7 +133,7 @@ const PaymentMethodSetup: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/billing-security')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/billing')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Billing
           </Button>
