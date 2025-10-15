@@ -75,13 +75,11 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
   }, [currentUser?.id, checkUserOrganization]); // Only depend on user ID, not the full user object
 
   const handleOrganizationComplete = async () => {
-    console.log('🚀 OrganizationGuard - Organization setup completed');
+    console.log('🚀 OrganizationGuard - Organization setup completed, refetching...');
     
-    // Recheck organization status
-    if (currentUser) {
-      const hasOrg = await checkUserOrganization(currentUser);
-      setHasOrganization(hasOrg);
-    }
+    // Don't recheck immediately - let the parent navigation handle it
+    // The OrganizationOnboarding component will navigate to the correct dashboard
+    // based on the user's role
   };
 
   console.log('🔒 OrganizationGuard - State check:', { 

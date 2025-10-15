@@ -381,10 +381,28 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [userOrganizations]);
 
   const refreshOrganizations = useCallback(async () => {
-    if (currentUser) {
-      await fetchUserOrganizations(currentUser);
+    if (!currentUser?.id) return;
+    
+    try {
+      console.log('🔄 Refreshing user data and organizations...');
+      
+      // Refetch user profile to get updated role
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return;
+      
+      // Convert to User type with fresh data
+      const freshUser = await convertSupabaseUser(authUser);
+      if (freshUser) {
+        setCurrentUser(freshUser);
+        // Fetch organizations with the fresh user data
+        await fetchUserOrganizations(freshUser);
+      }
+      
+      console.log('✅ User data and organizations refreshed');
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   const getCurrentUserRole = useCallback((): string => {
     if (!currentOrganization || !currentUser?.id) {

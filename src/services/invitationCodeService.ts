@@ -128,6 +128,28 @@ export const invitationCodeService = {
 
       const invitationCode = validation.data;
 
+      // Check if this user has already used this invitation code
+      const { data: existingUsage, error: usageCheckError } = await supabase
+        .from('invitation_code_usage')
+        .select('id, used_at')
+        .eq('invitation_code_id', invitationCode.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (usageCheckError && usageCheckError.code !== 'PGRST116') {
+        console.error('Error checking invitation code usage:', usageCheckError);
+        throw usageCheckError;
+      }
+
+      if (existingUsage) {
+        return { 
+          success: false, 
+          organization_id: null, 
+          assigned_role: null, 
+          error: new Error('You have already used this invitation code. Each code can only be used once per user.') 
+        };
+      }
+
       // Record usage
       const { error: usageError } = await supabase
         .from('invitation_code_usage')

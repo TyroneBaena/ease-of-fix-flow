@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, AlertCircle, CheckCircle, Users, Mail, Key } from 'lucide-react';
+import { Building2, AlertCircle, CheckCircle, Users, Mail, Key, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PaymentMethodSetup } from './PaymentMethodSetup';
@@ -374,54 +374,63 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
             <Button
               onClick={async () => {
                 setIsRefreshing(true);
+                setShowLoginReminder(false);
+                
                 try {
-                  // Refresh auth context to pick up new organization and role
-                  console.log('🔄 Refreshing auth context after joining organization...');
+                  console.log('🔄 Starting post-join refresh...');
+                  
+                  // Wait for the auth context to fully refresh
                   await refreshUser();
                   
-                  // Wait for the context to fully update
-                  await new Promise(resolve => setTimeout(resolve, 800));
+                  // Give it a moment to propagate through React state
+                  await new Promise(resolve => setTimeout(resolve, 1000));
                   
                   console.log('✅ Auth context refreshed');
                   
-                  // Get the updated user role to determine correct dashboard
+                  // Get fresh user data to determine dashboard
                   const { data: { user: updatedUser } } = await supabase.auth.getUser();
-                  if (updatedUser) {
-                    const { data: profile } = await supabase
-                      .from('profiles')
-                      .select('role, organization_id')
-                      .eq('id', updatedUser.id)
-                      .single();
-                    
-                    console.log('📋 Updated profile:', profile);
-                    
-                    // Determine the correct dashboard based on role
-                    let targetPath = '/dashboard';
-                    
-                    // Only route to contractor dashboard if user has contractor role AND a contractor profile
-                    if (profile?.role === 'contractor') {
-                      const { data: contractorProfile } = await supabase
-                        .from('contractors')
-                        .select('id')
-                        .eq('user_id', updatedUser.id)
-                        .maybeSingle();
-                      
-                      if (contractorProfile) {
-                        targetPath = '/contractor-dashboard';
-                      }
-                    }
-                    
-                    console.log('🎯 Navigating to:', targetPath);
-                    setShowLoginReminder(false);
-                    onComplete();
-                    
-                    // Use hard navigation to ensure proper re-render with new role
-                    window.location.href = targetPath;
+                  if (!updatedUser) {
+                    console.error('No user found after refresh');
+                    navigate('/dashboard', { replace: true });
+                    return;
                   }
+                  
+                  const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role, organization_id')
+                    .eq('id', updatedUser.id)
+                    .single();
+                  
+                  console.log('📋 User profile after join:', profile);
+                  
+                  let targetPath = '/dashboard';
+                  
+                  // Route to contractor dashboard ONLY if:
+                  // 1. User has contractor role
+                  // 2. User has a contractor profile in contractors table
+                  if (profile?.role === 'contractor') {
+                    const { data: contractorProfile } = await supabase
+                      .from('contractors')
+                      .select('id')
+                      .eq('user_id', updatedUser.id)
+                      .maybeSingle();
+                    
+                    if (contractorProfile) {
+                      targetPath = '/contractor-dashboard';
+                      console.log('🎯 Routing to contractor dashboard');
+                    } else {
+                      console.log('⚠️ User has contractor role but no contractor profile - routing to regular dashboard');
+                    }
+                  } else {
+                    console.log('🎯 Routing to regular dashboard (role:', profile?.role, ')');
+                  }
+                  
+                  onComplete();
+                  
+                  // Use regular navigation to avoid full page reload
+                  navigate(targetPath, { replace: true });
                 } catch (error) {
-                  console.error('Error refreshing auth:', error);
-                  // Still navigate even if refresh fails
-                  setShowLoginReminder(false);
+                  console.error('Error during post-join navigation:', error);
                   onComplete();
                   navigate('/dashboard', { replace: true });
                 } finally {
@@ -431,7 +440,14 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
               className="w-full"
               disabled={isRefreshing}
             >
-              {isRefreshing ? 'Loading...' : 'Continue to Dashboard'}
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading Dashboard...
+                </>
+              ) : (
+                'Continue to Dashboard'
+              )}
             </Button>
           </div>
         </DialogContent>
