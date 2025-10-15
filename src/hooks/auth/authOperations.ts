@@ -26,10 +26,11 @@ export const signInWithEmailPassword = async (email: string, password: string) =
       
       // Provide user-friendly error messages
       let friendlyError = error.message;
-      if (error.message?.includes('Invalid login credentials')) {
+      if (error.message?.toLowerCase().includes('email not confirmed') || 
+          error.message?.includes('email_not_confirmed')) {
+        friendlyError = 'Please check your email and click the confirmation link before signing in.';
+      } else if (error.message?.includes('Invalid login credentials')) {
         friendlyError = 'Invalid email or password. Please check your credentials.';
-      } else if (error.message?.includes('Email not confirmed')) {
-        friendlyError = 'Please check your email and click the confirmation link.';
       } else if (error.message?.includes('Too many requests')) {
         friendlyError = 'Too many login attempts. Please wait a moment and try again.';
       } else if (error.message?.includes('Network error')) {
