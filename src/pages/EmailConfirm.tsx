@@ -57,12 +57,7 @@ const EmailConfirm = () => {
             console.log('User email confirmed at:', data.user.email_confirmed_at);
             setIsVerified(true);
             toast.success('Email confirmed successfully!');
-            
-            // Redirect to signup for plan selection - the auth state will be properly set
-            setTimeout(() => {
-              console.log('Redirecting to signup for plan selection...');
-              navigate('/signup', { replace: true });
-            }, 2000);
+            // User can now click the Continue button to proceed
           } else {
             throw new Error('No user data returned after setting session');
           }
@@ -75,9 +70,7 @@ const EmailConfirm = () => {
               console.log('User is already authenticated and confirmed');
               setIsVerified(true);
               toast.success('You are already signed in!');
-              setTimeout(() => {
-                navigate('/signup', { replace: true });
-              }, 2000);
+              // User can now click the Continue button to proceed
             } else {
               throw new Error('Your email is not yet confirmed. Please check your email and click the confirmation link.');
             }
@@ -129,10 +122,10 @@ const EmailConfirm = () => {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Your email has been successfully confirmed. You're being redirected to complete your signup.
+              Your email has been successfully confirmed! Click the button below to complete your signup.
             </p>
             <Button onClick={() => navigate('/signup', { replace: true })} className="w-full">
-              Continue to Plan Selection
+              Continue to Complete Setup
             </Button>
           </CardContent>
         </Card>
