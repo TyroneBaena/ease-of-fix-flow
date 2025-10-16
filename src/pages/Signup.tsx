@@ -182,17 +182,29 @@ useEffect(() => {
       console.log('Signup response:', { data, error: signUpError });
       
       if (signUpError) {
-        // Check for "user already registered" error specifically
-        if (signUpError.message?.toLowerCase().includes('user already registered') ||
-            signUpError.message?.toLowerCase().includes('already registered')) {
-          setError("An account with this email already exists. Please sign in instead.");
-          toast.error("Account already exists. Please sign in instead.");
+        const errorMessage = signUpError.message?.toLowerCase() || '';
+        
+        // Check for various "user already exists" error messages
+        if (errorMessage.includes('user already registered') ||
+            errorMessage.includes('already registered') ||
+            errorMessage.includes('email already') ||
+            errorMessage.includes('already exists') ||
+            errorMessage.includes('duplicate') ||
+            signUpError.status === 422) {
+          setError("This email is already registered. Please sign in instead.");
+          toast.error("This email is already registered. Please sign in instead.", {
+            duration: 4000,
+          });
           
           setTimeout(() => {
             navigate('/login', { replace: true });
-          }, 2000);
+          }, 3000);
           return;
         }
+        
+        // For any other signup error, show the error message
+        setError(signUpError.message || "Signup failed. Please try again.");
+        toast.error(signUpError.message || "Signup failed. Please try again.");
         throw signUpError;
       }
       
