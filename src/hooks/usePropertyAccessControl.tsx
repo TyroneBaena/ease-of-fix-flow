@@ -27,9 +27,14 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
   const navigate = useNavigate();
 
   // Determine access level based on subscription status
-  const canCreateProperty = !loading && (subscribed || isTrialActive);
-  const canDeleteProperty = !loading && (subscribed || isTrialActive);
-  const canUpdateProperty = !loading && (subscribed || isTrialActive);
+  // CRITICAL: Allow access during loading OR if subscribed/trial is active
+  // Also allow access if both subscribed and isTrialActive are null (new user, no subscriber record yet)
+  const hasActiveAccess = subscribed === true || isTrialActive === true;
+  const isNewUser = subscribed === null && isTrialActive === null && !trialEndDate;
+  
+  const canCreateProperty = loading || hasActiveAccess || isNewUser;
+  const canDeleteProperty = loading || hasActiveAccess || isNewUser;
+  const canUpdateProperty = loading || hasActiveAccess || isNewUser;
   
   // Warning states - distinguish between "never started trial" vs "trial expired"
   const hasNeverStartedTrial = !trialEndDate;
