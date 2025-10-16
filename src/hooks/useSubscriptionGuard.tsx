@@ -88,8 +88,21 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
     }
 
     // Check 3: No active subscription or trial
-    // Only block access if explicitly false (not null/undefined from loading)
+    // CRITICAL FIX: Allow access if both are null (user hasn't started trial yet)
+    // Only block if they're explicitly false AND we have a trial end date (meaning they had a trial before)
     if (subscribed === false && isTrialActive === false) {
+      // If there's NO trial end date, it means they never started a trial - allow access
+      // They should be able to navigate to billing page to start their trial
+      if (!trialEndDate) {
+        console.log('🟢 Subscription Guard: New user without trial - allowing access to start trial');
+        setGuardResult({
+          hasAccess: true,
+          isLoading: false,
+        });
+        return;
+      }
+      
+      // If there IS a trial end date but trial is inactive, their trial must have expired
       setGuardResult({
         hasAccess: false,
         isLoading: false,
