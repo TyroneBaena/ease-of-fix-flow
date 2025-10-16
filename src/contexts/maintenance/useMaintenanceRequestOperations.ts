@@ -2,10 +2,11 @@
 import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
+import { useCallback } from 'react';
 
 export const useMaintenanceRequestOperations = (currentUser: any) => {
   
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     console.log('🔍 ADMIN DEBUG - fetchRequests called');
     console.log('🔍 ADMIN DEBUG - currentUser:', currentUser);
     console.log('🔍 ADMIN DEBUG - currentUser.role:', currentUser?.role);
@@ -60,9 +61,9 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       console.error('🔍 ADMIN DEBUG - Error in fetchRequests:', error);
       return [];
     }
-  };
+  }, [currentUser?.id, currentUser?.role, currentUser?.assignedProperties, currentUser?.organization_id]);
 
-  const addRequest = async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+  const addRequest = useCallback(async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     console.log('useMaintenanceRequestOperations - addRequest called');
     console.log('useMaintenanceRequestOperations - Request data received:', requestData);
     console.log('useMaintenanceRequestOperations - Attachments in request data:', requestData.attachments);
@@ -131,7 +132,7 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       toast.error('Failed to create maintenance request');
       return null;
     }
-  };
+  }, [currentUser?.id, currentUser?.organization_id]);
 
   return {
     fetchRequests,
