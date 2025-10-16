@@ -33,14 +33,17 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
   } = useFailedPaymentStatus();
 
   const [guardResult, setGuardResult] = useState<SubscriptionGuardResult>({
-    hasAccess: true,
+    hasAccess: true, // Default to allowing access during initial load
     isLoading: true,
   });
 
   useEffect(() => {
     // CRITICAL: Keep showing loading state until subscription data is fully loaded
     if (loading) {
-      setGuardResult({ hasAccess: false, isLoading: true });
+      setGuardResult({ 
+        hasAccess: true,  // Allow access while loading to prevent flickering
+        isLoading: true 
+      });
       return;
     }
 
