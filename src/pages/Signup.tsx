@@ -179,7 +179,16 @@ useEffect(() => {
         }
       });
       
-      console.log('Signup response:', { data, error: signUpError });
+      console.log('Signup response:', { 
+        user: data.user ? {
+          id: data.user.id,
+          email: data.user.email,
+          created_at: data.user.created_at,
+          email_confirmed_at: data.user.email_confirmed_at
+        } : null,
+        session: !!data.session,
+        error: signUpError 
+      });
       
       if (signUpError) {
         const errorMessage = signUpError.message?.toLowerCase() || '';
@@ -209,15 +218,24 @@ useEffect(() => {
       }
       
       if (data.user) {
-        console.log("Account created:", data.user.id, "confirmed:", !!data.user.email_confirmed_at);
-        console.log("Session exists:", !!data.session);
-        console.log("User created_at:", data.user.created_at);
+        // CRITICAL: When Supabase returns a user but no session and no error, 
+        // it could be either:
+        // 1. New user needing email confirmation (email_confirmed_at = null, session = null)
+        // 2. Existing user trying to signup again (email_confirmed_at = set, session = null)
         
-        // CRITICAL: Detect existing user - Supabase returns user but NO session for repeated signups
-        // This happens when email already exists (security feature to not reveal existing emails)
-        if (!data.session && data.user.email_confirmed_at) {
-          // No session + confirmed email = existing user trying to signup again
-          console.log("Detected existing user - no session created for confirmed email");
+        const isConfirmedUser = !!data.user.email_confirmed_at;
+        const hasSession = !!data.session;
+        
+        console.log("User status:", { 
+          isConfirmedUser, 
+          hasSession,
+          created_at: data.user.created_at 
+        });
+        
+        // If user email is already confirmed but no session was created,
+        // this is an existing user trying to signup again
+        if (isConfirmedUser && !hasSession) {
+          console.log("Detected existing user - email already confirmed but no session");
           setError("Email already exists. Please sign in instead.");
           toast.error("Email already exists. Please sign in instead.", {
             duration: 4000,
