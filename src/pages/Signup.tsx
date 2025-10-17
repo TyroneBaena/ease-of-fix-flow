@@ -191,8 +191,8 @@ useEffect(() => {
             errorMessage.includes('already exists') ||
             errorMessage.includes('duplicate') ||
             signUpError.status === 422) {
-          setError("This email is already registered. Please sign in instead.");
-          toast.error("This email is already registered. Please sign in instead.", {
+          setError("Email already exists. Please sign in instead.");
+          toast.error("Email already exists. Please sign in instead.", {
             duration: 4000,
           });
           
@@ -210,6 +210,26 @@ useEffect(() => {
       
       if (data.user) {
         console.log("Account created:", data.user.id, "confirmed:", !!data.user.email_confirmed_at);
+        
+        // CRITICAL: Detect if this is an existing user (Supabase returns success but user already exists)
+        // Check if user was created more than 5 seconds ago - indicates existing user
+        const userCreatedAt = new Date(data.user.created_at).getTime();
+        const now = Date.now();
+        const timeSinceCreation = now - userCreatedAt;
+        const isExistingUser = timeSinceCreation > 5000; // More than 5 seconds = existing user
+        
+        if (isExistingUser) {
+          console.log("Detected existing user - created at:", data.user.created_at);
+          setError("Email already exists. Please sign in instead.");
+          toast.error("Email already exists. Please sign in instead.", {
+            duration: 4000,
+          });
+          
+          setTimeout(() => {
+            navigate('/login', { replace: true });
+          }, 3000);
+          return;
+        }
         
         if (data.session) {
           // User is immediately signed in (email confirmation disabled)
