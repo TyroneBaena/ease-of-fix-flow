@@ -173,7 +173,11 @@ export const BillingManagementPage: React.FC = () => {
     }, 2500);
   }, [refresh, resumeAutoRefresh]);
 
-  if (loading) {
+  // CRITICAL FIX: Show loading state if data is loading OR if data hasn't been initialized yet
+  // This prevents rendering with stale/null values during client-side navigation
+  const isDataLoading = loading || subscribed === null || isTrialActive === null;
+  
+  if (isDataLoading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-6xl mx-auto px-4 py-8">

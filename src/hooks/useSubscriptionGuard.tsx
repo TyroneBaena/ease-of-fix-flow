@@ -57,13 +57,14 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
     });
 
     // CRITICAL FIX: If subscription data is null/undefined, treat as still loading
-    // This prevents race conditions during client-side navigation
+    // This prevents race conditions during client-side navigation  
+    // We must wait for ACTUAL boolean values, not null/undefined
     if (subscribed === null || subscribed === undefined || 
         isTrialActive === null || isTrialActive === undefined) {
-      console.log('⏳ Subscription Guard: Data not fully resolved - keeping in loading state');
+      console.log('⏳ Subscription Guard: Data not fully resolved (null/undefined) - staying in loading state');
       setGuardResult({
         hasAccess: true,  // Allow access to prevent flickering during state transitions
-        isLoading: true
+        isLoading: true   // CRITICAL: Must stay in loading state until we have real data
       });
       return;
     }

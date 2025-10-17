@@ -92,7 +92,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     try {
-      setLoading(true);
+      setLoading(true); // CRITICAL: Set loading true at start to prevent race conditions
       
       console.log('🔄 SubscriptionContext - Fetching for organization:', currentOrganization.id);
       
