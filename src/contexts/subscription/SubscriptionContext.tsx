@@ -421,9 +421,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       refresh(); // refresh() will set loading to false when complete
     } else {
       // Clear all subscription data when no user/org
-      // DON'T set loading to false here - let refresh() handle loading state
-      // This prevents race conditions where auth hasn't loaded yet
       clear();
+      // CRITICAL FIX: Set loading to false when logged out
+      // This is a final state - no async operation needed
+      setLoading(false);
     }
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
