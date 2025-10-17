@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContext';
+import { SubscriptionProvider, useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { isUserAdmin } from '@/utils/userRoles';
 import Navbar from '@/components/Navbar';
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,19 @@ import { EnhancedPropertyForm } from '@/components/property/EnhancedPropertyForm
 const PropertiesContent = () => {
   const { properties, loading } = usePropertyContext();
   const { currentUser } = useUserContext();
+  const { refresh: refreshSubscription } = useSubscription();
   const isAdmin = isUserAdmin(currentUser);
   const [dialogOpen, setDialogOpen] = useState(false);
   
   // Initialize billing integration
   usePropertyBillingIntegration();
+  
+  // CRITICAL FIX: Force refresh subscription data when this page mounts
+  // This ensures SubscriptionGuard has current data, not cached data from previous pages
+  React.useEffect(() => {
+    console.log('[Properties] Component mounted - forcing subscription refresh');
+    refreshSubscription();
+  }, [refreshSubscription]); // Include refreshSubscription to satisfy exhaustive-deps
   
   // Debug: Log properties to see current state
   console.log('Properties page - State:', { 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
@@ -55,6 +55,13 @@ export const BillingManagementPage: React.FC = () => {
     pauseAutoRefresh,
     resumeAutoRefresh
   } = useSubscription();
+
+  // CRITICAL FIX: Force refresh subscription data when this page mounts
+  // This ensures we always show current data, not cached data from previous pages
+  useEffect(() => {
+    console.log('[BillingManagementPage] Component mounted - forcing subscription refresh');
+    refresh();
+  }, []); // Empty deps = run once on mount
 
   // PHASE 4: Track failed payment status
   const failedPaymentStatus = useFailedPaymentStatus();
