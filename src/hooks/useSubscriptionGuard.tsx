@@ -47,6 +47,35 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
       return;
     }
 
+    // DEBUG: Log subscription state
+    console.log('🔍 Subscription Guard Check:', {
+      subscribed,
+      isTrialActive,
+      isCancelled,
+      trialEndDate,
+      loading
+    });
+
+    // CRITICAL FIX: Allow access if trial is active
+    if (isTrialActive === true) {
+      console.log('✅ Subscription Guard: Active trial - granting access');
+      setGuardResult({
+        hasAccess: true,
+        isLoading: false,
+      });
+      return;
+    }
+
+    // CRITICAL FIX: Allow access if subscribed
+    if (subscribed === true) {
+      console.log('✅ Subscription Guard: Active subscription - granting access');
+      setGuardResult({
+        hasAccess: true,
+        isLoading: false,
+      });
+      return;
+    }
+
     // Check 1: Trial expired
     if (!subscribed && !isTrialActive && trialEndDate) {
       const trialExpired = new Date(trialEndDate) < new Date();
