@@ -23,6 +23,23 @@ const EmailConfirm = () => {
         
         // Check if this is a Supabase auth callback with tokens in hash
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        // Check for errors first
+        const error = hashParams.get('error');
+        const errorCode = hashParams.get('error_code');
+        const errorDescription = hashParams.get('error_description');
+        
+        if (error || errorCode) {
+          // Handle specific error cases
+          if (errorCode === 'otp_expired') {
+            throw new Error('The confirmation link has expired. Please request a new confirmation email or sign up again.');
+          } else if (error === 'access_denied') {
+            throw new Error(errorDescription || 'Access was denied. The confirmation link may be invalid or expired.');
+          } else {
+            throw new Error(errorDescription || `Confirmation failed: ${error || errorCode}`);
+          }
+        }
+        
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
