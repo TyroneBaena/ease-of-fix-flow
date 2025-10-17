@@ -56,6 +56,18 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
       loading
     });
 
+    // CRITICAL FIX: If subscription data is null/undefined, treat as still loading
+    // This prevents race conditions during client-side navigation
+    if (subscribed === null || subscribed === undefined || 
+        isTrialActive === null || isTrialActive === undefined) {
+      console.log('⏳ Subscription Guard: Data not fully resolved - keeping in loading state');
+      setGuardResult({
+        hasAccess: true,  // Allow access to prevent flickering during state transitions
+        isLoading: true
+      });
+      return;
+    }
+
     // CRITICAL FIX: Allow access if trial is active
     if (isTrialActive === true) {
       console.log('✅ Subscription Guard: Active trial - granting access');
