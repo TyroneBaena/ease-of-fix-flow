@@ -194,9 +194,10 @@ export const BillingManagementPage: React.FC = () => {
   const trialEndDateFormatted = trialEndDate ? format(new Date(trialEndDate), 'PPP') : null;
   const displayAmount = monthlyAmount || 0;
   
-  // Determine if user has never started a trial (no trialEndDate) vs expired trial
-  const hasNeverStartedTrial = !subscribed && !isTrialActive && !trialEndDate;
-  const hasExpiredTrial = !subscribed && !isTrialActive && !!trialEndDate;
+  // FIXED: Properly handle null states - only evaluate when data has loaded
+  // Use explicit false checks to distinguish between "not loaded yet" (null) and "false"
+  const hasNeverStartedTrial = !loading && subscribed === false && isTrialActive === false && !trialEndDate;
+  const hasExpiredTrial = !loading && subscribed === false && isTrialActive === false && !!trialEndDate;
 
   return (
     <div className="min-h-screen bg-background">
