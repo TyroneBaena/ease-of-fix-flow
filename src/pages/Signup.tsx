@@ -173,7 +173,7 @@ useEffect(() => {
           emailRedirectTo: redirectUrl,
           data: {
             name,
-            role: 'admin', // First user should be admin by default
+            role: 'admin',
             assignedProperties: []
           }
         }
@@ -184,7 +184,8 @@ useEffect(() => {
           id: data.user.id,
           email: data.user.email,
           created_at: data.user.created_at,
-          email_confirmed_at: data.user.email_confirmed_at
+          email_confirmed_at: data.user.email_confirmed_at,
+          identities: data.user.identities
         } : null,
         session: !!data.session,
         error: signUpError 
@@ -193,7 +194,6 @@ useEffect(() => {
       if (signUpError) {
         const errorMessage = signUpError.message?.toLowerCase() || '';
         
-        // Check for various "user already exists" error messages
         if (errorMessage.includes('user already registered') ||
             errorMessage.includes('already registered') ||
             errorMessage.includes('email already') ||
@@ -211,37 +211,29 @@ useEffect(() => {
           return;
         }
         
-        // For any other signup error, show the error message
         setError(signUpError.message || "Signup failed. Please try again.");
         toast.error(signUpError.message || "Signup failed. Please try again.");
         throw signUpError;
       }
       
       if (data.user) {
-        // CRITICAL: When Supabase returns a user but no session and no error, 
-        // it could be either:
-        // 1. New user needing email confirmation (just created, session = null)
-        // 2. Existing user trying to signup again (created in the past, session = null)
+        // CRITICAL: Supabase returns different responses for new vs existing users
+        // New user: user object with identities array populated, no session (needs confirmation)
+        // Existing user (repeated signup): user object but identities array is EMPTY, no session
         
         const hasSession = !!data.session;
-        const userCreatedAt = new Date(data.user.created_at).getTime();
-        const now = Date.now();
-        const timeSinceCreation = now - userCreatedAt;
-        
-        // If user was created more than 10 seconds ago, it's an existing user
-        const isExistingUser = timeSinceCreation > 10000;
+        const hasIdentities = data.user.identities && data.user.identities.length > 0;
         
         console.log("User status:", { 
-          isConfirmedUser: !!data.user.email_confirmed_at, 
           hasSession,
-          created_at: data.user.created_at,
-          timeSinceCreation: `${Math.round(timeSinceCreation / 1000)} seconds`,
-          isExistingUser
+          hasIdentities,
+          identitiesCount: data.user.identities?.length || 0,
+          email_confirmed_at: data.user.email_confirmed_at
         });
         
-        // If no session and user was created in the past, it's an existing user
-        if (!hasSession && isExistingUser) {
-          console.log("Detected existing user - created more than 10 seconds ago");
+        // If no session and no identities, this is an existing user trying to signup again
+        if (!hasSession && !hasIdentities) {
+          console.log("Detected existing user - no identities in response");
           setError("Email already exists. Please sign in instead.");
           toast.error("Email already exists. Please sign in instead.", {
             duration: 4000,
