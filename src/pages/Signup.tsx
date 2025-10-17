@@ -220,22 +220,28 @@ useEffect(() => {
       if (data.user) {
         // CRITICAL: When Supabase returns a user but no session and no error, 
         // it could be either:
-        // 1. New user needing email confirmation (email_confirmed_at = null, session = null)
-        // 2. Existing user trying to signup again (email_confirmed_at = set, session = null)
+        // 1. New user needing email confirmation (just created, session = null)
+        // 2. Existing user trying to signup again (created in the past, session = null)
         
-        const isConfirmedUser = !!data.user.email_confirmed_at;
         const hasSession = !!data.session;
+        const userCreatedAt = new Date(data.user.created_at).getTime();
+        const now = Date.now();
+        const timeSinceCreation = now - userCreatedAt;
+        
+        // If user was created more than 10 seconds ago, it's an existing user
+        const isExistingUser = timeSinceCreation > 10000;
         
         console.log("User status:", { 
-          isConfirmedUser, 
+          isConfirmedUser: !!data.user.email_confirmed_at, 
           hasSession,
-          created_at: data.user.created_at 
+          created_at: data.user.created_at,
+          timeSinceCreation: `${Math.round(timeSinceCreation / 1000)} seconds`,
+          isExistingUser
         });
         
-        // If user email is already confirmed but no session was created,
-        // this is an existing user trying to signup again
-        if (isConfirmedUser && !hasSession) {
-          console.log("Detected existing user - email already confirmed but no session");
+        // If no session and user was created in the past, it's an existing user
+        if (!hasSession && isExistingUser) {
+          console.log("Detected existing user - created more than 10 seconds ago");
           setError("Email already exists. Please sign in instead.");
           toast.error("Email already exists. Please sign in instead.", {
             duration: 4000,
