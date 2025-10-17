@@ -55,6 +55,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currency, setCurrency] = useState<string | null>(null);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
 
+  // Start with loading true to prevent flash of "no access" during initial auth
+  useEffect(() => {
+    setLoading(true);
+  }, []);
+
   const clear = useCallback(() => {
     setSubscribed(null);
     setSubscriptionTier(null);
@@ -416,18 +421,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       refresh(); // refresh() will set loading to false when complete
     } else {
       // Clear all subscription data when no user/org
-      setSubscribed(null);
-      setSubscriptionTier(null);
-      setSubscriptionEnd(null);
-      setIsTrialActive(null);
-      setIsCancelled(null);
-      setTrialEndDate(null);
-      setDaysRemaining(null);
-      setPropertyCount(null);
-      setMonthlyAmount(null);
-      setCurrency(null);
-      setHasPaymentMethod(null);
-      setLoading(false); // Only set false when explicitly clearing
+      // DON'T set loading to false here - let refresh() handle loading state
+      // This prevents race conditions where auth hasn't loaded yet
+      clear();
     }
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
