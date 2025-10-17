@@ -44,10 +44,12 @@ const PropertiesContent = () => {
   usePropertyBillingIntegration();
   
   // Debug: Log properties to see current state
-  console.log('Properties page: Current properties:', properties);
-  console.log('Properties page: Sample Property emails:', 
-    properties.filter(p => p.name === 'Sample Property').map(p => ({ id: p.id, email: p.email }))
-  );
+  console.log('Properties page - State:', { 
+    propertiesCount: properties?.length || 0,
+    loading,
+    hasProperties: properties && properties.length > 0,
+    properties: properties?.map(p => ({ id: p.id, name: p.name }))
+  });
 
   const handleClose = () => {
     setDialogOpen(false);
