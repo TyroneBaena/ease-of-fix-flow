@@ -409,10 +409,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [currentUser?.id]);
 
   useEffect(() => {
+    // CRITICAL FIX: Set loading immediately to prevent race conditions during navigation
     // When user or organization changes, refresh subscription state
     if (currentUser?.id && currentOrganization?.id) {
-      refresh();
+      setLoading(true); // Set loading BEFORE calling async refresh
+      refresh(); // refresh() will set loading to false when complete
     } else {
+      // Clear all subscription data when no user/org
       setSubscribed(null);
       setSubscriptionTier(null);
       setSubscriptionEnd(null);
@@ -423,7 +426,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setPropertyCount(null);
       setMonthlyAmount(null);
       setCurrency(null);
-      setLoading(false);
+      setHasPaymentMethod(null);
+      setLoading(false); // Only set false when explicitly clearing
     }
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
