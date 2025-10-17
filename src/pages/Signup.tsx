@@ -210,16 +210,14 @@ useEffect(() => {
       
       if (data.user) {
         console.log("Account created:", data.user.id, "confirmed:", !!data.user.email_confirmed_at);
+        console.log("Session exists:", !!data.session);
+        console.log("User created_at:", data.user.created_at);
         
-        // CRITICAL: Detect if this is an existing user (Supabase returns success but user already exists)
-        // Check if user was created more than 5 seconds ago - indicates existing user
-        const userCreatedAt = new Date(data.user.created_at).getTime();
-        const now = Date.now();
-        const timeSinceCreation = now - userCreatedAt;
-        const isExistingUser = timeSinceCreation > 5000; // More than 5 seconds = existing user
-        
-        if (isExistingUser) {
-          console.log("Detected existing user - created at:", data.user.created_at);
+        // CRITICAL: Detect existing user - Supabase returns user but NO session for repeated signups
+        // This happens when email already exists (security feature to not reveal existing emails)
+        if (!data.session && data.user.email_confirmed_at) {
+          // No session + confirmed email = existing user trying to signup again
+          console.log("Detected existing user - no session created for confirmed email");
           setError("Email already exists. Please sign in instead.");
           toast.error("Email already exists. Please sign in instead.", {
             duration: 4000,
