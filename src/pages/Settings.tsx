@@ -14,6 +14,7 @@ import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
 import { TeamManagement } from '@/pages/TeamManagement';
+import { GoogleMapsSettings } from '@/components/maps/GoogleMapsSettings';
 
 
 const Settings = () => {
@@ -101,6 +102,7 @@ const Settings = () => {
             {/* Only show contractor management to admins, not managers */}
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             {isAdmin && <TabsTrigger value="team">Team Management</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="app">App Settings</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -126,6 +128,15 @@ const Settings = () => {
           {isAdmin && (
             <TabsContent value="team">
               <TeamManagement />
+            </TabsContent>
+          )}
+          
+          {/* App Settings - Google Maps etc. - Admin only */}
+          {isAdmin && (
+            <TabsContent value="app">
+              <div className="max-w-2xl">
+                <GoogleMapsSettings />
+              </div>
             </TabsContent>
           )}
           

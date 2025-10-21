@@ -4,48 +4,113 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Save, Eye, EyeOff } from "lucide-react";
+import { MapPin, Save, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { supabase } from '@/integrations/supabase/client';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { useQueryClient } from '@tanstack/react-query';
 
-interface GoogleMapsSettingsProps {
-  onApiKeyChange?: (apiKey: string) => void;
-}
-
-export const GoogleMapsSettings: React.FC<GoogleMapsSettingsProps> = ({ onApiKeyChange }) => {
+export const GoogleMapsSettings: React.FC = () => {
+  const queryClient = useQueryClient();
+  const { data: appSettings, isLoading } = useAppSettings();
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Load API key from localStorage on component mount
-    const savedApiKey = localStorage.getItem('googleMapsApiKey');
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-      setIsSaved(true);
-      onApiKeyChange?.(savedApiKey);
+    if (appSettings?.google_maps_api_key) {
+      setApiKey(appSettings.google_maps_api_key);
     }
-  }, [onApiKeyChange]);
+  }, [appSettings]);
 
-  const handleSaveApiKey = () => {
+  const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
       toast.error('Please enter a valid Google Maps API key');
       return;
     }
 
-    // Save to localStorage
-    localStorage.setItem('googleMapsApiKey', apiKey.trim());
-    setIsSaved(true);
-    onApiKeyChange?.(apiKey.trim());
-    toast.success('Google Maps API key saved successfully');
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Get current organization
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found');
+      }
+
+      // Upsert app settings
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          organization_id: profile.organization_id,
+          google_maps_api_key: apiKey.trim()
+        }, {
+          onConflict: 'organization_id'
+        });
+
+      if (error) throw error;
+
+      // Invalidate cache
+      queryClient.invalidateQueries({ queryKey: ['app-settings'] });
+      toast.success('Google Maps API key saved successfully');
+    } catch (error) {
+      console.error('Error saving API key:', error);
+      toast.error('Failed to save API key');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleClearApiKey = () => {
-    localStorage.removeItem('googleMapsApiKey');
-    setApiKey('');
-    setIsSaved(false);
-    onApiKeyChange?.('');
-    toast.success('Google Maps API key cleared');
+  const handleClearApiKey = async () => {
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found');
+      }
+
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ google_maps_api_key: null })
+        .eq('organization_id', profile.organization_id);
+
+      if (error) throw error;
+
+      setApiKey('');
+      queryClient.invalidateQueries({ queryKey: ['app-settings'] });
+      toast.success('Google Maps API key cleared');
+    } catch (error) {
+      console.error('Error clearing API key:', error);
+      toast.error('Failed to clear API key');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -67,6 +132,7 @@ export const GoogleMapsSettings: React.FC<GoogleMapsSettingsProps> = ({ onApiKey
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your Google Maps API key"
                 className="pr-10"
+                disabled={isSaving}
               />
               <Button
                 type="button"
@@ -74,6 +140,7 @@ export const GoogleMapsSettings: React.FC<GoogleMapsSettingsProps> = ({ onApiKey
                 size="sm"
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                 onClick={() => setShowApiKey(!showApiKey)}
+                disabled={isSaving}
               >
                 {showApiKey ? (
                   <EyeOff className="w-4 h-4" />
@@ -82,20 +149,24 @@ export const GoogleMapsSettings: React.FC<GoogleMapsSettingsProps> = ({ onApiKey
                 )}
               </Button>
             </div>
-            <Button onClick={handleSaveApiKey} disabled={!apiKey.trim()}>
-              <Save className="w-4 h-4 mr-1" />
+            <Button onClick={handleSaveApiKey} disabled={!apiKey.trim() || isSaving}>
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-1" />
+              )}
               Save
             </Button>
           </div>
         </div>
 
-        {isSaved && (
+        {appSettings?.google_maps_api_key && (
           <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-2 text-green-700">
               <MapPin className="w-4 h-4" />
               <span className="text-sm font-medium">Google Maps is configured</span>
             </div>
-            <Button variant="outline" size="sm" onClick={handleClearApiKey}>
+            <Button variant="outline" size="sm" onClick={handleClearApiKey} disabled={isSaving}>
               Clear
             </Button>
           </div>
