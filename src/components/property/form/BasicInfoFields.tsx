@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BasicInfoFieldProps } from '@/types/propertyForm';
 import { GoogleMapsAddressInput } from '@/components/maps/GoogleMapsAddressInput';
+import { useAppSettings } from '@/hooks/useAppSettings';
 
 export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
   name,
@@ -12,15 +13,7 @@ export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
   email,
   onChange
 }) => {
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
-
-  useEffect(() => {
-    // Load API key from localStorage
-    const savedApiKey = localStorage.getItem('googleMapsApiKey');
-    if (savedApiKey) {
-      setGoogleMapsApiKey(savedApiKey);
-    }
-  }, []);
+  const { data: appSettings } = useAppSettings();
 
   const handleAddressChange = (newAddress: string) => {
     // Create a synthetic event to maintain compatibility with existing onChange handler
@@ -55,7 +48,7 @@ export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
             label="Address"
             placeholder="Enter address or search with Google Maps"
             required
-            apiKey={googleMapsApiKey}
+            apiKey={appSettings?.google_maps_api_key || undefined}
           />
         </div>
       </div>
