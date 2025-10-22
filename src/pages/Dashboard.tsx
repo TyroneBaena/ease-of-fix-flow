@@ -152,9 +152,9 @@ const Dashboard = () => {
             </div> */}
 
             {/* Billing Widgets */}
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <BillingWidgets />
-            </div>
+            </div> */}
 
             {/* Property Management Widget */}
             <div className="mb-6">
