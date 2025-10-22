@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,7 +26,6 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
   paymentCompleted,
   onCancel
 }) => {
-  const navigate = useNavigate();
   const [steps, setSteps] = useState<SetupStep[]>([
     { id: 'payment', name: 'Payment Method Setup', status: 'success' }, // Already completed
     { id: 'organization', name: 'Create Organization', status: 'pending' },
@@ -198,49 +196,40 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
       // Continue anyway
     }
 
-    // Step 4: Verify/Create Trial Subscription
+    // Step 4: Verify/Create Trial Subscription via Edge Function
     updateStepStatus('subscriber', 'in-progress');
     
     try {
       // Check if subscriber already exists
       const { data: existingSubscriber } = await supabase
         .from('subscribers')
-        .select('is_trial_active, trial_start_date')
+        .select('is_trial_active, trial_start_date, stripe_customer_id')
         .eq('organization_id', orgId)
         .maybeSingle();
 
-      if (existingSubscriber?.is_trial_active) {
-        console.log('✅ Trial already active');
+      if (existingSubscriber?.is_trial_active && existingSubscriber?.stripe_customer_id) {
+        console.log('✅ Trial already active with Stripe customer');
         updateStepStatus('subscriber', 'success');
       } else {
-        // Create trial subscription
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 30);
-        
-        const { error: subscriberError } = await supabase
-          .from('subscribers')
-          .upsert({
-            organization_id: orgId,
-            user_id: user.id,
-            created_by: user.id,
-            email: user.email!,
-            is_trial_active: true,
-            trial_start_date: new Date().toISOString(),
-            trial_end_date: trialEndDate.toISOString(),
-            is_cancelled: false,
-            active_properties_count: 0,
-            subscribed: false,
-          }, {
-            onConflict: 'organization_id'
-          });
+        // Call edge function to create trial subscription with Stripe integration
+        console.log('Calling create-trial-subscription edge function with org_id:', orgId);
+        const { data: trialData, error: trialError } = await supabase.functions.invoke('create-trial-subscription', {
+          body: { organization_id: orgId }
+        });
 
-        if (subscriberError) {
-          console.error('❌ Trial activation failed:', subscriberError);
-          updateStepStatus('subscriber', 'error', subscriberError.message);
+        if (trialError) {
+          console.error('❌ Edge function error:', trialError);
+          updateStepStatus('subscriber', 'error', trialError.message);
           return;
         }
 
-        console.log('✅ Trial activated');
+        if (!trialData?.success) {
+          console.error('❌ Edge function returned error:', trialData);
+          updateStepStatus('subscriber', 'error', trialData?.error || 'Failed to create trial');
+          return;
+        }
+
+        console.log('✅ Trial activated via edge function', trialData);
         updateStepStatus('subscriber', 'success');
       }
 

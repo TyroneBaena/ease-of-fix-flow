@@ -19,6 +19,17 @@ Deno.serve(async (req) => {
   try {
     log("Starting trial subscription creation");
 
+    // Parse request body to get organization_id if provided
+    let requestBody: { organization_id?: string } = {};
+    try {
+      const bodyText = await req.text();
+      if (bodyText) {
+        requestBody = JSON.parse(bodyText);
+      }
+    } catch (e) {
+      log("No body or invalid JSON in request");
+    }
+
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -118,20 +129,42 @@ Deno.serve(async (req) => {
     // Create service role client for admin operations
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's organization_id from profiles
-    const { data: profile, error: profileError } = await adminSupabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', userId)
-      .single();
+    // Get organization_id - either from request body or from user profile
+    let organizationId: string;
+    
+    if (requestBody.organization_id) {
+      // Organization ID provided in request - use it directly (new signup flow)
+      organizationId = requestBody.organization_id;
+      log("Using organization_id from request", { organizationId });
+      
+      // Verify the user has access to this organization
+      const { data: membership, error: membershipError } = await adminSupabase
+        .from('user_organizations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .maybeSingle();
+      
+      if (membershipError || !membership) {
+        log("User does not have access to provided organization", { membershipError, hasMembership: !!membership });
+        throw new Error('User does not have access to the specified organization');
+      }
+    } else {
+      // Fallback: Get user's organization_id from profiles (existing flow)
+      const { data: profile, error: profileError } = await adminSupabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', userId)
+        .single();
 
-    if (profileError || !profile?.organization_id) {
-      log("Error fetching user profile or missing organization", { profileError, hasOrgId: !!profile?.organization_id });
-      throw new Error('User must belong to an organization to start a trial');
+      if (profileError || !profile?.organization_id) {
+        log("Error fetching user profile or missing organization", { profileError, hasOrgId: !!profile?.organization_id });
+        throw new Error('User must belong to an organization to start a trial');
+      }
+
+      organizationId = profile.organization_id;
+      log("Retrieved user organization from profile", { organizationId });
     }
-
-    const organizationId = profile.organization_id;
-    log("Retrieved user organization", { organizationId });
 
     // Check if organization already has a subscriber record
     const { data: existingSubscriber, error: checkError } = await adminSupabase

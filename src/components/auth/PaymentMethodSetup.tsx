@@ -90,6 +90,10 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
 
   const createSetupIntent = async () => {
     try {
+      // Note: This is now only called from the old EnhancedSignupFlow
+      // The new OrganizationOnboarding flow doesn't use this component for setup intent creation
+      // It uses PaymentCompletionHandler which calls the edge function with organization_id
+      
       const { data, error } = await supabase.functions.invoke('create-trial-subscription', {
         body: {}
       });
