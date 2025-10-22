@@ -215,7 +215,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
           user_id: user.id,
           organization_id: orgData.id,
           role: 'admin',
-          is_primary: true
+          is_default: true
         });
 
       if (membershipError) {
