@@ -1,13 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Menu, Home, ClipboardList, Calendar, UserCog } from 'lucide-react';
+import { LogOut, Menu, Home, ClipboardList, Calendar, UserCog, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ContractorNavigation } from './ContractorNavigation';
 import ContractorNotificationBell from './ContractorNotificationBell';
 import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
+import { toast } from '@/lib/toast';
 import {
   Sheet,
   SheetContent,
@@ -18,6 +19,7 @@ export const ContractorHeader = () => {
   const navigate = useNavigate();
   const { signOut, currentUser, loading } = useUserContext();
   const { contractor, loading: contractorLoading } = useContractorProfileData();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async (e?: React.MouseEvent) => {
     // Prevent any default behavior and event bubbling
@@ -26,6 +28,8 @@ export const ContractorHeader = () => {
       e.stopPropagation();
     }
     
+    setIsSigningOut(true);
+    toast.loading("Signing out...");
     console.log("🔐 ContractorHeader: Starting sign out");
     
     try {
@@ -130,9 +134,13 @@ export const ContractorHeader = () => {
               </span>
             ) : null}
             {currentUser && (
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign out
+              <Button variant="ghost" size="sm" onClick={handleSignOut} disabled={isSigningOut}>
+                {isSigningOut ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 mr-2" />
+                )}
+                {isSigningOut ? 'Signing out...' : 'Sign out'}
               </Button>
             )}
           </div>

@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, Shield } from 'lucide-react';
+import { LogOut, Settings, Shield, Loader2 } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { toast } from '@/lib/toast';
 
 export const UserMenu = () => {
   const navigate = useNavigate();
   const { currentUser, isAdmin, signOut } = useUserContext();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   
   const userInitials = currentUser?.name 
     ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -25,6 +27,8 @@ export const UserMenu = () => {
     e.preventDefault();
     e.stopPropagation();
     
+    setIsSigningOut(true);
+    toast.loading("Signing out...");
     console.log("🔐 UserMenu: Starting sign out");
     
     try {
@@ -102,9 +106,14 @@ export const UserMenu = () => {
         <DropdownMenuItem 
           className="cursor-pointer"
           onClick={handleSignOut}
+          disabled={isSigningOut}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sign out</span>
+          {isSigningOut ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <LogOut className="mr-2 h-4 w-4" />
+          )}
+          <span>{isSigningOut ? 'Signing out...' : 'Sign out'}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
