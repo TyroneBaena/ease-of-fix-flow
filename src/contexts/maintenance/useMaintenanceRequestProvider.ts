@@ -24,12 +24,7 @@ export const useMaintenanceRequestProvider = () => {
     if (currentUser?.id) {
       console.log('🔍 MAINTENANCE PROVIDER v2.0 - User authenticated, loading requests');
       
-      // Add a small delay to allow organization data to load if needed
-      const timer = setTimeout(() => {
-        loadRequests();
-      }, 100);
-      
-      // Also load immediately for better perceived performance
+      // FIXED: Only load once to prevent race conditions
       loadRequests();
       
       // Set up real-time subscription for maintenance requests
@@ -55,7 +50,6 @@ export const useMaintenanceRequestProvider = () => {
         });
 
       return () => {
-        clearTimeout(timer);
         console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
         supabase.removeChannel(channel);
       };
@@ -79,7 +73,14 @@ export const useMaintenanceRequestProvider = () => {
     // The backend RLS will handle filtering, and organization_id should be available from profile
     setLoading(true);
     try {
-      const fetchedRequests = await fetchRequests();
+      // Add timeout protection (15 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request fetch timeout')), 15000);
+      });
+      
+      const fetchPromise = fetchRequests();
+      
+      const fetchedRequests = await Promise.race([fetchPromise, timeoutPromise]);
       console.log('🔍 LOADING REQUESTS v2.0 - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
@@ -102,9 +103,13 @@ export const useMaintenanceRequestProvider = () => {
       }
     } catch (error) {
       console.error('🔍 LOADING REQUESTS - Error:', error);
+      if (error instanceof Error && error.message === 'Request fetch timeout') {
+        console.warn('⏱️ Request fetch timed out, setting empty state');
+      }
       setRequests([]);
       return [];
     } finally {
+      // CRITICAL: Always set loading false
       setLoading(false);
     }
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);

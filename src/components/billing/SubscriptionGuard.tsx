@@ -22,12 +22,33 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   fallbackPath = '/billing-security',
 }) => {
   const { hasAccess, isLoading, reason, message } = useSubscriptionGuard(requirePaymentMethod);
+  const [showLoadingTimeout, setShowLoadingTimeout] = React.useState(false);
+
+  // Add timeout warning if loading takes too long
+  React.useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setShowLoadingTimeout(true);
+      }, 5000); // Show warning after 5 seconds
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowLoadingTimeout(false);
+    }
+  }, [isLoading]);
 
   // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          {showLoadingTimeout && (
+            <p className="text-sm text-muted-foreground">
+              Taking longer than usual... If this persists, try refreshing the page.
+            </p>
+          )}
+        </div>
       </div>
     );
   }

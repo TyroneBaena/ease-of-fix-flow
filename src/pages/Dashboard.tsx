@@ -16,6 +16,8 @@ import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMoni
 import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContext';
 import { PropertyProvider } from '@/contexts/property/PropertyContext';
 import { MaintenanceRequest } from '@/types/maintenance';
+import { Button } from '@/components/ui/button';
+
 
 
 const Dashboard = () => {
@@ -23,9 +25,25 @@ const Dashboard = () => {
   const { currentUser, loading: userLoading } = useUserContext();
   const { requests, loading: requestsLoading } = useMaintenanceRequestContext();
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   
   // Enable proactive contractor profile monitoring for admin users
   useContractorProfileMonitoring();
+  
+  // Add loading timeout detection
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+        console.error('⏱️ Dashboard loading timeout detected');
+      }, 10000); // 10 second timeout
+      
+      return () => {
+        clearTimeout(timer);
+        setLoadingTimeout(false);
+      };
+    }
+  }, [userLoading, requestsLoading]);
   
   // Note: Removed auto-redirect for contractors to prevent infinite loops
   // Contractors should access /contractor-dashboard directly
@@ -71,6 +89,20 @@ const Dashboard = () => {
               <p className="text-sm text-gray-400 mt-2">
                 {userLoading ? 'Authenticating user...' : 'Loading maintenance requests...'}
               </p>
+              {loadingTimeout && (
+                <div className="mt-4">
+                  <p className="text-sm text-amber-600 mb-2">
+                    Loading is taking longer than expected
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                  >
+                    Refresh Page
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </main>

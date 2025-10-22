@@ -92,12 +92,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     try {
-      setLoading(true); // CRITICAL: Set loading true at start to prevent race conditions
+      setLoading(true);
       
       console.log('🔄 SubscriptionContext - Fetching for organization:', currentOrganization.id);
       
-      // Query by organization_id instead of user_id
-      let { data: row, error: fetchErr } = await supabase
+      // Create timeout promise (10 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Subscription query timeout')), 10000);
+      });
+      
+      // Race the query against timeout
+      const queryPromise = supabase
         .from("subscribers")
         .select(`
           subscribed, 
@@ -111,6 +116,30 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         `)
         .eq("organization_id", currentOrganization.id)
         .maybeSingle();
+      
+      let row: any = null;
+      let fetchErr: any = null;
+      
+      try {
+        const result = await Promise.race([queryPromise, timeoutPromise]);
+        row = (result as any).data;
+        fetchErr = (result as any).error;
+      } catch (timeoutError) {
+        console.warn('⏱️ SubscriptionContext - Query timed out, using fallback state');
+        // Set safe defaults on timeout
+        setSubscribed(false);
+        setSubscriptionTier(null);
+        setSubscriptionEnd(null);
+        setIsTrialActive(false);
+        setIsCancelled(false);
+        setTrialEndDate(null);
+        setPropertyCount(0);
+        setHasPaymentMethod(false);
+        setDaysRemaining(null);
+        setMonthlyAmount(0);
+        setCurrency('aud');
+        return; // Exit early with safe state
+      }
 
       // Handle organizations without subscriber records (haven't started trial yet)
       if (!row && !fetchErr) {
@@ -198,7 +227,20 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
     } catch (error) {
       console.error("Subscription refresh error:", error);
+      // CRITICAL: Set safe defaults on any error
+      setSubscribed(false);
+      setSubscriptionTier(null);
+      setSubscriptionEnd(null);
+      setIsTrialActive(false);
+      setIsCancelled(false);
+      setTrialEndDate(null);
+      setPropertyCount(0);
+      setHasPaymentMethod(false);
+      setDaysRemaining(null);
+      setMonthlyAmount(0);
+      setCurrency('aud');
     } finally {
+      // CRITICAL: Always set loading false
       setLoading(false);
     }
   }, [currentUser?.id, currentOrganization?.id]);

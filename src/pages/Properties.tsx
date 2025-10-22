@@ -44,12 +44,8 @@ const PropertiesContent = () => {
   // Initialize billing integration
   usePropertyBillingIntegration();
   
-  // CRITICAL FIX: Force refresh subscription data when this page mounts
-  // This ensures SubscriptionGuard has current data, not cached data from previous pages
-  React.useEffect(() => {
-    console.log('[Properties] Component mounted - forcing subscription refresh');
-    refreshSubscription();
-  }, [refreshSubscription]); // Include refreshSubscription to satisfy exhaustive-deps
+  // REMOVED: Redundant refreshSubscription() call that causes race conditions
+  // The SubscriptionProvider already handles data fetching on mount
   
   // Debug: Log properties to see current state
   console.log('Properties page - State:', { 
