@@ -26,9 +26,6 @@ export const NavLinks = () => {
       { name: 'Reports', icon: <FileText className="h-5 w-5" />, path: '/reports' },
     ];
     
-    // Add Billing & Security for all authenticated users (Security tab only visible to admins)
-    items.push({ name: 'Billing & Security', icon: <Shield className="h-5 w-5" />, path: '/billing-security' });
-    
     // Add Settings (general) for admin and manager
     if (isAdmin || currentUser?.role === 'manager') {
       items.push({ name: 'Settings', icon: <Settings className="h-5 w-5" />, path: '/settings' });

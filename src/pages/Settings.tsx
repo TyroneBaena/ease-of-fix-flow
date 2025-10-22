@@ -15,6 +15,7 @@ import NotificationSettings from '@/components/settings/NotificationSettings';
 import { Toaster } from "sonner";
 import { TeamManagement } from '@/pages/TeamManagement';
 import { GoogleMapsSettings } from '@/components/maps/GoogleMapsSettings';
+import { BillingManagementPage } from '@/components/billing/BillingManagementPage';
 
 
 const Settings = () => {
@@ -103,6 +104,7 @@ const Settings = () => {
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             {isAdmin && <TabsTrigger value="team">Team Management</TabsTrigger>}
             {isAdmin && <TabsTrigger value="app">App Settings</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="billing">Billing & Security</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -137,6 +139,13 @@ const Settings = () => {
               <div className="max-w-2xl">
                 <GoogleMapsSettings />
               </div>
+            </TabsContent>
+          )}
+          
+          {/* Billing & Security - Admin only */}
+          {isAdmin && (
+            <TabsContent value="billing">
+              <BillingManagementPage />
             </TabsContent>
           )}
           
