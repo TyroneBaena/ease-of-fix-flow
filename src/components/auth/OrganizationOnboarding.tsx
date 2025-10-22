@@ -27,6 +27,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [showPaymentSetup, setShowPaymentSetup] = useState(false);
   const [createdOrgId, setCreatedOrgId] = useState<string | null>(null); // Track created org ID
   const [isSubmitting, setIsSubmitting] = useState(false); // Prevent duplicate submissions
+  const [userReady, setUserReady] = useState(false); // Track if user is fully initialized
   
   // Create organization form
   const [orgName, setOrgName] = useState('');
@@ -37,6 +38,23 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [showLoginReminder, setShowLoginReminder] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Wait for user to be fully initialized before allowing interactions
+  React.useEffect(() => {
+    console.log('🔍 OrganizationOnboarding - Checking user initialization:', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      userEmail: user?.email 
+    });
+
+    if (user?.id) {
+      console.log('✅ OrganizationOnboarding - User is fully initialized');
+      setUserReady(true);
+    } else {
+      console.log('⏳ OrganizationOnboarding - Waiting for user initialization...');
+      setUserReady(false);
+    }
+  }, [user?.id]);
 
   const generateSlug = (name: string) => {
     return name
@@ -88,9 +106,26 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     e.preventDefault();
     setError(null);
 
+    console.log('🚀 OrganizationOnboarding - handleCreateOrganization called', {
+      userReady,
+      hasUserId: !!user?.id,
+      userId: user?.id,
+      isSubmitting,
+      orgName
+    });
+
+    // Check if user is fully initialized
+    if (!userReady || !user?.id) {
+      const errorMsg = "Please wait while we initialize your account...";
+      console.error('❌ User not ready:', { userReady, hasUserId: !!user?.id });
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
     // Prevent duplicate submissions
     if (isSubmitting) {
-      console.log('Organization creation already in progress, ignoring duplicate submission');
+      console.log('⚠️ Organization creation already in progress, ignoring duplicate submission');
       return;
     }
 
@@ -612,13 +647,18 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                       placeholder="Acme Corp"
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
-                      disabled={isLoading}
+                      disabled={isLoading || !userReady}
                       required
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || isSubmitting}>
-                    {isLoading ? (
+                  <Button type="submit" className="w-full" disabled={isLoading || isSubmitting || !userReady}>
+                    {!userReady ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Initializing...
+                      </>
+                    ) : isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Creating Organization...
