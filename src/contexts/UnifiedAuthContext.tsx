@@ -727,6 +727,71 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []);
 
+  // Handle tab visibility changes - refresh session when user returns to tab
+  useEffect(() => {
+    let lastHiddenTime = 0;
+    
+    const handleVisibilityChange = async () => {
+      // Only check when tab becomes visible and we have an existing session
+      if (!document.hidden && session && currentUser) {
+        const hiddenDuration = lastHiddenTime ? Date.now() - lastHiddenTime : 0;
+        console.log('🔄 UnifiedAuth - Tab became visible, checking session validity (was hidden for', Math.round(hiddenDuration / 1000), 'seconds)');
+        
+        try {
+          // Check and refresh the session
+          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('🔄 UnifiedAuth - Session check error on visibility change:', error);
+            // Session is invalid - sign out
+            toast.error('Your session has expired. Please sign in again.');
+            await signOut();
+            return;
+          }
+          
+          if (!currentSession) {
+            console.warn('🔄 UnifiedAuth - No session found on visibility change, signing out');
+            toast.error('Your session has expired. Please sign in again.');
+            await signOut();
+            return;
+          }
+          
+          // Session is valid, update it
+          console.log('🔄 UnifiedAuth - Session is valid, refreshing user data');
+          setSession(currentSession);
+          
+          // Refresh user data if session user changed
+          if (currentSession.user && currentSession.user.id === currentUser.id) {
+            // Silently refresh user data in background
+            convertSupabaseUser(currentSession.user).then(refreshedUser => {
+              setCurrentUser(refreshedUser);
+              console.log('🔄 UnifiedAuth - User data refreshed successfully');
+            }).catch(err => {
+              console.warn('🔄 UnifiedAuth - Error refreshing user data:', err);
+            });
+          }
+        } catch (error) {
+          console.error('🔄 UnifiedAuth - Error handling visibility change:', error);
+        }
+      }
+      
+      // Track when tab was hidden
+      if (document.hidden) {
+        lastHiddenTime = Date.now();
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    console.log('🔄 UnifiedAuth - Tab visibility monitoring enabled');
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      console.log('🔄 UnifiedAuth - Tab visibility monitoring disabled');
+    };
+  }, [session, currentUser, signOut]);
+
   // Fetch users when user becomes admin
   useEffect(() => {
     console.log('UnifiedAuth - useEffect triggered:', { isAdmin, loading, hasCurrentOrganization: !!currentOrganization });
