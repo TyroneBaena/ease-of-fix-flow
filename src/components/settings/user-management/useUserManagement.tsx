@@ -122,6 +122,16 @@ export const useUserManagement = () => {
       setReady(true); // Set ready anyway to prevent infinite loading
     }
   }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
+  
+  // Track when currentUser is available for operations
+  useEffect(() => {
+    if (currentUser && typeof isAdmin === 'boolean') {
+      console.log('🔧 UserManagement - User context ready:', {
+        hasCurrentUser: !!currentUser,
+        isAdmin
+      });
+    }
+  }, [currentUser, isAdmin]);
 
   // Refresh user list when dialog is closed after successful operation - but only once
   useEffect(() => {
@@ -167,6 +177,7 @@ export const useUserManagement = () => {
     confirmDeleteUser,
     handleDeleteUser,
     handlePageChange,
-    fetchUsers
+    fetchUsers,
+    ready: ready && !!currentUser
   };
 };

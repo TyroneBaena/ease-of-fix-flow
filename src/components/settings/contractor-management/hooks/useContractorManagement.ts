@@ -14,6 +14,7 @@ export const useContractorManagement = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<Error | null>(null);
+  const [ready, setReady] = useState(false);
 
   console.log('🔧 useContractorManagement - Hook state:', {
     isAdmin,
@@ -97,6 +98,18 @@ export const useContractorManagement = () => {
     loadContractors();
   }, []);
 
+  // Track when the component is ready for operations
+  useEffect(() => {
+    // Component is ready when we have current user and admin status is determined
+    if (currentUser && typeof isAdmin === 'boolean') {
+      console.log('🔧 useContractorManagement - Component ready:', {
+        hasCurrentUser: !!currentUser,
+        isAdmin
+      });
+      setReady(true);
+    }
+  }, [currentUser, isAdmin]);
+
   const handleSave = async () => {
     const success = await handleSaveContractor(isEditMode, selectedContractor, newContractor);
     if (success) {
@@ -129,6 +142,7 @@ export const useContractorManagement = () => {
     handleDeleteContractor,
     handlePageChange,
     fetchContractors: loadContractors,
-    selectedContractorForDeletion
+    selectedContractorForDeletion,
+    ready
   };
 };

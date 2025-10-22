@@ -37,7 +37,8 @@ const ContractorManagement = () => {
     handleDeleteContractor,
     handlePageChange,
     fetchContractors,
-    selectedContractorForDeletion
+    selectedContractorForDeletion,
+    ready
   } = useContractorManagement();
   
   console.log('🏗️ ContractorManagement - Debug state:', {
@@ -136,6 +137,7 @@ const ContractorManagement = () => {
         onContractorChange={handleContractorChange}
         onSpecialtiesChange={handleSpecialtiesChange}
         onSave={handleSaveContractor}
+        ready={ready}
       />
       
       <DeleteContractorDialog

@@ -39,7 +39,8 @@ const UserManagement = () => {
     confirmDeleteUser,
     handleDeleteUser,
     handlePageChange,
-    fetchUsers
+    fetchUsers,
+    ready
   } = useUserManagement();
   
   // Debug logging to see what's happening with auth state
@@ -152,6 +153,7 @@ const UserManagement = () => {
         onPropertySelection={handlePropertySelection}
         onSave={handleSaveUser}
         formError={formError}
+        ready={ready}
       />
       
       <DeleteUserDialog

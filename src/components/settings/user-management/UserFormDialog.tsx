@@ -47,6 +47,7 @@ interface UserFormDialogProps {
 
 interface UserFormDialogPropsWithError extends UserFormDialogProps {
   formError?: string | null;
+  ready?: boolean;
 }
 
 const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
@@ -61,7 +62,8 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   onUserChange,
   onPropertySelection,
   onSave,
-  formError
+  formError,
+  ready = true
 }) => {
   
   return (
@@ -100,7 +102,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
               value={user.name}
               onChange={(e) => onUserChange('name', e.target.value)}
               placeholder="Enter full name"
-              disabled={isLoading}
+              disabled={isLoading || !ready}
             />
           </div>
           
@@ -112,7 +114,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
               value={user.email}
               onChange={(e) => onUserChange('email', e.target.value)}
               placeholder="Enter email address"
-              disabled={isLoading || (isEditMode && selectedUserId === currentUserId)}
+              disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
             />
           </div>
           
@@ -121,7 +123,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
             <Select 
               value={user.role}
               onValueChange={(value: UserRole) => onUserChange('role', value)}
-              disabled={isLoading || (isEditMode && selectedUserId === currentUserId)}
+              disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
@@ -149,7 +151,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
                         id={`property-${property.id}`}
                         checked={user.assignedProperties.includes(property.id)}
                         onCheckedChange={() => onPropertySelection(property.id)}
-                        disabled={isLoading}
+                        disabled={isLoading || !ready}
                       />
                       <label 
                         htmlFor={`property-${property.id}`}
@@ -177,17 +179,22 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
           </Button>
           <Button 
             onClick={onSave} 
-            disabled={isLoading}
+            disabled={isLoading || !ready}
             className="flex items-center"
           >
-            {isLoading ? (
+            {!ready ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
+                Initializing...
+              </>
+            ) : isLoading ? (
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
             ) : isEditMode ? (
               <Check className="mr-2 h-4 w-4" />
             ) : (
               <Mail className="mr-2 h-4 w-4" />
             )}
-            {isEditMode ? 'Update User' : 'Send Invitation'}
+            {!ready ? 'Initializing...' : isEditMode ? 'Update User' : 'Send Invitation'}
           </Button>
         </DialogFooter>
       </DialogContent>
