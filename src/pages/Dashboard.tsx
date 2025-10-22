@@ -147,9 +147,9 @@ const Dashboard = () => {
             <DashboardHeader title="Dashboard" />
             
             {/* Trial/Billing Alert */}
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <TrialBillingAlert />
-            </div>
+            </div> */}
 
             {/* Billing Widgets */}
             <div className="mb-6">
