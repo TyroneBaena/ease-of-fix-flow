@@ -171,14 +171,13 @@ const Dashboard = () => {
                 />
               </div>
               
-              {selectedRequest ? (
+              {selectedRequest && (
                 <RequestDetailSidebar 
                   request={selectedRequest}
                   onClose={() => setSelectedRequest(null)}
                 />
-              ) : (
-                <DashboardSidebar />
               )}
+              {/* <DashboardSidebar /> */}
             </div>
           </main>
         </div>
