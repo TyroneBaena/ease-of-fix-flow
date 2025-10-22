@@ -15,28 +15,33 @@ interface SetupStep {
 
 interface PaymentCompletionHandlerProps {
   user: any;
-  orgName: string;
+  organizationId: string; // BUG FIX 1: Receive org ID instead of creating it
+  organizationName: string; // For display purposes only
   paymentCompleted: boolean;
   onCancel: () => void;
 }
 
 export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> = ({
   user,
-  orgName,
+  organizationId: propOrgId,
+  organizationName,
   paymentCompleted,
   onCancel
 }) => {
+  // BUG FIX 1: Organization already created, skip that step
   const [steps, setSteps] = useState<SetupStep[]>([
-    { id: 'payment', name: 'Payment Method Setup', status: 'success' }, // Already completed
-    { id: 'organization', name: 'Create Organization', status: 'pending' },
+    { id: 'payment', name: 'Payment Method Setup', status: 'success' },
+    { id: 'organization', name: 'Create Organization', status: 'success' }, // Already done
     { id: 'profile', name: 'Update User Profile', status: 'pending' },
     { id: 'membership', name: 'Create Membership Record', status: 'pending' },
     { id: 'subscriber', name: 'Activate Free Trial', status: 'pending' }
   ]);
   
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [organizationId] = useState<string>(propOrgId); // Use provided org ID
   const [isRetrying, setIsRetrying] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
+  const [retryCount, setRetryCount] = useState(0); // Track retry attempts
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
     if (paymentCompleted && !setupComplete) {
@@ -50,90 +55,12 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
     ));
   };
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
-  const generateUniqueSlug = async (baseName: string): Promise<string> => {
-    const baseSlug = generateSlug(baseName);
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (true) {
-      const { data: existing, error } = await supabase
-        .from('organizations')
-        .select('slug')
-        .eq('slug', slug)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (!existing) {
-        return slug;
-      }
-
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-
-      if (counter > 100) {
-        slug = `${baseSlug}-${Date.now()}`;
-        break;
-      }
-    }
-
-    return slug;
-  };
-
   const performSetup = async () => {
-    console.log('🚀 Starting post-payment setup...');
+    console.log('🚀 Starting post-payment setup with org ID:', organizationId);
 
+    // BUG FIX 1: Organization already created, skip directly to profile/membership/trial
     try {
-      // Step 1: Create Organization (if not already created)
-      if (!organizationId) {
-        updateStepStatus('organization', 'in-progress');
-        
-        try {
-          const finalSlug = await generateUniqueSlug(orgName.trim());
-          
-          const { data: orgData, error: orgError } = await supabase
-            .from('organizations')
-            .insert({
-              name: orgName.trim(),
-              slug: finalSlug,
-              created_by: user.id,
-              settings: {}
-            })
-            .select()
-            .single();
-
-          if (orgError) {
-            console.error('❌ Organization creation failed:', orgError);
-            updateStepStatus('organization', 'error', orgError.message);
-            return;
-          }
-
-          console.log('✅ Organization created:', orgData);
-          setOrganizationId(orgData.id);
-          updateStepStatus('organization', 'success');
-
-          // Continue with remaining steps using the new organization ID
-          await continueSetup(orgData.id);
-        } catch (error: any) {
-          console.error('❌ Organization creation exception:', error);
-          updateStepStatus('organization', 'error', error.message);
-          return;
-        }
-      } else {
-        // Organization already exists, continue with remaining steps
-        await continueSetup(organizationId);
-      }
+      await continueSetup(organizationId);
     } catch (error: any) {
       console.error('❌ Setup error:', error);
       toast.error('Setup failed. Please try again.');
@@ -169,31 +96,47 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
     }
 
     // Step 3: Create User Organization Membership
+    // BUG FIX 3: This IS critical - user needs membership for access control
     updateStepStatus('membership', 'in-progress');
     
     try {
-      const { error: membershipError } = await supabase
+      // Check if membership already exists
+      const { data: existingMembership } = await supabase
         .from('user_organizations')
-        .insert({
-          user_id: user.id,
-          organization_id: orgId,
-          role: 'admin',
-          is_active: true,
-          is_default: true
-        });
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('organization_id', orgId)
+        .maybeSingle();
 
-      if (membershipError) {
-        console.error('❌ Membership creation failed:', membershipError);
-        updateStepStatus('membership', 'error', membershipError.message);
-        // Don't return - this is not critical, continue to trial setup
+      if (existingMembership) {
+        console.log('✅ Membership already exists');
+        updateStepStatus('membership', 'success');
       } else {
+        const { error: membershipError } = await supabase
+          .from('user_organizations')
+          .insert({
+            user_id: user.id,
+            organization_id: orgId,
+            role: 'admin',
+            is_active: true,
+            is_default: true
+          });
+
+        if (membershipError) {
+          console.error('❌ Membership creation failed:', membershipError);
+          updateStepStatus('membership', 'error', membershipError.message);
+          // BUG FIX 3: This IS critical - stop here and allow retry
+          return;
+        }
+
         console.log('✅ Membership created');
         updateStepStatus('membership', 'success');
       }
     } catch (error: any) {
       console.error('❌ Membership creation exception:', error);
       updateStepStatus('membership', 'error', error.message);
-      // Continue anyway
+      // BUG FIX 3: Stop here - membership is required for access
+      return;
     }
 
     // Step 4: Verify/Create Trial Subscription via Edge Function
@@ -255,11 +198,24 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
   };
 
   const handleRetry = async () => {
+    if (isRetrying) {
+      console.log('Retry already in progress, ignoring duplicate request');
+      return;
+    }
+
+    if (retryCount >= MAX_RETRIES) {
+      toast.error(`Maximum retry attempts (${MAX_RETRIES}) reached. Please contact support.`);
+      return;
+    }
+
     setIsRetrying(true);
+    setRetryCount(prev => prev + 1);
     
-    // Reset failed steps to pending
+    // Reset failed steps to pending (but keep organization as success since it's already created)
     setSteps(prev => prev.map(step => 
-      step.status === 'error' ? { ...step, status: 'pending', errorMessage: undefined } : step
+      step.status === 'error' && step.id !== 'organization' 
+        ? { ...step, status: 'pending', errorMessage: undefined } 
+        : step
     ));
 
     await performSetup();
@@ -339,7 +295,7 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
             <div className="flex gap-3">
               <Button 
                 onClick={handleRetry} 
-                disabled={isRetrying}
+                disabled={isRetrying || retryCount >= MAX_RETRIES}
                 className="flex-1"
               >
                 {isRetrying ? (
@@ -350,7 +306,7 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
                 ) : (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry Setup
+                    Retry Setup {retryCount > 0 && `(${retryCount}/${MAX_RETRIES})`}
                   </>
                 )}
               </Button>
@@ -362,6 +318,16 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
                 Cancel
               </Button>
             </div>
+          )}
+
+          {/* Max Retries Warning */}
+          {retryCount >= MAX_RETRIES && hasErrors && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Maximum retry attempts reached. Please contact support at support@example.com with error details above.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Info Notice */}

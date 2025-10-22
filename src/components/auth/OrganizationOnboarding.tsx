@@ -28,6 +28,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [showPaymentSetup, setShowPaymentSetup] = useState(false);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [showCompletionHandler, setShowCompletionHandler] = useState(false);
+  const [createdOrgId, setCreatedOrgId] = useState<string | null>(null); // Track created org ID
+  const [isSubmitting, setIsSubmitting] = useState(false); // Prevent duplicate submissions
   
   // Create organization form
   const [orgName, setOrgName] = useState('');
@@ -89,29 +91,51 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     e.preventDefault();
     setError(null);
 
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      console.log('Organization creation already in progress, ignoring duplicate submission');
+      return;
+    }
+
     if (!orgName.trim()) {
       setError("Organization name is required");
       return;
     }
 
+    // Sanitize organization name
+    const sanitizedName = orgName.trim().slice(0, 100); // Max 100 chars
+    if (sanitizedName.length < 2) {
+      setError("Organization name must be at least 2 characters");
+      return;
+    }
+
+    // BUG FIX 2: Validate user.id exists before proceeding
     if (!user?.id) {
       setError("User authentication error. Please sign in again.");
       return;
     }
 
+    // Additional validation: Ensure user.id is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(user.id)) {
+      setError("Invalid user session. Please sign in again.");
+      return;
+    }
+
     try {
       setIsLoading(true);
-      setError(null); // Clear any previous errors
-      console.log('Creating organization:', { orgName, userId: user.id });
+      setIsSubmitting(true);
+      setError(null);
+      console.log('Creating organization:', { orgName: sanitizedName, userId: user.id });
 
       // Generate final unique slug before creation
-      const finalSlug = await generateUniqueSlug(orgName.trim());
+      const finalSlug = await generateUniqueSlug(sanitizedName);
 
-      // Create the organization
+      // BUG FIX 1: Create organization and store ID for PaymentCompletionHandler
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .insert({
-          name: orgName.trim(),
+          name: sanitizedName,
           slug: finalSlug,
           created_by: user.id,
           settings: {}
@@ -141,7 +165,15 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         return;
       }
 
+      if (!orgData?.id) {
+        setError("Organization created but ID not returned. Please refresh and try again.");
+        return;
+      }
+
       console.log('Organization created:', orgData);
+      
+      // BUG FIX 1: Store the organization ID to prevent duplicate creation
+      setCreatedOrgId(orgData.id);
 
       // Update user's profile with organization_id, session organization, and admin role  
       const { error: profileError } = await supabase
@@ -162,6 +194,13 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         } else {
           setError(`Failed to update profile: ${profileError.message}`);
         }
+        // Rollback: Delete the organization if profile update fails
+        try {
+          await supabase.from('organizations').delete().eq('id', orgData.id);
+          console.log('Organization rolled back due to profile update failure');
+        } catch (rollbackError) {
+          console.error('Failed to rollback organization:', rollbackError);
+        }
         return;
       }
 
@@ -169,7 +208,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       toast.success("Organization created successfully!");
 
-      // Show payment setup
+      // Show payment setup with org ID passed via state
       setShowPaymentSetup(true);
     } catch (error: any) {
       console.error('Error creating organization:', error);
@@ -177,6 +216,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       toast.error(`Failed to create organization: ${error.message || "Unknown error"}`);
     } finally {
       setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -324,11 +364,12 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   };
 
   // Show completion handler after payment is done
-  if (showCompletionHandler) {
+  if (showCompletionHandler && createdOrgId) {
     return (
       <PaymentCompletionHandler
         user={user}
-        orgName={orgName}
+        organizationId={createdOrgId}
+        organizationName={orgName}
         paymentCompleted={paymentCompleted}
         onCancel={() => {
           setShowCompletionHandler(false);
@@ -565,7 +606,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || isSubmitting}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
