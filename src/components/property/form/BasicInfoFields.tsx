@@ -48,7 +48,7 @@ export const BasicInfoFields: React.FC<BasicInfoFieldProps> = ({
             label="Address"
             placeholder="Enter address or search with Google Maps"
             required
-            apiKey={appSettings?.google_maps_api_key || undefined}
+            apiKey={appSettings?.google_maps_api_key || import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
           />
         </div>
       </div>
