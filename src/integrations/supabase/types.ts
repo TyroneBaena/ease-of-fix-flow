@@ -1284,7 +1284,7 @@ export type Database = {
           created_at: string | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           metadata: Json | null
           organization_id: string | null
           session_id: string | null
@@ -1296,7 +1296,7 @@ export type Database = {
           created_at?: string | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           organization_id?: string | null
           session_id?: string | null
@@ -1308,7 +1308,7 @@ export type Database = {
           created_at?: string | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           organization_id?: string | null
           session_id?: string | null
@@ -1548,18 +1548,9 @@ export type Database = {
         }
         Returns: string
       }
-      analytics_query: {
-        Args: { query: string }
-        Returns: Json
-      }
-      can_manage_organization: {
-        Args: { org_id: string }
-        Returns: boolean
-      }
-      cleanup_old_security_events: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      analytics_query: { Args: { query: string }; Returns: Json }
+      can_manage_organization: { Args: { org_id: string }; Returns: boolean }
+      cleanup_old_security_events: { Args: never; Returns: undefined }
       create_comment_notifications: {
         Args: {
           comment_text: string
@@ -1573,7 +1564,7 @@ export type Database = {
         Returns: undefined
       }
       debug_current_user_for_security: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           is_authenticated: boolean
           user_email: string
@@ -1582,7 +1573,7 @@ export type Database = {
         }[]
       }
       debug_organization_context: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           budget_categories_count: number
           current_org_function: string
@@ -1594,7 +1585,7 @@ export type Database = {
         }[]
       }
       debug_organization_creation: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           auth_uid: string
           current_org_id: string
@@ -1602,58 +1593,25 @@ export type Database = {
           profile_exists: boolean
         }[]
       }
-      expire_trials: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      expire_trials: { Args: never; Returns: undefined }
       generate_property_access_token: {
         Args: { p_expires_hours?: number; p_property_id: string }
         Returns: string
       }
-      get_active_sessions_count: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_appropriate_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_contractor_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_active_sessions_count: { Args: never; Returns: number }
+      get_appropriate_user_role: { Args: never; Returns: string }
+      get_contractor_id: { Args: never; Returns: string }
       get_contractor_user_id: {
         Args: { contractor_uuid: string }
         Returns: string
       }
-      get_current_financial_year: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_current_user_organization: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_organization_readonly: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_organization_safe: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_role_readonly: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_role_safe: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_financial_year: { Args: never; Returns: number }
+      get_current_user_organization: { Args: never; Returns: string }
+      get_current_user_organization_readonly: { Args: never; Returns: string }
+      get_current_user_organization_safe: { Args: never; Returns: string }
+      get_current_user_role: { Args: never; Returns: string }
+      get_current_user_role_readonly: { Args: never; Returns: string }
+      get_current_user_role_safe: { Args: never; Returns: string }
       get_organization_subscription: {
         Args: { org_id: string }
         Returns: {
@@ -1677,7 +1635,7 @@ export type Database = {
         }[]
       }
       get_security_compliance_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           check_name: string
           status: string
@@ -1698,14 +1656,8 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
-      get_user_role_for_maintenance: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      initialize_property_counts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      get_user_role_for_maintenance: { Args: never; Returns: string }
+      initialize_property_counts: { Args: never; Returns: undefined }
       initialize_user_profile: {
         Args: {
           email_param: string
@@ -1726,22 +1678,10 @@ export type Database = {
         }
         Returns: string
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_contractor: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_contractor_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_first_user_signup: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_contractor: { Args: never; Returns: boolean }
+      is_contractor_user: { Args: never; Returns: boolean }
+      is_first_user_signup: { Args: never; Returns: boolean }
       log_contractor_access: {
         Args: { user_id_param: string }
         Returns: string
@@ -1767,10 +1707,7 @@ export type Database = {
         }
         Returns: string
       }
-      meta_to_array: {
-        Args: { meta: Json }
-        Returns: string[]
-      }
+      meta_to_array: { Args: { meta: Json }; Returns: string[] }
       send_comment_email_notification: {
         Args: {
           p_comment_text: string
@@ -1784,10 +1721,7 @@ export type Database = {
         Args: { comment_id: string }
         Returns: undefined
       }
-      send_trial_expiration_warnings: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      send_trial_expiration_warnings: { Args: never; Returns: undefined }
       submit_public_maintenance_request: {
         Args: {
           p_attachments?: string
@@ -1810,14 +1744,8 @@ export type Database = {
         Args: { new_org_id: string }
         Returns: boolean
       }
-      sync_all_property_counts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      test_logging: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      sync_all_property_counts: { Args: never; Returns: undefined }
+      test_logging: { Args: never; Returns: undefined }
       user_has_property_access: {
         Args: { property_uuid: string }
         Returns: boolean
@@ -1832,7 +1760,7 @@ export type Database = {
         }[]
       }
       verify_multi_tenancy_health: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           has_rls_policy: boolean
           health_status: string
