@@ -57,16 +57,26 @@ export const MobileMenu = () => {
       e.stopPropagation();
     }
     
+    console.log("🔐 MobileMenu: Starting sign out");
+    
     try {
-      console.log("MobileMenu: Starting sign out");
-      await signOut();
-      console.log("MobileMenu: Sign out completed, forcing redirect");
+      // Add timeout to prevent hanging
+      const signOutPromise = signOut();
+      const timeoutPromise = new Promise((resolve) => 
+        setTimeout(() => {
+          console.warn("🔐 MobileMenu: Sign out taking too long, forcing redirect");
+          resolve(null);
+        }, 6000) // 6 second timeout
+      );
       
-      // Force a full page redirect to ensure complete cleanup
-      window.location.href = '/login';
+      await Promise.race([signOutPromise, timeoutPromise]);
+      
+      console.log("🔐 MobileMenu: Sign out completed, forcing redirect");
     } catch (error) {
-      console.error("MobileMenu: Error during sign out:", error);
-      // Even if there's an error, still force redirect to login
+      console.error("🔐 MobileMenu: Error during sign out:", error);
+    } finally {
+      // Always redirect, even if sign out fails or times out
+      console.log("🔐 MobileMenu: Redirecting to login");
       window.location.href = '/login';
     }
   };

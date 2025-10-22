@@ -223,14 +223,42 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const signOut = useCallback(async () => {
     try {
-      // Clear Sentry user context
+      console.log('🔐 UnifiedAuth - Starting sign out process');
+      
+      // Clear Sentry user context immediately
       setSentryUser(null);
       
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Import auth cleanup utilities
+      const { performRobustSignOut } = await import('@/utils/authCleanup');
+      
+      // Perform robust sign out with timeout
+      const signOutPromise = performRobustSignOut(supabase);
+      const timeoutPromise = new Promise((resolve) => 
+        setTimeout(() => {
+          console.warn('🔐 UnifiedAuth - Sign out timeout, forcing cleanup');
+          resolve(true);
+        }, 5000) // 5 second timeout
+      );
+      
+      await Promise.race([signOutPromise, timeoutPromise]);
+      
+      // Clear local state immediately
+      setCurrentUser(null);
+      setSession(null);
+      setUserOrganizations([]);
+      setCurrentOrganization(null);
+      
+      console.log('🔐 UnifiedAuth - Sign out completed successfully');
       toast.success('Signed out successfully');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('🔐 UnifiedAuth - Error signing out:', error);
+      
+      // Even on error, clear local state
+      setCurrentUser(null);
+      setSession(null);
+      setUserOrganizations([]);
+      setCurrentOrganization(null);
+      
       toast.error('Error signing out');
     }
   }, []);

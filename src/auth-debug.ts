@@ -1,6 +1,6 @@
 // This file exists to force cache refresh and debug auth issues
-console.log('🧨 AUTH DEBUG: Cache refresh marker - v14.0 - CONTRACTOR ROLE BUG FIX');
+console.log('🧨 AUTH DEBUG: Cache refresh marker - v15.0 - SIGNOUT TIMEOUT FIX');
 console.log('🧨 If you see convertToAppUser being called, there is a cache issue');
-console.log('🧨 v14.0: Fixed contractor role assignment bug - contractors now get proper organization membership');
+console.log('🧨 v15.0: Fixed sign-out hanging issue - added timeouts and robust cleanup');
 
-export const authDebugMarker = 'v14.0-contractor-role-fix';
+export const authDebugMarker = 'v15.0-signout-timeout-fix';
