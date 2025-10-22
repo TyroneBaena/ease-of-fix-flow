@@ -145,7 +145,7 @@ const Settings = () => {
           {/* Billing & Security - Admin only */}
           {isAdmin && (
             <TabsContent value="billing">
-              <BillingManagementPage />
+              <BillingManagementPage embedded={true} />
             </TabsContent>
           )}
           

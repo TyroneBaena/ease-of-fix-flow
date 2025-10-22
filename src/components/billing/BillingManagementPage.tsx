@@ -35,7 +35,11 @@ import { BillingHistory } from './BillingHistory';
 import { toast } from 'sonner';
 import { useFailedPaymentStatus } from '@/hooks/useFailedPaymentStatus';
 
-export const BillingManagementPage: React.FC = () => {
+interface BillingManagementPageProps {
+  embedded?: boolean;
+}
+
+export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { currentUser } = useUnifiedAuth();
   const {
@@ -211,8 +215,8 @@ export const BillingManagementPage: React.FC = () => {
   const hasExpiredTrial = !loading && subscribed === false && isTrialActive === false && !!trialEndDate;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className={embedded ? "" : "min-h-screen bg-background"}>
+      <div className={embedded ? "" : "max-w-6xl mx-auto px-4 py-8"}>
         {/* Non-Admin Warning Banner */}
         {!isAdmin && (
           <Alert className="mb-6 border-blue-200 bg-blue-50">
@@ -223,26 +227,28 @@ export const BillingManagementPage: React.FC = () => {
           </Alert>
         )}
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/dashboard')}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
+        {/* Header - Only show when not embedded */}
+        {!embedded && (
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/dashboard')}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Billing & Subscription</h1>
+              <p className="text-muted-foreground">
+                {isAdmin ? 'Manage your subscription and billing preferences' : 'View subscription and billing information'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Billing & Subscription</h1>
-            <p className="text-muted-foreground">
-              {isAdmin ? 'Manage your subscription and billing preferences' : 'View subscription and billing information'}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Failed Payment Banner */}
         <FailedPaymentBanner />
