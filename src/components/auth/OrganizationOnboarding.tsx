@@ -10,7 +10,6 @@ import { Building2, AlertCircle, CheckCircle, Users, Mail, Key, Loader2 } from '
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PaymentMethodSetup } from './PaymentMethodSetup';
-import { PaymentCompletionHandler } from './PaymentCompletionHandler';
 import { invitationCodeService } from '@/services/invitationCodeService';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 
@@ -26,8 +25,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentSetup, setShowPaymentSetup] = useState(false);
-  const [paymentCompleted, setPaymentCompleted] = useState(false);
-  const [showCompletionHandler, setShowCompletionHandler] = useState(false);
   const [createdOrgId, setCreatedOrgId] = useState<string | null>(null); // Track created org ID
   const [isSubmitting, setIsSubmitting] = useState(false); // Prevent duplicate submissions
   
@@ -390,23 +387,6 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     }
   };
 
-  // Show completion handler after payment is done
-  if (showCompletionHandler && createdOrgId) {
-    return (
-      <PaymentCompletionHandler
-        user={user}
-        organizationId={createdOrgId}
-        organizationName={orgName}
-        paymentCompleted={paymentCompleted}
-        onCancel={() => {
-          setShowCompletionHandler(false);
-          setShowPaymentSetup(true);
-          setPaymentCompleted(false);
-        }}
-      />
-    );
-  }
-
   // Show payment setup after organization creation
   if (showPaymentSetup) {
     return (
@@ -415,10 +395,13 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
           organizationId={createdOrgId || undefined}
           onComplete={(success) => {
             if (success) {
-              console.log('Payment completed successfully');
-              setPaymentCompleted(true);
-              setShowPaymentSetup(false);
-              setShowCompletionHandler(true);
+              console.log('✅ Payment completed successfully - redirecting to dashboard');
+              toast.success('Account setup complete!');
+              
+              // Redirect directly to dashboard after brief delay
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1000);
             }
           }}
           onError={(error) => {
