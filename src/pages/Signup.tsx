@@ -200,14 +200,8 @@ useEffect(() => {
             errorMessage.includes('already exists') ||
             errorMessage.includes('duplicate') ||
             signUpError.status === 422) {
-          setError("Email already exists. Please sign in instead.");
-          toast.error("Email already exists. Please sign in instead.", {
-            duration: 4000,
-          });
-          
-          setTimeout(() => {
-            navigate('/login', { replace: true });
-          }, 3000);
+          // Redirect to status page instead of showing inline error
+          navigate(`/signup-status?status=exists&email=${encodeURIComponent(email)}`, { replace: true });
           return;
         }
         
@@ -234,14 +228,8 @@ useEffect(() => {
         // If no session and no identities, this is an existing user trying to signup again
         if (!hasSession && !hasIdentities) {
           console.log("Detected existing user - no identities in response");
-          setError("Email already exists. Please sign in instead.");
-          toast.error("Email already exists. Please sign in instead.", {
-            duration: 4000,
-          });
-          
-          setTimeout(() => {
-            navigate('/login', { replace: true });
-          }, 3000);
+          // Redirect to status page instead of showing inline error
+          navigate(`/signup-status?status=exists&email=${encodeURIComponent(email)}`, { replace: true });
           return;
         }
         
@@ -250,17 +238,17 @@ useEffect(() => {
           toast.success("Account created successfully!");
           setInfo("Account created successfully! Setting up your profile...");
         } else {
-          // User created but needs email confirmation
-          toast.success("Check your email for the confirmation link!");
-          setInfo("Account created successfully. Please check your email and click the confirmation link to continue.");
-          setEmailConfirmationRequired(true);
+          // User created but needs email confirmation - redirect to status page
+          navigate(`/signup-status?status=success&email=${encodeURIComponent(email)}`, { replace: true });
+          return;
         }
         
         // The auth state change listener will handle the rest
       } else {
         console.log("Unexpected signup response - no user returned");
-        toast.info("Please check your email for confirmation.");
-        setInfo("Account created successfully. Please check your email for confirmation.");
+        // Redirect to success status page even if no user returned
+        navigate(`/signup-status?status=success&email=${encodeURIComponent(email)}`, { replace: true });
+        return;
       }
     } catch (error: any) {
       console.error('Signup error:', error);

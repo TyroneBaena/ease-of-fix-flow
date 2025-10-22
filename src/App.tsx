@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react';
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
+import SignupStatus from '@/pages/SignupStatus';
 import ForgotPassword from '@/pages/ForgotPassword';
 import SetupPassword from '@/pages/SetupPassword';
 import EmailConfirm from '@/pages/EmailConfirm';
@@ -95,6 +96,7 @@ function AppRoutes() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/signup-status" element={<SignupStatus />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/setup-password" element={<SetupPassword />} />
             <Route path="/email-confirm" element={<EmailConfirm />} />
