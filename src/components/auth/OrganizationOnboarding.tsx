@@ -377,9 +377,20 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <PaymentMethodSetup
           onComplete={() => {
-            toast.success('Free trial activated!');
-            onComplete(); // Call parent's onComplete after payment setup
-            navigate('/dashboard', { replace: true });
+            try {
+              console.log('Payment setup completed, navigating to dashboard');
+              toast.success('Free trial activated!');
+              onComplete(); // Call parent's onComplete after payment setup
+              
+              // Use window.location for guaranteed navigation
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 500);
+            } catch (error) {
+              console.error('Error in payment completion:', error);
+              // Force navigation even on error
+              window.location.href = '/dashboard';
+            }
           }}
         />
       </div>

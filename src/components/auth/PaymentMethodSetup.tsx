@@ -108,9 +108,27 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComple
     setSuccess(true);
     toast.success('Payment method added successfully');
     
-    setTimeout(() => {
-      onComplete();
+    // Robust redirect with timeout protection
+    setTimeout(async () => {
+      try {
+        // Try to call the onComplete callback
+        await Promise.race([
+          Promise.resolve(onComplete()),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Callback timeout')), 3000))
+        ]);
+      } catch (error) {
+        console.error('onComplete callback error:', error);
+        // Fallback: Force navigation even if callback fails
+        toast.info('Redirecting to dashboard...');
+        window.location.href = '/dashboard';
+      }
     }, 2000);
+    
+    // Safety fallback: Force redirect after 6 seconds no matter what
+    setTimeout(() => {
+      console.log('Safety fallback: forcing navigation to dashboard');
+      window.location.href = '/dashboard';
+    }, 6000);
   };
 
   return (
