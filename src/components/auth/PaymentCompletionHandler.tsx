@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, XCircle, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -30,11 +31,11 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
 }) => {
   // BUG FIX 1: Organization already created, skip that step
   const [steps, setSteps] = useState<SetupStep[]>([
-    { id: 'payment', name: 'Payment Method Setup', status: 'success' },
-    { id: 'organization', name: 'Create Organization', status: 'success' }, // Already done
-    { id: 'profile', name: 'Update User Profile', status: 'pending' },
-    { id: 'membership', name: 'Create Membership Record', status: 'pending' },
-    { id: 'subscriber', name: 'Activate Free Trial', status: 'pending' }
+    { id: 'payment', name: 'Setting up payment method', status: 'success' },
+    { id: 'organization', name: 'Creating your organization', status: 'success' }, // Already done
+    { id: 'profile', name: 'Configuring your account', status: 'pending' },
+    { id: 'membership', name: 'Setting up team access', status: 'pending' },
+    { id: 'subscriber', name: 'Activating your free trial', status: 'pending' }
   ]);
   
   const [organizationId] = useState<string>(propOrgId); // Use provided org ID
@@ -214,18 +215,16 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
   const hasErrors = steps.some(step => step.status === 'error');
   const inProgress = steps.some(step => step.status === 'in-progress');
 
-  const getStatusIcon = (status: SetupStep['status']) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle2 className="h-5 w-5 text-green-600" />;
-      case 'error':
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      case 'in-progress':
-        return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />;
-      default:
-        return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />;
-    }
-  };
+  // Calculate progress percentage
+  const completedSteps = steps.filter(step => step.status === 'success').length;
+  const totalSteps = steps.length;
+  const progressPercentage = (completedSteps / totalSteps) * 100;
+
+  // Get current step message
+  const currentStep = steps.find(step => step.status === 'in-progress');
+  const currentStepMessage = currentStep ? currentStep.name : 
+    allStepsSuccessful ? 'Setup complete!' : 
+    hasErrors ? 'Setup encountered an issue' : 'Preparing your account...';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
@@ -236,25 +235,48 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Progress Steps */}
+          {/* Progress Bar */}
           <div className="space-y-4">
-            {steps.map((step) => (
-              <div key={step.id} className="flex items-start gap-3">
-                {getStatusIcon(step.status)}
-                <div className="flex-1">
-                  <p className={`font-medium ${
-                    step.status === 'error' ? 'text-red-600' : 
-                    step.status === 'success' ? 'text-green-600' : 
-                    'text-gray-700'
-                  }`}>
-                    {step.name}
-                  </p>
-                  {step.errorMessage && (
-                    <p className="text-sm text-red-600 mt-1">{step.errorMessage}</p>
-                  )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {hasErrors ? '⚠️ Setup Issue' : inProgress ? '⏳ Setting up...' : '✓ Ready'}
+              </span>
+              <span className="font-medium text-primary">
+                {completedSteps} / {totalSteps}
+              </span>
+            </div>
+            
+            <Progress value={progressPercentage} className="h-3" />
+            
+            <div className="text-center">
+              <p className="text-lg font-medium text-foreground">
+                {currentStepMessage}
+              </p>
+              {inProgress && (
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">This may take a few moments...</span>
                 </div>
+              )}
+            </div>
+
+            {/* Show detailed errors if any */}
+            {hasErrors && (
+              <div className="mt-4 space-y-2 p-3 bg-destructive/10 rounded-lg">
+                {steps
+                  .filter(step => step.status === 'error')
+                  .map(step => (
+                    <div key={step.id} className="text-sm">
+                      <p className="font-medium text-destructive">
+                        {step.name} failed
+                      </p>
+                      {step.errorMessage && (
+                        <p className="text-muted-foreground mt-1">{step.errorMessage}</p>
+                      )}
+                    </div>
+                  ))}
               </div>
-            ))}
+            )}
           </div>
 
           {/* Error Alert */}
