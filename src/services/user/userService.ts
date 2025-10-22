@@ -81,10 +81,22 @@ export const userService: UserService = {
       
       try {
         console.log("Making edge function call NOW...");
-        // Call the edge function (Supabase automatically adds auth headers)
-        const { data, error } = await supabase.functions.invoke('send-invite', {
+        
+        // Add timeout to prevent infinite loading
+        const EDGE_FUNCTION_TIMEOUT = 30000; // 30 seconds
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout - please try again')), EDGE_FUNCTION_TIMEOUT);
+        });
+        
+        // Call the edge function with timeout (Supabase automatically adds auth headers)
+        const invocationPromise = supabase.functions.invoke('send-invite', {
           body: requestBody
         });
+        
+        const { data, error } = await Promise.race([
+          invocationPromise,
+          timeoutPromise
+        ]) as any;
         
         console.log("Supabase function call completed. Response:", { data, error });
         console.log("Edge function data received:", data);
