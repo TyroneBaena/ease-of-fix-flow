@@ -16,6 +16,10 @@ import { Toaster } from "sonner";
 import { TeamManagement } from '@/pages/TeamManagement';
 import { GoogleMapsSettings } from '@/components/maps/GoogleMapsSettings';
 import { BillingManagementPage } from '@/components/billing/BillingManagementPage';
+import { useSecurityAnalytics } from '@/hooks/useSecurityAnalytics';
+import { SecurityMetricsCard } from '@/components/security/SecurityMetricsCard';
+import { RecentLoginAttempts } from '@/components/security/RecentLoginAttempts';
+import { Users, Activity } from 'lucide-react';
 
 
 const Settings = () => {
@@ -24,6 +28,10 @@ const Settings = () => {
   const isAdmin = currentUser?.role === 'admin';
   const [stableLoadingState, setStableLoadingState] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
+  const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
+  
+  const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
   
   // Improved stable loading state management
   useEffect(() => {
@@ -145,7 +153,72 @@ const Settings = () => {
           {/* Billing & Security - Admin only */}
           {isAdmin && (
             <TabsContent value="billing" className="w-full">
-              <BillingManagementPage embedded={true} />
+              <Tabs value={billingSecurityTab} onValueChange={setBillingSecurityTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="billing">Billing</TabsTrigger>
+                  <TabsTrigger value="security">Security</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="billing" className="mt-6">
+                  <BillingManagementPage embedded={true} />
+                </TabsContent>
+
+                <TabsContent value="security" className="mt-6 space-y-6">
+                  {securityError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Error loading security data: {securityError}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {hasSecurityConcerns && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Security Alert: High number of failed login attempts detected today.
+                        Please review the recent login attempts below.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="grid gap-6 md:grid-cols-3">
+                    <SecurityMetricsCard
+                      title="Active Users"
+                      value={securityLoading ? '...' : metrics.activeSessionsCount}
+                      description="Currently active users"
+                      icon={Users}
+                      variant="default"
+                    />
+                    <SecurityMetricsCard
+                      title="Failed Logins Today"
+                      value={securityLoading ? '...' : metrics.failedLoginsToday}
+                      description="Failed authentication attempts"
+                      icon={AlertCircle}
+                      variant={hasSecurityConcerns ? 'danger' : 'default'}
+                    />
+                    <SecurityMetricsCard
+                      title="Total Logins Today"
+                      value={securityLoading ? '...' : metrics.totalLoginsToday}
+                      description="All login attempts today"
+                      icon={Activity}
+                      variant="default"
+                    />
+                  </div>
+
+                  <RecentLoginAttempts 
+                    attempts={metrics.recentLoginAttempts}
+                    loading={securityLoading}
+                  />
+
+                  <Alert>
+                    <AlertDescription>
+                      Security data is refreshed every 5 minutes and shows activity from the last 24 hours.
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           )}
           
