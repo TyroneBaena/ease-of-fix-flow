@@ -95,47 +95,35 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
       return;
     }
 
-    // Step 3: Create User Organization Membership
-    // BUG FIX 3: This IS critical - user needs membership for access control
+    // Step 3: Verify User Organization Membership (already created during org setup)
     updateStepStatus('membership', 'in-progress');
     
     try {
-      // Check if membership already exists
-      const { data: existingMembership } = await supabase
+      // Verify membership exists
+      const { data: existingMembership, error: membershipError } = await supabase
         .from('user_organizations')
         .select('id')
         .eq('user_id', user.id)
         .eq('organization_id', orgId)
         .maybeSingle();
 
-      if (existingMembership) {
-        console.log('✅ Membership already exists');
-        updateStepStatus('membership', 'success');
-      } else {
-        const { error: membershipError } = await supabase
-          .from('user_organizations')
-          .insert({
-            user_id: user.id,
-            organization_id: orgId,
-            role: 'admin',
-            is_active: true,
-            is_default: true
-          });
-
-        if (membershipError) {
-          console.error('❌ Membership creation failed:', membershipError);
-          updateStepStatus('membership', 'error', membershipError.message);
-          // BUG FIX 3: This IS critical - stop here and allow retry
-          return;
-        }
-
-        console.log('✅ Membership created');
-        updateStepStatus('membership', 'success');
+      if (membershipError) {
+        console.error('❌ Membership verification failed:', membershipError);
+        updateStepStatus('membership', 'error', membershipError.message);
+        return;
       }
+
+      if (!existingMembership) {
+        console.error('❌ Membership does not exist - should have been created during org setup');
+        updateStepStatus('membership', 'error', 'Organization membership not found');
+        return;
+      }
+
+      console.log('✅ Membership verified');
+      updateStepStatus('membership', 'success');
     } catch (error: any) {
-      console.error('❌ Membership creation exception:', error);
+      console.error('❌ Membership verification exception:', error);
       updateStepStatus('membership', 'error', error.message);
-      // BUG FIX 3: Stop here - membership is required for access
       return;
     }
 

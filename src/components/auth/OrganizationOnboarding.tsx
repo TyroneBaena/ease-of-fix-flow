@@ -206,6 +206,33 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       console.log('User profile updated with organization info and admin role');
 
+      // Create user_organizations membership BEFORE payment setup
+      // This is required by the create-trial-subscription edge function
+      console.log('Creating user_organizations membership');
+      const { error: membershipError } = await supabase
+        .from('user_organizations')
+        .insert({
+          user_id: user.id,
+          organization_id: orgData.id,
+          role: 'admin',
+          is_primary: true
+        });
+
+      if (membershipError) {
+        console.error('Error creating membership:', membershipError);
+        setError(`Failed to create organization membership: ${membershipError.message}`);
+        // Rollback: Delete the organization if membership creation fails
+        try {
+          await supabase.from('organizations').delete().eq('id', orgData.id);
+          console.log('Organization rolled back due to membership creation failure');
+        } catch (rollbackError) {
+          console.error('Failed to rollback organization:', rollbackError);
+        }
+        return;
+      }
+
+      console.log('User_organizations membership created successfully');
+
       toast.success("Organization created successfully!");
 
       // Show payment setup with org ID passed via state
