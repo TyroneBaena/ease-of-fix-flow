@@ -69,11 +69,16 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
   };
 
   const continueSetup = async (orgId: string) => {
-    // Step 2: Update User Profile
+    // Step 2: Update User Profile with timeout
     updateStepStatus('profile', 'in-progress');
     
     try {
-      const { error: profileError } = await supabase
+      // Refresh session to pick up any policy changes
+      console.log('🔄 Refreshing session before profile update');
+      await supabase.auth.refreshSession();
+      
+      // Add timeout to prevent hanging
+      const profileUpdatePromise = supabase
         .from('profiles')
         .update({ 
           organization_id: orgId,
@@ -81,6 +86,15 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
           role: 'admin'
         })
         .eq('id', user.id);
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile update timed out. Please try again.')), 10000)
+      );
+
+      const { error: profileError } = await Promise.race([
+        profileUpdatePromise,
+        timeoutPromise
+      ]) as any;
 
       if (profileError) {
         console.error('❌ Profile update failed:', profileError);
@@ -199,6 +213,15 @@ export const PaymentCompletionHandler: React.FC<PaymentCompletionHandlerProps> =
 
     setIsRetrying(true);
     setRetryCount(prev => prev + 1);
+    
+    // Refresh auth session before retry to pick up any policy changes
+    console.log('🔄 Refreshing auth session before retry');
+    try {
+      await supabase.auth.refreshSession();
+      console.log('✅ Session refreshed');
+    } catch (error) {
+      console.error('⚠️ Session refresh failed:', error);
+    }
     
     // Reset failed steps to pending (but keep organization as success since it's already created)
     setSteps(prev => prev.map(step => 
