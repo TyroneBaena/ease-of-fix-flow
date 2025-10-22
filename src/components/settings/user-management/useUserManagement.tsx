@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 export const useUserManagement = () => {
   const { users, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
-  const { currentUser, isAdmin } = useSimpleAuth();
+  const { currentUser, isAdmin, session } = useSimpleAuth();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -123,15 +123,28 @@ export const useUserManagement = () => {
     }
   }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
   
-  // Track when currentUser is available for operations
+  // Track when currentUser AND SESSION are available for operations
   useEffect(() => {
-    if (currentUser && typeof isAdmin === 'boolean') {
-      console.log('🔧 UserManagement - User context ready:', {
-        hasCurrentUser: !!currentUser,
-        isAdmin
+    console.log('🔧 UserManagement - Checking context readiness:', {
+      hasCurrentUser: !!currentUser,
+      hasSession: !!session,
+      sessionUserId: session?.user?.id,
+      hasAccessToken: !!session?.access_token,
+      isAdmin,
+      ready
+    });
+    
+    if (currentUser && session && typeof isAdmin === 'boolean') {
+      console.log('🔧 UserManagement - User context ready WITH SESSION:', {
+        userEmail: currentUser.email,
+        sessionEmail: session.user?.email,
+        isAdmin,
+        hasAccessToken: !!session.access_token
       });
+    } else if (currentUser && !session) {
+      console.warn('⚠️ UserManagement - currentUser exists but session is missing! Invitation will fail.');
     }
-  }, [currentUser, isAdmin]);
+  }, [currentUser, session, isAdmin, ready]);
 
   // Refresh user list when dialog is closed after successful operation - but only once
   useEffect(() => {
@@ -178,6 +191,6 @@ export const useUserManagement = () => {
     handleDeleteUser,
     handlePageChange,
     fetchUsers,
-    ready: ready && !!currentUser
+    ready: ready && !!currentUser && !!session
   };
 };

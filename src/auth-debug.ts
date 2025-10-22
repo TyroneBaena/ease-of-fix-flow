@@ -1,6 +1,6 @@
 // This file exists to force cache refresh and debug auth issues
-console.log('🧨 AUTH DEBUG: Cache refresh marker - v17.0 - TAB VISIBILITY SESSION REFRESH');
+console.log('🧨 AUTH DEBUG: Cache refresh marker - v18.0 - SESSION AVAILABILITY FIX FOR INVITATIONS');
 console.log('🧨 If you see convertToAppUser being called, there is a cache issue');
-console.log('🧨 v17.0: Added tab visibility detection to refresh expired sessions');
+console.log('🧨 v18.0: Fixed invitation forms to wait for both currentUser AND session before enabling');
 
-export const authDebugMarker = 'v17.0-tab-visibility-session-refresh';
+export const authDebugMarker = 'v18.0-session-availability-fix-invitations';

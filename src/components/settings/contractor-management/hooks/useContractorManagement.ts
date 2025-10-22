@@ -10,7 +10,7 @@ import { toast } from '@/lib/toast';
 import { supabase } from '@/lib/supabase';
 
 export const useContractorManagement = () => {
-  const { currentUser, isAdmin } = useSimpleAuth();
+  const { currentUser, isAdmin, session } = useSimpleAuth();
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<Error | null>(null);
@@ -98,17 +98,34 @@ export const useContractorManagement = () => {
     loadContractors();
   }, []);
 
-  // Track when the component is ready for operations
+  // Track when the component is ready for operations - INCLUDING SESSION
   useEffect(() => {
-    // Component is ready when we have current user and admin status is determined
-    if (currentUser && typeof isAdmin === 'boolean') {
-      console.log('🔧 useContractorManagement - Component ready:', {
-        hasCurrentUser: !!currentUser,
-        isAdmin
+    console.log('🔧 useContractorManagement - Checking context readiness:', {
+      hasCurrentUser: !!currentUser,
+      hasSession: !!session,
+      sessionUserId: session?.user?.id,
+      hasAccessToken: !!session?.access_token,
+      isAdmin,
+      ready
+    });
+    
+    // Component is ready when we have current user, session, and admin status
+    // CRITICAL: Session MUST be available for edge function calls to work
+    if (currentUser && session && typeof isAdmin === 'boolean') {
+      console.log('🔧 useContractorManagement - Component ready WITH SESSION:', {
+        userEmail: currentUser.email,
+        sessionEmail: session.user?.email,
+        isAdmin,
+        hasAccessToken: !!session.access_token
       });
       setReady(true);
+    } else {
+      if (currentUser && !session) {
+        console.warn('⚠️ useContractorManagement - currentUser exists but session is missing! Invitation will fail.');
+      }
+      setReady(false);
     }
-  }, [currentUser, isAdmin]);
+  }, [currentUser, session, isAdmin]);
 
   const handleSave = async () => {
     const success = await handleSaveContractor(isEditMode, selectedContractor, newContractor);
@@ -143,6 +160,6 @@ export const useContractorManagement = () => {
     handlePageChange,
     fetchContractors: loadContractors,
     selectedContractorForDeletion,
-    ready
+    ready: ready && !!currentUser && !!session
   };
 };
