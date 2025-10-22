@@ -215,7 +215,7 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
   const hasExpiredTrial = !loading && subscribed === false && isTrialActive === false && !!trialEndDate;
 
   return (
-    <div className={embedded ? "" : "min-h-screen bg-background"}>
+    <div className={embedded ? "space-y-6" : "min-h-screen bg-background"}>
       <div className={embedded ? "" : "max-w-6xl mx-auto px-4 py-8"}>
         {/* Non-Admin Warning Banner */}
         {!isAdmin && (
