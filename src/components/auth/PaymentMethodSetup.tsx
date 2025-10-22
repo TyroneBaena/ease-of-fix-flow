@@ -72,10 +72,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess }) =>
 };
 
 interface PaymentMethodSetupProps {
-  onComplete: () => void;
+  onComplete: (success: boolean) => void;
+  onError?: (error: string) => void;
 }
 
-export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComplete }) => {
+export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ 
+  onComplete, 
+  onError 
+}) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -98,7 +102,11 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComple
         throw new Error('No client secret returned');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initialize payment setup');
+      const errorMessage = error.message || 'Failed to initialize payment setup';
+      toast.error(errorMessage);
+      if (onError) {
+        onError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -108,27 +116,10 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComple
     setSuccess(true);
     toast.success('Payment method added successfully');
     
-    // Robust redirect with timeout protection
-    setTimeout(async () => {
-      try {
-        // Try to call the onComplete callback
-        await Promise.race([
-          Promise.resolve(onComplete()),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Callback timeout')), 3000))
-        ]);
-      } catch (error) {
-        console.error('onComplete callback error:', error);
-        // Fallback: Force navigation even if callback fails
-        toast.info('Redirecting to dashboard...');
-        window.location.href = '/dashboard';
-      }
-    }, 2000);
-    
-    // Safety fallback: Force redirect after 6 seconds no matter what
+    // Notify parent component of successful payment
     setTimeout(() => {
-      console.log('Safety fallback: forcing navigation to dashboard');
-      window.location.href = '/dashboard';
-    }, 6000);
+      onComplete(true);
+    }, 1500);
   };
 
   return (
@@ -159,7 +150,7 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ onComple
             <div>
               <h3 className="text-lg font-semibold">Payment Method Added</h3>
               <p className="text-sm text-muted-foreground">
-                Redirecting to dashboard...
+                Setting up your account...
               </p>
             </div>
           </div>

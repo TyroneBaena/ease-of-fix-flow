@@ -10,6 +10,7 @@ import { Building2, AlertCircle, CheckCircle, Users, Mail, Key, Loader2 } from '
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PaymentMethodSetup } from './PaymentMethodSetup';
+import { PaymentCompletionHandler } from './PaymentCompletionHandler';
 import { invitationCodeService } from '@/services/invitationCodeService';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 
@@ -25,6 +26,8 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentSetup, setShowPaymentSetup] = useState(false);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [showCompletionHandler, setShowCompletionHandler] = useState(false);
   
   // Create organization form
   const [orgName, setOrgName] = useState('');
@@ -164,60 +167,9 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       console.log('User profile updated with organization info and admin role');
 
-      // Create user_organizations record for the new organization
-      const { data: userOrgData, error: userOrgError } = await supabase
-        .from('user_organizations')
-        .insert({
-          user_id: user.id,
-          organization_id: orgData.id,
-          role: 'admin',
-          is_active: true,
-          is_default: true
-        })
-        .select()
-        .single();
+      toast.success("Organization created successfully!");
 
-      if (userOrgError) {
-        console.error('Error creating user organization record:', userOrgError);
-        
-        // Even if user_organizations creation failed, try to fix the profile role
-        try {
-          const { error: roleFixError } = await supabase
-            .from('profiles')
-            .update({ role: 'admin' })
-            .eq('id', user.id);
-          
-          if (roleFixError) {
-            console.error('Failed to set admin role in profile:', roleFixError);
-          } else {
-            console.log('Successfully set admin role in profile as fallback');
-          }
-        } catch (fixError) {
-          console.error('Exception while fixing role:', fixError);
-        }
-        
-        toast.success("Organization created successfully!");
-        console.log('Calling onComplete despite user organization membership error');
-      } else {
-        console.log('User organization membership created:', userOrgData);
-        toast.success("Organization created successfully!");
-      }
-
-      // Force a user metadata update to trigger auth state change
-      try {
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: { last_organization_update: Date.now() }
-        });
-
-        if (updateError) {
-          console.warn('Failed to update user metadata:', updateError);
-        }
-      } catch (metaError) {
-        console.warn('Error updating user metadata:', metaError);
-      }
-
-      // Show payment setup - don't call onComplete yet
-      // onComplete will be called after payment setup is done or skipped
+      // Show payment setup
       setShowPaymentSetup(true);
     } catch (error: any) {
       console.error('Error creating organization:', error);
@@ -371,26 +323,38 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     }
   };
 
+  // Show completion handler after payment is done
+  if (showCompletionHandler) {
+    return (
+      <PaymentCompletionHandler
+        user={user}
+        orgName={orgName}
+        paymentCompleted={paymentCompleted}
+        onCancel={() => {
+          setShowCompletionHandler(false);
+          setShowPaymentSetup(true);
+          setPaymentCompleted(false);
+        }}
+      />
+    );
+  }
+
   // Show payment setup after organization creation
   if (showPaymentSetup) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <PaymentMethodSetup
-          onComplete={() => {
-            try {
-              console.log('Payment setup completed, navigating to dashboard');
-              toast.success('Free trial activated!');
-              onComplete(); // Call parent's onComplete after payment setup
-              
-              // Use window.location for guaranteed navigation
-              setTimeout(() => {
-                window.location.href = '/dashboard';
-              }, 500);
-            } catch (error) {
-              console.error('Error in payment completion:', error);
-              // Force navigation even on error
-              window.location.href = '/dashboard';
+          onComplete={(success) => {
+            if (success) {
+              console.log('Payment completed successfully');
+              setPaymentCompleted(true);
+              setShowPaymentSetup(false);
+              setShowCompletionHandler(true);
             }
+          }}
+          onError={(error) => {
+            console.error('Payment setup error:', error);
+            toast.error('Payment setup failed. Please try again.');
           }}
         />
       </div>
