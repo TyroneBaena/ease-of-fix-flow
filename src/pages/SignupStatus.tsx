@@ -113,18 +113,7 @@ const SignupStatus = () => {
               </p>
             </div>
 
-            <div className="pt-4 border-t">
-              <Button 
-                onClick={() => window.location.href = `mailto:${email}`}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                Open Email App
-              </Button>
-            </div>
-
-            <div className="text-center pt-2">
+            <div className="text-center pt-4 border-t">
               <Link to="/login" className="text-sm text-blue-500 hover:underline">
                 Return to Sign In
               </Link>
