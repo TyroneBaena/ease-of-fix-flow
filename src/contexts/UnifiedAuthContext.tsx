@@ -559,6 +559,8 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   useEffect(() => {
+    console.log('🚀 UnifiedAuth v16.0 - Starting auth initialization at:', new Date().toISOString());
+    const startTime = performance.now();
     console.log('🚀 UnifiedAuth v6.0 - Setting up SINGLE auth listener (FIXED VERSION)', { authDebugMarker });
     
     // Set up ONE auth state listener
@@ -655,48 +657,69 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     });
 
-    // THEN get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🚀 UnifiedAuth v12.0 - Initial session check:', session ? 'Found session for ' + session.user?.email : 'No session');
-      
-      if (session?.user) {
-        // Set session immediately (non-async)
-        setSession(session);
-        console.log('🚀 UnifiedAuth v12.0 - Initial session set, starting user data load');
+    // THEN get initial session with timeout protection
+    const sessionTimeout = setTimeout(() => {
+      const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      console.error(`🚀 UnifiedAuth v16.0 - getSession() timeout after ${timeElapsed}s! Forcing loading to false`);
+      setLoading(false);
+      setInitialCheckDone(true);
+      toast.error('Authentication initialization timed out. Please refresh the page.');
+    }, 8000); // 8 second max for getSession
+    
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(sessionTimeout); // Clear timeout if successful
+        const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+        console.log(`🚀 UnifiedAuth v16.0 - Initial session check completed in ${timeElapsed}s:`, session ? 'Found session for ' + session.user?.email : 'No session');
         
-        // Use setTimeout to defer async calls for initial session too
-        setTimeout(async () => {
-          try {
-            console.log('🚀 UnifiedAuth v13.0 - Processing initial session for:', session.user.email);
-            const user = await convertSupabaseUser(session.user);
-            console.log('🚀 UnifiedAuth v13.0 - Initial user converted:', user.email, 'org_id:', user.organization_id);
-            
-            // CRITICAL: Set user and mark as ready FIRST
-            setCurrentUser(user);
-            setLoading(false);
-            setInitialCheckDone(true);
-            console.log('🚀 UnifiedAuth v13.0 - Initial auth complete, starting background org fetch');
-            
-            // Fetch organizations in background WITHOUT blocking UI
-            fetchUserOrganizations(user).catch((orgError) => {
-              console.error('🚀 UnifiedAuth v13.0 - Non-critical org error on initial load:', orgError);
-            });
-            
-          } catch (error) {
-            console.error('🚀 UnifiedAuth v13.0 - Error converting initial user:', error);
-            setCurrentUser(null);
-            setSession(null);
-            setLoading(false);
-            setInitialCheckDone(true);
-          }
-        }, 0);
-      } else {
+        if (session?.user) {
+          // Set session immediately (non-async)
+          setSession(session);
+          console.log('🚀 UnifiedAuth v16.0 - Initial session set, starting user data load');
+          
+          // Use setTimeout to defer async calls for initial session too
+          setTimeout(async () => {
+            try {
+              console.log('🚀 UnifiedAuth v16.0 - Processing initial session for:', session.user.email);
+              const user = await convertSupabaseUser(session.user);
+              console.log('🚀 UnifiedAuth v16.0 - Initial user converted:', user.email, 'org_id:', user.organization_id);
+              
+              // CRITICAL: Set user and mark as ready FIRST
+              setCurrentUser(user);
+              setLoading(false);
+              setInitialCheckDone(true);
+              console.log('🚀 UnifiedAuth v16.0 - Initial auth complete, starting background org fetch');
+              
+              // Fetch organizations in background WITHOUT blocking UI
+              fetchUserOrganizations(user).catch((orgError) => {
+                console.error('🚀 UnifiedAuth v16.0 - Non-critical org error on initial load:', orgError);
+              });
+              
+            } catch (error) {
+              console.error('🚀 UnifiedAuth v16.0 - Error converting initial user:', error);
+              setCurrentUser(null);
+              setSession(null);
+              setLoading(false);
+              setInitialCheckDone(true);
+            }
+          }, 0);
+        } else {
+          setCurrentUser(null);
+          setSession(null);
+          setLoading(false);
+          setInitialCheckDone(true);
+        }
+      })
+      .catch((error) => {
+        clearTimeout(sessionTimeout); // Clear timeout on error
+        const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+        console.error(`🚀 UnifiedAuth v16.0 - Error getting session after ${timeElapsed}s:`, error);
         setCurrentUser(null);
         setSession(null);
         setLoading(false);
         setInitialCheckDone(true);
-      }
-    });
+        toast.error('Error initializing authentication. Please refresh the page.');
+      });
 
     return () => {
       console.log('🚀 UnifiedAuth v7.0 - Cleaning up auth listener');

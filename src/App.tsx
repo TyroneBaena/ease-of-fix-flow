@@ -65,9 +65,22 @@ const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { loading } = useSimpleAuth();
+  const [forceReady, setForceReady] = React.useState(false);
 
-  // Show loading screen while auth is initializing
-  if (loading) {
+  // Failsafe: Force app to render after maximum wait time
+  React.useEffect(() => {
+    const failsafeTimer = setTimeout(() => {
+      if (loading && !forceReady) {
+        console.error('⚠️ AppRoutes - Loading timeout exceeded! Forcing app to render.');
+        setForceReady(true);
+      }
+    }, 10000); // 10 second failsafe
+
+    return () => clearTimeout(failsafeTimer);
+  }, [loading, forceReady]);
+
+  // Show loading screen while auth is initializing (unless failsafe triggered)
+  if (loading && !forceReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
