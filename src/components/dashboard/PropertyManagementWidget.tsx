@@ -13,9 +13,11 @@ import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { usePropertyAccessControl } from '@/hooks/usePropertyAccessControl';
 import { PropertyBillingAlert } from '@/components/billing/PropertyBillingAlert';
 import { useNavigate } from 'react-router-dom';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 export const PropertyManagementWidget: React.FC = () => {
   const { properties, loading } = usePropertyContext();
+  const { currentUser } = useUserContext();
   const { 
     canCreateProperty, 
     showTrialExpiredWarning, 
@@ -24,6 +26,8 @@ export const PropertyManagementWidget: React.FC = () => {
     handleRestrictedAction 
   } = usePropertyAccessControl();
   const navigate = useNavigate();
+  
+  const isAdmin = currentUser?.role === 'admin';
 
   const handleAddProperty = () => {
     if (!canCreateProperty) {
@@ -54,8 +58,8 @@ export const PropertyManagementWidget: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Billing alert for trial/cancelled users */}
-      <PropertyBillingAlert />
+      {/* Billing alert for trial/cancelled users - Only show for admins */}
+      {isAdmin && <PropertyBillingAlert />}
       
       <Card>
         <CardHeader>

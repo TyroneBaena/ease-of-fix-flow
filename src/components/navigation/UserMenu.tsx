@@ -88,14 +88,16 @@ export const UserMenu = () => {
           </DropdownMenuItem>
         )}
         
-        {/* Billing & Security - available to all users */}
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => navigate('/billing-security')}
-        >
-          <Shield className="mr-2 h-4 w-4" />
-          <span>Billing & Security</span>
-        </DropdownMenuItem>
+        {/* Billing & Security - Only available to admins */}
+        {isAdmin && (
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => navigate('/billing-security')}
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Billing & Security</span>
+          </DropdownMenuItem>
+        )}
         
         <DropdownMenuItem 
           className="cursor-pointer"
