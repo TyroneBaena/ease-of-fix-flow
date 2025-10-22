@@ -81,7 +81,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ user }) => 
           />
         </div>
         
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="sms-notifications">SMS Notifications</Label>
             <p className="text-sm text-gray-500">Receive important alerts via text message</p>
@@ -91,7 +91,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ user }) => 
             checked={settings.smsNotifications}
             onCheckedChange={() => handleToggle('smsNotifications')}
           />
-        </div>
+        </div> */}
         
         <div className="flex items-center justify-between">
           <div>
