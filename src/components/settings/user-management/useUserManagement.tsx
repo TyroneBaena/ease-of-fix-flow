@@ -56,7 +56,8 @@ export const useUserManagement = () => {
     newUser,
     handleOpenDialog,
     handleUserChange,
-    handlePropertySelection
+    handlePropertySelection,
+    isPreparingDialog
   } = useUserDialog();
   
   // Set up user actions
@@ -191,6 +192,7 @@ export const useUserManagement = () => {
     handleDeleteUser,
     handlePageChange,
     fetchUsers,
-    ready: ready && !!currentUser && !!session
+    ready: ready && !!currentUser && !!session,
+    isPreparingDialog
   };
 };

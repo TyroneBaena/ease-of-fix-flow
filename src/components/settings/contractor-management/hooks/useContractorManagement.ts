@@ -31,7 +31,8 @@ export const useContractorManagement = () => {
     newContractor,
     handleOpenDialog,
     handleContractorChange,
-    handleSpecialtiesChange
+    handleSpecialtiesChange,
+    isPreparingDialog
   } = useContractorDialog();
 
   const {
@@ -160,6 +161,7 @@ export const useContractorManagement = () => {
     handlePageChange,
     fetchContractors: loadContractors,
     selectedContractorForDeletion,
-    ready: ready && !!currentUser && !!session
+    ready: ready && !!currentUser && !!session,
+    isPreparingDialog
   };
 };

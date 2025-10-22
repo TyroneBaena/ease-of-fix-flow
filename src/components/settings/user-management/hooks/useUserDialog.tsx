@@ -1,6 +1,8 @@
 
 import { useState } from 'react';
 import { User, UserRole } from '@/types/user';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 interface NewUserFormState {
   name: string;
@@ -19,28 +21,66 @@ export const useUserDialog = () => {
     role: 'manager',
     assignedProperties: []
   });
+  const [isPreparingDialog, setIsPreparingDialog] = useState(false);
 
-  const handleOpenDialog = (edit: boolean = false, user?: User) => {
-    if (edit && user) {
-      setIsEditMode(true);
-      setSelectedUser(user);
-      setNewUser({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        assignedProperties: user.assignedProperties || []
-      });
-    } else {
-      setIsEditMode(false);
-      setSelectedUser(null);
-      setNewUser({
-        name: '',
-        email: '',
-        role: 'manager',
-        assignedProperties: []
-      });
+  const handleOpenDialog = async (edit: boolean = false, user?: User) => {
+    // Prevent multiple simultaneous calls
+    if (isPreparingDialog) {
+      console.log('⏳ Dialog preparation already in progress, ignoring duplicate call');
+      return;
     }
-    setIsDialogOpen(true);
+
+    try {
+      setIsPreparingDialog(true);
+      console.log('🚀 Pre-validating session before opening user invitation dialog...');
+      
+      // CRITICAL: Validate session BEFORE opening dialog
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.error('❌ No valid session found:', error);
+        toast.error('Session expired. Please refresh the page and try again.');
+        setIsPreparingDialog(false);
+        return;
+      }
+      
+      console.log('✅ Session validated successfully:', {
+        hasSession: !!session,
+        hasAccessToken: !!session.access_token,
+        userEmail: session.user?.email
+      });
+      
+      // Session is valid, proceed with opening dialog
+      if (edit && user) {
+        setIsEditMode(true);
+        setSelectedUser(user);
+        setNewUser({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          assignedProperties: user.assignedProperties || []
+        });
+      } else {
+        setIsEditMode(false);
+        setSelectedUser(null);
+        setNewUser({
+          name: '',
+          email: '',
+          role: 'manager',
+          assignedProperties: []
+        });
+      }
+      
+      // Only open dialog after session validation succeeds
+      setIsDialogOpen(true);
+      console.log('✅ User invitation dialog opened with valid session');
+      
+    } catch (error) {
+      console.error('❌ Error preparing user invitation dialog:', error);
+      toast.error('Failed to prepare invitation form. Please try again.');
+    } finally {
+      setIsPreparingDialog(false);
+    }
   };
   
   const handleUserChange = (field: string, value: any) => {
@@ -84,7 +124,8 @@ export const useUserDialog = () => {
     newUser,
     handleOpenDialog,
     handleUserChange,
-    handlePropertySelection
+    handlePropertySelection,
+    isPreparingDialog
   };
 };
 

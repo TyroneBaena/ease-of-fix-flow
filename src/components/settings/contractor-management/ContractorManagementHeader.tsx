@@ -1,13 +1,17 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { HardHat, Plus, RefreshCw } from 'lucide-react';
+import { HardHat, Plus, RefreshCw, Loader2 } from 'lucide-react';
 
 interface ContractorManagementHeaderProps {
   onInviteContractor: () => void;
+  isPreparingDialog?: boolean;
 }
 
-const ContractorManagementHeader = ({ onInviteContractor }: ContractorManagementHeaderProps) => {
+const ContractorManagementHeader = ({ 
+  onInviteContractor,
+  isPreparingDialog = false
+}: ContractorManagementHeaderProps) => {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
       <div>
@@ -20,9 +24,22 @@ const ContractorManagementHeader = ({ onInviteContractor }: ContractorManagement
         </p>
       </div>
       
-      <Button onClick={onInviteContractor} size="sm">
-        <Plus className="mr-2 h-4 w-4" />
-        Invite Contractor
+      <Button 
+        onClick={onInviteContractor} 
+        size="sm"
+        disabled={isPreparingDialog}
+      >
+        {isPreparingDialog ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Preparing...
+          </>
+        ) : (
+          <>
+            <Plus className="mr-2 h-4 w-4" />
+            Invite Contractor
+          </>
+        )}
       </Button>
     </div>
   );

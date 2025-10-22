@@ -38,7 +38,8 @@ const ContractorManagement = () => {
     handlePageChange,
     fetchContractors,
     selectedContractorForDeletion,
-    ready
+    ready,
+    isPreparingDialog
   } = useContractorManagement();
   
   console.log('🏗️ ContractorManagement - Debug state:', {
@@ -113,7 +114,10 @@ const ContractorManagement = () => {
   
   return (
     <div>
-      <ContractorManagementHeader onInviteContractor={() => handleOpenDialog()} />
+      <ContractorManagementHeader 
+        onInviteContractor={() => handleOpenDialog()} 
+        isPreparingDialog={isPreparingDialog}
+      />
       
       <ContractorTable 
         contractors={contractors}

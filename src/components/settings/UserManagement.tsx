@@ -40,7 +40,8 @@ const UserManagement = () => {
     handleDeleteUser,
     handlePageChange,
     fetchUsers,
-    ready
+    ready,
+    isPreparingDialog
   } = useUserManagement();
   
   // Debug logging to see what's happening with auth state
@@ -124,7 +125,10 @@ const UserManagement = () => {
   
   return (
     <div>
-      <UserManagementHeader onInviteUser={() => handleOpenDialog()} />
+      <UserManagementHeader 
+        onInviteUser={() => handleOpenDialog()} 
+        isPreparingDialog={isPreparingDialog}
+      />
       
       <UserTable 
         users={users}
