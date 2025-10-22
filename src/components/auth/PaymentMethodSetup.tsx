@@ -74,11 +74,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess }) =>
 interface PaymentMethodSetupProps {
   onComplete: (success: boolean) => void;
   onError?: (error: string) => void;
+  organizationId?: string; // Pass organization ID to edge function
 }
 
 export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({ 
   onComplete, 
-  onError 
+  onError,
+  organizationId 
 }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,23 +92,40 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
 
   const createSetupIntent = async () => {
     try {
-      // Note: This is now only called from the old EnhancedSignupFlow
-      // The new OrganizationOnboarding flow doesn't use this component for setup intent creation
-      // It uses PaymentCompletionHandler which calls the edge function with organization_id
+      console.log('[PaymentMethodSetup] Starting setup intent creation');
+      console.log('[PaymentMethodSetup] Organization ID:', organizationId);
+      
+      const requestBody = organizationId ? { organization_id: organizationId } : {};
+      console.log('[PaymentMethodSetup] Request body:', requestBody);
       
       const { data, error } = await supabase.functions.invoke('create-trial-subscription', {
-        body: {}
+        body: requestBody
       });
 
-      if (error) throw error;
+      console.log('[PaymentMethodSetup] Edge function response:', { data, error });
+
+      if (error) {
+        console.error('[PaymentMethodSetup] Edge function error:', error);
+        throw error;
+      }
 
       if (data?.client_secret) {
+        console.log('[PaymentMethodSetup] Setup intent created successfully');
         setClientSecret(data.client_secret);
+      } else if (data?.error) {
+        console.error('[PaymentMethodSetup] Error in response data:', data.error);
+        throw new Error(data.error);
       } else {
-        throw new Error('No client secret returned');
+        console.error('[PaymentMethodSetup] No client secret in response:', data);
+        throw new Error('No client secret returned from payment setup');
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to initialize payment setup';
+      console.error('[PaymentMethodSetup] Setup intent creation failed:', {
+        error,
+        message: errorMessage,
+        organizationId
+      });
       toast.error(errorMessage);
       if (onError) {
         onError(errorMessage);

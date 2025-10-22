@@ -385,6 +385,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <PaymentMethodSetup
+          organizationId={createdOrgId || undefined}
           onComplete={(success) => {
             if (success) {
               console.log('Payment completed successfully');
