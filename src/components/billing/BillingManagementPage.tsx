@@ -536,27 +536,6 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
                 )}
               </CardContent>
             </Card>
-
-            {/* Help & Support */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Need Help?</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Questions about billing or your subscription?
-                </p>
-                <div className="space-y-2 text-sm">
-                  <p>• Property-based pricing: $29 AUD/property</p>
-                  <p>• Monthly billing cycles</p>
-                  <p>• Pro-rated adjustments</p>
-                  <p>• Cancel anytime</p>
-                </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Contact Support
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
 
