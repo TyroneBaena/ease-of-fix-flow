@@ -5,6 +5,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useNavigate, Link } from 'react-router-dom';
 import { Wrench, ClipboardList, BarChart3, UserCircle, Shield, CheckCircle2, Star, CreditCard, Lock, Users, Clock, ArrowRight } from 'lucide-react';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
+import contractorQuotesImg from "@/assets/contractor-quotes-screenshot.jpg";
+import jobTrackingImg from "@/assets/job-tracking-screenshot.jpg";
+import communicationImg from "@/assets/communication-screenshot.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -201,22 +204,66 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
             Why Providers Choose HousingHub
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={<Wrench className="h-10 w-10 text-blue-500" />}
-              title="Streamlined Contractor Management"
-              description="Invite contractors, view availability, request quotes, and assign jobs instantly."
-            />
-            <FeatureCard 
-              icon={<ClipboardList className="h-10 w-10 text-blue-500" />}
-              title="Automated Maintenance Workflow"
-              description="Submit requests, approve work, and handle invoices — all in one place."
-            />
-            <FeatureCard 
-              icon={<BarChart3 className="h-10 w-10 text-blue-500" />}
-              title="Transparent Communication"
-              description="Everyone stays in the loop. Track status updates, ask questions, and view progress without chasing messages."
-            />
+          <div className="space-y-16">
+            {/* Feature 1 */}
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <Wrench className="h-10 w-10 text-blue-500" />
+                  <h3 className="text-2xl font-semibold text-gray-900">Streamlined Contractor Management</h3>
+                </div>
+                <p className="text-lg text-gray-600">
+                  Invite contractors, view availability, request quotes, and assign jobs instantly.
+                </p>
+              </div>
+              <div className="rounded-lg overflow-hidden shadow-lg hover-scale">
+                <img 
+                  src={contractorQuotesImg} 
+                  alt="Contractor quote comparison interface showing multiple quotes side by side"
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="md:order-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <ClipboardList className="h-10 w-10 text-blue-500" />
+                  <h3 className="text-2xl font-semibold text-gray-900">Automated Maintenance Workflow</h3>
+                </div>
+                <p className="text-lg text-gray-600">
+                  Submit requests, approve work, and handle invoices — all in one place.
+                </p>
+              </div>
+              <div className="md:order-1 rounded-lg overflow-hidden shadow-lg hover-scale">
+                <img 
+                  src={jobTrackingImg} 
+                  alt="Job tracking dashboard showing maintenance requests in various stages"
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <BarChart3 className="h-10 w-10 text-blue-500" />
+                  <h3 className="text-2xl font-semibold text-gray-900">Transparent Communication</h3>
+                </div>
+                <p className="text-lg text-gray-600">
+                  Everyone stays in the loop. Track status updates, ask questions, and view progress without chasing messages.
+                </p>
+              </div>
+              <div className="rounded-lg overflow-hidden shadow-lg hover-scale">
+                <img 
+                  src={communicationImg} 
+                  alt="Communication interface showing messages between managers, contractors, and staff"
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
