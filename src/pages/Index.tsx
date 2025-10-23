@@ -351,7 +351,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900">Simple pricing</h2>
-            <p className="text-gray-600">Start free for 30 days. Pricing in AUD, billed per property.</p>
+            <p className="text-gray-600">Free 30-day trial. No credit card required.</p>
           </div>
           <div className="flex justify-center">
             <div className="max-w-md w-full border rounded-lg p-8 bg-gray-50 hover-scale shadow-sm">
@@ -359,13 +359,13 @@ const Index = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Starter</h3>
                 <div className="text-gray-900">
                   <span className="text-4xl font-bold">A$29</span>
-                  <span className="text-lg font-normal text-gray-600">/property/mo</span>
+                  <span className="text-lg font-normal text-gray-600"> / property / month</span>
                 </div>
               </div>
               <ul className="space-y-3 text-gray-700 mb-8">
-                <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Unlimited properties</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Unlimited requests</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Contractor portal</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" /> Unlimited Team access</li>
               </ul>
               <Button className="w-full" onClick={() => navigate('/signup')}>Start free trial</Button>
             </div>
