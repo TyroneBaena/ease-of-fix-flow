@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useNavigate, Link } from 'react-router-dom';
 import { Wrench, ClipboardList, BarChart3, UserCircle, Shield, CheckCircle2, Star, CreditCard, Lock, Users, Clock, ArrowRight } from 'lucide-react';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
-import contractorQuotesImg from "@/assets/contractor-quotes-screenshot.jpg";
+import contractorManagementImg from "@/assets/contractor-management-screenshot.png";
 import jobTrackingImg from "@/assets/job-tracking-screenshot.jpg";
 import communicationImg from "@/assets/communication-screenshot.jpg";
 
@@ -228,8 +228,8 @@ const Index = () => {
               </div>
               <div className="rounded-lg overflow-hidden shadow-lg hover-scale">
                 <img 
-                  src={contractorQuotesImg} 
-                  alt="Contractor quote comparison interface showing multiple quotes side by side"
+                  src={contractorManagementImg} 
+                  alt="Contractor management interface showing contractor list with contact info and specialties"
                   className="w-full h-auto"
                 />
               </div>
