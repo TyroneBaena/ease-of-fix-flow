@@ -199,23 +199,23 @@ const Index = () => {
       <section id="features" className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
-            Why Supported Accommodation Providers Choose HousingHub
+            Why Providers Choose HousingHub
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard 
               icon={<Wrench className="h-10 w-10 text-blue-500" />}
-              title="Streamlined Requests"
-              description="Submit and track maintenance requests through an intuitive interface. Upload photos and provide detailed descriptions."
+              title="Streamlined Contractor Management"
+              description="Invite contractors, view availability, request quotes, and assign jobs instantly."
             />
             <FeatureCard 
               icon={<ClipboardList className="h-10 w-10 text-blue-500" />}
-              title="Comprehensive Tracking"
-              description="Monitor the status of every request from submission to completion. Never lose track of a maintenance issue again."
+              title="Automated Maintenance Workflow"
+              description="Submit requests, approve work, and handle invoices — all in one place."
             />
             <FeatureCard 
               icon={<BarChart3 className="h-10 w-10 text-blue-500" />}
-              title="Insightful Analytics"
-              description="Gain valuable insights with detailed reporting on maintenance trends, response times, and team performance."
+              title="Transparent Communication"
+              description="Everyone stays in the loop. Track status updates, ask questions, and view progress without chasing messages."
             />
           </div>
         </div>
