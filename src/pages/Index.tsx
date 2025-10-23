@@ -7,7 +7,7 @@ import { Wrench, ClipboardList, BarChart3, UserCircle, Shield, CheckCircle2, Sta
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import contractorManagementImg from "@/assets/contractor-management-screenshot.png";
 import jobTrackingImg from "@/assets/job-tracking-screenshot.jpg";
-import communicationImg from "@/assets/maintenance-request-screenshot.png";
+import communicationImg from "@/assets/communication-laptop-mockup.png";
 
 const Index = () => {
   const navigate = useNavigate();
