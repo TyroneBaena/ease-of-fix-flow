@@ -135,9 +135,9 @@ const Index = () => {
                 <CheckCircle2 className="h-4 w-4" />
                 <span>Trusted by NDIS providers across NSW</span>
               </div>
-              <h1 className="text-4xl font-bold mb-4">Built for NDIS & Supported Accommodation Providers</h1>
+              <h1 className="text-4xl font-bold mb-4">Take the Middleman Out of Maintenance Management</h1>
               <p className="text-xl mb-8">
-                Streamline maintenance, compliance, and contractor workflows — all in one place.
+                Link managers, contractors, and staff directly — request quotes, approve jobs, and track progress in one simple platform.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button onClick={() => navigate('/signup')} className="bg-white text-blue-600 hover:bg-gray-100">
