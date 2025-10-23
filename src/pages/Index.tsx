@@ -131,9 +131,13 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="md:flex md:items-center md:justify-between">
             <div className="md:w-1/2">
-              <h1 className="text-4xl font-bold mb-4">Built for Supported Accommodation Property Management</h1>
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full mb-4 text-sm font-medium">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Trusted by NDIS providers across NSW</span>
+              </div>
+              <h1 className="text-4xl font-bold mb-4">Built for NDIS & Supported Accommodation Providers</h1>
               <p className="text-xl mb-8">
-                Streamline maintenance, compliance, and contractor workflows—try HousingHub free for 30 days.
+                Streamline maintenance, compliance, and contractor workflows — all in one place.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button onClick={() => navigate('/signup')} className="bg-white text-blue-600 hover:bg-gray-100">
