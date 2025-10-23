@@ -109,54 +109,14 @@ export const TrialStatusBanner: React.FC<TrialStatusBannerProps> = ({
       )}>
         <Clock className={cn("h-4 w-4", isUrgent ? "text-orange-600" : "text-blue-600")} />
         <AlertDescription className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <span className={cn(
-              "font-medium", 
-              isUrgent 
-                ? "text-orange-800 dark:text-orange-200" 
-                : "text-blue-800 dark:text-blue-200"
-            )}>
-              {daysRemaining} days left in your free trial
-            </span>
-            <span className={cn(
-              "text-sm",
-              isUrgent 
-                ? "text-orange-600 dark:text-orange-300" 
-                : "text-blue-600 dark:text-blue-300"
-            )}>
-              {propertyCount} properties • {currency?.toUpperCase()} ${monthlyAmount}/month after trial
-            </span>
-          </div>
-          {showActions && (
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                onClick={onUpgrade}
-                className={cn(
-                  isUrgent 
-                    ? "bg-orange-600 hover:bg-orange-700" 
-                    : "bg-blue-600 hover:bg-blue-700"
-                )}
-              >
-                <CreditCard className="h-3 w-3 mr-1" />
-                Go to Billing
-              </Button>
-              {onManageTrial && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={onManageTrial}
-                  className={cn(
-                    isUrgent 
-                      ? "border-orange-200 text-orange-700" 
-                      : "border-blue-200 text-blue-700"
-                  )}
-                >
-                  Manage Trial
-                </Button>
-              )}
-            </div>
-          )}
+          <span className={cn(
+            "font-medium", 
+            isUrgent 
+              ? "text-orange-800 dark:text-orange-200" 
+              : "text-blue-800 dark:text-blue-200"
+          )}>
+            Free Trial Active • {daysRemaining} days remaining
+          </span>
         </AlertDescription>
       </Alert>
     );
