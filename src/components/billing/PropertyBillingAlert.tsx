@@ -53,6 +53,7 @@ export const PropertyBillingAlert: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {/* Commented out billing information
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-1">
                 <Building2 className="h-4 w-4" />
@@ -68,6 +69,7 @@ export const PropertyBillingAlert: React.FC = () => {
               </span>
               <span className="font-medium">${billingAmount} {currency}</span>
             </div>
+            */}
             
             {daysRemaining !== null && (
               <Alert className={urgency === 'urgent' ? 'border-orange-200' : 'border-blue-200'}>
@@ -80,6 +82,7 @@ export const PropertyBillingAlert: React.FC = () => {
               </Alert>
             )}
             
+            {/* Commented out View Billing Details button
             <div className="flex gap-2">
               <Button 
                 onClick={() => navigate('/billing-security')} 
@@ -90,6 +93,7 @@ export const PropertyBillingAlert: React.FC = () => {
                 View Billing Details
               </Button>
             </div>
+            */}
           </div>
         </CardContent>
       </Card>
