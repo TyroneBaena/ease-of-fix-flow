@@ -166,6 +166,35 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Why It's Different Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+            Why It's Different
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-sm hover-scale">
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">No More Middlemen</h3>
+              <p className="text-gray-600">
+                Connect property managers, contractors, and staff directly. No more message relays or delays — everyone sees what's happening in real time.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm hover-scale">
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Smarter Job Management</h3>
+              <p className="text-gray-600">
+                From quote requests to completion and invoicing, everything flows through one system with manager approval steps built in.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm hover-scale">
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Complete Visibility</h3>
+              <p className="text-gray-600">
+                All job details, messages, photos, and invoices are linked to their property — giving full transparency for everyone involved.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
