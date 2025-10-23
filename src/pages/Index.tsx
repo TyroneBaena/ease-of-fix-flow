@@ -22,8 +22,8 @@ const Index = () => {
   }, [currentUser, loading, navigate]);
 
   useEffect(() => {
-    document.title = 'Supported Accommodation Property Management | HousingHub';
-    const metaDesc = 'All-in-one maintenance platform built for supported accommodation providers. Try free for 30 days.';
+    document.title = 'Supported Accommodation Software | Property Maintenance & Contractor Management | HousingHub';
+    const metaDesc = 'Simplify maintenance for supported accommodation. Manage jobs, quotes, contractors, and invoices — all in one connected system.';
     let descTag = document.querySelector('meta[name="description"]');
     if (!descTag) {
       descTag = document.createElement('meta');
@@ -31,6 +31,15 @@ const Index = () => {
       document.head.appendChild(descTag);
     }
     descTag.setAttribute('content', metaDesc);
+
+    // Add keywords meta tag
+    let keywordsTag = document.querySelector('meta[name="keywords"]');
+    if (!keywordsTag) {
+      keywordsTag = document.createElement('meta');
+      keywordsTag.setAttribute('name', 'keywords');
+      document.head.appendChild(keywordsTag);
+    }
+    keywordsTag.setAttribute('content', 'supported accommodation software, property maintenance software, contractor management system, maintenance job tracking, NDIS property management');
 
     const canonicalUrl = window.location.origin + '/';
     let linkCanonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
@@ -46,7 +55,8 @@ const Index = () => {
       '@type': 'SoftwareApplication',
       name: 'HousingHub',
       applicationCategory: 'BusinessApplication',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: '30-day free trial' },
+      keywords: 'supported accommodation software, property maintenance software, contractor management system, maintenance job tracking',
+      offers: { '@type': 'Offer', price: '29', priceCurrency: 'AUD', description: '30-day free trial' },
       description: metaDesc
     } as const;
     let ldScript = document.getElementById('ld-product');
