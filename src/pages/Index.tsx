@@ -271,28 +271,35 @@ const Index = () => {
       {/* How it works */}
       <section id="how-it-works" className="py-16 bg-white animate-fade-in">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">How it works</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-gray-50 p-6 rounded-lg shadow-sm hover-scale">
-              <div className="flex items-center gap-3 mb-3">
-                <Users className="h-6 w-6 text-blue-500" />
-                <h3 className="font-semibold text-gray-900">1. Invite your team</h3>
-              </div>
-              <p className="text-gray-600">Set up managers and contractors with role-based permissions for secure collaboration.</p>
-            </div>
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">How It Works — From Request to Resolution</h2>
+          <div className="grid md:grid-cols-4 gap-6">
             <div className="bg-gray-50 p-6 rounded-lg shadow-sm hover-scale">
               <div className="flex items-center gap-3 mb-3">
                 <ClipboardList className="h-6 w-6 text-blue-500" />
-                <h3 className="font-semibold text-gray-900">2. Log maintenance</h3>
+                <h3 className="font-semibold text-gray-900">1. Submit Maintenance Request</h3>
               </div>
-              <p className="text-gray-600">Capture requests with photos, assign to the right contractor, and track progress.</p>
+              <p className="text-gray-600">Staff or tenants log requests with photos and details.</p>
             </div>
             <div className="bg-gray-50 p-6 rounded-lg shadow-sm hover-scale">
               <div className="flex items-center gap-3 mb-3">
                 <CheckCircle2 className="h-6 w-6 text-blue-500" />
-                <h3 className="font-semibold text-gray-900">3. Resolve & report</h3>
+                <h3 className="font-semibold text-gray-900">2. Approve & Assign</h3>
               </div>
-              <p className="text-gray-600">Close jobs with an audit trail and view analytics for spend, SLAs, and compliance.</p>
+              <p className="text-gray-600">Maintenance managers approve and send the job to the best contractor.</p>
+            </div>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-sm hover-scale">
+              <div className="flex items-center gap-3 mb-3">
+                <Wrench className="h-6 w-6 text-blue-500" />
+                <h3 className="font-semibold text-gray-900">3. Work Completed</h3>
+              </div>
+              <p className="text-gray-600">Contractor uploads photos and an invoice once done.</p>
+            </div>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-sm hover-scale">
+              <div className="flex items-center gap-3 mb-3">
+                <BarChart3 className="h-6 w-6 text-blue-500" />
+                <h3 className="font-semibold text-gray-900">4. Review & Export</h3>
+              </div>
+              <p className="text-gray-600">Manager approves or requests changes; invoices can be bulk-downloaded or exported for landlords.</p>
             </div>
           </div>
         </div>
