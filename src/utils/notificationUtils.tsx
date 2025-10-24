@@ -140,36 +140,55 @@ export const sendPushNotification = async (
 
     if (Notification.permission === 'granted') {
       try {
-        // Use timestamp to ensure each notification is unique
-        const notification = new Notification(title, {
-          body,
-          icon: icon || '/favicon.ico',
-          badge: '/favicon.ico',
-          tag: `housing-hub-${Date.now()}`,
-          requireInteraction: false,
-          silent: false
+        console.log('🔔 Creating notification with granted permission...');
+        
+        // Create a promise that resolves when notification is shown
+        return new Promise<boolean>((resolve, reject) => {
+          try {
+            // Use timestamp to ensure each notification is unique
+            const notification = new Notification(title, {
+              body,
+              icon: icon || '/favicon.ico',
+              badge: '/favicon.ico',
+              tag: `housing-hub-${Date.now()}`,
+              requireInteraction: false,
+              silent: false
+            });
+            
+            console.log('🔔 Notification object created:', notification);
+            
+            // Resolve when notification is shown
+            notification.onshow = () => {
+              console.log('✅ Notification displayed successfully');
+              resolve(true);
+            };
+            
+            // Reject if there's an error
+            notification.onerror = (error) => {
+              console.error('❌ Notification error:', error);
+              reject(new Error('Notification failed to display'));
+            };
+            
+            // Handle click
+            notification.onclick = () => {
+              console.log('🖱️ Notification clicked');
+              window.focus();
+              notification.close();
+            };
+            
+            // Timeout fallback - if onshow doesn't fire in 2 seconds, assume it worked
+            setTimeout(() => {
+              console.log('⏱️ Notification timeout - assuming success');
+              resolve(true);
+            }, 2000);
+            
+          } catch (error) {
+            console.error('❌ Error creating notification:', error);
+            reject(error);
+          }
         });
-        
-        console.log('🔔 Notification object created:', notification);
-        
-        // Add event listeners to track notification lifecycle
-        notification.onshow = () => {
-          console.log('✅ Notification displayed successfully');
-        };
-        
-        notification.onerror = (error) => {
-          console.error('❌ Notification error:', error);
-        };
-        
-        notification.onclick = () => {
-          console.log('🖱️ Notification clicked');
-          window.focus();
-          notification.close();
-        };
-        
-        return true;
       } catch (error) {
-        console.error('❌ Error creating notification:', error);
+        console.error('❌ Error in notification creation:', error);
         return false;
       }
     } else if (Notification.permission === 'default') {
@@ -178,32 +197,45 @@ export const sendPushNotification = async (
       console.log('🔔 Permission result:', permission);
       
       if (permission === 'granted') {
-        const notification = new Notification(title, {
-          body,
-          icon: icon || '/favicon.ico',
-          badge: '/favicon.ico',
-          tag: `housing-hub-${Date.now()}`,
-          requireInteraction: false,
-          silent: false
+        return new Promise<boolean>((resolve, reject) => {
+          try {
+            const notification = new Notification(title, {
+              body,
+              icon: icon || '/favicon.ico',
+              badge: '/favicon.ico',
+              tag: `housing-hub-${Date.now()}`,
+              requireInteraction: false,
+              silent: false
+            });
+            
+            console.log('🔔 Notification created after permission:', notification);
+            
+            notification.onshow = () => {
+              console.log('✅ Notification displayed successfully after permission');
+              resolve(true);
+            };
+            
+            notification.onerror = (error) => {
+              console.error('❌ Notification error:', error);
+              reject(new Error('Notification failed to display'));
+            };
+            
+            notification.onclick = () => {
+              console.log('🖱️ Notification clicked');
+              window.focus();
+              notification.close();
+            };
+            
+            // Timeout fallback
+            setTimeout(() => {
+              console.log('⏱️ Notification timeout - assuming success');
+              resolve(true);
+            }, 2000);
+          } catch (error) {
+            console.error('❌ Error creating notification:', error);
+            reject(error);
+          }
         });
-        
-        console.log('🔔 Notification created after permission:', notification);
-        
-        notification.onshow = () => {
-          console.log('✅ Notification displayed successfully after permission');
-        };
-        
-        notification.onerror = (error) => {
-          console.error('❌ Notification error:', error);
-        };
-        
-        notification.onclick = () => {
-          console.log('🖱️ Notification clicked');
-          window.focus();
-          notification.close();
-        };
-        
-        return true;
       }
       return false;
     } else {
