@@ -27,10 +27,16 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const onChangeRef = useRef(onChange);
   const [isManualMode, setIsManualMode] = useState(false);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Keep the onChange ref updated
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   // Initialize Google Maps if API key is provided
   useEffect(() => {
@@ -133,7 +139,7 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
         if (place?.formatted_address) {
           // Prevent the click from bubbling up to parent elements
           setTimeout(() => {
-            onChange(place.formatted_address);
+            onChangeRef.current(place.formatted_address);
             console.log('✅ Address updated:', place.formatted_address);
           }, 0);
         } else {
@@ -167,7 +173,7 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, [isGoogleMapsLoaded, isManualMode, onChange]);
+  }, [isGoogleMapsLoaded, isManualMode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
