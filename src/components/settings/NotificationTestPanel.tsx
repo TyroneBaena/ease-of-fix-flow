@@ -34,12 +34,19 @@ export const NotificationTestPanel: React.FC = () => {
     try {
       console.log('🧪 Starting push notification test for user:', currentUser.id);
       
-      const result = await sendPushNotification(
+      // Add a timeout to prevent infinite loading
+      const timeoutPromise = new Promise<boolean>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      );
+      
+      const notificationPromise = sendPushNotification(
         currentUser.id,
         '🔔 HousingHub Notification',
         'This is a test push notification. If you see this, push notifications are working!',
         '/favicon.ico'
       );
+      
+      const result = await Promise.race([notificationPromise, timeoutPromise]);
       
       console.log('🧪 Push notification result:', result);
       
@@ -50,7 +57,11 @@ export const NotificationTestPanel: React.FC = () => {
       }
     } catch (error) {
       console.error('Error testing push notification:', error);
-      toast.error('An error occurred while testing push notifications.');
+      if (error instanceof Error && error.message === 'Timeout') {
+        toast.error('Request timed out. Please check your notification settings.');
+      } else {
+        toast.error('An error occurred while testing push notifications.');
+      }
     } finally {
       setTesting(null);
     }

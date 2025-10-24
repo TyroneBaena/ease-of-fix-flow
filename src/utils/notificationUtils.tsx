@@ -10,11 +10,15 @@ export const checkNotificationPreference = async (
   preferenceType: keyof NotificationSettings
 ): Promise<boolean> => {
   try {
+    console.log('🔍 Checking notification preference:', { userId, preferenceType });
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('notification_settings')
       .eq('id', userId)
       .single();
+
+    console.log('🔍 Preference query result:', { data, error });
 
     if (error || !data?.notification_settings) {
       // Default to true if we can't fetch preferences
@@ -22,7 +26,10 @@ export const checkNotificationPreference = async (
       return true;
     }
 
-    return data.notification_settings[preferenceType] ?? true;
+    const settings = data.notification_settings as any;
+    const result = settings[preferenceType] ?? true;
+    console.log('🔍 Preference result:', { preferenceType, result });
+    return result;
   } catch (error) {
     console.error('Error checking notification preference:', error);
     return true; // Default to enabled on error
