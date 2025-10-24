@@ -140,16 +140,36 @@ export const sendPushNotification = async (
 
     if (Notification.permission === 'granted') {
       try {
+        // Use timestamp to ensure each notification is unique
         const notification = new Notification(title, {
           body,
           icon: icon || '/favicon.ico',
           badge: '/favicon.ico',
-          tag: 'housing-hub-notification'
+          tag: `housing-hub-${Date.now()}`,
+          requireInteraction: false,
+          silent: false
         });
-        console.log('🔔 Notification created:', notification);
+        
+        console.log('🔔 Notification object created:', notification);
+        
+        // Add event listeners to track notification lifecycle
+        notification.onshow = () => {
+          console.log('✅ Notification displayed successfully');
+        };
+        
+        notification.onerror = (error) => {
+          console.error('❌ Notification error:', error);
+        };
+        
+        notification.onclick = () => {
+          console.log('🖱️ Notification clicked');
+          window.focus();
+          notification.close();
+        };
+        
         return true;
       } catch (error) {
-        console.error('Error creating notification:', error);
+        console.error('❌ Error creating notification:', error);
         return false;
       }
     } else if (Notification.permission === 'default') {
@@ -162,9 +182,27 @@ export const sendPushNotification = async (
           body,
           icon: icon || '/favicon.ico',
           badge: '/favicon.ico',
-          tag: 'housing-hub-notification'
+          tag: `housing-hub-${Date.now()}`,
+          requireInteraction: false,
+          silent: false
         });
+        
         console.log('🔔 Notification created after permission:', notification);
+        
+        notification.onshow = () => {
+          console.log('✅ Notification displayed successfully after permission');
+        };
+        
+        notification.onerror = (error) => {
+          console.error('❌ Notification error:', error);
+        };
+        
+        notification.onclick = () => {
+          console.log('🖱️ Notification clicked');
+          window.focus();
+          notification.close();
+        };
+        
         return true;
       }
       return false;
@@ -173,7 +211,7 @@ export const sendPushNotification = async (
       return false;
     }
   } catch (error) {
-    console.error('Error in sendPushNotification:', error);
+    console.error('❌ Error in sendPushNotification:', error);
     return false;
   }
 };
