@@ -24,22 +24,35 @@ export const NotificationTestPanel: React.FC = () => {
   };
 
   const testPushNotification = async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      toast.error('User not found');
+      return;
+    }
     
     setTesting('push');
+    
     try {
-      await sendPushNotification(
+      console.log('🧪 Starting push notification test for user:', currentUser.id);
+      
+      const result = await sendPushNotification(
         currentUser.id,
         '🔔 HousingHub Notification',
         'This is a test push notification. If you see this, push notifications are working!',
         '/favicon.ico'
       );
-      toast.success('Push notification sent! Check your browser notifications.');
+      
+      console.log('🧪 Push notification result:', result);
+      
+      if (result) {
+        toast.success('Push notification sent! Check your browser notifications.');
+      } else {
+        toast.error('Failed to send push notification. Make sure you have granted permission.');
+      }
     } catch (error) {
       console.error('Error testing push notification:', error);
-      toast.error('Failed to send push notification. Make sure you have granted permission.');
+      toast.error('An error occurred while testing push notifications.');
     } finally {
-      setTimeout(() => setTesting(null), 1000);
+      setTesting(null);
     }
   };
 

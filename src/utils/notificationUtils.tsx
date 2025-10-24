@@ -111,29 +111,62 @@ export const sendPushNotification = async (
   title: string,
   body: string,
   icon?: string
-) => {
-  const hasPermission = await checkNotificationPreference(userId, 'pushNotifications');
-  
-  if (!hasPermission) {
-    console.log('Push notifications disabled by user preference');
-    return;
-  }
-
-  if (!('Notification' in window)) {
-    console.warn('This browser does not support notifications');
-    return;
-  }
-
-  if (Notification.permission === 'granted') {
-    try {
-      new Notification(title, {
-        body,
-        icon: icon || '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'housing-hub-notification'
-      });
-    } catch (error) {
-      console.error('Error sending push notification:', error);
+): Promise<boolean> => {
+  try {
+    console.log('🔔 sendPushNotification called:', { userId, title, body });
+    
+    // Check user preferences
+    const hasPermission = await checkNotificationPreference(userId, 'pushNotifications');
+    console.log('🔔 Push notification preference:', hasPermission);
+    
+    if (!hasPermission) {
+      console.log('Push notifications disabled by user preference');
+      return false;
     }
+
+    if (!('Notification' in window)) {
+      console.warn('This browser does not support notifications');
+      return false;
+    }
+
+    console.log('🔔 Browser Notification.permission:', Notification.permission);
+
+    if (Notification.permission === 'granted') {
+      try {
+        const notification = new Notification(title, {
+          body,
+          icon: icon || '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'housing-hub-notification'
+        });
+        console.log('🔔 Notification created:', notification);
+        return true;
+      } catch (error) {
+        console.error('Error creating notification:', error);
+        return false;
+      }
+    } else if (Notification.permission === 'default') {
+      console.log('🔔 Requesting notification permission...');
+      const permission = await Notification.requestPermission();
+      console.log('🔔 Permission result:', permission);
+      
+      if (permission === 'granted') {
+        const notification = new Notification(title, {
+          body,
+          icon: icon || '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'housing-hub-notification'
+        });
+        console.log('🔔 Notification created after permission:', notification);
+        return true;
+      }
+      return false;
+    } else {
+      console.log('🔔 Notification permission denied');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error in sendPushNotification:', error);
+    return false;
   }
 };
