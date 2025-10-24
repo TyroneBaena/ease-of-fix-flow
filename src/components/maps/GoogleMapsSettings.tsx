@@ -129,7 +129,15 @@ export const GoogleMapsSettings: React.FC = () => {
                 id="googleMapsApiKey"
                 type={showApiKey ? "text" : "password"}
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={(e) => {
+                  console.log('API Key input changed:', e.target.value.substring(0, 20) + '...');
+                  setApiKey(e.target.value);
+                }}
+                onPaste={(e) => {
+                  const pastedValue = e.clipboardData.getData('text');
+                  console.log('API Key pasted:', pastedValue.substring(0, 20) + '...');
+                  setApiKey(pastedValue);
+                }}
                 placeholder="Enter your Google Maps API key"
                 className="pr-10"
                 disabled={isSaving}
@@ -149,7 +157,13 @@ export const GoogleMapsSettings: React.FC = () => {
                 )}
               </Button>
             </div>
-            <Button onClick={handleSaveApiKey} disabled={!apiKey.trim() || isSaving}>
+            <Button 
+              onClick={() => {
+                console.log('Save button clicked, API Key length:', apiKey.length);
+                handleSaveApiKey();
+              }} 
+              disabled={!apiKey || isSaving}
+            >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
@@ -158,6 +172,9 @@ export const GoogleMapsSettings: React.FC = () => {
               Save
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Current key length: {apiKey.length} characters
+          </p>
         </div>
 
         {appSettings?.google_maps_api_key && (
