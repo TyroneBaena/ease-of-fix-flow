@@ -131,8 +131,11 @@ export const GoogleMapsAddressInput: React.FC<GoogleMapsAddressInputProps> = ({
         console.log('📍 Place selected:', place);
         
         if (place?.formatted_address) {
-          onChange(place.formatted_address);
-          console.log('✅ Address updated:', place.formatted_address);
+          // Prevent the click from bubbling up to parent elements
+          setTimeout(() => {
+            onChange(place.formatted_address);
+            console.log('✅ Address updated:', place.formatted_address);
+          }, 0);
         } else {
           console.warn('⚠️ No formatted address in place result');
         }

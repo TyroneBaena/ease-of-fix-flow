@@ -101,7 +101,7 @@
 }
 
 /* Google Maps Autocomplete Dropdown Styling */
-/* Ensure autocomplete appears above dialogs */
+/* Ensure autocomplete appears above dialogs and doesn't trigger dialog close */
 .pac-container {
   z-index: 99999 !important;
   background-color: white !important;
@@ -110,6 +110,16 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
   margin-top: 4px !important;
   pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Prevent pac-container from being treated as part of dialog overlay */
+.pac-container::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .pac-item {
