@@ -80,7 +80,16 @@ const PropertiesContent = () => {
                   Add Property
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
+              <DialogContent 
+                className="sm:max-w-[600px]"
+                onInteractOutside={(e) => {
+                  // Prevent dialog from closing when clicking on Google Maps autocomplete
+                  const target = e.target as HTMLElement;
+                  if (target.closest('.pac-container')) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 <DialogHeader>
                   <DialogTitle>Add New Property</DialogTitle>
                   <DialogDescription>

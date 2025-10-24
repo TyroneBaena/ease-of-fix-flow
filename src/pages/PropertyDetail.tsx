@@ -257,7 +257,16 @@ const PropertyDetail = () => {
       {/* Only show edit dialog for authenticated users */}
       {!isTemporaryAccess && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent 
+            className="sm:max-w-[600px]"
+            onInteractOutside={(e) => {
+              // Prevent dialog from closing when clicking on Google Maps autocomplete
+              const target = e.target as HTMLElement;
+              if (target.closest('.pac-container')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Edit Property</DialogTitle>
               <DialogDescription>
