@@ -101,13 +101,15 @@
 }
 
 /* Google Maps Autocomplete Dropdown Styling */
+/* Ensure autocomplete appears above dialogs */
 .pac-container {
-  z-index: 9999 !important;
+  z-index: 99999 !important;
   background-color: white !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: 0.5rem !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
   margin-top: 4px !important;
+  pointer-events: auto !important;
 }
 
 .pac-item {
