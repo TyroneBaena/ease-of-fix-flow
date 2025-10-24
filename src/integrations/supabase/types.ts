@@ -929,6 +929,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          notification_settings: Json | null
           organization_id: string | null
           phone: string | null
           role: string
@@ -941,6 +942,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          notification_settings?: Json | null
           organization_id?: string | null
           phone?: string | null
           role?: string
@@ -953,6 +955,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          notification_settings?: Json | null
           organization_id?: string | null
           phone?: string | null
           role?: string

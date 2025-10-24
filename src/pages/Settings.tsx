@@ -12,6 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from '@/components/settings/AccountSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
+import { NotificationTestPanel } from '@/components/settings/NotificationTestPanel';
 import { Toaster } from "sonner";
 import { TeamManagement } from '@/pages/TeamManagement';
 import { GoogleMapsSettings } from '@/components/maps/GoogleMapsSettings';
@@ -231,10 +232,14 @@ const Settings = () => {
           </TabsContent>
           
           <TabsContent value="notifications">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
-              {currentUser && <NotificationSettings user={currentUser} />}
-            </Card>
+            <div className="space-y-6">
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
+                {currentUser && <NotificationSettings user={currentUser} />}
+              </Card>
+              
+              <NotificationTestPanel />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

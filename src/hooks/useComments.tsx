@@ -159,59 +159,81 @@ export function useComments(requestId: string) {
       
       console.log('📧 Notification data prepared:', notificationData);
       
-      // Send email to request owner
+      // Send email to request owner (check preferences first)
       if (requestData.user_id) {
         console.log('📨 Checking request owner for user_id:', requestData.user_id);
         const { data: ownerProfile } = await supabase
           .from('profiles')
-          .select('name, email')
+          .select('name, email, notification_settings')
           .eq('id', requestData.user_id)
           .single();
           
         console.log('👤 Owner profile:', ownerProfile);
           
         if (ownerProfile?.email) {
-          console.log('📬 Sending email to request owner:', ownerProfile.email);
-          const { data, error } = await supabase.functions.invoke('send-comment-notification', {
-            body: {
-              recipient_email: ownerProfile.email,
-              recipient_name: ownerProfile.name || '',
-              notification_data: notificationData
-            }
-          });
-          console.log('📧 Owner email result:', { data, error });
+          // Check if user has email notifications enabled
+          const notificationSettings = ownerProfile.notification_settings as any;
+          const emailEnabled = notificationSettings?.emailNotifications ?? true;
+          
+          if (emailEnabled) {
+            console.log('📬 Sending email to request owner:', ownerProfile.email);
+            const { data, error } = await supabase.functions.invoke('send-comment-notification', {
+              body: {
+                recipient_email: ownerProfile.email,
+                recipient_name: ownerProfile.name || '',
+                notification_data: notificationData
+              }
+            });
+            console.log('📧 Owner email result:', { data, error });
+          } else {
+            console.log('⏭️ Skipping owner email - notifications disabled by user');
+          }
         }
       }
       
-      // Send email to assigned contractor
+      // Send email to assigned contractor (check preferences first)
       if (requestData.contractor_id) {
         console.log('🔧 Checking contractor for contractor_id:', requestData.contractor_id);
         const { data: contractorData } = await supabase
           .from('contractors')
-          .select('contact_name, email')
+          .select('contact_name, email, user_id')
           .eq('id', requestData.contractor_id)
           .single();
           
         console.log('👷 Contractor data:', contractorData);
           
-        if (contractorData?.email) {
-          console.log('📬 Sending email to contractor:', contractorData.email);
-          const { data, error } = await supabase.functions.invoke('send-comment-notification', {
-            body: {
-              recipient_email: contractorData.email,
-              recipient_name: contractorData.contact_name || '',
-              notification_data: notificationData
-            }
-          });
-          console.log('📧 Contractor email result:', { data, error });
+        if (contractorData?.email && contractorData?.user_id) {
+          // Check contractor's notification preferences
+          const { data: contractorProfile } = await supabase
+            .from('profiles')
+            .select('notification_settings')
+            .eq('id', contractorData.user_id)
+            .single();
+          
+          const notificationSettings = contractorProfile?.notification_settings as any;
+          const emailEnabled = notificationSettings?.emailNotifications ?? true;
+          
+          if (emailEnabled) {
+            console.log('📬 Sending email to contractor:', contractorData.email);
+            const { data, error } = await supabase.functions.invoke('send-comment-notification', {
+              body: {
+                recipient_email: contractorData.email,
+                recipient_name: contractorData.contact_name || '',
+                notification_data: notificationData
+              }
+            });
+            console.log('📧 Contractor email result:', { data, error });
+          } else {
+            console.log('⏭️ Skipping contractor email - notifications disabled by user');
+          }
         }
       }
       
-      // Send email to all admin users
+      // Send email to all admin users (check preferences for each)
       console.log('👑 Fetching admin users...');
       const { data: adminProfiles } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('id, name, email, notification_settings')
         .eq('role', 'admin')
         .not('email', 'is', null);
         
@@ -219,15 +241,22 @@ export function useComments(requestId: string) {
         
       if (adminProfiles && adminProfiles.length > 0) {
         for (const admin of adminProfiles) {
-          console.log('📬 Sending email to admin:', admin.email);
-          const { data, error } = await supabase.functions.invoke('send-comment-notification', {
-            body: {
-              recipient_email: admin.email,
-              recipient_name: admin.name || '',
-              notification_data: notificationData
-            }
-          });
-          console.log('📧 Admin email result:', { data, error });
+          const notificationSettings = admin.notification_settings as any;
+          const emailEnabled = notificationSettings?.emailNotifications ?? true;
+          
+          if (emailEnabled) {
+            console.log('📬 Sending email to admin:', admin.email);
+            const { data, error } = await supabase.functions.invoke('send-comment-notification', {
+              body: {
+                recipient_email: admin.email,
+                recipient_name: admin.name || '',
+                notification_data: notificationData
+              }
+            });
+            console.log('📧 Admin email result:', { data, error });
+          } else {
+            console.log('⏭️ Skipping admin email - notifications disabled by user:', admin.email);
+          }
         }
       }
       
