@@ -119,7 +119,6 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     
     if (missingFields.length > 0) {
       console.error('PropertyForm: Validation failed, missing fields:', missingFields);
-      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
     
