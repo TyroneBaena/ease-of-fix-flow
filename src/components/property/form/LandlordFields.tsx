@@ -4,9 +4,21 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { landlordsService, Landlord } from '@/services/landlordsService';
 import { Search, Plus, Pencil } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const landlordSchema = z.object({
+  name: z.string().trim().min(1, { message: "Name is required" }),
+  email: z.string().trim().email({ message: "Invalid email address" }),
+  phone: z.string().optional(),
+  office_address: z.string().optional(),
+  postal_address: z.string().optional(),
+});
 
 interface LandlordFieldsProps {
   landlordId?: string;
@@ -21,14 +33,28 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
-  // Create form state
-  const [createForm, setCreateForm] = useState({
-    name: '', email: '', phone: '', office_address: '', postal_address: ''
+  // Create form
+  const createForm = useForm<z.infer<typeof landlordSchema>>({
+    resolver: zodResolver(landlordSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      office_address: '',
+      postal_address: '',
+    },
   });
 
-  // Edit form state (copy of selected)
-  const [editForm, setEditForm] = useState({
-    name: '', email: '', phone: '', office_address: '', postal_address: ''
+  // Edit form
+  const editForm = useForm<z.infer<typeof landlordSchema>>({
+    resolver: zodResolver(landlordSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      office_address: '',
+      postal_address: '',
+    },
   });
 
   useEffect(() => {
@@ -72,16 +98,20 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
     onChange(null);
   };
 
-  const submitCreate = async () => {
-    if (!createForm.name || !createForm.email) {
-      toast.error('Name and email are required');
-      return;
-    }
+  const submitCreate = async (data: z.infer<typeof landlordSchema>) => {
     try {
-      const l = await landlordsService.create(createForm);
+      const payload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone || undefined,
+        office_address: data.office_address || undefined,
+        postal_address: data.postal_address || undefined,
+      };
+      const l = await landlordsService.create(payload);
       setSelected(l);
       onChange(l.id);
       setCreateOpen(false);
+      createForm.reset();
       toast.success('Landlord created');
     } catch (e: any) {
       console.error(e);
@@ -91,20 +121,27 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
 
   const openEdit = () => {
     if (!selected) return;
-    setEditForm({
+    editForm.reset({
       name: selected.name || '',
       email: selected.email || '',
       phone: selected.phone || '',
       office_address: selected.office_address || '',
-      postal_address: selected.postal_address || ''
+      postal_address: selected.postal_address || '',
     });
     setEditOpen(true);
   };
 
-  const submitEdit = async () => {
+  const submitEdit = async (data: z.infer<typeof landlordSchema>) => {
     if (!selected) return;
     try {
-      await landlordsService.update(selected.id, editForm);
+      const payload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone || undefined,
+        office_address: data.office_address || undefined,
+        postal_address: data.postal_address || undefined,
+      };
+      await landlordsService.update(selected.id, payload);
       const updated = await landlordsService.getById(selected.id);
       setSelected(updated);
       toast.success('Landlord updated');
@@ -170,32 +207,79 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
                 <DialogHeader>
                   <DialogTitle>Create landlord</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="l_name">Name*</Label>
-                    <Input id="l_name" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label htmlFor="l_email">Email*</Label>
-                    <Input id="l_email" type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label htmlFor="l_phone">Phone</Label>
-                    <Input id="l_phone" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label htmlFor="l_office">Office Address</Label>
-                    <Input id="l_office" value={createForm.office_address} onChange={(e) => setCreateForm({ ...createForm, office_address: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label htmlFor="l_postal">Postal Address</Label>
-                    <Input id="l_postal" value={createForm.postal_address} onChange={(e) => setCreateForm({ ...createForm, postal_address: e.target.value })} />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                  <Button onClick={submitCreate}>Create</Button>
-                </DialogFooter>
+                <Form {...createForm}>
+                  <form onSubmit={createForm.handleSubmit(submitCreate)} className="space-y-3">
+                    <FormField
+                      control={createForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name*</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={createForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email*</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={createForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={createForm.control}
+                      name="office_address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Office Address</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={createForm.control}
+                      name="postal_address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Postal Address</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                      <Button type="submit">Create</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
               </DialogContent>
             </Dialog>
           </div>
@@ -208,32 +292,79 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
           <DialogHeader>
             <DialogTitle>Edit landlord</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="e_name">Name*</Label>
-              <Input id="e_name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="e_email">Email*</Label>
-              <Input id="e_email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="e_phone">Phone</Label>
-              <Input id="e_phone" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="e_office">Office Address</Label>
-              <Input id="e_office" value={editForm.office_address || ''} onChange={(e) => setEditForm({ ...editForm, office_address: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="e_postal">Postal Address</Label>
-              <Input id="e_postal" value={editForm.postal_address || ''} onChange={(e) => setEditForm({ ...editForm, postal_address: e.target.value })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={submitEdit}>Save</Button>
-          </DialogFooter>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(submitEdit)} className="space-y-3">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name*</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email*</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="office_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Office Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="postal_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Postal Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                <Button type="submit">Save</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
