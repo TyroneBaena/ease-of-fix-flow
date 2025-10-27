@@ -118,14 +118,14 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
           </Select>
         </div>
 
-        {/* Site Filter */}
+        {/* Property Filter (labeled as Site) */}
         <div className="w-full lg:w-48">
           <Select value={siteFilter} onValueChange={setSiteFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Site: All" />
+              <SelectValue placeholder="Property: All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Sites</SelectItem>
+              <SelectItem value="all">All Properties</SelectItem>
               {sites.map(site => (
                 <SelectItem key={site} value={site}>
                   {site}
@@ -226,7 +226,7 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
 
           {siteFilter !== 'all' && (
             <Badge variant="outline" className="bg-cyan-50 border-cyan-200">
-              Site: {siteFilter}
+              Property: {siteFilter}
               <Button 
                 variant="ghost" 
                 size="sm" 

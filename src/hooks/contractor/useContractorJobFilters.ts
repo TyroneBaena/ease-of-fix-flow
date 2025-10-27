@@ -12,13 +12,24 @@ export const useContractorJobFilters = (allJobs: MaintenanceRequest[] = []) => {
   const [sortDirection, setSortDirection] = useState('desc');
   
 
-  // Get unique categories from all jobs
+  // Get unique categories from all jobs (filter out property names that are mistakenly in category field)
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(
       allJobs
         .map(job => job.category)
         .filter(Boolean)
         .map(category => category!)
+        // Filter out values that look like property names (longer than 30 chars or contain "Property", "Constructions", "pvt", "ltd")
+        .filter(category => {
+          const lowerCategory = category.toLowerCase();
+          return category.length <= 30 && 
+                 !lowerCategory.includes('property') && 
+                 !lowerCategory.includes('construction') &&
+                 !lowerCategory.includes('pvt') &&
+                 !lowerCategory.includes('ltd') &&
+                 !lowerCategory.includes('cares') &&
+                 !lowerCategory.includes('test');
+        })
     ));
     return uniqueCategories.sort();
   }, [allJobs]);
