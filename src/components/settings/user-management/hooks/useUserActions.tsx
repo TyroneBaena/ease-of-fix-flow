@@ -27,20 +27,23 @@ export const useUserActions = (
   const [userToReset, setUserToReset] = useState<{id: string, email: string} | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const handleSaveUser = async () => {
+  const handleSaveUser = async (userData?: NewUserFormState) => {
+    // Use provided userData or fallback to state
+    const userToSave = userData || newUser;
+    
     // Validation is already handled by react-hook-form, no need for additional checks
     try {
       setIsLoading(true);
       console.log("Starting user save operation:", isEditMode ? "update" : "invite");
-      console.log("User data:", { name: newUser.name, email: newUser.email, role: newUser.role });
+      console.log("User data:", { name: userToSave.name, email: userToSave.email, role: userToSave.role });
       
       if (isEditMode && selectedUser) {
         const updatedUser: User = {
           ...selectedUser,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          assignedProperties: newUser.role === 'manager' ? newUser.assignedProperties : []
+          name: userToSave.name,
+          email: userToSave.email,
+          role: userToSave.role,
+          assignedProperties: userToSave.role === 'manager' ? userToSave.assignedProperties : []
         };
         console.log("Updating user:", updatedUser);
         console.log("User assignedProperties being saved:", updatedUser.assignedProperties);
@@ -61,15 +64,15 @@ export const useUserActions = (
         }, 1000);
       } else {
         console.log("Adding new user:", {
-          email: newUser.email,
-          name: newUser.name,
-          role: newUser.role,
-          assignedPropertiesCount: newUser.assignedProperties.length
+          email: userToSave.email,
+          name: userToSave.name,
+          role: userToSave.role,
+          assignedPropertiesCount: userToSave.assignedProperties.length
         });
         
         try {
           // Clear any previous form state that might be cached 
-          const result = await addUser(newUser.email, newUser.name, newUser.role, newUser.assignedProperties);
+          const result = await addUser(userToSave.email, userToSave.name, userToSave.role, userToSave.assignedProperties);
           console.log("Add user result:", result);
           
           if (result.success) {

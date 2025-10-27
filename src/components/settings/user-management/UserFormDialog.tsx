@@ -61,7 +61,7 @@ interface UserFormDialogProps {
   isLoading: boolean;
   onUserChange: (field: string, value: any) => void;
   onPropertySelection: (propertyId: string) => void;
-  onSave: () => Promise<void>;
+  onSave: (userData?: any) => Promise<void>;
 }
 
 interface UserFormDialogPropsWithError extends UserFormDialogProps {
@@ -105,15 +105,8 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   }, [isOpen, user.name, user.email, user.role, user.assignedProperties, form]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    // Sync form data to parent immediately
-    onUserChange('name', data.name);
-    onUserChange('email', data.email);
-    onUserChange('role', data.role);
-    onUserChange('assignedProperties', data.assignedProperties);
-    
-    // Use a microtask to ensure state updates are processed
-    await Promise.resolve();
-    await onSave();
+    // Pass form data directly to onSave to avoid state timing issues
+    await onSave(data);
   });
 
   const handlePropertyToggle = (propertyId: string) => {
