@@ -28,17 +28,7 @@ export const useUserActions = (
   const [copied, setCopied] = useState(false);
 
   const handleSaveUser = async () => {
-    // Validation is now handled by the form, so we just proceed with saving
-    if (!newUser.name || !newUser.email) {
-      return; // Form validation will show inline errors
-    }
-    
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newUser.email)) {
-      return; // Form validation will show inline errors
-    }
-    
+    // Validation is already handled by react-hook-form, no need for additional checks
     try {
       setIsLoading(true);
       console.log("Starting user save operation:", isEditMode ? "update" : "invite");

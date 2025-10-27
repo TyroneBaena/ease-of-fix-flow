@@ -105,14 +105,14 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   }, [isOpen, user.name, user.email, user.role, user.assignedProperties, form]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    // Sync form data to parent before saving
+    // Sync form data to parent immediately
     onUserChange('name', data.name);
     onUserChange('email', data.email);
     onUserChange('role', data.role);
     onUserChange('assignedProperties', data.assignedProperties);
     
-    // Wait a tick for state to update
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Use a microtask to ensure state updates are processed
+    await Promise.resolve();
     await onSave();
   });
 
