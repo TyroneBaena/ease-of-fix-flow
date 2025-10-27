@@ -11,8 +11,6 @@ interface ContractorJobFiltersProps {
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
-  categoryFilter: string;
-  setCategoryFilter: (category: string) => void;
   siteFilter: string;
   setSiteFilter: (site: string) => void;
   priorityFilter: string;
@@ -21,7 +19,6 @@ interface ContractorJobFiltersProps {
   setSortField: (field: string) => void;
   sortDirection: string;
   setSortDirection: (direction: string) => void;
-  categories: string[];
   sites: string[];
 }
 
@@ -30,8 +27,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   setSearchTerm,
   statusFilter,
   setStatusFilter,
-  categoryFilter,
-  setCategoryFilter,
   siteFilter,
   setSiteFilter,
   priorityFilter,
@@ -40,7 +35,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   setSortField,
   sortDirection,
   setSortDirection,
-  categories,
   sites
 }) => {
   const toggleSortDirection = () => {
@@ -60,14 +54,13 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
   const clearAllFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
-    setCategoryFilter('all');
     setSiteFilter('all');
     setPriorityFilter('all');
     setSortField('createdAt');
     setSortDirection('desc');
   };
 
-  const hasActiveFilters = searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || 
+  const hasActiveFilters = searchTerm || statusFilter !== 'all' || 
     siteFilter !== 'all' || priorityFilter !== 'all';
 
   return (
@@ -97,23 +90,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
               <SelectItem value="in-progress">In Progress</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Category Filter */}
-        <div className="w-full lg:w-48">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Category: All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
@@ -204,20 +180,6 @@ const ContractorJobFilters: React.FC<ContractorJobFiltersProps> = ({
                 size="sm" 
                 className="h-4 w-4 ml-2 p-0" 
                 onClick={() => setStatusFilter('all')}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
-          
-          {categoryFilter !== 'all' && (
-            <Badge variant="outline" className="bg-purple-50 border-purple-200">
-              Category: {categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-4 w-4 ml-2 p-0" 
-                onClick={() => setCategoryFilter('all')}
               >
                 <X className="h-3 w-3" />
               </Button>

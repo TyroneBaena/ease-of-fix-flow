@@ -32,8 +32,6 @@ const ContractorJobs = () => {
     setSearchTerm,
     statusFilter,
     setStatusFilter,
-    categoryFilter,
-    setCategoryFilter,
     siteFilter,
     setSiteFilter,
     priorityFilter,
@@ -42,7 +40,6 @@ const ContractorJobs = () => {
     setSortField,
     sortDirection,
     setSortDirection,
-    categories,
     sites,
     filteredJobs
   } = useContractorJobFilters(allJobs);
@@ -68,10 +65,8 @@ const ContractorJobs = () => {
     filtersActive: {
       search: !!searchTerm,
       status: statusFilter !== 'all',
-      category: categoryFilter !== 'all',
       site: siteFilter !== 'all',
       priority: priorityFilter !== 'all',
-      
     }
   });
 
@@ -116,8 +111,6 @@ const ContractorJobs = () => {
               setSearchTerm={setSearchTerm}
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
-              categoryFilter={categoryFilter}
-              setCategoryFilter={setCategoryFilter}
               siteFilter={siteFilter}
               setSiteFilter={setSiteFilter}
               priorityFilter={priorityFilter}
@@ -126,7 +119,6 @@ const ContractorJobs = () => {
               setSortField={setSortField}
               sortDirection={sortDirection}
               setSortDirection={setSortDirection}
-              categories={categories}
               sites={sites}
             />
             
