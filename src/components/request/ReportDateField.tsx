@@ -61,7 +61,7 @@ export const ReportDateField = ({ value, onChange }: ReportDateFieldProps) => {
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              Date of Report/Request
+              Date of Report/Request*
             </Label>
             <p className="text-sm text-muted-foreground">
               Select date in DD/MM/YYYY format

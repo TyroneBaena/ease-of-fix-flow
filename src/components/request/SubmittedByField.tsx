@@ -17,7 +17,7 @@ export const SubmittedByField = ({ value, onChange }: SubmittedByFieldProps) => 
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              Report/Request Submitted by
+              Report/Request Submitted by*
             </Label>
             <p className="text-sm text-gray-500">
               Please enter your first and last name

@@ -22,7 +22,7 @@ export const ParticipantNameField = ({ value, onChange, isParticipantRelated }: 
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              Participant's Name
+              Participant's Name*
             </Label>
             <p className="text-sm text-gray-500">
               If the concern is participant-related, kindly indicate the participant's first name and the first initial of the last name (e.g., place "James L." instead of James Lucas)

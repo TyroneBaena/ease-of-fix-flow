@@ -17,7 +17,7 @@ export const IssueNatureField = ({ value, onChange }: IssueNatureFieldProps) => 
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              Title of the concern/issue/damage
+              Title of the concern/issue/damage*
             </Label>
             <p className="text-sm text-gray-500">
               This is for the email subject (In 5 words or less)

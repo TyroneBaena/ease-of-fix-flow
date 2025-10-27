@@ -17,7 +17,7 @@ export const AttemptedFixField = ({ value, onChange }: AttemptedFixFieldProps) =
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              What have you attempted to do to fix it?
+              What have you attempted to do to fix it?*
             </Label>
             <p className="text-sm text-gray-500">
               Please ensure you have given a reasonable attempt to fixing an issue.

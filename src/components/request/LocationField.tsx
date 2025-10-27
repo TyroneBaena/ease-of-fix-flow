@@ -17,7 +17,7 @@ export const LocationField = ({ value, onChange }: LocationFieldProps) => {
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              Where in the property is the issue/concern located?
+              Where in the property is the issue/concern located?*
             </Label>
             <Input
               value={value}

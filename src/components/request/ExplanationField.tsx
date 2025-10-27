@@ -17,7 +17,7 @@ export const ExplanationField = ({ value, onChange }: ExplanationFieldProps) => 
         <FormItem>
           <div className="space-y-2">
             <Label className="text-base font-semibold">
-              Please explain the repair/damage/modification
+              Please explain the repair/damage/modification*
             </Label>
             <p className="text-sm text-gray-500">
               Let us know What happened? Why it happened? How it happened? Please provide a clear picture of the maintenance issue and what is needed to be fixed answering all the questions above. If questions above are not answered, the information will be requested again.
