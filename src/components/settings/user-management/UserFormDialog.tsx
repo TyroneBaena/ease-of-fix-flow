@@ -92,28 +92,27 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
     }
   });
 
-  // Update form values when user prop changes
+  // Update form values when dialog opens
   useEffect(() => {
-    form.reset({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      assignedProperties: user.assignedProperties || []
-    });
-  }, [user, form]);
+    if (isOpen) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        assignedProperties: user.assignedProperties || []
+      });
+    }
+  }, [isOpen, user.name, user.email, user.role, user.assignedProperties, form]);
 
-  // Sync form values with parent component
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (value.name !== undefined) onUserChange('name', value.name);
-      if (value.email !== undefined) onUserChange('email', value.email);
-      if (value.role !== undefined) onUserChange('role', value.role);
-      if (value.assignedProperties !== undefined) onUserChange('assignedProperties', value.assignedProperties);
-    });
-    return () => subscription.unsubscribe();
-  }, [form, onUserChange]);
-
-  const handleSubmit = form.handleSubmit(async () => {
+  const handleSubmit = form.handleSubmit(async (data) => {
+    // Sync form data to parent before saving
+    onUserChange('name', data.name);
+    onUserChange('email', data.email);
+    onUserChange('role', data.role);
+    onUserChange('assignedProperties', data.assignedProperties);
+    
+    // Wait a tick for state to update
+    await new Promise(resolve => setTimeout(resolve, 0));
     await onSave();
   });
 
@@ -123,8 +122,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
       ? currentProperties.filter(id => id !== propertyId)
       : [...currentProperties, propertyId];
     
-    form.setValue('assignedProperties', newProperties);
-    onPropertySelection(propertyId);
+    form.setValue('assignedProperties', newProperties, { shouldValidate: true });
   };
 
   return (
@@ -220,34 +218,37 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
               <FormField
                 control={form.control}
                 name="assignedProperties"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assigned Properties</FormLabel>
-                    <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
-                      {properties.length > 0 ? (
-                        properties.map(property => (
-                          <div key={property.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`property-${property.id}`}
-                              checked={field.value?.includes(property.id)}
-                              onCheckedChange={() => handlePropertyToggle(property.id)}
-                              disabled={isLoading || !ready}
-                            />
-                            <label 
-                              htmlFor={`property-${property.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {property.name}
-                            </label>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 p-2">No properties available</p>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={() => {
+                  const assignedProperties = form.watch('assignedProperties') || [];
+                  return (
+                    <FormItem>
+                      <FormLabel>Assigned Properties</FormLabel>
+                      <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
+                        {properties.length > 0 ? (
+                          properties.map(property => (
+                            <div key={property.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`property-${property.id}`}
+                                checked={assignedProperties.includes(property.id)}
+                                onCheckedChange={() => handlePropertyToggle(property.id)}
+                                disabled={isLoading || !ready}
+                              />
+                              <label 
+                                htmlFor={`property-${property.id}`}
+                                className="text-sm cursor-pointer"
+                              >
+                                {property.name}
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 p-2">No properties available</p>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             )}
             
