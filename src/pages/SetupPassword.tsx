@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ensureUserOrganization } from '@/services/user/tenantService';
+import { validatePassword } from '@/utils/passwordValidation';
 
 const SetupPassword = () => {
   const [password, setPassword] = useState('');
@@ -66,8 +67,10 @@ const SetupPassword = () => {
       newErrors.email = "Email is missing. Please use the link from your invitation or reset email";
     }
     
-    if (!password || password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters long";
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = passwordValidation.errors[0];
     }
     
     if (password !== confirmPassword) {

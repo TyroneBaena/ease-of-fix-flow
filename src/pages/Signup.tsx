@@ -10,6 +10,7 @@ import { AlertCircle, Check, Info } from 'lucide-react';
 import { ensureUserOrganization } from '@/services/user/tenantService';
 import { Toaster } from "sonner";
 import { OrganizationOnboarding } from '@/components/auth/OrganizationOnboarding';
+import { validatePassword } from '@/utils/passwordValidation';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,10 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -142,19 +147,22 @@ useEffect(() => {
     e.preventDefault();
     setError(null);
     setInfo(null);
+    setErrors({});
     
     if (!email || !password || !name) {
       setError("All fields are required");
       return;
     }
     
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setErrors({ password: passwordValidation.errors[0] });
       return;
     }
     
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password !== confirmPassword) {
+      setErrors({ confirmPassword: "Passwords do not match" });
       return;
     }
     
@@ -329,11 +337,17 @@ return (
                 id="password" 
                 type="password" 
                 value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="Create a password (min 6 characters)" 
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErrors({ ...errors, password: undefined });
+                }} 
+                placeholder="Create a strong password" 
                 required 
                 disabled={isLoading}
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -342,11 +356,17 @@ return (
                 id="confirmPassword" 
                 type="password" 
                 value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setErrors({ ...errors, confirmPassword: undefined });
+                }} 
                 placeholder="Confirm your password" 
                 required 
                 disabled={isLoading}
               />
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
