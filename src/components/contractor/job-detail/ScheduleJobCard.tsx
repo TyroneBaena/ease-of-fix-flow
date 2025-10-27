@@ -116,68 +116,78 @@ export const ScheduleJobCard: React.FC<ScheduleJobCardProps> = ({
     const scheduledDates = existingSchedule.scheduled_dates as any[];
     
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Scheduled Visits
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MapPin className="h-4 w-4" />
-              <span>{request.location}</span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{request.priority} Priority</Badge>
-              <Badge variant="secondary">{request.status}</Badge>
-            </div>
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Scheduled Visits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="h-4 w-4" />
+                <span>{request.location}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{request.priority} Priority</Badge>
+                <Badge variant="secondary">{request.status}</Badge>
+              </div>
 
-            <div className="space-y-3 border-t pt-3">
-              {scheduledDates?.map((date: any, index: number) => (
-                <div key={date.id || index} className="p-3 bg-muted rounded-md">
-                  <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                    <Clock className="h-4 w-4" />
-                    {format(new Date(date.date), 'MMM dd, yyyy')}
-                  </div>
-                  <div className="text-sm text-muted-foreground ml-6">
-                    {date.startTime} - {date.endTime}
-                  </div>
-                  {date.notes && (
-                    <div className="text-sm text-muted-foreground ml-6 mt-1">
-                      {date.notes}
+              <div className="space-y-3 border-t pt-3">
+                {scheduledDates?.map((date: any, index: number) => (
+                  <div key={date.id || index} className="p-3 bg-muted rounded-md">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                      <Clock className="h-4 w-4" />
+                      {format(new Date(date.date), 'MMM dd, yyyy')}
                     </div>
-                  )}
-                  <Badge variant="outline" className="ml-6 mt-2">
-                    {date.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+                    <div className="text-sm text-muted-foreground ml-6">
+                      {date.startTime} - {date.endTime}
+                    </div>
+                    {date.notes && (
+                      <div className="text-sm text-muted-foreground ml-6 mt-1">
+                        {date.notes}
+                      </div>
+                    )}
+                    <Badge variant="outline" className="ml-6 mt-2">
+                      {date.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setDialogOpen(true)}
-                variant="outline"
-                className="flex-1"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Update Schedule
-              </Button>
-              <Button 
-                onClick={() => handleDeleteSchedule()}
-                variant="destructive"
-                className="flex-1"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setDialogOpen(true)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Update Schedule
+                </Button>
+                <Button 
+                  onClick={() => handleDeleteSchedule()}
+                  variant="destructive"
+                  className="flex-1"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <JobSchedulingDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          job={request}
+          onScheduleJob={handleScheduleJob}
+          existingScheduleDates={scheduledDates}
+        />
+      </>
     );
   }
 
@@ -218,14 +228,12 @@ export const ScheduleJobCard: React.FC<ScheduleJobCardProps> = ({
         </CardContent>
       </Card>
 
-      {dialogOpen && (
-        <JobSchedulingDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          job={request}
-          onScheduleJob={handleScheduleJob}
-        />
-      )}
+      <JobSchedulingDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        job={request}
+        onScheduleJob={handleScheduleJob}
+      />
     </>
   );
 };

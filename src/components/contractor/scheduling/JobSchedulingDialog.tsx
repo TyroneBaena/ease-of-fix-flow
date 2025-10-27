@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,19 +19,37 @@ interface JobSchedulingDialogProps {
   onOpenChange: (open: boolean) => void;
   job: MaintenanceRequest;
   onScheduleJob: (requestId: string, scheduledDates: SchedulingFormData[]) => Promise<void>;
+  existingScheduleDates?: any[]; // Pre-populate with existing dates when editing
 }
 
 export const JobSchedulingDialog: React.FC<JobSchedulingDialogProps> = ({
   open,
   onOpenChange,
   job,
-  onScheduleJob
+  onScheduleJob,
+  existingScheduleDates
 }) => {
   const [scheduledDates, setScheduledDates] = useState<SchedulingFormData[]>([
     { date: '', startTime: '09:00', endTime: '17:00', notes: '' }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { history, loading: historyLoading, addHistoryEntry } = useSchedulingHistory(open ? job.id : null);
+
+  // Pre-populate form with existing schedule data when editing
+  useEffect(() => {
+    if (open && existingScheduleDates && existingScheduleDates.length > 0) {
+      const formattedDates = existingScheduleDates.map((date: any) => ({
+        date: date.date,
+        startTime: date.startTime || '09:00',
+        endTime: date.endTime || '17:00',
+        notes: date.notes || ''
+      }));
+      setScheduledDates(formattedDates);
+    } else if (open && !existingScheduleDates) {
+      // Reset to default when creating new schedule
+      setScheduledDates([{ date: '', startTime: '09:00', endTime: '17:00', notes: '' }]);
+    }
+  }, [open, existingScheduleDates]);
 
   const addScheduleDate = () => {
     setScheduledDates([
@@ -214,7 +232,7 @@ export const JobSchedulingDialog: React.FC<JobSchedulingDialogProps> = ({
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Scheduling...' : 'Schedule Job'}
+                {isSubmitting ? (existingScheduleDates ? 'Updating...' : 'Scheduling...') : (existingScheduleDates ? 'Update Schedule' : 'Schedule Job')}
               </Button>
             </div>
           </TabsContent>
