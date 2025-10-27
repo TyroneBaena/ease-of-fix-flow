@@ -173,7 +173,7 @@ const SetupPassword = () => {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email</label>
+              <label htmlFor="email" className="text-sm font-medium">Email*</label>
               <Input 
                 id="email" 
                 type="email" 
@@ -186,7 +186,7 @@ const SetupPassword = () => {
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">New Password</label>
+              <label htmlFor="password" className="text-sm font-medium">New Password*</label>
               <Input 
                 id="password" 
                 type="password"
@@ -198,7 +198,7 @@ const SetupPassword = () => {
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password*</label>
               <Input 
                 id="confirmPassword" 
                 type="password"
