@@ -53,6 +53,10 @@ serve(async (req: Request) => {
     
     console.log(`Queuing email to: ${userEmail}`);
     
+    // Get email type to determine which template to use
+    const emailType = body.email_data?.email_action_type || "signup";
+    console.log(`Email type: ${emailType}`);
+    
     // Define background email sending task with extended timeout and retry
     const sendEmailTask = async () => {
       let retries = 3;
@@ -62,11 +66,75 @@ serve(async (req: Request) => {
         try {
           console.log(`Attempting to send email to ${userEmail} (${4 - retries}/3)...`);
           
-          const emailPromise = resend.emails.send({
-            from: "Housing Hub <noreply@housinghub.app>",
-            to: [userEmail],
-            subject: "Confirm your Housing Hub account",
-            html: `
+          // Determine subject and HTML based on email type
+          let subject = "";
+          let html = "";
+          
+          if (emailType === "recovery") {
+            // Password Reset Email
+            subject = "Reset your Housing Hub password";
+            html = `
+              <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+                  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">Password Reset Request</h1>
+                      <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Reset your Housing Hub account password</p>
+                      
+                      <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+                        We received a request to reset the password for your Housing Hub account.
+                      </p>
+                      
+                      <p style="color: #333; font-size: 16px; margin-bottom: 30px;">
+                        Click the button below to create a new password. This link will expire in 1 hour for security reasons.
+                      </p>
+                      
+                      <div style="text-align: center; margin: 35px 0;">
+                        <a href="${confirmationUrl}" 
+                           style="background-color: #4CAF50; 
+                                  color: white; 
+                                  padding: 14px 32px; 
+                                  text-decoration: none; 
+                                  border-radius: 6px; 
+                                  display: inline-block;
+                                  font-size: 16px;
+                                  font-weight: 600;
+                                  box-shadow: 0 2px 4px rgba(76,175,80,0.3);">
+                          Reset Password
+                        </a>
+                      </div>
+                      
+                      <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
+                        <p style="margin: 0; color: #856404; font-size: 14px;">
+                          <strong>Security Notice:</strong><br/>
+                          This password reset link is valid for 1 hour only. If you didn't request this password reset, please ignore this email and your password will remain unchanged.
+                        </p>
+                      </div>
+                      
+                      <p style="color: #666; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                        If the button above doesn't work, copy and paste this URL into your browser:
+                      </p>
+                      <p style="word-break: break-all; font-size: 12px; color: #999; background-color: #f9f9f9; padding: 10px; border-radius: 4px;">
+                        ${confirmationUrl}
+                      </p>
+                      
+                      <p style="color: #999; font-size: 13px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                        If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.
+                      </p>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+                      <p>© ${new Date().getFullYear()} Housing Hub. All rights reserved.</p>
+                      <p>Making property management simple and efficient.</p>
+                    </div>
+                  </div>
+                </body>
+              </html>
+            `;
+          } else {
+            // Signup Confirmation Email (default)
+            subject = "Confirm your Housing Hub account";
+            html = `
               <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
                   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -123,7 +191,14 @@ serve(async (req: Request) => {
                   </div>
                 </body>
               </html>
-            `,
+            `;
+          }
+          
+          const emailPromise = resend.emails.send({
+            from: "Housing Hub <noreply@housinghub.app>",
+            to: [userEmail],
+            subject: subject,
+            html: html,
           });
           
           // Extended timeout: 15 seconds
