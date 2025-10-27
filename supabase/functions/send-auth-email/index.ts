@@ -67,16 +67,62 @@ serve(async (req: Request) => {
             to: [userEmail],
             subject: "Confirm your Housing Hub account",
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h1 style="color: #333;">Welcome to Housing Hub!</h1>
-                <p>Please confirm your email address by clicking the button below:</p>
-                <a href="${confirmationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  Confirm Email
-                </a>
-                <p style="margin-top: 20px; color: #666; font-size: 14px;">
-                  If the button doesn't work, copy this link: ${confirmationUrl}
-                </p>
-              </div>
+              <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+                  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">Welcome to Housing Hub!</h1>
+                      <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Your all-in-one property management solution</p>
+                      
+                      <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+                        Thank you for signing up! We're excited to have you on board.
+                      </p>
+                      
+                      <p style="color: #333; font-size: 16px; margin-bottom: 30px;">
+                        To get started and access all features of Housing Hub, please confirm your email address by clicking the button below:
+                      </p>
+                      
+                      <div style="text-align: center; margin: 35px 0;">
+                        <a href="${confirmationUrl}" 
+                           style="background-color: #4CAF50; 
+                                  color: white; 
+                                  padding: 14px 32px; 
+                                  text-decoration: none; 
+                                  border-radius: 6px; 
+                                  display: inline-block;
+                                  font-size: 16px;
+                                  font-weight: 600;
+                                  box-shadow: 0 2px 4px rgba(76,175,80,0.3);">
+                          Confirm Email Address
+                        </a>
+                      </div>
+                      
+                      <div style="background-color: #f9f9f9; border-left: 4px solid #4CAF50; padding: 15px; margin: 30px 0; border-radius: 4px;">
+                        <p style="margin: 0; color: #666; font-size: 14px;">
+                          <strong>What happens next?</strong><br/>
+                          Once you confirm your email, you'll be able to access your Housing Hub dashboard where you can manage properties, track maintenance requests, and communicate with tenants seamlessly.
+                        </p>
+                      </div>
+                      
+                      <p style="color: #666; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                        If the button above doesn't work, copy and paste this URL into your browser:
+                      </p>
+                      <p style="word-break: break-all; font-size: 12px; color: #999; background-color: #f9f9f9; padding: 10px; border-radius: 4px;">
+                        ${confirmationUrl}
+                      </p>
+                      
+                      <p style="color: #999; font-size: 13px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                        If you didn't create an account with Housing Hub, please ignore this email.
+                      </p>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+                      <p>© ${new Date().getFullYear()} Housing Hub. All rights reserved.</p>
+                      <p>Making property management simple and efficient.</p>
+                    </div>
+                  </div>
+                </body>
+              </html>
             `,
           });
           
