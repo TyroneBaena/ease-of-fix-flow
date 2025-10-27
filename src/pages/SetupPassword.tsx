@@ -19,6 +19,11 @@ const SetupPassword = () => {
   const [success, setSuccess] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [verifyingSchema, setVerifyingSchema] = useState(false);
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,18 +56,27 @@ const SetupPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear previous errors
+    setErrors({});
+    
+    // Validate fields
+    const newErrors: typeof errors = {};
+    
     if (!email) {
-      toast.error("Email is missing. Please use the link from your invitation or reset email");
-      return;
+      newErrors.email = "Email is missing. Please use the link from your invitation or reset email";
     }
     
     if (!password || password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
-      return;
+      newErrors.password = "Password must be at least 6 characters long";
     }
     
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+    
+    // If there are validation errors, set them and stop
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
     
@@ -178,11 +192,17 @@ const SetupPassword = () => {
                 id="email" 
                 type="email" 
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors({ ...errors, email: undefined });
+                }}
                 placeholder="Your email address"
                 disabled={!!email}
                 required 
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -191,10 +211,16 @@ const SetupPassword = () => {
                 id="password" 
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)} 
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors({ ...errors, password: undefined });
+                }} 
                 placeholder="Create a strong password"
                 required 
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -203,10 +229,16 @@ const SetupPassword = () => {
                 id="confirmPassword" 
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)} 
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
+                }} 
                 placeholder="Confirm your password"
                 required 
               />
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+              )}
             </div>
             
             <Button 
