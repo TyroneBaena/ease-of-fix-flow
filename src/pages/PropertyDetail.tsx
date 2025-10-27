@@ -15,6 +15,7 @@ import { PropertyQuickActions } from '@/components/property/PropertyQuickActions
 import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { useBudgetData } from '@/hooks/useBudgetData';
+import DeletePropertyDialog from '@/components/property/DeletePropertyDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog,
@@ -54,6 +55,8 @@ const PropertyDetail = () => {
   // Get requests directly from context - no need for local state since context is already memoized
   const requests = id ? getRequestsForProperty(id) : [];
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Check for temporary session on mount
   useEffect(() => {
@@ -127,14 +130,23 @@ const PropertyDetail = () => {
 
   const { handleRestrictedAction } = usePropertyAccessControl();
 
-  const handleDeleteProperty = () => {
+  const handleDeletePropertyClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (id) {
+      setIsDeleting(true);
       try {
-        deleteProperty(id);
+        await deleteProperty(id);
         toast.success('Property deleted successfully');
+        setDeleteDialogOpen(false);
         navigate('/properties');
       } catch (error) {
-        handleRestrictedAction('delete property');
+        handleRestrictedAction('delete');
+        toast.error('Failed to delete property');
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -189,7 +201,7 @@ const PropertyDetail = () => {
         {!isTemporaryAccess && (
           <PropertyHeader 
             property={property}
-            onDeleteProperty={handleDeleteProperty}
+            onDeleteProperty={handleDeletePropertyClick}
             setDialogOpen={setDialogOpen}
             dialogOpen={dialogOpen}
           />
@@ -277,6 +289,15 @@ const PropertyDetail = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete confirmation dialog */}
+      <DeletePropertyDialog
+        isOpen={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        isLoading={isDeleting}
+        onConfirmDelete={handleConfirmDelete}
+        property={property || null}
+      />
     </div>
   );
 };
