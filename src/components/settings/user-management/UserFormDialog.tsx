@@ -1,6 +1,9 @@
 
-import React from 'react';
-import { User, UserRole } from '@/types/user';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { UserRole } from '@/types/user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,9 +20,25 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Check, UserCircle, AlertCircle } from 'lucide-react';
+import { Mail, Check, UserCircle } from 'lucide-react';
+
+const userFormSchema = z.object({
+  name: z.string().trim().min(1, { message: "Name is required" }).max(100, { message: "Name must be less than 100 characters" }),
+  email: z.string().trim().email({ message: "Please enter a valid email address" }).max(255, { message: "Email must be less than 255 characters" }),
+  role: z.enum(['admin', 'manager', 'contractor'] as const),
+  assignedProperties: z.array(z.string()).default([])
+});
 
 interface Property {
   id: string;
@@ -46,7 +65,6 @@ interface UserFormDialogProps {
 }
 
 interface UserFormDialogPropsWithError extends UserFormDialogProps {
-  formError?: string | null;
   ready?: boolean;
 }
 
@@ -62,10 +80,53 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   onUserChange,
   onPropertySelection,
   onSave,
-  formError,
   ready = true
 }) => {
-  
+  const form = useForm<z.infer<typeof userFormSchema>>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      assignedProperties: user.assignedProperties || []
+    }
+  });
+
+  // Update form values when user prop changes
+  useEffect(() => {
+    form.reset({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      assignedProperties: user.assignedProperties || []
+    });
+  }, [user, form]);
+
+  // Sync form values with parent component
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.name !== undefined) onUserChange('name', value.name);
+      if (value.email !== undefined) onUserChange('email', value.email);
+      if (value.role !== undefined) onUserChange('role', value.role);
+      if (value.assignedProperties !== undefined) onUserChange('assignedProperties', value.assignedProperties);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onUserChange]);
+
+  const handleSubmit = form.handleSubmit(async () => {
+    await onSave();
+  });
+
+  const handlePropertyToggle = (propertyId: string) => {
+    const currentProperties = form.getValues('assignedProperties');
+    const newProperties = currentProperties.includes(propertyId)
+      ? currentProperties.filter(id => id !== propertyId)
+      : [...currentProperties, propertyId];
+    
+    form.setValue('assignedProperties', newProperties);
+    onPropertySelection(propertyId);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -85,118 +146,142 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
           </Alert>
         )}
         
-        {formError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {formError}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">Full Name</label>
-            <Input 
-              id="name"
-              value={user.name}
-              onChange={(e) => onUserChange('name', e.target.value)}
-              placeholder="Enter full name"
-              disabled={isLoading || !ready}
+        <Form {...form}>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field}
+                      placeholder="Enter full name"
+                      disabled={isLoading || !ready}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-            <Input 
-              id="email"
-              type="email"
-              value={user.email}
-              onChange={(e) => onUserChange('email', e.target.value)}
-              placeholder="Enter email address"
-              disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
+            
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field}
+                      type="email"
+                      placeholder="Enter email address"
+                      disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="role" className="text-sm font-medium">Role</label>
-            <Select 
-              value={user.role}
-              onValueChange={(value: UserRole) => onUserChange('role', value)}
-              disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500 mt-1">
-              {user.role === 'admin' ? 
-                'Admins have full access to all properties and can manage users.' : 
-                'Managers can only access properties assigned to them.'}
-            </p>
-          </div>
-          
-          {user.role === 'manager' && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Assigned Properties</label>
-              <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
-                {properties.length > 0 ? (
-                  properties.map(property => (
-                    <div key={property.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`property-${property.id}`}
-                        checked={user.assignedProperties.includes(property.id)}
-                        onCheckedChange={() => onPropertySelection(property.id)}
-                        disabled={isLoading || !ready}
-                      />
-                      <label 
-                        htmlFor={`property-${property.id}`}
-                        className="text-sm cursor-pointer"
-                      >
-                        {property.name}
-                      </label>
+            
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role *</FormLabel>
+                  <Select 
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {field.value === 'admin' ? 
+                      'Admins have full access to all properties and can manage users.' : 
+                      'Managers can only access properties assigned to them.'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {form.watch('role') === 'manager' && (
+              <FormField
+                control={form.control}
+                name="assignedProperties"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned Properties</FormLabel>
+                    <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
+                      {properties.length > 0 ? (
+                        properties.map(property => (
+                          <div key={property.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`property-${property.id}`}
+                              checked={field.value?.includes(property.id)}
+                              onCheckedChange={() => handlePropertyToggle(property.id)}
+                              disabled={isLoading || !ready}
+                            />
+                            <label 
+                              htmlFor={`property-${property.id}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {property.name}
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 p-2">No properties available</p>
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 p-2">No properties available</p>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={onSave} 
-            disabled={isLoading || !ready}
-            className="flex items-center"
-          >
-            {!ready ? (
-              <>
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
-                Initializing...
-              </>
-            ) : isLoading ? (
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
-            ) : isEditMode ? (
-              <Check className="mr-2 h-4 w-4" />
-            ) : (
-              <Mail className="mr-2 h-4 w-4" />
+              />
             )}
-            {!ready ? 'Initializing...' : isEditMode ? 'Update User' : 'Send Invitation'}
-          </Button>
-        </DialogFooter>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isLoading || !ready}
+                className="flex items-center"
+              >
+                {!ready ? (
+                  <>
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
+                    Initializing...
+                  </>
+                ) : isLoading ? (
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
+                ) : isEditMode ? (
+                  <Check className="mr-2 h-4 w-4" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                {!ready ? 'Initializing...' : isEditMode ? 'Update User' : 'Send Invitation'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

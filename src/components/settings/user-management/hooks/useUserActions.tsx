@@ -25,25 +25,18 @@ export const useUserActions = (
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [userToReset, setUserToReset] = useState<{id: string, email: string} | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleSaveUser = async () => {
+    // Validation is now handled by the form, so we just proceed with saving
     if (!newUser.name || !newUser.email) {
-      toast.error("Name and email are required");
-      setFormError("Name and email are required");
-      return;
+      return; // Form validation will show inline errors
     }
-    
-    // Reset any previous error
-    setFormError(null);
     
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newUser.email)) {
-      toast.error("Please enter a valid email address");
-      setFormError("Please enter a valid email address");
-      return;
+      return; // Form validation will show inline errors
     }
     
     try {
@@ -122,19 +115,16 @@ export const useUserActions = (
           } else {
             // This message is for failures like "user already exists"
             console.error("User creation failed:", result.message);
-            setFormError(result.message || "Failed to process user");
             toast.error(result.message || "Failed to process user");
             // Do not close dialog on error so user can correct if needed
           }
         } catch (error: any) {
           console.error("Error adding user:", error);
-          setFormError(`Failed to invite user: ${error.message || 'Unknown error'}`);
           toast.error(`Failed to invite user: ${error.message || 'Unknown error'}`);
         }
       }
     } catch (error: any) {
       console.error("Error saving user:", error);
-      setFormError(`Failed to ${isEditMode ? 'update' : 'invite'} user: ${error.message || 'Unknown error'}`);
       toast.error(`Failed to ${isEditMode ? 'update' : 'invite'} user: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
@@ -300,8 +290,6 @@ export const useUserActions = (
     isLoading,
     isDeleteConfirmOpen,
     isManualResetOpen,
-    formError,
-    setFormError,
     setIsDeleteConfirmOpen,
     handleSaveUser,
     handleResetPassword,

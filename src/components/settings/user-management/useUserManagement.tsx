@@ -65,8 +65,6 @@ export const useUserManagement = () => {
     isLoading,
     isDeleteConfirmOpen,
     isManualResetOpen,
-    formError,
-    setFormError,
     setIsDeleteConfirmOpen,
     handleSaveUser,
     handleResetPassword,
@@ -94,13 +92,6 @@ export const useUserManagement = () => {
       setFetchError(userContextError);
     }
   }, [userContextError]);
-  
-  // Clear form error when dialog is closed
-  useEffect(() => {
-    if (!isDialogOpen && setFormError) {
-      setFormError(null);
-    }
-  }, [isDialogOpen, setFormError]);
   
   // Clean form error management - no need for window object
 
@@ -179,7 +170,6 @@ export const useUserManagement = () => {
     USERS_PER_PAGE,
     isDeleteConfirmOpen,
     isManualResetOpen,
-    formError,
     setIsDeleteConfirmOpen,
     handleOpenDialog,
     handleUserChange,
