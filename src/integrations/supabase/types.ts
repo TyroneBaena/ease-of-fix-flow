@@ -1753,6 +1753,7 @@ export type Database = {
         Args: { property_uuid: string }
         Returns: boolean
       }
+      validate_invitation_code: { Args: { code_input: string }; Returns: Json }
       validate_property_access_token: {
         Args: { p_token: string }
         Returns: {
