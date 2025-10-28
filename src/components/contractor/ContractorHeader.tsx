@@ -10,8 +10,8 @@ import ContractorNotificationBell from './ContractorNotificationBell';
 import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
 import { toast } from '@/lib/toast';
 import { useTheme } from 'next-themes';
-import logoDark from '@/assets/logo-dark.png';
-import logoWhite from '@/assets/logo-white.png';
+import logoForLightBg from '@/assets/logo-light-bg.png';
+import logoForDarkBg from '@/assets/logo-dark-bg.png';
 import {
   Sheet,
   SheetContent,
@@ -25,8 +25,8 @@ export const ContractorHeader = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { theme } = useTheme();
   
-  // Use dark logo for light backgrounds, white logo for dark backgrounds
-  const logoSrc = theme === 'dark' ? logoWhite : logoDark;
+  // Use dark-colored logo for light backgrounds, white logo for dark backgrounds
+  const logoSrc = theme === 'dark' ? logoForDarkBg : logoForLightBg;
 
   const handleSignOut = async (e?: React.MouseEvent) => {
     // Prevent any default behavior and event bubbling

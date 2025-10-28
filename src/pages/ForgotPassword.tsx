@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import logoDark from '@/assets/logo-dark.png';
+import logo from '@/assets/logo-light-bg.png';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -47,7 +47,7 @@ const ForgotPassword = () => {
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
             <img 
-              src={logoDark} 
+              src={logo} 
               alt="HousingHub Logo" 
               className="h-12 w-auto"
             />

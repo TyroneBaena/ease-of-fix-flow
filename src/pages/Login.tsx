@@ -9,7 +9,7 @@ import { signInWithEmailPassword } from '@/hooks/auth/authOperations';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { getRedirectPathByRole } from '@/services/userService';
 import { supabase } from '@/integrations/supabase/client';
-import logoDark from '@/assets/logo-dark.png';
+import logo from '@/assets/logo-light-bg.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -203,7 +203,7 @@ const Login = () => {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src={logoDark} 
+              src={logo} 
               alt="HousingHub Logo" 
               className="h-12 w-auto"
             />

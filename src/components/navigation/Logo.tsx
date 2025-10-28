@@ -2,14 +2,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
-import logoDark from '@/assets/logo-dark.png';
-import logoWhite from '@/assets/logo-white.png';
+import logoForLightBg from '@/assets/logo-light-bg.png';
+import logoForDarkBg from '@/assets/logo-dark-bg.png';
 
 export const Logo = () => {
   const { theme } = useTheme();
   
-  // Use dark logo for light backgrounds, white logo for dark backgrounds
-  const logoSrc = theme === 'dark' ? logoWhite : logoDark;
+  // Use dark-colored logo for light backgrounds, white logo for dark backgrounds
+  const logoSrc = theme === 'dark' ? logoForDarkBg : logoForLightBg;
   
   return (
     <Link to="/" className="flex items-center">

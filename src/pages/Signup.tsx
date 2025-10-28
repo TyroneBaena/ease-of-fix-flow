@@ -11,7 +11,7 @@ import { ensureUserOrganization } from '@/services/user/tenantService';
 import { Toaster } from "sonner";
 import { OrganizationOnboarding } from '@/components/auth/OrganizationOnboarding';
 import { validatePassword } from '@/utils/passwordValidation';
-import logoDark from '@/assets/logo-dark.png';
+import logo from '@/assets/logo-light-bg.png';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -285,7 +285,7 @@ return (
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src={logoDark} 
+              src={logo} 
               alt="HousingHub Logo" 
               className="h-12 w-auto"
             />
