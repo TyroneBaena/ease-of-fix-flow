@@ -9,6 +9,9 @@ import { ContractorNavigation } from './ContractorNavigation';
 import ContractorNotificationBell from './ContractorNotificationBell';
 import { useContractorProfileData } from '@/hooks/contractor/useContractorProfileData';
 import { toast } from '@/lib/toast';
+import { useTheme } from 'next-themes';
+import logoDark from '@/assets/logo-dark.png';
+import logoWhite from '@/assets/logo-white.png';
 import {
   Sheet,
   SheetContent,
@@ -20,6 +23,10 @@ export const ContractorHeader = () => {
   const { signOut, currentUser, loading } = useUserContext();
   const { contractor, loading: contractorLoading } = useContractorProfileData();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { theme } = useTheme();
+  
+  // Use dark logo for light backgrounds, white logo for dark backgrounds
+  const logoSrc = theme === 'dark' ? logoWhite : logoDark;
 
   const handleSignOut = async (e?: React.MouseEvent) => {
     // Prevent any default behavior and event bubbling
@@ -63,11 +70,13 @@ export const ContractorHeader = () => {
     <header className="bg-white shadow-sm sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          <div className="flex items-center">
-            <h1 
-              className="text-xl font-semibold text-gray-900 cursor-pointer"
-              onClick={() => currentUser && navigate('/contractor-dashboard')}
-            >
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => currentUser && navigate('/contractor-dashboard')}>
+            <img 
+              src={logoSrc} 
+              alt="HousingHub Logo" 
+              className="h-8 w-auto"
+            />
+            <h1 className="text-xl font-semibold text-gray-900">
               Contractor Portal
             </h1>
           </div>
