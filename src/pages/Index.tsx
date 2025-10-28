@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useNavigate, Link } from 'react-router-dom';
 import { Wrench, ClipboardList, BarChart3, UserCircle, Shield, CheckCircle2, Star, CreditCard, Lock, Users, Clock, ArrowRight } from 'lucide-react';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
+import Logo from '@/components/navigation/Logo';
 import contractorManagementImg from "@/assets/contractor-management-screenshot.png";
 import jobTrackingImg from "@/assets/maintenance-workflow-phone-mockup.png";
 import communicationImg from "@/assets/communication-laptop-mockup.png";
@@ -115,7 +116,7 @@ const Index = () => {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="text-2xl font-bold text-gray-900">HousingHub</div>
+            <Logo />
             <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
