@@ -82,45 +82,39 @@ export const invitationCodeService = {
     }
   },
 
-  // Validate an invitation code
+  // Validate an invitation code using secure database function
   async validateCode(code: string): Promise<{ valid: boolean; data: InvitationCode | null; error: Error | null }> {
     try {
       console.log('📝 InvitationCodeService - Validating code:', code);
       
-      const validatePromise = supabase
-        .from('invitation_codes')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .eq('is_active', true)
-        .gt('expires_at', new Date().toISOString())
-        .single();
-
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Code validation timed out')), 10000);
+      // Use the secure database function instead of direct query
+      const { data, error } = await supabase.rpc('validate_invitation_code', {
+        code_input: code.toUpperCase()
       });
-
-      const { data, error } = await Promise.race([validatePromise, timeoutPromise]).catch((err) => {
-        console.error('📝 InvitationCodeService - Validation failed:', err);
-        return { data: null, error: err };
-      }) as any;
 
       if (error) {
         console.error('📝 InvitationCodeService - Validation error:', error);
         return { valid: false, data: null, error };
       }
 
-      if (!data) {
-        console.warn('📝 InvitationCodeService - Invalid code (not found)');
-        return { valid: false, data: null, error: new Error('Invalid code') };
-      }
-
-      if (data.current_uses >= data.max_uses) {
-        console.warn('📝 InvitationCodeService - Code has reached maximum uses');
-        return { valid: false, data: null, error: new Error('Code has reached maximum uses') };
+      // Type cast the response
+      const result = data as any;
+      
+      if (!result || !result.valid) {
+        console.warn('📝 InvitationCodeService - Invalid code:', result?.message || 'Not found');
+        return { valid: false, data: null, error: new Error(result?.message || 'Invalid code') };
       }
 
       console.log('📝 InvitationCodeService - Code is valid');
-      return { valid: true, data: data as InvitationCode, error: null };
+      
+      // Convert the response to InvitationCode format
+      const invitationData: Partial<InvitationCode> = {
+        id: result.code_id,
+        organization_id: result.organization_id,
+        assigned_role: result.assigned_role as 'admin' | 'manager' | 'contractor',
+      };
+      
+      return { valid: true, data: invitationData as InvitationCode, error: null };
     } catch (error) {
       console.error('📝 InvitationCodeService - Error validating invitation code:', error);
       return { valid: false, data: null, error: error as Error };

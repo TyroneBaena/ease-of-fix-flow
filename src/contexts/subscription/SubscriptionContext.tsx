@@ -101,21 +101,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setTimeout(() => reject(new Error('Subscription query timeout')), 10000);
       });
       
-      // Race the query against timeout
-      const queryPromise = supabase
-        .from("subscribers")
-        .select(`
-          subscribed, 
-          subscription_tier, 
-          subscription_end,
-          is_trial_active,
-          is_cancelled,
-          trial_end_date,
-          active_properties_count,
-          payment_method_id
-        `)
-        .eq("organization_id", currentOrganization.id)
-        .maybeSingle();
+      // Use secure function to get subscription status without sensitive payment data
+      const queryPromise = supabase.rpc('get_subscription_status', {
+        org_id: currentOrganization.id
+      }).single();
       
       let row: any = null;
       let fetchErr: any = null;

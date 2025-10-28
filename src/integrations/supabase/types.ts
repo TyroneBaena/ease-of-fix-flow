@@ -1655,6 +1655,24 @@ export type Database = {
           unique_users: number
         }[]
       }
+      get_subscription_status: {
+        Args: { org_id: string }
+        Returns: {
+          active_properties_count: number
+          cancellation_date: string
+          is_cancelled: boolean
+          is_trial_active: boolean
+          next_billing_date: string
+          organization_id: string
+          payment_status: string
+          subscribed: boolean
+          subscription_end: string
+          subscription_status: string
+          subscription_tier: string
+          trial_end_date: string
+          trial_start_date: string
+        }[]
+      }
       get_user_default_organization: {
         Args: { user_uuid: string }
         Returns: string
