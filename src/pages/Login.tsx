@@ -210,7 +210,7 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img src={logo} alt="HousingHub Logo" className="h-15` w-auto" />
+            <img src={logo} alt="HousingHub Logo" className="h-15 w-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
           <p className="text-sm text-gray-500">Sign in to your HousingHub account</p>
