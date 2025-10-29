@@ -36,7 +36,7 @@ serve(async (req: Request) => {
     const resend = new Resend(resendApiKey);
     
     // Test email send
-    const confirmationUrl = `https://lovable.dev/email-confirm?token=test123&type=signup`;
+    const confirmationUrl = `https://housinghub.app/email-confirm?token=test123&type=signup`;
     
     console.log(`Sending test email to: ${testEmail}`);
     

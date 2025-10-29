@@ -36,11 +36,11 @@ serve(async (req: Request) => {
       userEmail = body.user.email;
       const token = body.email_data?.token_hash || body.email_data?.token || "";
       const emailType = body.email_data?.email_action_type || "signup";
-      const redirectTo = body.email_data?.redirect_to || "https://preview--housinghub.lovable.app/email-confirm";
+      const redirectTo = body.email_data?.redirect_to || "https://housinghub.app/email-confirm";
       confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=${emailType}&redirect_to=${encodeURIComponent(redirectTo)}`;
     } else if (body.record?.email) {
       userEmail = body.record.email;
-      confirmationUrl = body.record.confirmation_url || `https://preview--housinghub.lovable.app/email-confirm`;
+      confirmationUrl = body.record.confirmation_url || `https://housinghub.app/email-confirm`;
     }
     
     if (!userEmail) {
