@@ -3,7 +3,7 @@ project_id = "ltjlswzrdgtoddyqmydo"
 [auth]
 enabled = true
 site_url = "https://housinghub.app"
-additional_redirect_urls = ["https://housinghub.app/email-confirm", "https://preview--housinghub.lovable.app", "https://ltjlswzrdgtoddyqmydo.supabase.co"]
+additional_redirect_urls = ["https://housinghub.app/email-confirm", "https://housinghub.app/setup-password", "https://preview--housinghub.lovable.app", "https://preview--housinghub.lovable.app/setup-password", "https://ltjlswzrdgtoddyqmydo.supabase.co"]
 jwt_expiry = 3600
 enable_signup = true
 email_confirm = true
