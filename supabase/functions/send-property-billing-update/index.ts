@@ -29,6 +29,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
+
     const {
       recipient_email,
       recipient_name,
@@ -231,7 +233,7 @@ const handler = async (req: Request): Promise<Response> => {
                       
                       <!-- CTA Button -->
                       <div style="text-align: center; margin: 32px 0;">
-                        <a href="https://ltjlswzrdgtoddyqmydo.supabase.co/billing" 
+                        <a href="${applicationUrl}/billing" 
                            style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: bold; font-size: 16px;">
                           View Billing Details
                         </a>

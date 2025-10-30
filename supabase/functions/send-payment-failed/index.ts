@@ -21,6 +21,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
     const {
       recipient_email,
       recipient_name,
@@ -91,7 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
         </ol>
         
         <div style="margin: 30px 0;">
-          <a href="https://ltjlswzrdgtoddyqmydo.supabase.co/billing" 
+          <a href="${applicationUrl}/billing" 
              style="display: inline-block; background-color: ${is_suspended ? '#dc2626' : '#2563eb'}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
             ${is_suspended ? '🚨 Update Payment & Restore Access' : 'Update Payment Method'}
           </a>

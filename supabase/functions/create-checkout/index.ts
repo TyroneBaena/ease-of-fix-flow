@@ -26,7 +26,7 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-  const applicationUrl = Deno.env.get("APPLICATION_URL") ?? "";
+  const applicationUrl = Deno.env.get("APPLICATION_URL") || "https://housinghub.app";
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

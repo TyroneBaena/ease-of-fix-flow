@@ -197,7 +197,7 @@ const sendJobCompletionNotification = async (
       commenter_name: contractorName,
       commenter_role: 'contractor',
       comment_date: new Date().toISOString(),
-      direct_link: `https://ltjlswzrdgtoddyqmydo.supabase.co/requests/${requestId}`,
+      direct_link: `${window.location.origin}/requests/${requestId}`,
       completion_photos: completionPhotos
     };
 

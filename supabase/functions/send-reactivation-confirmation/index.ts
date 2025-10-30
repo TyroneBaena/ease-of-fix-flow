@@ -19,6 +19,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
     const { recipient_email, recipient_name }: ReactivationEmailRequest = await req.json();
 
     console.log("Sending reactivation confirmation to:", recipient_email);
@@ -68,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="https://ltjlswzrdgtoddyqmydo.supabase.co/dashboard" 
+                <a href="${applicationUrl}/dashboard" 
                    style="display: inline-block; background: #10b981; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
                   Go to Dashboard
                 </a>
