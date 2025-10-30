@@ -25,8 +25,14 @@ const ForgotPassword = () => {
     try {
       setIsSubmitting(true);
 
+      // Use production URL if on production, otherwise use current origin
+      const isProduction = window.location.hostname === 'housinghub.app' || window.location.hostname === 'www.housinghub.app';
+      const redirectUrl = isProduction 
+        ? `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`
+        : `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`,
+        redirectTo: redirectUrl,
       });
 
       if (error) throw error;
