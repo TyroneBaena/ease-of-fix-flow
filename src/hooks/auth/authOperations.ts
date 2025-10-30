@@ -122,7 +122,7 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
       .update({ role })
       .eq('id', userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (profileError) {
       console.error('🔐 Profile update error:', profileError);
@@ -158,7 +158,7 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (fetchError) {
       console.error('🔐 Updated profile fetch error:', fetchError);

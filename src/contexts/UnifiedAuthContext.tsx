@@ -142,7 +142,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       .from('profiles')
       .select('*')
       .eq('id', supabaseUser.id)
-      .single();
+      .maybeSingle();
 
     // Create timeout promise
     const timeoutPromise = new Promise((_, reject) => {

@@ -26,7 +26,7 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
         .from('profiles')
         .select('role, organization_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       console.log('🔍 OrganizationGuard - User profile:', profile);
       
