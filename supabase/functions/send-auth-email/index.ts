@@ -28,6 +28,10 @@ serve(async (req: Request) => {
     const resend = new Resend(resendApiKey);
     console.log("Resend initialized");
     
+    // Get application URL from environment, fallback to production
+    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
+    const isProduction = applicationUrl.includes('housinghub.app');
+    
     // Extract email and create confirmation URL with proper token
     let userEmail = "";
     let confirmationUrl = "";
@@ -36,11 +40,19 @@ serve(async (req: Request) => {
       userEmail = body.user.email;
       const token = body.email_data?.token_hash || body.email_data?.token || "";
       const emailType = body.email_data?.email_action_type || "signup";
-      const redirectTo = body.email_data?.redirect_to || "https://housinghub.app/email-confirm";
+      
+      // Use environment-aware redirect URL
+      let redirectTo = body.email_data?.redirect_to;
+      if (!redirectTo) {
+        // Default based on environment and email type
+        const defaultPath = emailType === "recovery" ? "/setup-password" : "/email-confirm";
+        redirectTo = `${applicationUrl}${defaultPath}`;
+      }
+      
       confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=${emailType}&redirect_to=${encodeURIComponent(redirectTo)}`;
     } else if (body.record?.email) {
       userEmail = body.record.email;
-      confirmationUrl = body.record.confirmation_url || `https://housinghub.app/email-confirm`;
+      confirmationUrl = body.record.confirmation_url || `${applicationUrl}/email-confirm`;
     }
     
     if (!userEmail) {
