@@ -47,7 +47,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
-        .single();
+        .maybeSingle();
       
       if (profileError) {
         console.warn('🔄 SimpleAuth - Profile query error:', profileError.message);
@@ -89,7 +89,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<{ user: 
           .from('organizations')
           .select('*')
           .eq('id', orgId)
-          .single();
+          .maybeSingle();
         
         if (orgError) {
           console.warn('🔄 SimpleAuth - Organization query error:', orgError.message);
