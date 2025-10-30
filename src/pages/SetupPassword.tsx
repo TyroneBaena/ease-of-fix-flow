@@ -132,7 +132,7 @@ const SetupPassword = () => {
         .from('profiles')
         .select('role, organization_id')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
       console.log('User profile after password reset:', profile);
 
