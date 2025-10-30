@@ -128,32 +128,63 @@ const SetupPassword = () => {
       }
 
       // Show success message and set success state
-      toast.success("Password set successfully! You will be redirected to dashboard shortly.");
+      toast.success("Password set successfully!");
       setSuccess(true);
 
-      // For password reset, skip organization verification - it should already exist
-      // Only verify for new user setup (not reset mode)
-      if (!isResetMode && data.user) {
-        setVerifyingSchema(true);
-        try {
-          console.log("Verifying organization setup for new user");
-          const hasOrganization = await ensureUserOrganization(data.user.id);
+      // Get user's role and organization to determine redirect
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, organization_id')
+        .eq('id', data.user.id)
+        .single();
 
-          if (!hasOrganization) {
-            console.log("Organization setup incomplete during password setup");
-            toast.warning(
-              "Password set successfully, but account setup may be incomplete. Please contact support if you experience issues.",
-            );
+      console.log('User profile after password reset:', profile);
+
+      // Determine redirect based on role and organization
+      let redirectPath = "/dashboard";
+      
+      if (profile) {
+        const userRole = profile.role;
+        const hasOrganization = !!profile.organization_id;
+
+        // Contractors go to contractor dashboard
+        if (userRole === 'contractor') {
+          redirectPath = "/contractor-dashboard";
+          toast.success("Redirecting to contractor dashboard...");
+        }
+        // For new user setup (not password reset), verify organization
+        else if (!isResetMode && data.user) {
+          setVerifyingSchema(true);
+          try {
+            console.log("Verifying organization setup for new user");
+            const hasOrg = await ensureUserOrganization(data.user.id);
+
+            if (!hasOrg) {
+              console.log("Organization setup incomplete during password setup");
+              toast.warning(
+                "Password set successfully, but account setup may be incomplete. Please contact support if you experience issues.",
+              );
+            }
+          } catch (error) {
+            console.error("Organization check error:", error);
+          } finally {
+            setVerifyingSchema(false);
           }
-        } catch (error) {
-          console.error("Organization check error:", error);
-        } finally {
-          setVerifyingSchema(false);
+        }
+        // For password reset of existing users
+        else if (isResetMode) {
+          // Admins and managers go to dashboard if they have organization
+          // If no organization, they'll be prompted by OrganizationGuard
+          if (hasOrganization) {
+            toast.success("Redirecting to dashboard...");
+          } else {
+            toast.info("Please complete your organization setup.");
+          }
         }
       }
 
-      // Redirect after a short delay to allow the user to see the success message
-      setTimeout(() => navigate("/dashboard"), 2000);
+      // Redirect after a short delay
+      setTimeout(() => navigate(redirectPath), 2000);
     } catch (error) {
       console.error("Password setup error:", error);
       toast.error(`Failed to set password: ${error.message}`);

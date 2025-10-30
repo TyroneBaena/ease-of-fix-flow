@@ -21,6 +21,21 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
     try {
       console.log('🔍 OrganizationGuard - Checking organization for user:', user.email);
       
+      // Get user's profile to check role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      console.log('🔍 OrganizationGuard - User profile:', profile);
+      
+      // Contractors don't need organizations - they belong to contractor accounts
+      if (profile?.role === 'contractor') {
+        console.log('🔍 OrganizationGuard - User is contractor, skipping organization requirement');
+        return true;
+      }
+      
       // Check if user has any active organization memberships
       const { data: userOrgs, error: userOrgsError } = await supabase
         .from('user_organizations')
