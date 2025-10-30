@@ -131,9 +131,13 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
     );
   }
 
-  // Show organization onboarding if user has no organization
+  // Show organization onboarding ONLY for new signups without invitation
+  // Users from password reset or invitation should never reach this state
   if (!hasOrganization) {
     console.log('🔒 OrganizationGuard - User needs organization onboarding');
+    
+    // Check if this is a fresh signup (no organization at all)
+    // Fresh signups should create their organization or use invitation code
     return (
       <OrganizationOnboarding 
         user={currentUser} 

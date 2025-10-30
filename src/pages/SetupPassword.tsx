@@ -127,10 +127,6 @@ const SetupPassword = () => {
         throw error;
       }
 
-      // Show success message and set success state
-      toast.success("Password set successfully!");
-      setSuccess(true);
-
       // Get user's role and organization to determine redirect
       const { data: profile } = await supabase
         .from('profiles')
@@ -140,48 +136,68 @@ const SetupPassword = () => {
 
       console.log('User profile after password reset:', profile);
 
+      // Check if user has organization membership
+      const { data: orgMembership } = await supabase
+        .from('user_organizations')
+        .select('organization_id, role')
+        .eq('user_id', data.user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      console.log('User organization membership:', orgMembership);
+
       // Determine redirect based on role and organization
       let redirectPath = "/dashboard";
       
-      if (profile) {
-        const userRole = profile.role;
-        const hasOrganization = !!profile.organization_id;
+      if (!profile) {
+        toast.error("Profile not found. Please contact support.");
+        return;
+      }
+
+      const userRole = profile.role;
+      const hasOrganization = !!orgMembership?.organization_id;
+
+      // For password reset (existing users)
+      if (isResetMode) {
+        // Check if user has organization
+        if (!hasOrganization) {
+          // Users without organization after password reset = data issue
+          toast.error("Your account is not associated with an organization. Please contact support.");
+          setErrors({ email: "Account setup incomplete. Please contact support for assistance." });
+          return;
+        }
 
         // Contractors go to contractor dashboard
         if (userRole === 'contractor') {
           redirectPath = "/contractor-dashboard";
-          toast.success("Redirecting to contractor dashboard...");
-        }
-        // For new user setup (not password reset), verify organization
-        else if (!isResetMode && data.user) {
-          setVerifyingSchema(true);
-          try {
-            console.log("Verifying organization setup for new user");
-            const hasOrg = await ensureUserOrganization(data.user.id);
-
-            if (!hasOrg) {
-              console.log("Organization setup incomplete during password setup");
-              toast.warning(
-                "Password set successfully, but account setup may be incomplete. Please contact support if you experience issues.",
-              );
-            }
-          } catch (error) {
-            console.error("Organization check error:", error);
-          } finally {
-            setVerifyingSchema(false);
-          }
-        }
-        // For password reset of existing users
-        else if (isResetMode) {
-          // Admins and managers go to dashboard if they have organization
-          // If no organization, they'll be prompted by OrganizationGuard
-          if (hasOrganization) {
-            toast.success("Redirecting to dashboard...");
-          } else {
-            toast.info("Please complete your organization setup.");
-          }
+          toast.success("Password reset successful! Redirecting to contractor dashboard...");
+        } else {
+          // Admins and managers go to regular dashboard
+          toast.success("Password reset successful! Redirecting to dashboard...");
+          redirectPath = "/dashboard";
         }
       }
+      // For new user setup (initial password set from invitation)
+      else {
+        // New users should have been added to organization via invitation
+        if (!hasOrganization) {
+          toast.error("Organization membership not found. Please use your invitation link.");
+          setErrors({ email: "Please use the invitation link sent to your email to complete setup." });
+          return;
+        }
+
+        // Contractors go to contractor dashboard
+        if (userRole === 'contractor') {
+          redirectPath = "/contractor-dashboard";
+          toast.success("Account setup complete! Redirecting to contractor dashboard...");
+        } else {
+          // Admins and managers go to regular dashboard
+          toast.success("Account setup complete! Redirecting to dashboard...");
+          redirectPath = "/dashboard";
+        }
+      }
+
+      setSuccess(true);
 
       // Redirect after a short delay
       setTimeout(() => navigate(redirectPath), 2000);
