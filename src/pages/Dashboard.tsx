@@ -58,8 +58,10 @@ const Dashboard = () => {
   console.log('🔍 DASHBOARD - requestsLoading:', requestsLoading);
   console.log('🔍 DASHBOARD - requests count:', requests.length);
   
-  // Filter requests to only show those belonging to the current user
-  const userRequests = currentUser?.role === 'admin' 
+  // Filter requests based on role
+  // Admins and managers see all requests (already filtered by RLS and assigned properties in context)
+  // Regular users only see their own requests
+  const userRequests = currentUser?.role === 'admin' || currentUser?.role === 'manager'
     ? requests 
     : requests.filter(req => req.userId === currentUser?.id);
     
