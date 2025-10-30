@@ -6,7 +6,7 @@
 
 export const STRIPE_CONFIG = {
   // Publishable key - safe to expose in client-side code
-  publishableKey: 'pk_live_51RvCRkERrSyHgYuuXuD442uyPBFySEnTCYMPvPqsRrycdrfrnCOdhMrZvBBuvWNEvywJg9gRLo0oPwxqDfUTGQvr004awSD5Rg',
+  publishableKey: 'pk_test_51RvCRkERrSyHgYuuVYKfaGpq95rXEdqPsJqpBiBbyLz3vhb0sNaohYoLT7Fi1mYF9ox5kyrJgtLqOs0tdIgUeICb00zSDCxUXs',
   
   // Pricing configuration
   pricing: {
