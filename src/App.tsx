@@ -58,6 +58,7 @@ import { ContractorRouteGuard } from './components/contractor/ContractorRouteGua
 // New pages
 import Pricing from '@/pages/Pricing';
 import AdminSettings from '@/pages/AdminSettings';
+import Billing from '@/pages/Billing';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { EnhancedSignupFlow } from '@/components/auth/EnhancedSignupFlow';
 import { TeamManagement } from '@/pages/TeamManagement';
@@ -287,6 +288,17 @@ function AppRoutes() {
                     <QuoteSubmission />
                   </ContractorProvider>
                 </MaintenanceRequestProvider>
+              </ProtectedRoute>
+            } />
+
+            {/* Billing Page - Standalone billing management */}
+            <Route path="/billing" element={
+              <ProtectedRoute>
+                <OrganizationGuard>
+                  <PropertyProvider>
+                    <Billing />
+                  </PropertyProvider>
+                </OrganizationGuard>
               </ProtectedRoute>
             } />
 
