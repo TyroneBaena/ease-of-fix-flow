@@ -89,17 +89,7 @@ const PaymentMethodSetup: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if we're returning from a Stripe redirect
-    const urlParams = new URLSearchParams(window.location.search);
-    const setupIntentClientSecret = urlParams.get('setup_intent_client_secret');
-    const redirectStatus = urlParams.get('redirect_status');
-    
-    if (setupIntentClientSecret && redirectStatus === 'succeeded') {
-      console.log('[PaymentMethodSetup Page] Returned from Stripe redirect with success');
-      handleSuccess();
-    } else {
-      createSetupIntent();
-    }
+    createSetupIntent();
   }, []);
 
   const createSetupIntent = async () => {
@@ -126,42 +116,16 @@ const PaymentMethodSetup: React.FC = () => {
     }
   };
 
-  const handleSuccess = async () => {
+  const handleSuccess = () => {
     setSuccess(true);
+    toast({
+      title: 'Payment Method Added',
+      description: 'Your payment method has been saved successfully.',
+    });
     
-    try {
-      console.log('[PaymentMethodSetup Page] Payment confirmed, saving to database...');
-      
-      // Call confirm-payment-method to save payment_method_id to database
-      const { data: confirmData, error: confirmError } = await supabase.functions.invoke('confirm-payment-method');
-      
-      if (confirmError) {
-        console.error('[PaymentMethodSetup Page] Failed to save payment method:', confirmError);
-        toast({
-          title: 'Error',
-          description: 'Payment method confirmed but failed to save. Please contact support.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      console.log('[PaymentMethodSetup Page] Payment method saved successfully:', confirmData);
-      toast({
-        title: 'Payment Method Added',
-        description: 'Your payment method has been saved successfully.',
-      });
-      
-      setTimeout(() => {
-        navigate('/billing');
-      }, 2000);
-    } catch (error) {
-      console.error('[PaymentMethodSetup Page] Error in handleSuccess:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred. Please contact support.',
-        variant: 'destructive',
-      });
-    }
+    setTimeout(() => {
+      navigate('/billing');
+    }, 2000);
   };
 
   return (

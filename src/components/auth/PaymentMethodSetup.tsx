@@ -87,17 +87,7 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if we're returning from a Stripe redirect
-    const urlParams = new URLSearchParams(window.location.search);
-    const setupIntentClientSecret = urlParams.get('setup_intent_client_secret');
-    const redirectStatus = urlParams.get('redirect_status');
-    
-    if (setupIntentClientSecret && redirectStatus === 'succeeded') {
-      console.log('[PaymentMethodSetup] Returned from Stripe redirect with success');
-      handleSuccess();
-    } else {
-      createSetupIntent();
-    }
+    createSetupIntent();
   }, []);
 
   const createSetupIntent = async () => {
@@ -145,34 +135,14 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
     }
   };
 
-  const handleSuccess = async () => {
+  const handleSuccess = () => {
     setSuccess(true);
+    toast.success('Payment method added successfully');
     
-    try {
-      console.log('[PaymentMethodSetup] Payment confirmed by Stripe, saving to database...');
-      
-      // Call confirm-payment-method to save payment_method_id to database
-      const { data: confirmData, error: confirmError } = await supabase.functions.invoke('confirm-payment-method');
-      
-      if (confirmError) {
-        console.error('[PaymentMethodSetup] Failed to save payment method:', confirmError);
-        toast.error('Payment method confirmed but failed to save. Please contact support.');
-        onComplete(false);
-        return;
-      }
-      
-      console.log('[PaymentMethodSetup] Payment method saved successfully:', confirmData);
-      toast.success('Payment method added successfully');
-      
-      // Notify parent component of successful payment
-      setTimeout(() => {
-        onComplete(true);
-      }, 1500);
-    } catch (error) {
-      console.error('[PaymentMethodSetup] Error in handleSuccess:', error);
-      toast.error('An error occurred. Please contact support.');
-      onComplete(false);
-    }
+    // Notify parent component of successful payment
+    setTimeout(() => {
+      onComplete(true);
+    }, 1500);
   };
 
   return (
