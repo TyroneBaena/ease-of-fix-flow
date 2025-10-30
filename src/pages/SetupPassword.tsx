@@ -127,29 +127,33 @@ const SetupPassword = () => {
         throw error;
       }
 
-      // Verify organization setup
-      setVerifyingSchema(true);
-      if (data.user) {
-        console.log("Password setup successful");
-
-        // Verify organization setup
-        const hasOrganization = await ensureUserOrganization(data.user.id);
-
-        if (!hasOrganization) {
-          console.log("Organization setup incomplete during password setup");
-          toast.warning(
-            "Password set successfully, but account setup may be incomplete. Please contact support if you experience issues.",
-          );
-        }
-      }
-      setVerifyingSchema(false);
-
       // Show success message and set success state
       toast.success("Password set successfully! You will be redirected to dashboard shortly.");
       setSuccess(true);
 
+      // For password reset, skip organization verification - it should already exist
+      // Only verify for new user setup (not reset mode)
+      if (!isResetMode && data.user) {
+        setVerifyingSchema(true);
+        try {
+          console.log("Verifying organization setup for new user");
+          const hasOrganization = await ensureUserOrganization(data.user.id);
+
+          if (!hasOrganization) {
+            console.log("Organization setup incomplete during password setup");
+            toast.warning(
+              "Password set successfully, but account setup may be incomplete. Please contact support if you experience issues.",
+            );
+          }
+        } catch (error) {
+          console.error("Organization check error:", error);
+        } finally {
+          setVerifyingSchema(false);
+        }
+      }
+
       // Redirect after a short delay to allow the user to see the success message
-      setTimeout(() => navigate("/dashboard"), 3000);
+      setTimeout(() => navigate("/dashboard"), 2000);
     } catch (error) {
       console.error("Password setup error:", error);
       toast.error(`Failed to set password: ${error.message}`);
