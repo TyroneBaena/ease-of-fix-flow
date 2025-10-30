@@ -26,7 +26,7 @@ const ForgotPassword = () => {
       setIsSubmitting(true);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`,
+        redirectTo: `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`,
       });
 
       if (error) throw error;
