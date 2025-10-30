@@ -140,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailSubject = `New Maintenance Request: ${requestData.title}`;
-    const directLink = `${Deno.env.get('APPLICATION_URL') || 'https://your-app.com'}/requests/${request_id}`;
+    const directLink = `${Deno.env.get('APPLICATION_URL') || 'https://housinghub.app'}/requests/${request_id}`;
 
     const createEmailHtml = (recipientType: string) => `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

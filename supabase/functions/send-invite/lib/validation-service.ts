@@ -41,7 +41,7 @@ export function validateEnvironment(): Environment {
   const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY') || 
                        Deno.env.get('RESEND_API_KEY') || 
                        Deno.env.get('RESEND_API_KEY_1');
-  const applicationUrl = Deno.env.get('APPLICATION_URL');
+  const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
   const ownerEmail = Deno.env.get('RESEND_OWNER_EMAIL') || 'tyronebaena@gmail.com';
 
   console.log('Environment Checks:', {
@@ -55,10 +55,6 @@ export function validateEnvironment(): Environment {
 
   if (!resendApiKey) {
     throw new Error("No Resend API key found. Checked: NEW_RESEND_API_KEY, RESEND_API_KEY, RESEND_API_KEY_1");
-  }
-
-  if (!applicationUrl) {
-    throw new Error("APPLICATION_URL is not set in the environment variables");
   }
 
   return { resendApiKey, applicationUrl, ownerEmail };

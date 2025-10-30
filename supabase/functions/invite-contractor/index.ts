@@ -286,7 +286,7 @@ serve(async (req: Request) => {
 
     // Send invitation email
     const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY');
-    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'http://localhost:5173';
+    const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
     const ownerEmail = Deno.env.get('OWNER_EMAIL') || 'admin@example.com';
     
     if (resendApiKey) {
