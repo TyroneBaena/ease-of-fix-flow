@@ -134,6 +134,19 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       return;
     }
 
+    // Check if user already has an organization membership
+    const { data: existingMembership } = await supabase
+      .from('user_organizations')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingMembership) {
+      setError("You already have an organization. Please contact support if you need to create another one.");
+      toast.error("You already have an organization");
+      return;
+    }
+
     // Sanitize organization name
     const sanitizedName = orgName.trim().slice(0, 100); // Max 100 chars
     if (sanitizedName.length < 2) {
@@ -240,14 +253,17 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
       // Create user_organizations membership BEFORE payment setup
       // This is required by the create-trial-subscription edge function
+      // Using upsert to handle any edge cases with duplicate memberships
       console.log('Creating user_organizations membership');
       const { error: membershipError } = await supabase
         .from('user_organizations')
-        .insert({
+        .upsert({
           user_id: user.id,
           organization_id: orgData.id,
           role: 'admin',
           is_default: true
+        }, {
+          onConflict: 'user_id,organization_id'
         });
 
       if (membershipError) {
