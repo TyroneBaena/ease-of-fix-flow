@@ -105,11 +105,29 @@ export const userService: UserService = {
         // Handle edge function errors (network, timeout, etc.)
         if (error) {
           console.error('Edge function error:', error);
+          console.error('Edge function error context:', error.context);
+          
+          // Try to extract error message from context
+          let errorDetails = null;
+          try {
+            if (error.context && typeof error.context === 'object') {
+              errorDetails = error.context;
+            } else if (error.context && typeof error.context === 'string') {
+              errorDetails = JSON.parse(error.context);
+            }
+          } catch (e) {
+            console.error('Could not parse error context:', e);
+          }
+          
+          // Check if the error message contains information about existing user
+          const fullErrorMessage = errorDetails?.message || error.message || '';
           
           // Provide user-friendly error messages
           let userMessage = "Unable to send invitation. Please try again.";
           
-          if (error.message?.includes('non-2xx status code')) {
+          if (fullErrorMessage.includes('already been registered') || fullErrorMessage.includes('already exists')) {
+            userMessage = "This email address is already registered. Please use a different email or contact the user to join your organization.";
+          } else if (error.message?.includes('non-2xx status code')) {
             userMessage = "The invitation could not be processed. This might be a temporary issue. Please try again.";
           } else if (error.message?.includes('timeout')) {
             userMessage = "The request took too long. Please check your connection and try again.";
