@@ -98,31 +98,71 @@ export const userService: UserService = {
           timeoutPromise
         ]) as any;
         
-        console.log("Supabase function call completed. Response:", { data, error });
+        console.log("=== EDGE FUNCTION RESPONSE DEBUG ===");
+        console.log("Raw data:", data);
+        console.log("Raw error:", error);
+        console.log("Error type:", error?.constructor?.name);
+        console.log("Error message:", error?.message);
+        console.log("Error context:", error?.context);
+        console.log("Error context type:", typeof error?.context);
         
-        // IMPORTANT: When edge function returns non-2xx status, the response body is in 'data'
-        // Check data first for error messages, as edge functions return error details there
-        if (data && !data.success && data.message) {
-          console.log('Edge function returned error in data:', data);
+        // When edge function returns non-2xx status, Supabase puts response in error.context
+        if (error) {
+          console.log("Processing error response...");
           
-          const serverMessage = data.message;
           let errorMessage = "Unable to send invitation. Please try again.";
+          let responseBody: any = null;
           
-          // Check for specific error patterns
-          if (serverMessage.includes('already been registered') || 
-              serverMessage.includes('already exists') ||
-              serverMessage.includes('A user with this email')) {
-            errorMessage = "This email address is already registered. Please use a different email.";
-          } else if (serverMessage.includes('already a member of your organization')) {
-            errorMessage = serverMessage;
-          } else if (serverMessage.includes('invalid email')) {
-            errorMessage = "Please enter a valid email address.";
-          } else if (serverMessage.includes('permission')) {
-            errorMessage = "You don't have permission to invite users. Please contact your administrator.";
-          } else if (serverMessage) {
-            // Use the server message directly
-            errorMessage = serverMessage;
+          // Try to extract response body from error.context
+          try {
+            if (error.context) {
+              // error.context might be a string or already an object
+              if (typeof error.context === 'string') {
+                console.log("Parsing error.context as JSON string");
+                responseBody = JSON.parse(error.context);
+              } else if (typeof error.context === 'object') {
+                console.log("Using error.context as object directly");
+                responseBody = error.context;
+              }
+              console.log("Parsed response body:", responseBody);
+            }
+          } catch (parseError) {
+            console.error("Failed to parse error.context:", parseError);
           }
+          
+          // Extract message from response body
+          if (responseBody?.message) {
+            const serverMessage = responseBody.message;
+            console.log("Server message from response:", serverMessage);
+            
+            // Check for specific error patterns
+            if (serverMessage.includes('already been registered') || 
+                serverMessage.includes('already exists') ||
+                serverMessage.includes('A user with this email')) {
+              errorMessage = "This email address is already registered. Please use a different email.";
+            } else if (serverMessage.includes('already a member of your organization')) {
+              errorMessage = serverMessage;
+            } else if (serverMessage.includes('invalid email')) {
+              errorMessage = "Please enter a valid email address.";
+            } else if (serverMessage.includes('permission')) {
+              errorMessage = "You don't have permission to invite users. Please contact your administrator.";
+            } else if (serverMessage) {
+              errorMessage = serverMessage;
+            }
+          } else {
+            // Fallback to checking error.message
+            console.log("No message in response body, checking error.message");
+            const errorStr = error.message || '';
+            
+            if (errorStr.includes('timeout')) {
+              errorMessage = "The request took too long. Please check your connection and try again.";
+            } else if (errorStr.includes('network')) {
+              errorMessage = "Network error. Please check your connection and try again.";
+            }
+          }
+          
+          console.log("Final error message:", errorMessage);
+          console.log("=== END DEBUG ===");
           
           return {
             success: false,
@@ -131,17 +171,21 @@ export const userService: UserService = {
           };
         }
         
-        // Handle network/timeout errors from the Supabase client
-        if (error) {
-          console.error('Network or client error:', error);
+        // Check if edge function returned success: false in data
+        if (data && !data.success) {
+          console.log('Edge function returned failure in data:', data);
           
           let errorMessage = "Unable to send invitation. Please try again.";
-          const errorStr = error.message || '';
+          const serverMessage = data.message || "";
           
-          if (errorStr.includes('timeout')) {
-            errorMessage = "The request took too long. Please check your connection and try again.";
-          } else if (errorStr.includes('network')) {
-            errorMessage = "Network error. Please check your connection and try again.";
+          if (serverMessage.includes('already been registered') || serverMessage.includes('already exists')) {
+            errorMessage = "This email address is already registered. Please use a different email.";
+          } else if (serverMessage.includes('invalid email')) {
+            errorMessage = "Please enter a valid email address.";
+          } else if (serverMessage.includes('permission')) {
+            errorMessage = "You don't have permission to invite users. Please contact your administrator.";
+          } else if (serverMessage) {
+            errorMessage = serverMessage;
           }
           
           return {
