@@ -119,6 +119,23 @@ export const useUserProvider = () => {
     }
   }, [canFetchUsers, currentUser?.organization_id]); // Add organization_id as dependency
 
+  // Listen for global tab revisit event to refresh data
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      console.log('🔄 UserProvider - Received data refresh event:', event.detail);
+      if (canFetchUsers && !fetchInProgress.current) {
+        console.log('🔄 UserProvider - Refreshing users data after tab revisit');
+        fetchUsers().catch(console.error);
+      }
+    };
+
+    window.addEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    };
+  }, [canFetchUsers, fetchUsers]);
+
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
       setLoading(true);

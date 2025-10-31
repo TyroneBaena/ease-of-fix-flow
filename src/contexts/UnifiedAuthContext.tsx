@@ -792,8 +792,19 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
           
           // Session is valid, update it seamlessly
-          console.log('🔄 UnifiedAuth - Session validated, refreshing user data in background');
+          console.log('🔄 UnifiedAuth - Session validated, broadcasting data refresh event to all providers');
           setSession(currentSession);
+          
+          // Broadcast custom event to all data providers to refresh their data
+          const refreshEvent = new CustomEvent('app-data-refresh', {
+            detail: {
+              timestamp: Date.now(),
+              reason: 'tab-revisited',
+              hiddenDuration
+            }
+          });
+          window.dispatchEvent(refreshEvent);
+          console.log('🔄 UnifiedAuth - Data refresh event broadcasted to all providers');
           
           // Refresh user data if session user exists
           if (currentSession.user && currentSession.user.id === currentUser.id) {
@@ -829,7 +840,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Add event listener
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    console.log('🔄 UnifiedAuth - Tab visibility monitoring enabled with seamless refresh');
+    console.log('🔄 UnifiedAuth - Tab visibility monitoring enabled with global data refresh broadcast');
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);

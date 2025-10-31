@@ -87,6 +87,23 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     }
   }, [currentUser?.id, isAdmin, fetchedOnce, loadContractors]);
 
+  // Listen for global tab revisit event to refresh data
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      console.log('🔄 ContractorProvider - Received data refresh event:', event.detail);
+      if (currentUser && isAdmin) {
+        console.log('🔄 ContractorProvider - Refreshing contractors data after tab revisit');
+        loadContractors();
+      }
+    };
+
+    window.addEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    };
+  }, [currentUser, isAdmin, loadContractors]);
+
   const value: ContractorManagementContextType = useMemo(() => ({
     contractors,
     loading,

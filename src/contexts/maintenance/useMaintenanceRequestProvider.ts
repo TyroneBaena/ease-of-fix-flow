@@ -13,53 +13,6 @@ export const useMaintenanceRequestProvider = () => {
   const { currentUser } = useUserContext();
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
 
-  useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - Current user changed:', currentUser?.email);
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User role:', currentUser?.role);
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User organization_id:', currentUser?.organization_id);
-    
-    // CRITICAL FIX: Load requests if user is authenticated, even without organization_id yet
-    // The organization_id will be available from the profile or will be set shortly
-    if (currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v2.0 - User authenticated, loading requests');
-      
-      // FIXED: Only load once to prevent race conditions
-      loadRequests();
-      
-      // Set up real-time subscription for maintenance requests
-      const channel = supabase
-        .channel('maintenance-requests-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-            schema: 'public',
-            table: 'maintenance_requests'
-          },
-          async (payload) => {
-            console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
-            
-            // Force immediate refresh on any change
-            console.log('🔄 REAL-TIME: Triggering immediate context refresh');
-            await loadRequests();
-          }
-        )
-        .subscribe((status) => {
-          console.log('🔌 REAL-TIME: Global maintenance subscription status:', status);
-        });
-
-      return () => {
-        console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
-        supabase.removeChannel(channel);
-      };
-    } else {
-      console.log('🔍 MAINTENANCE PROVIDER v2.0 - No current user, clearing requests');
-      setRequests([]);
-      setLoading(false);
-    }
-  }, [currentUser?.id]); // Only watch user ID changes to prevent excessive re-renders
-
   const loadRequests = useCallback(async () => {
     console.log('🔍 LOADING REQUESTS v2.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
     
@@ -113,6 +66,70 @@ export const useMaintenanceRequestProvider = () => {
       setLoading(false);
     }
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
+
+  useEffect(() => {
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - Current user changed:', currentUser?.email);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User role:', currentUser?.role);
+    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User organization_id:', currentUser?.organization_id);
+    
+    // CRITICAL FIX: Load requests if user is authenticated, even without organization_id yet
+    // The organization_id will be available from the profile or will be set shortly
+    if (currentUser?.id) {
+      console.log('🔍 MAINTENANCE PROVIDER v2.0 - User authenticated, loading requests');
+      
+      // FIXED: Only load once to prevent race conditions
+      loadRequests();
+      
+      // Set up real-time subscription for maintenance requests
+      const channel = supabase
+        .channel('maintenance-requests-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'maintenance_requests'
+          },
+          async (payload) => {
+            console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
+            
+            // Force immediate refresh on any change
+            console.log('🔄 REAL-TIME: Triggering immediate context refresh');
+            await loadRequests();
+          }
+        )
+        .subscribe((status) => {
+          console.log('🔌 REAL-TIME: Global maintenance subscription status:', status);
+        });
+
+      return () => {
+        console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
+        supabase.removeChannel(channel);
+      };
+    } else {
+      console.log('🔍 MAINTENANCE PROVIDER v2.0 - No current user, clearing requests');
+      setRequests([]);
+      setLoading(false);
+    }
+  }, [currentUser?.id, loadRequests]); // Only watch user ID changes to prevent excessive re-renders
+
+  // Listen for global tab revisit event to refresh data
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      console.log('🔄 MaintenanceRequestProvider - Received data refresh event:', event.detail);
+      if (currentUser?.id) {
+        console.log('🔄 MaintenanceRequestProvider - Refreshing maintenance requests after tab revisit');
+        loadRequests();
+      }
+    };
+
+    window.addEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    };
+  }, [currentUser?.id, loadRequests]);
 
   const getRequestsForProperty = useCallback((propertyId: string) => {
     return requests.filter(request => request.propertyId === propertyId);

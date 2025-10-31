@@ -54,6 +54,23 @@ export const usePropertyProvider = (): PropertyContextType => {
     }
   }, [currentUser?.id]);
 
+  // Listen for global tab revisit event to refresh data
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      console.log('🔄 PropertyProvider - Received data refresh event:', event.detail);
+      if (currentUser) {
+        console.log('🔄 PropertyProvider - Refreshing properties data after tab revisit');
+        fetchAndSetProperties();
+      }
+    };
+
+    window.addEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
+    };
+  }, [currentUser, fetchAndSetProperties]);
+
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
     try {
       if (!currentUser) {
