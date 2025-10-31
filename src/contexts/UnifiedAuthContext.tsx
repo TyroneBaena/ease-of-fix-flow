@@ -220,6 +220,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   
   // User management state
   const [users, setUsers] = useState<User[]>([]);
+  
+  // CRITICAL FIX: Track if this is a background refresh to prevent loading cascades
+  const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false);
 
   const signOut = useCallback(async () => {
     try {
@@ -779,14 +782,19 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
-          // Session is valid, update it seamlessly
-          console.log('🔄 UnifiedAuth - Session validated successfully');
-          setSession(currentSession);
+          // Session is valid, update it seamlessly WITHOUT causing re-renders
+          console.log('🔄 UnifiedAuth - Session validated successfully, keeping existing user data');
           
-          // CRITICAL FIX: Don't refresh user data on tab revisit
-          // This was causing infinite loading because it created a new user object reference
-          // which triggered all child providers to re-fetch their data
-          console.log('🔄 UnifiedAuth - Session validated, user data unchanged');
+          // CRITICAL: Only update session if it actually changed
+          // Compare session IDs to prevent unnecessary re-renders
+          if (currentSession.access_token !== session?.access_token) {
+            console.log('🔄 UnifiedAuth - Access token changed, updating session');
+            setSession(currentSession);
+          } else {
+            console.log('🔄 UnifiedAuth - Session unchanged, no update needed');
+          }
+          
+          // User data stays completely unchanged - no re-renders triggered
         } catch (error) {
           console.error('🔄 UnifiedAuth - Error handling visibility change:', error);
         } finally {

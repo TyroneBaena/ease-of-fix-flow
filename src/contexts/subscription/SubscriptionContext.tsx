@@ -55,10 +55,15 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currency, setCurrency] = useState<string | null>(null);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
 
-  // Start with loading true to prevent flash of "no access" during initial auth
+  // Track if this is the initial mount to prevent loading on subsequent renders
+  const [isInitialMount, setIsInitialMount] = useState(true);
+  
   useEffect(() => {
-    setLoading(true);
-  }, []);
+    if (isInitialMount) {
+      setLoading(true);
+      setIsInitialMount(false);
+    }
+  }, [isInitialMount]);
 
   const clear = useCallback(() => {
     setSubscribed(null);
@@ -455,18 +460,38 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [currentUser?.id]);
 
+  // Track previous values to prevent unnecessary refreshes on tab revisit
+  const prevUserIdRef = React.useRef<string | undefined>();
+  const prevOrgIdRef = React.useRef<string | undefined>();
+  
   useEffect(() => {
-    // CRITICAL FIX: Set loading immediately to prevent race conditions during navigation
-    // When user or organization changes, refresh subscription state
-    if (currentUser?.id && currentOrganization?.id) {
-      setLoading(true); // Set loading BEFORE calling async refresh
-      refresh(); // refresh() will set loading to false when complete
-    } else {
+    // CRITICAL FIX: Only refresh if user or org IDs ACTUALLY changed
+    // This prevents loading cascade when tab becomes visible
+    const userIdChanged = prevUserIdRef.current !== currentUser?.id;
+    const orgIdChanged = prevOrgIdRef.current !== currentOrganization?.id;
+    
+    console.log('SubscriptionContext - Checking for changes:', {
+      userIdChanged,
+      orgIdChanged,
+      currentUserId: currentUser?.id,
+      currentOrgId: currentOrganization?.id
+    });
+    
+    if (currentUser?.id && currentOrganization?.id && (userIdChanged || orgIdChanged)) {
+      console.log('SubscriptionContext - IDs changed, refreshing subscription');
+      prevUserIdRef.current = currentUser.id;
+      prevOrgIdRef.current = currentOrganization.id;
+      setLoading(true);
+      refresh();
+    } else if (!currentUser?.id || !currentOrganization?.id) {
       // Clear all subscription data when no user/org
       clear();
-      // CRITICAL FIX: Set loading to false when logged out
-      // This is a final state - no async operation needed
       setLoading(false);
+      prevUserIdRef.current = undefined;
+      prevOrgIdRef.current = undefined;
+    } else {
+      // User/org exist but haven't changed - don't refresh, don't show loading
+      console.log('SubscriptionContext - No changes detected, keeping current state');
     }
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -104,8 +104,24 @@ const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     await fetchOrganization();
   };
 
+  // Track previous org ID to prevent unnecessary refreshes
+  const prevOrgIdRef = React.useRef<string | undefined>();
+  
   useEffect(() => {
-    fetchOrganization();
+    // Only fetch if organization ID actually changed
+    const orgIdChanged = prevOrgIdRef.current !== currentUser?.organization_id;
+    
+    if (currentUser?.organization_id && orgIdChanged) {
+      console.log('OrganizationContext - Organization ID changed, fetching');
+      prevOrgIdRef.current = currentUser.organization_id;
+      fetchOrganization();
+    } else if (!currentUser?.organization_id) {
+      prevOrgIdRef.current = undefined;
+      setCurrentOrganization(null);
+      setLoading(false);
+    } else {
+      console.log('OrganizationContext - Organization ID unchanged, skipping fetch');
+    }
   }, [currentUser?.organization_id]);
 
   // Tab visibility handler removed - UnifiedAuthContext handles session validation
