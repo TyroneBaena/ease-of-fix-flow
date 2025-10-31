@@ -105,39 +105,59 @@ export const userService: UserService = {
         // Handle edge function errors (network, timeout, etc.)
         if (error) {
           console.error('Edge function error:', error);
-          console.error('Edge function error context:', error.context);
+          console.error('Full error object:', JSON.stringify(error, null, 2));
           
-          // Try to extract error message from context
-          let errorDetails = null;
+          // Try to extract the actual error response from the FunctionsHttpError
+          let errorMessage = "Unable to send invitation. Please try again.";
+          
           try {
-            if (error.context && typeof error.context === 'object') {
-              errorDetails = error.context;
-            } else if (error.context && typeof error.context === 'string') {
-              errorDetails = JSON.parse(error.context);
+            // The error.context often contains the actual response body
+            if (error.context) {
+              let responseBody;
+              if (typeof error.context === 'string') {
+                responseBody = JSON.parse(error.context);
+              } else if (typeof error.context === 'object') {
+                responseBody = error.context;
+              }
+              
+              // Extract the message from the response
+              if (responseBody?.message) {
+                const serverMessage = responseBody.message;
+                
+                // Check for specific error patterns and provide user-friendly messages
+                if (serverMessage.includes('already been registered') || 
+                    serverMessage.includes('already exists') ||
+                    serverMessage.includes('A user with this email')) {
+                  errorMessage = "This email address is already registered. Please use a different email.";
+                } else if (serverMessage.includes('already a member of your organization')) {
+                  errorMessage = serverMessage; // Use the server message directly
+                } else {
+                  // Use the server message if it seems user-friendly
+                  errorMessage = serverMessage;
+                }
+              }
             }
-          } catch (e) {
-            console.error('Could not parse error context:', e);
+          } catch (parseError) {
+            console.error('Could not parse error context:', parseError);
           }
           
-          // Check if the error message contains information about existing user
-          const fullErrorMessage = errorDetails?.message || error.message || '';
-          
-          // Provide user-friendly error messages
-          let userMessage = "Unable to send invitation. Please try again.";
-          
-          if (fullErrorMessage.includes('already been registered') || fullErrorMessage.includes('already exists')) {
-            userMessage = "This email address is already registered. Please use a different email or contact the user to join your organization.";
-          } else if (error.message?.includes('non-2xx status code')) {
-            userMessage = "The invitation could not be processed. This might be a temporary issue. Please try again.";
-          } else if (error.message?.includes('timeout')) {
-            userMessage = "The request took too long. Please check your connection and try again.";
-          } else if (error.message?.includes('network')) {
-            userMessage = "Network error. Please check your connection and try again.";
+          // Fallback to checking error message patterns
+          if (errorMessage === "Unable to send invitation. Please try again.") {
+            const errorStr = error.message || '';
+            
+            if (errorStr.includes('timeout')) {
+              errorMessage = "The request took too long. Please check your connection and try again.";
+            } else if (errorStr.includes('network')) {
+              errorMessage = "Network error. Please check your connection and try again.";
+            } else if (errorStr.includes('non-2xx status code')) {
+              // Generic message for HTTP errors
+              errorMessage = "The invitation could not be processed. Please try again.";
+            }
           }
           
           return {
             success: false,
-            message: userMessage,
+            message: errorMessage,
             email: normalizedEmail
           };
         }
