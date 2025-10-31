@@ -1080,6 +1080,13 @@ export type Database = {
             foreignKeyName: "property_access_tokens_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "admin_user_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_access_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1474,6 +1481,13 @@ export type Database = {
             foreignKeyName: "temporary_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temporary_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1559,7 +1573,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_user_list: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          name: string | null
+          organization_id: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          organization_id?: string | null
+          role?: never
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          organization_id?: string | null
+          role?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_new_comment: {
@@ -1698,6 +1743,18 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
+      get_user_profile_by_id: {
+        Args: { target_user_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          organization_id: string
+          phone: string
+          role: string
+        }[]
+      }
       get_user_role_for_maintenance: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1731,6 +1788,16 @@ export type Database = {
       is_contractor: { Args: never; Returns: boolean }
       is_contractor_user: { Args: never; Returns: boolean }
       is_first_user_signup: { Args: never; Returns: boolean }
+      list_organization_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          role: string
+        }[]
+      }
       log_contractor_access: {
         Args: { user_id_param: string }
         Returns: string
