@@ -123,24 +123,16 @@ export const useUserProvider = () => {
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {
       setLoading(true);
-      console.log("📧 useUserProvider - addUser called");
-      console.log("📧 useUserProvider - email:", email, "name:", name, "role:", role);
-      console.log("📧 useUserProvider - assignedProperties:", assignedProperties);
-      console.log("📧 useUserProvider - currentUser exists:", !!currentUser);
       
       // Normalize email
       const normalizedEmail = email.toLowerCase().trim();
       
       // We'll let the backend handle the existence check to avoid race conditions
       // and have a single source of truth
-      console.log("📧 useUserProvider - Sending invitation directly to backend service");
-      
       const result = await userService.inviteUser(normalizedEmail, name, role, assignedProperties);
-      console.log("📧 useUserProvider - Backend invitation result:", result);
       
       // Only refetch users if we're admin/manager and the invite was successful
       if (canFetchUsers && result.success) {
-        console.log("User invite was successful, refreshing user list");
         // Force a refetch
         fetchInProgress.current = false;
         await fetchUsers();

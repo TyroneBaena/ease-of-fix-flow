@@ -34,42 +34,6 @@ export const userService: UserService = {
       
       const normalizedEmail = email.toLowerCase().trim();
       
-      // Ensure we have a valid session before making the request
-      console.log("✉️ userService.inviteUser - Checking session before invitation...");
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      console.log("✉️ userService.inviteUser - Session check result:", {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userEmail: session?.user?.email,
-        sessionError: sessionError?.message,
-        accessToken: session?.access_token ? "Present" : "Missing"
-      });
-      
-      if (sessionError || !session) {
-        console.error('✉️ userService.inviteUser - No valid session found for user invitation:', sessionError);
-        return {
-          success: false,
-          message: "Authentication required. Please log in and try again.",
-          email: normalizedEmail
-        };
-      }
-      
-      console.log(`✉️ userService.inviteUser - Proceeding with invitation for: ${normalizedEmail} with valid session`);
-      console.log("Session details:", {
-        userId: session.user?.id,
-        email: session.user?.email,
-        accessToken: session.access_token ? "Present" : "Missing",
-        refreshToken: session.refresh_token ? "Present" : "Missing"
-      });
-      
-      console.log("✉️ userService.inviteUser - Supabase client status check:");
-      console.log("✉️ userService.inviteUser - Supabase object:", !!supabase);
-      console.log("✉️ userService.inviteUser - Supabase functions:", !!supabase.functions);
-      console.log("✉️ userService.inviteUser - Supabase functions invoke:", typeof supabase.functions.invoke);
-      
-      console.log("✉️ userService.inviteUser - About to call supabase.functions.invoke('send-invite')...");
-      
       const requestBody = {
         email: normalizedEmail,
         name,
