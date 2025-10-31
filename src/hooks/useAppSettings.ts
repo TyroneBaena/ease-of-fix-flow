@@ -11,14 +11,16 @@ export const useAppSettings = () => {
         .single();
 
       if (error) {
-        // If no settings exist yet, return null
+        // If no settings exist yet, return empty object
         if (error.code === 'PGRST116') {
-          return null;
+          return {};
         }
         throw error;
       }
 
-      return data;
+      // Note: google_maps_api_key has been removed for security
+      // API keys should only be in environment variables
+      return data || {};
     }
   });
 };

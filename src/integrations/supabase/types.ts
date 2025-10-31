@@ -68,21 +68,18 @@ export type Database = {
       app_settings: {
         Row: {
           created_at: string
-          google_maps_api_key: string | null
           id: string
           organization_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          google_maps_api_key?: string | null
           id?: string
           organization_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          google_maps_api_key?: string | null
           id?: string
           organization_id?: string
           updated_at?: string
@@ -1536,6 +1533,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1678,6 +1699,13 @@ export type Database = {
         Returns: string
       }
       get_user_role_for_maintenance: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       initialize_property_counts: { Args: never; Returns: undefined }
       initialize_user_profile: {
         Args: {
@@ -1795,7 +1823,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "contractor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1922,6 +1950,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "contractor"],
+    },
   },
 } as const
