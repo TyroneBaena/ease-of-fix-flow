@@ -101,49 +101,63 @@ export const userService: UserService = {
         console.log("Edge function response - data:", data, "error:", error);
         
         // Handle FunctionsHttpError (non-2xx status from edge function)
-        // The actual response body is in error.context as a string
         if (error) {
           console.log("Edge function error detected");
-          console.log("Error context:", error.context);
           
           let errorMessage = "Unable to send invitation. Please try again.";
           
-          // Parse error.context which contains the edge function's response body
+          // Try to extract the actual error from the response
           try {
-            let responseData;
-            
-            // error.context is a string containing the response body
-            if (typeof error.context === 'string') {
-              responseData = JSON.parse(error.context);
-            } else if (error.context && typeof error.context === 'object') {
-              responseData = error.context;
-            }
-            
-            console.log("Parsed response data:", responseData);
-            
-            // Extract the error message
-            if (responseData?.message) {
-              const serverMessage = responseData.message;
-              console.log("Server error message:", serverMessage);
+            // error.context might contain a Response object
+            if (error.context && typeof error.context === 'object' && error.context.response) {
+              console.log("Reading response body from error.context.response");
+              const response = error.context.response;
               
-              // Check for specific patterns
-              if (serverMessage.includes('already been registered') || 
-                  serverMessage.includes('already exists') ||
-                  serverMessage.includes('A user with this email')) {
-                errorMessage = "This email address is already registered. Please use a different email.";
-              } else if (serverMessage.includes('already a member of your organization')) {
-                errorMessage = serverMessage;
-              } else if (serverMessage.includes('invalid email')) {
-                errorMessage = "Please enter a valid email address.";
-              } else if (serverMessage.includes('permission')) {
-                errorMessage = "You don't have permission to invite users.";
-              } else {
-                errorMessage = serverMessage;
+              // If response has json() method, read the body
+              if (typeof response.json === 'function') {
+                const responseBody = await response.json();
+                console.log("Response body:", responseBody);
+                
+                if (responseBody?.message) {
+                  const serverMessage = responseBody.message;
+                  
+                  if (serverMessage.includes('already been registered') || 
+                      serverMessage.includes('already exists') ||
+                      serverMessage.includes('A user with this email')) {
+                    errorMessage = "This email address is already registered. Please use a different email.";
+                  } else if (serverMessage.includes('already a member of your organization')) {
+                    errorMessage = serverMessage;
+                  } else if (serverMessage.includes('invalid email')) {
+                    errorMessage = "Please enter a valid email address.";
+                  } else if (serverMessage.includes('permission')) {
+                    errorMessage = "You don't have permission to invite users.";
+                  } else {
+                    errorMessage = serverMessage;
+                  }
+                }
+              }
+            } 
+            // Fallback: try parsing error.context as JSON string
+            else if (error.context && typeof error.context === 'string') {
+              console.log("Parsing error.context as JSON");
+              const responseData = JSON.parse(error.context);
+              
+              if (responseData?.message) {
+                const serverMessage = responseData.message;
+                
+                if (serverMessage.includes('already been registered') || 
+                    serverMessage.includes('already exists') ||
+                    serverMessage.includes('A user with this email')) {
+                  errorMessage = "This email address is already registered. Please use a different email.";
+                } else {
+                  errorMessage = serverMessage;
+                }
               }
             }
           } catch (parseError) {
-            console.error("Error parsing edge function response:", parseError);
-            // Check if it's a timeout or network error
+            console.error("Error extracting message from response:", parseError);
+            
+            // Check error message for timeout/network issues
             if (error.message?.includes('timeout')) {
               errorMessage = "Request timeout. Please try again.";
             } else if (error.message?.includes('network')) {
