@@ -99,84 +99,30 @@ export const userService: UserService = {
         ]) as any;
         
         console.log("Supabase function call completed. Response:", { data, error });
-        console.log("Edge function data received:", data);
-        console.log("Edge function error received:", error);
         
-        // Handle edge function errors (network, timeout, etc.)
-        if (error) {
-          console.error('Edge function error:', error);
-          console.error('Error message:', error.message);
-          console.error('Error context type:', typeof error.context);
-          console.error('Error context:', error.context);
+        // IMPORTANT: When edge function returns non-2xx status, the response body is in 'data'
+        // Check data first for error messages, as edge functions return error details there
+        if (data && !data.success && data.message) {
+          console.log('Edge function returned error in data:', data);
           
-          // Default user-friendly message
+          const serverMessage = data.message;
           let errorMessage = "Unable to send invitation. Please try again.";
           
-          // Try multiple ways to extract the actual error message
-          try {
-            // First, try to parse error.context as it often contains the response
-            if (error.context) {
-              let responseBody;
-              
-              if (typeof error.context === 'string') {
-                try {
-                  responseBody = JSON.parse(error.context);
-                } catch (e) {
-                  console.log('Context is string but not JSON:', error.context);
-                  responseBody = { message: error.context };
-                }
-              } else if (typeof error.context === 'object') {
-                responseBody = error.context;
-              }
-              
-              console.log('Parsed response body:', responseBody);
-              
-              // Extract the message from the response
-              if (responseBody?.message) {
-                const serverMessage = responseBody.message;
-                console.log('Server message:', serverMessage);
-                
-                // Check for specific error patterns
-                if (serverMessage.includes('email address has already been registered') || 
-                    serverMessage.includes('already been registered') || 
-                    serverMessage.includes('already exists') ||
-                    serverMessage.includes('A user with this email')) {
-                  errorMessage = "This email address is already registered. Please use a different email.";
-                } else if (serverMessage.includes('already a member of your organization')) {
-                  errorMessage = serverMessage;
-                } else if (serverMessage.length > 0 && !serverMessage.includes('Failed to create new user:')) {
-                  errorMessage = serverMessage;
-                } else if (serverMessage.startsWith('Failed to create new user:')) {
-                  // Extract the actual error from the wrapper message
-                  const actualError = serverMessage.replace('Failed to create new user:', '').trim();
-                  if (actualError.includes('already been registered') || actualError.includes('already exists')) {
-                    errorMessage = "This email address is already registered. Please use a different email.";
-                  } else {
-                    errorMessage = actualError;
-                  }
-                }
-              }
-            }
-            
-            // Also check the error message directly
-            if (errorMessage === "Unable to send invitation. Please try again.") {
-              const errorStr = error.message || '';
-              
-              if (errorStr.includes('already been registered') || 
-                  errorStr.includes('already exists') ||
-                  errorStr.includes('email address has already been registered')) {
-                errorMessage = "This email address is already registered. Please use a different email.";
-              } else if (errorStr.includes('timeout')) {
-                errorMessage = "The request took too long. Please check your connection and try again.";
-              } else if (errorStr.includes('network')) {
-                errorMessage = "Network error. Please check your connection and try again.";
-              }
-            }
-          } catch (parseError) {
-            console.error('Error parsing response:', parseError);
+          // Check for specific error patterns
+          if (serverMessage.includes('already been registered') || 
+              serverMessage.includes('already exists') ||
+              serverMessage.includes('A user with this email')) {
+            errorMessage = "This email address is already registered. Please use a different email.";
+          } else if (serverMessage.includes('already a member of your organization')) {
+            errorMessage = serverMessage;
+          } else if (serverMessage.includes('invalid email')) {
+            errorMessage = "Please enter a valid email address.";
+          } else if (serverMessage.includes('permission')) {
+            errorMessage = "You don't have permission to invite users. Please contact your administrator.";
+          } else if (serverMessage) {
+            // Use the server message directly
+            errorMessage = serverMessage;
           }
-          
-          console.log('Final error message to display:', errorMessage);
           
           return {
             success: false,
@@ -184,29 +130,23 @@ export const userService: UserService = {
             email: normalizedEmail
           };
         }
-
-        // Handle business logic failures from the edge function
-        if (!data?.success) {
-          console.error('Edge function returned failure:', data);
+        
+        // Handle network/timeout errors from the Supabase client
+        if (error) {
+          console.error('Network or client error:', error);
           
-          // Parse and provide user-friendly error messages
-          let userMessage = "Unable to send invitation. Please try again.";
-          const originalMessage = data?.message || "";
+          let errorMessage = "Unable to send invitation. Please try again.";
+          const errorStr = error.message || '';
           
-          if (originalMessage.includes('already been registered') || originalMessage.includes('already exists')) {
-            userMessage = `This email address is already registered. Please use a different email or contact the user to join your organization.`;
-          } else if (originalMessage.includes('invalid email')) {
-            userMessage = "Please enter a valid email address.";
-          } else if (originalMessage.includes('permission')) {
-            userMessage = "You don't have permission to invite users. Please contact your administrator.";
-          } else if (originalMessage) {
-            // Use the original message if it's not too technical
-            userMessage = originalMessage;
+          if (errorStr.includes('timeout')) {
+            errorMessage = "The request took too long. Please check your connection and try again.";
+          } else if (errorStr.includes('network')) {
+            errorMessage = "Network error. Please check your connection and try again.";
           }
           
           return {
             success: false,
-            message: userMessage,
+            message: errorMessage,
             email: normalizedEmail
           };
         }
