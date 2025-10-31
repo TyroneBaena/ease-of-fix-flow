@@ -12,6 +12,13 @@ export function useContractorStatus(userId: string | undefined): boolean {
     if (!userId) return;
     
     const checkContractorStatus = async () => {
+      // CRITICAL FIX: Add timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.warn('Contractor status check timeout after 10s');
+      }, 10000);
+
       try {
         // First check if user is a contractor in profiles
         const { data: profileData } = await supabase
@@ -19,6 +26,8 @@ export function useContractorStatus(userId: string | undefined): boolean {
           .select('role')
           .eq('id', userId)
           .single();
+
+        clearTimeout(timeoutId);
           
         if (profileData?.role === 'contractor') {
           setIsContractor(true);
@@ -26,14 +35,23 @@ export function useContractorStatus(userId: string | undefined): boolean {
         }
         
         // Then check if there's a contractor record for this user
+        const checkTimeoutId = setTimeout(() => controller.abort(), 10000);
         const { data: contractorData, error } = await supabase
           .from('contractors')
           .select('id')
           .eq('user_id', userId);
+
+        clearTimeout(checkTimeoutId);
           
         setIsContractor(!error && contractorData && contractorData.length > 0);
       } catch (err) {
-        console.error('Error checking contractor status:', err);
+        clearTimeout(timeoutId);
+        
+        if (controller.signal.aborted) {
+          console.warn('Contractor status check aborted due to timeout');
+        } else {
+          console.error('Error checking contractor status:', err);
+        }
         setIsContractor(false);
       }
     };

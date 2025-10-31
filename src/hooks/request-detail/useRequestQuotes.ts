@@ -14,15 +14,23 @@ export function useRequestQuotes(requestId: string | undefined, forceRefresh: nu
     if (!requestId) return;
     
     const fetchQuotes = async () => {
+      // CRITICAL FIX: Add timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.warn('Quotes fetch timeout after 10s');
+      }, 10000);
+
       try {
         const { data, error } = await supabase
           .from('quotes')
           .select('*')
           .eq('request_id', requestId)
           .order('created_at', { ascending: false });
+
+        clearTimeout(timeoutId);
           
         if (!error && data) {
-          // Map database fields to our interface fields
           const mappedQuotes: Quote[] = data.map(quote => ({
             id: quote.id,
             requestId: quote.request_id,
@@ -43,8 +51,15 @@ export function useRequestQuotes(requestId: string | undefined, forceRefresh: nu
           toast.error("Failed to load quotes");
         }
       } catch (err) {
-        console.error("useRequestQuotes - Exception fetching quotes:", err);
-        toast.error("Error loading quotes data");
+        clearTimeout(timeoutId);
+        
+        if (controller.signal.aborted) {
+          console.warn('Quotes fetch aborted due to timeout');
+          toast.error("Quotes loading timed out");
+        } else {
+          console.error("useRequestQuotes - Exception fetching quotes:", err);
+          toast.error("Error loading quotes data");
+        }
       }
     };
     

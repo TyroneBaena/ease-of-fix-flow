@@ -263,7 +263,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
-  const fetchUserOrganizations = async (user: User, retryCount = 0, maxRetries = 3) => {
+  const fetchUserOrganizations = async (user: User) => {
     if (!user?.id) {
       console.log('UnifiedAuth - No user ID, clearing organizations');
       setUserOrganizations([]);
@@ -272,126 +272,115 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     try {
-      console.log(`UnifiedAuth - Fetching organizations for user (attempt ${retryCount + 1}/${maxRetries + 1}):`, user.id);
+      console.log('UnifiedAuth - Fetching organizations for user:', user.id);
 
-      // Fetch user organizations with timeout (longer on retries for stability)
-      const timeoutDuration = 30000 + (retryCount * 5000); // 30s, 35s, 40s, 45s
-      const fetchPromise = supabase
-        .from('user_organizations')
-        .select(`
-          *,
-          organization_id,
-          role,
-          is_active,
-          is_default
-        `)
-        .eq('user_id', user.id)
-        .eq('is_active', true);
+      // CRITICAL FIX: 10-second timeout instead of 30 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Organization fetch timeout')), timeoutDuration)
-      );
+      try {
+        // Fetch user organizations
+        const { data: userOrgs, error: userOrgsError } = await supabase
+          .from('user_organizations')
+          .select(`
+            *,
+            organization_id,
+            role,
+            is_active,
+            is_default
+          `)
+          .eq('user_id', user.id)
+          .eq('is_active', true);
 
-      const { data: userOrgs, error: userOrgsError } = await Promise.race([
-        fetchPromise,
-        timeoutPromise
-      ]).catch((err) => {
-        console.warn(`UnifiedAuth - Organization fetch attempt ${retryCount + 1} timed out or failed:`, err);
-        return { data: null, error: err };
-      }) as any;
+        clearTimeout(timeoutId);
 
-      if (userOrgsError) {
-        console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
-        
-        // If timeout and retries remaining, retry with exponential backoff
-        if (userOrgsError.message === 'Organization fetch timeout' && retryCount < maxRetries) {
-          const backoffDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-          console.log(`UnifiedAuth - Retrying in ${backoffDelay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffDelay));
-          return fetchUserOrganizations(user, retryCount + 1, maxRetries);
+        if (userOrgsError) {
+          console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
+          throw userOrgsError;
         }
-        
-        // Don't clear organizations immediately on timeout - might be mid-operation
-        // Only clear for non-timeout errors
-        if (userOrgsError.message !== 'Organization fetch timeout') {
+
+        if (!userOrgs || userOrgs.length === 0) {
+          console.log('UnifiedAuth - No organizations found, using profile organization_id');
           setUserOrganizations([]);
           setCurrentOrganization(null);
+          return user.organization_id || null;
         }
-        return user.organization_id || null; // Return fallback org ID from profile
-      }
 
-      if (!userOrgs || userOrgs.length === 0) {
-        console.log('UnifiedAuth - No organizations found, using profile organization_id');
-        // Don't clear if we already have organizations - might be mid-update
-        if (userOrganizations.length === 0) {
-          setUserOrganizations([]);
-          setCurrentOrganization(null);
+        // Fetch organization details with timeout
+        const orgTimeoutId = setTimeout(() => controller.abort(), 10000);
+        const orgIds = userOrgs.map((uo: any) => uo.organization_id);
+        
+        const { data: organizations, error: orgsError } = await supabase
+          .from('organizations')
+          .select('*')
+          .in('id', orgIds);
+
+        clearTimeout(orgTimeoutId);
+
+        if (orgsError) {
+          console.warn('UnifiedAuth - Error fetching organizations:', orgsError);
+          throw orgsError;
         }
-        return user.organization_id || null; // Return fallback org ID
-      }
 
-      // Fetch organization details
-      const orgIds = userOrgs.map((uo: any) => uo.organization_id);
-      const { data: organizations, error: orgsError } = await supabase
-        .from('organizations')
-        .select('*')
-        .in('id', orgIds);
+        const mappedUserOrganizations = userOrgs.map((uo: any) => {
+          const organization = organizations?.find(org => org.id === uo.organization_id);
+          return {
+            ...uo,
+            organization: organization as Organization
+          };
+        }).filter((uo: any) => uo.organization);
 
-      if (orgsError) {
-        console.warn('UnifiedAuth - Error fetching organizations:', orgsError);
-        setUserOrganizations([]);
-        setCurrentOrganization(null);
-        return user.organization_id || null; // Return fallback org ID
-      }
+        setUserOrganizations(mappedUserOrganizations);
 
-      const mappedUserOrganizations = userOrgs.map((uo: any) => {
-        const organization = organizations?.find(org => org.id === uo.organization_id);
-        return {
-          ...uo,
-          organization: organization as Organization
-        };
-      }).filter((uo: any) => uo.organization);
+        // Set current organization (prefer session, then default, then first)
+        if (mappedUserOrganizations.length > 0) {
+          let targetOrg: Organization | null = null;
 
-      setUserOrganizations(mappedUserOrganizations);
-
-      // Set current organization (prefer session, then default, then first)
-      if (mappedUserOrganizations.length > 0) {
-        let targetOrg: Organization | null = null;
-
-        // Try session organization first
-        if (user.session_organization_id) {
-          const sessionOrg = mappedUserOrganizations.find(
-            (uo: any) => uo.organization_id === user.session_organization_id
-          );
-          if (sessionOrg) {
-            targetOrg = sessionOrg.organization;
+          // Try session organization first
+          if (user.session_organization_id) {
+            const sessionOrg = mappedUserOrganizations.find(
+              (uo: any) => uo.organization_id === user.session_organization_id
+            );
+            if (sessionOrg) {
+              targetOrg = sessionOrg.organization;
+            }
           }
-        }
 
-        // Fallback to default organization
-        if (!targetOrg) {
-          const defaultOrg = mappedUserOrganizations.find((uo: any) => uo.is_default);
-          if (defaultOrg) {
-            targetOrg = defaultOrg.organization;
+          // Fallback to default organization
+          if (!targetOrg) {
+            const defaultOrg = mappedUserOrganizations.find((uo: any) => uo.is_default);
+            if (defaultOrg) {
+              targetOrg = defaultOrg.organization;
+            }
           }
-        }
 
-        // Final fallback to first organization
-        if (!targetOrg) {
-          targetOrg = mappedUserOrganizations[0].organization;
-        }
+          // Final fallback to first organization
+          if (!targetOrg) {
+            targetOrg = mappedUserOrganizations[0].organization;
+          }
 
-        setCurrentOrganization(targetOrg);
-        console.log('UnifiedAuth - Set current organization:', targetOrg?.name);
-        return targetOrg?.id || null;
+          setCurrentOrganization(targetOrg);
+          console.log('UnifiedAuth - Set current organization:', targetOrg?.name);
+          return targetOrg?.id || null;
+        }
+        
+        return user.organization_id || null;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (controller.signal.aborted) {
+          console.warn('UnifiedAuth - Organization fetch timeout after 10s');
+          throw new Error('Organization fetch timeout');
+        }
+        throw fetchError;
       }
-      
-      return user.organization_id || null;
     } catch (error) {
       console.error('UnifiedAuth - Error in fetchUserOrganizations:', error);
-      setUserOrganizations([]);
-      setCurrentOrganization(null);
-      return user.organization_id || null; // Return fallback org ID
+      // Only clear if it's not a timeout - preserve existing data on timeout
+      if (!(error instanceof Error && error.message === 'Organization fetch timeout')) {
+        setUserOrganizations([]);
+        setCurrentOrganization(null);
+      }
+      return user.organization_id || null;
     }
   };
 

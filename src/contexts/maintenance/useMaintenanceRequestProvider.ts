@@ -14,71 +14,65 @@ export const useMaintenanceRequestProvider = () => {
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
 
   const loadRequests = useCallback(async () => {
-    console.log('🔍 LOADING REQUESTS v2.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
+    console.log('🔍 LOADING REQUESTS v3.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
     
     if (!currentUser?.id) {
-      console.log('🔍 LOADING REQUESTS v2.0 - No user, skipping');
+      console.log('🔍 LOADING REQUESTS v3.0 - No user, skipping');
       setLoading(false);
       return [];
     }
     
-    // CRITICAL FIX: Try to load requests even if organization_id is not yet set
-    // The backend RLS will handle filtering, and organization_id should be available from profile
     setLoading(true);
+    
+    // CRITICAL FIX: 10-second timeout instead of 15 seconds
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn('⏱️ Request fetch timeout after 10s');
+    }, 10000);
+
     try {
-      // Add timeout protection (15 seconds)
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request fetch timeout')), 15000);
-      });
+      const fetchedRequests = await fetchRequests();
+      clearTimeout(timeoutId);
       
-      const fetchPromise = fetchRequests();
-      
-      const fetchedRequests = await Promise.race([fetchPromise, timeoutPromise]);
-      console.log('🔍 LOADING REQUESTS v2.0 - Fetched:', fetchedRequests?.length, 'requests');
+      console.log('🔍 LOADING REQUESTS v3.0 - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
-        // Use formatRequestData to properly convert database objects to MaintenanceRequest type
         const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-        console.log('🔍 LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
-        
-        // Log specific requests for debugging
-        const add24Request = formattedRequests.find(req => req.title?.includes('add24'));
-        if (add24Request) {
-          console.log('🔍 LOADING REQUESTS - Found add24 request:', add24Request);
-        }
+        console.log('🔍 LOADING REQUESTS v3.0 - Formatted:', formattedRequests.length, 'requests');
         
         setRequests(formattedRequests);
         return formattedRequests;
       } else {
-        console.log('🔍 LOADING REQUESTS - No requests found');
+        console.log('🔍 LOADING REQUESTS v3.0 - No requests found');
         setRequests([]);
         return [];
       }
     } catch (error) {
-      console.error('🔍 LOADING REQUESTS - Error:', error);
-      if (error instanceof Error && error.message === 'Request fetch timeout') {
-        console.warn('⏱️ Request fetch timed out, setting empty state');
+      clearTimeout(timeoutId);
+      console.error('🔍 LOADING REQUESTS v3.0 - Error:', error);
+      
+      if (controller.signal.aborted) {
+        console.warn('⏱️ Request fetch aborted due to timeout');
       }
+      
       setRequests([]);
       return [];
     } finally {
-      // CRITICAL: Always set loading false
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
 
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - Current user changed:', currentUser?.email);
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User role:', currentUser?.role);
-    console.log('🔍 MAINTENANCE PROVIDER v2.0 - User organization_id:', currentUser?.organization_id);
+    console.log('🔍 MAINTENANCE PROVIDER v3.0 - Current user changed:', currentUser?.email);
+    console.log('🔍 MAINTENANCE PROVIDER v3.0 - User ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v3.0 - User role:', currentUser?.role);
+    console.log('🔍 MAINTENANCE PROVIDER v3.0 - User organization_id:', currentUser?.organization_id);
     
-    // CRITICAL FIX: Load requests if user is authenticated, even without organization_id yet
-    // The organization_id will be available from the profile or will be set shortly
     if (currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v2.0 - User authenticated, loading requests');
+      console.log('🔍 MAINTENANCE PROVIDER v3.0 - User authenticated, loading requests');
       
-      // FIXED: Only load once to prevent race conditions
       loadRequests();
       
       // Set up real-time subscription for maintenance requests
@@ -87,14 +81,12 @@ export const useMaintenanceRequestProvider = () => {
         .on(
           'postgres_changes',
           {
-            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            event: '*',
             schema: 'public',
             table: 'maintenance_requests'
           },
           async (payload) => {
             console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
-            
-            // Force immediate refresh on any change
             console.log('🔄 REAL-TIME: Triggering immediate context refresh');
             await loadRequests();
           }
@@ -108,12 +100,45 @@ export const useMaintenanceRequestProvider = () => {
         supabase.removeChannel(channel);
       };
     } else {
-      console.log('🔍 MAINTENANCE PROVIDER v2.0 - No current user, clearing requests');
+      console.log('🔍 MAINTENANCE PROVIDER v3.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id]); // Removed loadRequests to prevent infinite loop
+  }, [currentUser?.id]);
+
+  // Tab visibility detection - refresh stale data when tab becomes active
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    let lastFetchTime = Date.now();
+    const STALE_TIME = 60000; // 60 seconds
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const now = Date.now();
+        const timeSinceLastFetch = now - lastFetchTime;
+
+        console.log('🔄 MaintenanceProvider - Tab visible, time since last fetch:', timeSinceLastFetch / 1000, 's');
+
+        // Only refresh if data is stale (>60s)
+        if (timeSinceLastFetch > STALE_TIME) {
+          console.log('🔄 MaintenanceProvider - Data is stale, refreshing requests');
+          loadRequests().then(() => {
+            lastFetchTime = Date.now();
+          });
+        } else {
+          console.log('🔄 MaintenanceProvider - Data still fresh, skipping refresh');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser?.id, loadRequests]);
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {

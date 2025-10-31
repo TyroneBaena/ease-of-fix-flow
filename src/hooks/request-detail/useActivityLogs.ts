@@ -25,6 +25,13 @@ export const useActivityLogs = (requestId: string | undefined, refreshCounter: n
         return;
       }
 
+      // CRITICAL FIX: Add timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.warn('Activity logs fetch timeout after 10s');
+      }, 10000);
+
       try {
         setLoading(true);
         console.log('Fetching activity logs for request:', requestId);
@@ -35,6 +42,8 @@ export const useActivityLogs = (requestId: string | undefined, refreshCounter: n
           .eq('request_id', requestId)
           .order('created_at', { ascending: false });
 
+        clearTimeout(timeoutId);
+
         if (error) {
           console.error('Error fetching activity logs:', error);
           return;
@@ -43,7 +52,13 @@ export const useActivityLogs = (requestId: string | undefined, refreshCounter: n
         console.log('Activity logs fetched:', data);
         setActivityLogs(data || []);
       } catch (error) {
-        console.error('Error in fetchActivityLogs:', error);
+        clearTimeout(timeoutId);
+        
+        if (controller.signal.aborted) {
+          console.warn('Activity logs fetch aborted due to timeout');
+        } else {
+          console.error('Error in fetchActivityLogs:', error);
+        }
       } finally {
         setLoading(false);
       }
