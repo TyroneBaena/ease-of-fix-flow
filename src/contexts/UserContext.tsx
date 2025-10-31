@@ -42,14 +42,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoadingError(null);
       console.log('🔧 UserContext - Fetching users');
       
-      const userData = await userService.getAllUsers();
-      setUsers(userData);
-      
-      console.log('🔧 UserContext - Users fetched:', userData.length);
+      // Timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const userData = await userService.getAllUsers();
+        clearTimeout(timeoutId);
+        
+        setUsers(userData);
+        console.log('🔧 UserContext - Users fetched:', userData.length);
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        throw fetchErr;
+      }
     } catch (error) {
       console.error('🔧 UserContext - Error fetching users:', error);
       setLoadingError(error as Error);
     } finally {
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   }, [isAdmin]);

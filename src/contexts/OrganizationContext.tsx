@@ -69,20 +69,33 @@ const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', currentUser.organization_id)
-        .single();
+      
+      // Timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (error) throw error;
-      setCurrentOrganization(data);
-      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', currentUser.organization_id)
+          .single();
+
+        clearTimeout(timeoutId);
+
+        if (error) throw error;
+        setCurrentOrganization(data);
+        setError(null);
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        throw fetchErr;
+      }
     } catch (err) {
       console.error('Error fetching organization:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
       setCurrentOrganization(null);
     } finally {
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   };
@@ -93,6 +106,24 @@ const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     fetchOrganization();
+  }, [currentUser?.organization_id]);
+
+  // Tab visibility handler
+  useEffect(() => {
+    if (!currentUser?.organization_id) return;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('OrganizationContext - Tab became visible, refreshing data');
+        fetchOrganization();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [currentUser?.organization_id]);
 
   const value: OrganizationContextType = {

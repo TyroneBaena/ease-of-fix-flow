@@ -42,43 +42,56 @@ export const useContractorManagement = () => {
     handlePageChange
   } = useContractorPagination(contractors.length);
 
-  // Define loadContractors function first before using it
+  // Define loadContractors with timeout protection
   const loadContractors = async () => {
     try {
       setLoading(true);
       console.log("Fetching contractors in useContractorManagement...");
       console.log("User is admin:", isAdmin);
       
-      // Check if there are any RLS policies that might be blocking the request
-      console.log("Attempting to fetch contractors directly from Supabase...");
+      // Timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Detailed debug logging for Supabase query
-      const { data: rawData, error, count } = await supabase
-        .from('contractors')
-        .select('*', { count: 'exact' });
-      
-      if (error) {
-        console.error("Supabase query error:", error);
-        throw error;
-      }
-      
-      console.log("Raw contractors count from direct query:", count);
-      console.log("Raw data from contractors table:", rawData);
-      
-      // Use the fetchContractors function for consistent mapping
-      const data = await fetchContractors();
-      console.log("Contractors after mapping:", data);
-      
-      setContractors(data);
-      setFetchError(null);
-      
-      if (data.length === 0) {
-        console.log("No contractors were returned after fetching");
+      try {
+        console.log("Attempting to fetch contractors directly from Supabase...");
+        
+        const { data: rawData, error, count } = await supabase
+          .from('contractors')
+          .select('*', { count: 'exact' });
+        
+        clearTimeout(timeoutId);
+        
+        if (error) {
+          console.error("Supabase query error:", error);
+          throw error;
+        }
+        
+        console.log("Raw contractors count from direct query:", count);
+        console.log("Raw data from contractors table:", rawData);
+        
+        const data = await fetchContractors();
+        console.log("Contractors after mapping:", data);
+        
+        setContractors(data);
+        setFetchError(null);
+        
+        if (data.length === 0) {
+          console.log("No contractors were returned after fetching");
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        throw fetchErr;
       }
     } catch (err) {
       console.error("Error loading contractors:", err);
       setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
+      
+      if (err instanceof Error && (err.message.includes('aborted') || err.message.includes('timeout'))) {
+        toast.error('Loading contractors timed out. Please refresh the page.');
+      }
     } finally {
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   };
@@ -95,9 +108,26 @@ export const useContractorManagement = () => {
     selectedContractorForDeletion
   } = useContractorActions(loadContractors);
 
+  // Initial load
   useEffect(() => {
     loadContractors();
   }, []);
+
+  // Tab visibility handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && ready) {
+        console.log('useContractorManagement - Tab became visible, refreshing data');
+        loadContractors();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [ready]);
 
   // Track when the component is ready for operations - INCLUDING SESSION
   useEffect(() => {

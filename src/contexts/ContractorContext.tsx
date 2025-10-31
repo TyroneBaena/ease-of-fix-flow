@@ -34,34 +34,66 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchContractors();
   }, []);
 
+  // Tab visibility handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('ContractorContext - Tab became visible, refreshing data');
+        fetchContractors();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const fetchContractors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('contractors')
-        .select('*');
+      // Timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (error) throw error;
+      try {
+        const { data, error } = await supabase
+          .from('contractors')
+          .select('*');
 
-      // Map the snake_case database fields to camelCase for our TypeScript interfaces
-      const mappedContractors: Contractor[] = data.map(item => ({
-        id: item.id,
-        userId: item.user_id,
-        companyName: item.company_name,
-        contactName: item.contact_name,
-        email: item.email,
-        phone: item.phone,
-        address: item.address || undefined,
-        specialties: item.specialties || undefined,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at
-      }));
+        clearTimeout(timeoutId);
 
-      setContractors(mappedContractors);
+        if (error) throw error;
+
+        const mappedContractors: Contractor[] = data.map(item => ({
+          id: item.id,
+          userId: item.user_id,
+          companyName: item.company_name,
+          contactName: item.contact_name,
+          email: item.email,
+          phone: item.phone,
+          address: item.address || undefined,
+          specialties: item.specialties || undefined,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        }));
+
+        setContractors(mappedContractors);
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        throw fetchErr;
+      }
     } catch (err) {
       console.error('Error fetching contractors:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
-      toast.error('Failed to load contractors');
+      
+      if (err instanceof Error && (err.message.includes('aborted') || err.message.includes('timeout'))) {
+        toast.error('Loading contractors timed out');
+      } else {
+        toast.error('Failed to load contractors');
+      }
     } finally {
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   };

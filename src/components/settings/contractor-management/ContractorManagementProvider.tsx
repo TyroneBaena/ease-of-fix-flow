@@ -44,49 +44,71 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       setFetchError(null);
       console.log("Loading contractors...");
       
-      // Add timeout protection to prevent infinite loading
-      const fetchPromise = fetchContractors();
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000)
-      );
+      // Timeout protection with abort controller
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const data = await Promise.race([fetchPromise, timeoutPromise]);
-      console.log("Contractors loaded:", data.length);
-      
-      setContractors(data);
-      setFetchedOnce(true);
-      
-      if (data.length === 0) {
-        console.log("No contractors found in current organization");
+      try {
+        const data = await fetchContractors();
+        clearTimeout(timeoutId);
+        
+        console.log("Contractors loaded:", data.length);
+        
+        setContractors(data);
+        setFetchedOnce(true);
+        
+        if (data.length === 0) {
+          console.log("No contractors found in current organization");
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        throw fetchErr;
       }
     } catch (err) {
       console.error("Error loading contractors:", err);
       const error = err instanceof Error ? err : new Error('Failed to fetch contractors');
       setFetchError(error);
-      setFetchedOnce(true); // Mark as fetched even on error to prevent infinite retries
+      setFetchedOnce(true);
       
-      // Show user-friendly error message
-      if (error.message.includes('timeout')) {
+      if (error.message.includes('timeout') || error.message.includes('aborted')) {
         toast.error('Loading contractors timed out. Please try again.');
       } else {
         toast.error('Failed to load contractors');
       }
     } finally {
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   }, []);
 
-  // Load contractors only on initial mount or when user ID changes (not on every user object update)
+  // Load contractors on initial mount and when tab becomes visible
   useEffect(() => {
     if (currentUser && isAdmin && !fetchedOnce) {
       console.log("Initial contractor fetch for admin user");
       loadContractors();
     } else if (!currentUser || !isAdmin) {
       setLoading(false);
-      setFetchedOnce(true); // Mark as done to prevent retries when not admin
+      setFetchedOnce(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, isAdmin, fetchedOnce]); // Removed loadContractors to prevent infinite loop
+  }, [currentUser?.id, isAdmin, fetchedOnce, loadContractors]);
+
+  // Tab visibility handler for refreshing stale data
+  useEffect(() => {
+    if (!currentUser || !isAdmin || !fetchedOnce) return;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('ContractorManagementProvider - Tab became visible, refreshing data');
+        loadContractors();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser, isAdmin, fetchedOnce, loadContractors]);
 
 
   const value: ContractorManagementContextType = useMemo(() => ({
