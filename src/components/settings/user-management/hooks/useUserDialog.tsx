@@ -34,13 +34,25 @@ export const useUserDialog = () => {
       setIsPreparingDialog(true);
       console.log('🚀 Pre-validating session before opening user invitation dialog...');
       
-      // CRITICAL: Validate session BEFORE opening dialog
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Add timeout protection for session check to prevent hanging
+      const sessionCheckPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Session check timeout')), 5000)
+      );
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionCheckPromise,
+        timeoutPromise
+      ]).catch((err) => {
+        console.error('❌ Session check failed or timed out:', err);
+        return { data: { session: null }, error: err };
+      }) as any;
       
       if (error || !session) {
         console.error('❌ No valid session found:', error);
-        toast.error('Session expired. Please refresh the page and try again.');
-        setIsPreparingDialog(false);
+        toast.error(error?.message?.includes('timeout') 
+          ? 'Session check timed out. Please try again.' 
+          : 'Session expired. Please refresh the page and try again.');
         return;
       }
       
