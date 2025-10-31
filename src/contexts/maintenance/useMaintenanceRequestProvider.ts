@@ -114,37 +114,6 @@ export const useMaintenanceRequestProvider = () => {
     }
   }, [currentUser?.id, loadRequests]); // Only watch user ID changes to prevent excessive re-renders
 
-  // Listen for global tab revisit event to refresh data
-  useEffect(() => {
-    const handleDataRefresh = async (event: CustomEvent) => {
-      console.log('🔄 MaintenanceRequestProvider - Received data refresh event:', event.detail);
-      if (currentUser?.id) {
-        console.log('🔄 MaintenanceRequestProvider - Refreshing maintenance requests after tab revisit');
-        // Call fetchRequests directly to avoid dependency issues
-        setLoading(true);
-        try {
-          const fetchedRequests = await fetchRequests();
-          if (fetchedRequests && fetchedRequests.length > 0) {
-            const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-            setRequests(formattedRequests);
-          } else {
-            setRequests([]);
-          }
-        } catch (error) {
-          console.error('🔍 Tab Refresh - Error:', error);
-          setRequests([]);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    window.addEventListener('app-data-refresh', handleDataRefresh as EventListener);
-    
-    return () => {
-      window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
-    };
-  }, [currentUser?.id, fetchRequests]);
 
   const getRequestsForProperty = useCallback((propertyId: string) => {
     return requests.filter(request => request.propertyId === propertyId);
