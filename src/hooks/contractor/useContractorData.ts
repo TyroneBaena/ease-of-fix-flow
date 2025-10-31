@@ -37,6 +37,13 @@ export const useContractorData = (
     console.log('useContractorData - Starting fetch for contractor ID:', contractorId);
     
     const fetchContractorData = async () => {
+      // CRITICAL FIX: Add timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.warn('Contractor data fetch timeout after 10s');
+      }, 10000);
+
       try {
         // Prevent concurrent requests
         if (isFetchingRef.current) {
@@ -50,11 +57,7 @@ export const useContractorData = (
         
         console.log('useContractorData - Fetching contractor data for contractor ID:', contractorId);
         
-        console.log('useContractorData - Current contractor ID:', contractorId);
-        console.log('useContractorData - About to fetch data for contractor ID:', contractorId);
-        console.log('useContractorData - Contractor ID type:', typeof contractorId);
-        
-        // Fetch all quotes for this contractor to check which requests they're involved in
+        // Fetch all quotes for this contractor
         console.log('🔍 useContractorData - Fetching quotes for contractor:', contractorId);
         
         const { data: quotes, error: quotesError } = await supabase
@@ -65,21 +68,10 @@ export const useContractorData = (
           `)
           .eq('contractor_id', contractorId)
           .in('status', ['requested', 'pending', 'submitted']);
+
+        clearTimeout(timeoutId);
           
-        console.log('🔍 useContractorData - Quotes query result:');
-        console.log('  - Data:', quotes);
-        console.log('  - Error:', quotesError);
-        console.log('  - Count:', quotes?.length || 0);
-        quotes?.forEach((quote, index) => {
-          console.log(`  - Quote ${index}:`, {
-            quoteId: quote.id,
-            quoteStatus: quote.status,
-            requestId: quote.maintenance_requests?.id,
-            requestStatus: quote.maintenance_requests?.status,
-            requestContractorId: quote.maintenance_requests?.contractor_id,
-            isAssignedToThisContractor: quote.maintenance_requests?.contractor_id === contractorId
-          });
-        });
+        console.log('🔍 useContractorData - Quotes query result:', quotes?.length || 0, 'quotes');
           
         if (quotesError) {
           console.error('🔍 useContractorData - Error fetching quotes:', quotesError);
@@ -87,15 +79,16 @@ export const useContractorData = (
         }
         
         // Fetch active jobs assigned to this contractor
-        // Jobs assigned to contractor should be active regardless of status (requested, in-progress)
         console.log('🔍 useContractorData - Fetching active jobs for contractor:', contractorId);
-        console.log('🔍 useContractorData - Query parameters: contractor_id =', contractorId, 'status IN', ['requested', 'in-progress']);
         
+        const activeTimeoutId = setTimeout(() => controller.abort(), 10000);
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
           .in('status', ['requested', 'in-progress']);
+
+        clearTimeout(activeTimeoutId);
           
         console.log('🔍 useContractorData - Active jobs query result:');
         console.log('  - Data:', activeJobsData);

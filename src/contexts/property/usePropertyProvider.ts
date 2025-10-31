@@ -32,6 +32,13 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
+    // CRITICAL FIX: Add timeout protection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn('Properties fetch timeout after 10s');
+    }, 10000);
+
     try {
       console.log('PropertyProvider: fetchAndSetProperties called');
       setLoading(true);
@@ -39,20 +46,59 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
       
       const formattedProperties = await fetchProperties();
+      clearTimeout(timeoutId);
       
       console.log('PropertyContext: Properties fetched successfully');
       console.log('PropertyContext: Number of properties:', formattedProperties.length);
-      console.log('PropertyContext: Property details:', formattedProperties.map(p => ({ id: p.id, name: p.name, email: p.email })));
-      console.log('PropertyContext: Sample Property emails:', formattedProperties.filter(p => p.name === 'Sample Property').map(p => ({ id: p.id, email: p.email })));
       setProperties(formattedProperties);
     } catch (err) {
-      console.error('PropertyContext: Error fetching properties:', err);
+      clearTimeout(timeoutId);
+      
+      if (controller.signal.aborted) {
+        console.warn('Properties fetch aborted due to timeout');
+        toast.error('Loading properties timed out. Please refresh.');
+      } else {
+        console.error('PropertyContext: Error fetching properties:', err);
+        toast.error('Failed to load properties');
+      }
       setLoadingFailed(true);
-      toast.error('Failed to load properties');
     } finally {
       setLoading(false);
     }
   }, [currentUser?.id]);
+
+  // Tab visibility detection - refresh stale data when tab becomes active
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    let lastFetchTime = Date.now();
+    const STALE_TIME = 60000; // 60 seconds
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const now = Date.now();
+        const timeSinceLastFetch = now - lastFetchTime;
+
+        console.log('🔄 PropertyProvider - Tab visible, time since last fetch:', timeSinceLastFetch / 1000, 's');
+
+        // Only refresh if data is stale (>60s)
+        if (timeSinceLastFetch > STALE_TIME) {
+          console.log('🔄 PropertyProvider - Data is stale, refreshing properties');
+          fetchAndSetProperties().then(() => {
+            lastFetchTime = Date.now();
+          });
+        } else {
+          console.log('🔄 PropertyProvider - Data still fresh, skipping refresh');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser?.id, fetchAndSetProperties]);
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
