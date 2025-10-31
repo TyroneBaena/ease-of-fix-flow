@@ -85,7 +85,8 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       setLoading(false);
       setFetchedOnce(true); // Mark as done to prevent retries when not admin
     }
-  }, [currentUser?.id, isAdmin, fetchedOnce, loadContractors]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, isAdmin, fetchedOnce]); // Removed loadContractors to prevent infinite loop
 
 
   const value: ContractorManagementContextType = useMemo(() => ({

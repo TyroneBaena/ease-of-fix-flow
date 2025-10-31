@@ -112,7 +112,8 @@ export const useMaintenanceRequestProvider = () => {
       setRequests([]);
       setLoading(false);
     }
-  }, [currentUser?.id, loadRequests]); // Only watch user ID changes to prevent excessive re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]); // Removed loadRequests to prevent infinite loop
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {
