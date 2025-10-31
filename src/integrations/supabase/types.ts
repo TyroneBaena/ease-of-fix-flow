@@ -1579,21 +1579,7 @@ export type Database = {
           id: string | null
           name: string | null
           organization_id: string | null
-          role: Database["public"]["Enums"]["app_role"] | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          organization_id?: string | null
-          role?: never
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          organization_id?: string | null
-          role?: never
+          role: string | null
         }
         Relationships: [
           {
