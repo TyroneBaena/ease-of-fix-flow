@@ -274,8 +274,8 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log(`UnifiedAuth - Fetching organizations for user (attempt ${retryCount + 1}/${maxRetries + 1}):`, user.id);
 
-      // Fetch user organizations with timeout (longer on retries)
-      const timeoutDuration = 30000 + (retryCount * 5000); // 30s, 35s, 40s, 45s
+      // CRITICAL FIX: Reduce timeout from 30s to 10s (queries should be fast)
+      const timeoutDuration = 10000; // Fixed 10s timeout - no increasing timeout on retries
       const fetchPromise = supabase
         .from('user_organizations')
         .select(`
@@ -306,15 +306,17 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (userOrgsError) {
         console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
         
-        // If timeout and retries remaining, retry with exponential backoff
-        if (userOrgsError.message === 'Organization fetch timeout' && retryCount < maxRetries) {
-          const backoffDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-          console.log(`UnifiedAuth - Retrying in ${backoffDelay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffDelay));
-          return fetchUserOrganizations(user, retryCount + 1, maxRetries);
+        // CRITICAL FIX: On first timeout/error, use fallback data immediately - don't retry
+        // This prevents infinite loading loops
+        if (retryCount === 0 && userOrgsError.message === 'Organization fetch timeout') {
+          console.log('UnifiedAuth - First attempt failed, using fallback organization data');
+          // Use profile's organization_id as fallback
+          setUserOrganizations([]);
+          setCurrentOrganization(null);
+          return user.organization_id || null;
         }
         
-        // Don't clear organizations immediately on timeout - might be mid-join
+        // For non-timeout errors, clear organizations immediately
         if (userOrgsError.message !== 'Organization fetch timeout') {
           setUserOrganizations([]);
           setCurrentOrganization(null);
