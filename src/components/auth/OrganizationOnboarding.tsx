@@ -137,13 +137,14 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
     // Check if user already has an organization membership
     const { data: existingMembership } = await supabase
       .from('user_organizations')
-      .select('organization_id')
+      .select('organization_id, organizations(name)')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (existingMembership) {
-      setError("You already have an organization. Please contact support if you need to create another one.");
-      toast.error("You already have an organization");
+      const orgName = (existingMembership as any)?.organizations?.name || 'an organization';
+      setError(`You're already a member of ${orgName}. Each user can only create one organization. If you want to join a different organization, please use the "Join Organization" tab above.`);
+      toast.error("You already belong to an organization");
       return;
     }
 
