@@ -795,23 +795,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           console.log('🔄 UnifiedAuth - Session validated successfully');
           setSession(currentSession);
           
-          // Refresh user data if session user exists
-          if (currentSession.user && currentSession.user.id === currentUser.id) {
-            // Use setTimeout to defer async operations (prevent blocking)
-            setTimeout(() => {
-              convertSupabaseUser(currentSession.user).then(refreshedUser => {
-                setCurrentUser(refreshedUser);
-                console.log('🔄 UnifiedAuth - User data refreshed seamlessly');
-                
-                // Refresh organizations in background without blocking
-                fetchUserOrganizations(refreshedUser).catch(err => {
-                  console.warn('🔄 UnifiedAuth - Non-critical org refresh error:', err);
-                });
-              }).catch(err => {
-                console.warn('🔄 UnifiedAuth - Error refreshing user data:', err);
-              });
-            }, 0);
-          }
+          // CRITICAL FIX: Don't refresh user data on tab revisit
+          // This was causing infinite loading because it created a new user object reference
+          // which triggered all child providers to re-fetch their data
+          console.log('🔄 UnifiedAuth - Session validated, user data unchanged');
         } catch (error) {
           console.error('🔄 UnifiedAuth - Error handling visibility change:', error);
         } finally {
