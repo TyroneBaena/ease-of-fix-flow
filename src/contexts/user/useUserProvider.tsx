@@ -121,11 +121,24 @@ export const useUserProvider = () => {
 
   // Listen for global tab revisit event to refresh data
   useEffect(() => {
-    const handleDataRefresh = (event: CustomEvent) => {
+    const handleDataRefresh = async (event: CustomEvent) => {
       console.log('🔄 UserProvider - Received data refresh event:', event.detail);
       if (canFetchUsers && !fetchInProgress.current) {
         console.log('🔄 UserProvider - Refreshing users data after tab revisit');
-        fetchUsers().catch(console.error);
+        // Call userService directly to avoid dependency issues
+        try {
+          fetchInProgress.current = true;
+          setLoading(true);
+          const allUsers = await userService.getAllUsers();
+          setUsers(allUsers);
+          setLoadingError(null);
+        } catch (error) {
+          console.error('❌ Error fetching users on tab revisit:', error);
+          setLoadingError(error as Error);
+        } finally {
+          setLoading(false);
+          fetchInProgress.current = false;
+        }
       }
     };
 
@@ -134,7 +147,7 @@ export const useUserProvider = () => {
     return () => {
       window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
     };
-  }, [canFetchUsers, fetchUsers]);
+  }, [canFetchUsers]);
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
     try {

@@ -116,11 +116,26 @@ export const useMaintenanceRequestProvider = () => {
 
   // Listen for global tab revisit event to refresh data
   useEffect(() => {
-    const handleDataRefresh = (event: CustomEvent) => {
+    const handleDataRefresh = async (event: CustomEvent) => {
       console.log('🔄 MaintenanceRequestProvider - Received data refresh event:', event.detail);
       if (currentUser?.id) {
         console.log('🔄 MaintenanceRequestProvider - Refreshing maintenance requests after tab revisit');
-        loadRequests();
+        // Call fetchRequests directly to avoid dependency issues
+        setLoading(true);
+        try {
+          const fetchedRequests = await fetchRequests();
+          if (fetchedRequests && fetchedRequests.length > 0) {
+            const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
+            setRequests(formattedRequests);
+          } else {
+            setRequests([]);
+          }
+        } catch (error) {
+          console.error('🔍 Tab Refresh - Error:', error);
+          setRequests([]);
+        } finally {
+          setLoading(false);
+        }
       }
     };
 
@@ -129,7 +144,7 @@ export const useMaintenanceRequestProvider = () => {
     return () => {
       window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
     };
-  }, [currentUser?.id, loadRequests]);
+  }, [currentUser?.id, fetchRequests]);
 
   const getRequestsForProperty = useCallback((propertyId: string) => {
     return requests.filter(request => request.propertyId === propertyId);

@@ -56,11 +56,20 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   // Listen for global tab revisit event to refresh data
   useEffect(() => {
-    const handleDataRefresh = (event: CustomEvent) => {
+    const handleDataRefresh = async (event: CustomEvent) => {
       console.log('🔄 PropertyProvider - Received data refresh event:', event.detail);
       if (currentUser) {
         console.log('🔄 PropertyProvider - Refreshing properties data after tab revisit');
-        fetchAndSetProperties();
+        // Call fetchProperties directly to avoid dependency issues
+        try {
+          setLoading(true);
+          const formattedProperties = await fetchProperties();
+          setProperties(formattedProperties);
+        } catch (err) {
+          console.error('PropertyContext: Error fetching properties on tab revisit:', err);
+        } finally {
+          setLoading(false);
+        }
       }
     };
 
@@ -69,7 +78,7 @@ export const usePropertyProvider = (): PropertyContextType => {
     return () => {
       window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
     };
-  }, [currentUser, fetchAndSetProperties]);
+  }, [currentUser?.id]);
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
     try {

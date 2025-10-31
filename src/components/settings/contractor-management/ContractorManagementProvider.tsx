@@ -89,11 +89,23 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
 
   // Listen for global tab revisit event to refresh data
   useEffect(() => {
-    const handleDataRefresh = (event: CustomEvent) => {
+    const handleDataRefresh = async (event: CustomEvent) => {
       console.log('🔄 ContractorProvider - Received data refresh event:', event.detail);
       if (currentUser && isAdmin) {
         console.log('🔄 ContractorProvider - Refreshing contractors data after tab revisit');
-        loadContractors();
+        // Call fetchContractors directly to avoid dependency issues
+        try {
+          setLoading(true);
+          setFetchError(null);
+          const data = await fetchContractors();
+          setContractors(data);
+        } catch (err) {
+          console.error('Error loading contractors on tab revisit:', err);
+          const error = err instanceof Error ? err : new Error('Failed to fetch contractors');
+          setFetchError(error);
+        } finally {
+          setLoading(false);
+        }
       }
     };
 
@@ -102,7 +114,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     return () => {
       window.removeEventListener('app-data-refresh', handleDataRefresh as EventListener);
     };
-  }, [currentUser, isAdmin, loadContractors]);
+  }, [currentUser?.id, isAdmin]);
 
   const value: ContractorManagementContextType = useMemo(() => ({
     contractors,
