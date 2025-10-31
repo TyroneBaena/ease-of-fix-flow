@@ -729,12 +729,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
         
         const hiddenDuration = lastHiddenTime ? Date.now() - lastHiddenTime : 0;
-        console.log('🔄 UnifiedAuth - Tab became visible, seamlessly refreshing (was hidden for', Math.round(hiddenDuration / 1000), 'seconds)');
+        console.log('🔄 UnifiedAuth - Tab became visible (was hidden for', Math.round(hiddenDuration / 1000), 'seconds)');
         
-        // Only refresh if tab was hidden for more than 30 seconds
-        // For shorter periods, session is still fresh
-        if (hiddenDuration < 30000 && hiddenDuration > 0) {
-          console.log('🔄 UnifiedAuth - Short absence, session still fresh, skipping check');
+        // Only refresh if tab was hidden for more than 5 minutes
+        // For shorter periods, session is still fresh - no need to check
+        // This prevents unnecessary loading states on quick tab switches
+        if (hiddenDuration < 300000 && hiddenDuration > 0) {
+          console.log('🔄 UnifiedAuth - Short absence (<5 min), session still fresh, skipping check');
           return;
         }
         

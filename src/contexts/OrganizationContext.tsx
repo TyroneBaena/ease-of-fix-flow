@@ -108,23 +108,8 @@ const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchOrganization();
   }, [currentUser?.organization_id]);
 
-  // Tab visibility handler
-  useEffect(() => {
-    if (!currentUser?.organization_id) return;
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('OrganizationContext - Tab became visible, refreshing data');
-        fetchOrganization();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentUser?.organization_id]);
+  // Tab visibility handler removed - UnifiedAuthContext handles session validation
+  // Organization data will be refetched naturally when needed
 
   const value: OrganizationContextType = {
     currentOrganization,

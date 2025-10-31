@@ -92,23 +92,8 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     }
   }, [currentUser?.id, isAdmin, fetchedOnce, loadContractors]);
 
-  // Tab visibility handler for refreshing stale data
-  useEffect(() => {
-    if (!currentUser || !isAdmin || !fetchedOnce) return;
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('ContractorManagementProvider - Tab became visible, refreshing data');
-        loadContractors();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentUser, isAdmin, fetchedOnce, loadContractors]);
+  // Tab visibility handler removed - prevents excessive loading on tab switches
+  // Data will refresh naturally through normal React lifecycle when needed
 
 
   const value: ContractorManagementContextType = useMemo(() => ({

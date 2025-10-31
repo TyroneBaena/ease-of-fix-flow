@@ -34,21 +34,8 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchContractors();
   }, []);
 
-  // Tab visibility handler
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('ContractorContext - Tab became visible, refreshing data');
-        fetchContractors();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
+  // Tab visibility handler removed - UnifiedAuthContext handles session validation
+  // Data will be refetched naturally when components remount or when explicitly needed
 
   const fetchContractors = async () => {
     try {
