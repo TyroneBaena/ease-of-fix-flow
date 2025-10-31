@@ -1,10 +1,10 @@
 
 import { useState } from 'react';
 import { Contractor } from '@/types/contractor';
-import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { Session } from '@supabase/supabase-js';
 
-export const useContractorDialog = () => {
+export const useContractorDialog = (session: Session | null) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedContractor, setSelectedContractor] = useState<Contractor | null>(null);
@@ -27,37 +27,17 @@ export const useContractorDialog = () => {
 
     try {
       setIsPreparingDialog(true);
-      console.log('🚀 Pre-validating session before opening contractor invitation dialog...');
+      console.log('🚀 Opening contractor invitation dialog...');
       
-      // Add timeout protection for session check to prevent hanging
-      const sessionCheckPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Session check timeout')), 5000)
-      );
-      
-      const { data: { session }, error } = await Promise.race([
-        sessionCheckPromise,
-        timeoutPromise
-      ]).catch((err) => {
-        console.error('❌ Session check failed or timed out:', err);
-        return { data: { session: null }, error: err };
-      }) as any;
-      
-      if (error || !session) {
-        console.error('❌ No valid session found:', error);
-        toast.error(error?.message?.includes('timeout') 
-          ? 'Session check timed out. Please try again.' 
-          : 'Session expired. Please refresh the page and try again.');
-        return;
+      // Use session from context - no need for redundant API call
+      // The visibility handler already validates the session
+      if (!session) {
+        console.warn('⚠️ No active session found');
+        // Don't block the user - let the actual API call handle auth errors
+        // This provides a smoother experience
       }
       
-      console.log('✅ Session validated successfully:', {
-        hasSession: !!session,
-        hasAccessToken: !!session.access_token,
-        userEmail: session.user?.email
-      });
-      
-      // Session is valid, proceed with opening dialog
+      // Proceed with opening dialog
       if (edit && contractor) {
         setIsEditMode(true);
         setSelectedContractor(contractor);
@@ -82,9 +62,9 @@ export const useContractorDialog = () => {
         });
       }
       
-      // Only open dialog after session validation succeeds
+      // Open dialog immediately for smooth experience
       setIsDialogOpen(true);
-      console.log('✅ Contractor invitation dialog opened with valid session');
+      console.log('✅ Contractor invitation dialog opened');
       
     } catch (error) {
       console.error('❌ Error preparing contractor invitation dialog:', error);

@@ -33,7 +33,7 @@ export const useContractorManagement = () => {
     handleContractorChange,
     handleSpecialtiesChange,
     isPreparingDialog
-  } = useContractorDialog();
+  } = useContractorDialog(session);
 
   const {
     currentPage,

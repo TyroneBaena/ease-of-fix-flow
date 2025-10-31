@@ -7,12 +7,14 @@ import DeleteContractorDialog from './DeleteContractorDialog';
 import { useContractorDialog } from './hooks/useContractorDialog';
 import { useContractorActions } from './hooks/useContractorActions';
 import { useContractorPagination } from './hooks/useContractorPagination';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import AccessDeniedMessage from '../user-management/AccessDeniedMessage';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 const ContractorManagementContent: React.FC = () => {
+  const { session } = useSimpleAuth();
   const { 
     contractors, 
     loading, 
@@ -31,7 +33,7 @@ const ContractorManagementContent: React.FC = () => {
     handleOpenDialog,
     handleContractorChange,
     handleSpecialtiesChange
-  } = useContractorDialog();
+  } = useContractorDialog(session);
 
   const {
     currentPage,
