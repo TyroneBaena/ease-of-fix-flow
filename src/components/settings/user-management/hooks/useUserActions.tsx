@@ -28,14 +28,19 @@ export const useUserActions = (
   const [copied, setCopied] = useState(false);
 
   const handleSaveUser = async (userData?: NewUserFormState) => {
+    console.log("🚀 useUserActions - handleSaveUser called");
+    console.log("🚀 useUserActions - userData:", userData);
+    console.log("🚀 useUserActions - newUser state:", newUser);
+    console.log("🚀 useUserActions - isEditMode:", isEditMode);
+    
     // Use provided userData or fallback to state
     const userToSave = userData || newUser;
     
     // Validation is already handled by react-hook-form, no need for additional checks
     try {
       setIsLoading(true);
-      console.log("Starting user save operation:", isEditMode ? "update" : "invite");
-      console.log("User data:", { name: userToSave.name, email: userToSave.email, role: userToSave.role });
+      console.log("🚀 useUserActions - Starting user save operation:", isEditMode ? "update" : "invite");
+      console.log("🚀 useUserActions - User data:", { name: userToSave.name, email: userToSave.email, role: userToSave.role });
       
       if (isEditMode && selectedUser) {
         const updatedUser: User = {

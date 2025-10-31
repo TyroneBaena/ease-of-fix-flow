@@ -29,15 +29,16 @@ export const userService: UserService = {
   
   inviteUser: async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<InviteUserResult> => {
     try {
-      console.log(`Inviting new user: ${email}, role: ${role}`);
+      console.log(`✉️ userService.inviteUser - Called with email: ${email}, role: ${role}`);
+      console.log(`✉️ userService.inviteUser - assignedProperties:`, assignedProperties);
       
       const normalizedEmail = email.toLowerCase().trim();
       
       // Ensure we have a valid session before making the request
-      console.log("Checking session before invitation...");
+      console.log("✉️ userService.inviteUser - Checking session before invitation...");
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log("Session check result:", {
+      console.log("✉️ userService.inviteUser - Session check result:", {
         hasSession: !!session,
         hasUser: !!session?.user,
         userEmail: session?.user?.email,
@@ -46,7 +47,7 @@ export const userService: UserService = {
       });
       
       if (sessionError || !session) {
-        console.error('No valid session found for user invitation:', sessionError);
+        console.error('✉️ userService.inviteUser - No valid session found for user invitation:', sessionError);
         return {
           success: false,
           message: "Authentication required. Please log in and try again.",
@@ -54,7 +55,7 @@ export const userService: UserService = {
         };
       }
       
-      console.log(`Proceeding with invitation for: ${normalizedEmail} with valid session`);
+      console.log(`✉️ userService.inviteUser - Proceeding with invitation for: ${normalizedEmail} with valid session`);
       console.log("Session details:", {
         userId: session.user?.id,
         email: session.user?.email,
@@ -62,12 +63,12 @@ export const userService: UserService = {
         refreshToken: session.refresh_token ? "Present" : "Missing"
       });
       
-      console.log("Supabase client status check:");
-      console.log("Supabase object:", !!supabase);
-      console.log("Supabase functions:", !!supabase.functions);
-      console.log("Supabase functions invoke:", typeof supabase.functions.invoke);
+      console.log("✉️ userService.inviteUser - Supabase client status check:");
+      console.log("✉️ userService.inviteUser - Supabase object:", !!supabase);
+      console.log("✉️ userService.inviteUser - Supabase functions:", !!supabase.functions);
+      console.log("✉️ userService.inviteUser - Supabase functions invoke:", typeof supabase.functions.invoke);
       
-      console.log("About to call supabase.functions.invoke('send-invite')...");
+      console.log("✉️ userService.inviteUser - About to call supabase.functions.invoke('send-invite')...");
       
       const requestBody = {
         email: normalizedEmail,
@@ -77,10 +78,10 @@ export const userService: UserService = {
         bypassExistingCheck: false
       };
       
-      console.log("Request body to be sent:", JSON.stringify(requestBody, null, 2));
+      console.log("✉️ userService.inviteUser - Request body to be sent:", JSON.stringify(requestBody, null, 2));
       
       try {
-        console.log("Making edge function call NOW...");
+        console.log("✉️ userService.inviteUser - Making edge function call NOW...");
         
         // Add timeout to prevent infinite loading
         const EDGE_FUNCTION_TIMEOUT = 30000; // 30 seconds

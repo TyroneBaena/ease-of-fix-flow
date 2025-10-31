@@ -105,8 +105,17 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   }, [isOpen, user.name, user.email, user.role, user.assignedProperties, form]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
+    console.log('🎯 UserFormDialog - Form submitted with data:', data);
+    console.log('🎯 UserFormDialog - Ready state:', ready);
+    console.log('🎯 UserFormDialog - Loading state:', isLoading);
+    
     // Pass form data directly to onSave to avoid state timing issues
-    await onSave(data);
+    try {
+      await onSave(data);
+      console.log('🎯 UserFormDialog - onSave completed successfully');
+    } catch (error) {
+      console.error('🎯 UserFormDialog - onSave failed:', error);
+    }
   });
 
   const handlePropertyToggle = (propertyId: string) => {
