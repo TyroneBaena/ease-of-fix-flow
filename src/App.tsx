@@ -46,6 +46,7 @@ import QuoteSubmission from './pages/contractor/QuoteSubmission';
 import PropertyDetailWrapper from '@/components/PropertyDetailWrapper';
 import NewRequestWrapper from '@/components/NewRequestWrapper';
 import PaymentMethodSetup from '@/pages/PaymentMethodSetup';
+import TestDataFetching from '@/pages/TestDataFetching';
 
 // Context providers for specific features
 import { SubscriptionProvider } from './contexts/subscription/SubscriptionContext';
@@ -318,6 +319,13 @@ function AppRoutes() {
                     <TeamManagement />
                   </AdminRouteGuard>
                 </OrganizationGuard>
+              </ProtectedRoute>
+            } />
+            
+            {/* Test Data Fetching Implementation */}
+            <Route path="/test-data-fetching" element={
+              <ProtectedRoute>
+                <TestDataFetching />
               </ProtectedRoute>
             } />
             
