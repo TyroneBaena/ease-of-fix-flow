@@ -1605,6 +1605,10 @@ export type Database = {
       }
       analytics_query: { Args: { query: string }; Returns: Json }
       can_manage_organization: { Args: { org_id: string }; Returns: boolean }
+      can_view_organization_profiles: {
+        Args: { _target_profile_org_id: string; _viewer_id: string }
+        Returns: boolean
+      }
       cleanup_old_security_events: { Args: never; Returns: undefined }
       create_comment_notifications: {
         Args: {
