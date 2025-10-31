@@ -105,10 +105,21 @@ export const userService: UserService = {
         // Handle edge function errors (network, timeout, etc.)
         if (error) {
           console.error('Edge function error:', error);
-          const errorMessage = error.message || "Failed to send invitation due to network error";
+          
+          // Provide user-friendly error messages
+          let userMessage = "Unable to send invitation. Please try again.";
+          
+          if (error.message?.includes('non-2xx status code')) {
+            userMessage = "The invitation could not be processed. This might be a temporary issue. Please try again.";
+          } else if (error.message?.includes('timeout')) {
+            userMessage = "The request took too long. Please check your connection and try again.";
+          } else if (error.message?.includes('network')) {
+            userMessage = "Network error. Please check your connection and try again.";
+          }
+          
           return {
             success: false,
-            message: errorMessage,
+            message: userMessage,
             email: normalizedEmail
           };
         }
@@ -116,10 +127,25 @@ export const userService: UserService = {
         // Handle business logic failures from the edge function
         if (!data?.success) {
           console.error('Edge function returned failure:', data);
-          const errorMessage = data?.message || "Failed to send invitation";
+          
+          // Parse and provide user-friendly error messages
+          let userMessage = "Unable to send invitation. Please try again.";
+          const originalMessage = data?.message || "";
+          
+          if (originalMessage.includes('already been registered') || originalMessage.includes('already exists')) {
+            userMessage = `This email address is already registered. Please use a different email or contact the user to join your organization.`;
+          } else if (originalMessage.includes('invalid email')) {
+            userMessage = "Please enter a valid email address.";
+          } else if (originalMessage.includes('permission')) {
+            userMessage = "You don't have permission to invite users. Please contact your administrator.";
+          } else if (originalMessage) {
+            // Use the original message if it's not too technical
+            userMessage = originalMessage;
+          }
+          
           return {
             success: false,
-            message: errorMessage,
+            message: userMessage,
             email: normalizedEmail
           };
         }
@@ -148,9 +174,18 @@ export const userService: UserService = {
           name: functionCallError.name
         });
         
+        // Provide user-friendly error message
+        let userMessage = "Unable to process invitation at this time. Please try again later.";
+        
+        if (functionCallError.message?.includes('timeout')) {
+          userMessage = "The request took too long. Please try again.";
+        } else if (functionCallError.message?.includes('network')) {
+          userMessage = "Network error. Please check your connection and try again.";
+        }
+        
         return {
           success: false,
-          message: `Failed to invoke invitation function: ${functionCallError.message}`,
+          message: userMessage,
           email: normalizedEmail
         };
       }

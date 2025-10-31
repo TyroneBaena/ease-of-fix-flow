@@ -108,12 +108,15 @@ export const useUserActions = (
           } else {
             // This message is for failures like "user already exists"
             console.error("User creation failed:", result.message);
-            toast.error(result.message || "Failed to process user");
+            // Display the user-friendly message from the service
+            toast.error(result.message || "Unable to send invitation. Please try again.");
             // Do not close dialog on error so user can correct if needed
           }
         } catch (error: any) {
           console.error("Error adding user:", error);
-          toast.error(`Failed to invite user: ${error.message || 'Unknown error'}`);
+          // Provide a user-friendly error message
+          const userMessage = "Unable to send invitation at this time. Please try again.";
+          toast.error(userMessage);
         }
       }
     } catch (error: any) {
