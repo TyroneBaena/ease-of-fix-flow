@@ -105,64 +105,78 @@ export const userService: UserService = {
         // Handle edge function errors (network, timeout, etc.)
         if (error) {
           console.error('Edge function error:', error);
-          console.error('Full error object:', JSON.stringify(error, null, 2));
+          console.error('Error message:', error.message);
+          console.error('Error context type:', typeof error.context);
+          console.error('Error context:', error.context);
           
-          // Try to extract the actual error response from the FunctionsHttpError
+          // Default user-friendly message
           let errorMessage = "Unable to send invitation. Please try again.";
-          let messageFound = false;
           
+          // Try multiple ways to extract the actual error message
           try {
-            // The error.context often contains the actual response body
+            // First, try to parse error.context as it often contains the response
             if (error.context) {
               let responseBody;
+              
               if (typeof error.context === 'string') {
-                responseBody = JSON.parse(error.context);
+                try {
+                  responseBody = JSON.parse(error.context);
+                } catch (e) {
+                  console.log('Context is string but not JSON:', error.context);
+                  responseBody = { message: error.context };
+                }
               } else if (typeof error.context === 'object') {
                 responseBody = error.context;
               }
               
+              console.log('Parsed response body:', responseBody);
+              
               // Extract the message from the response
               if (responseBody?.message) {
                 const serverMessage = responseBody.message;
+                console.log('Server message:', serverMessage);
                 
-                // Check for specific error patterns and provide user-friendly messages
-                if (serverMessage.includes('already been registered') || 
+                // Check for specific error patterns
+                if (serverMessage.includes('email address has already been registered') || 
+                    serverMessage.includes('already been registered') || 
                     serverMessage.includes('already exists') ||
-                    serverMessage.includes('A user with this email') ||
-                    serverMessage.includes('email address has already been registered')) {
+                    serverMessage.includes('A user with this email')) {
                   errorMessage = "This email address is already registered. Please use a different email.";
-                  messageFound = true;
                 } else if (serverMessage.includes('already a member of your organization')) {
-                  errorMessage = serverMessage; // Use the server message directly
-                  messageFound = true;
-                } else if (serverMessage.length > 0) {
-                  // Use the server message if it exists
                   errorMessage = serverMessage;
-                  messageFound = true;
+                } else if (serverMessage.length > 0 && !serverMessage.includes('Failed to create new user:')) {
+                  errorMessage = serverMessage;
+                } else if (serverMessage.startsWith('Failed to create new user:')) {
+                  // Extract the actual error from the wrapper message
+                  const actualError = serverMessage.replace('Failed to create new user:', '').trim();
+                  if (actualError.includes('already been registered') || actualError.includes('already exists')) {
+                    errorMessage = "This email address is already registered. Please use a different email.";
+                  } else {
+                    errorMessage = actualError;
+                  }
                 }
               }
             }
+            
+            // Also check the error message directly
+            if (errorMessage === "Unable to send invitation. Please try again.") {
+              const errorStr = error.message || '';
+              
+              if (errorStr.includes('already been registered') || 
+                  errorStr.includes('already exists') ||
+                  errorStr.includes('email address has already been registered')) {
+                errorMessage = "This email address is already registered. Please use a different email.";
+              } else if (errorStr.includes('timeout')) {
+                errorMessage = "The request took too long. Please check your connection and try again.";
+              } else if (errorStr.includes('network')) {
+                errorMessage = "Network error. Please check your connection and try again.";
+              }
+            }
           } catch (parseError) {
-            console.error('Could not parse error context:', parseError);
+            console.error('Error parsing response:', parseError);
           }
           
-          // Also check the error message itself for patterns
-          if (!messageFound) {
-            const errorStr = error.message || '';
-            
-            if (errorStr.includes('already been registered') || 
-                errorStr.includes('already exists') ||
-                errorStr.includes('email address has already been registered')) {
-              errorMessage = "This email address is already registered. Please use a different email.";
-            } else if (errorStr.includes('timeout')) {
-              errorMessage = "The request took too long. Please check your connection and try again.";
-            } else if (errorStr.includes('network')) {
-              errorMessage = "Network error. Please check your connection and try again.";
-            } else if (errorStr.includes('non-2xx status code')) {
-              // Generic message for HTTP errors  
-              errorMessage = "The invitation could not be processed. Please try again.";
-            }
-          }
+          console.log('Final error message to display:', errorMessage);
           
           return {
             success: false,
