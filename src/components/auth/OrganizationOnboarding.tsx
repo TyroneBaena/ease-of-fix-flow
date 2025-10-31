@@ -67,39 +67,51 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
 
   const generateUniqueSlug = async (baseName: string): Promise<string> => {
     const baseSlug = generateSlug(baseName);
-    let slug = baseSlug;
-    let counter = 1;
+    
+    try {
+      console.log('🔍 Checking slug availability:', baseSlug);
+      
+      // Use security definer function with timeout protection
+      // This bypasses RLS to accurately check if slug exists
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Slug check timeout')), 5000);
+      });
+      
+      const checkPromise = (async () => {
+        const { data: slugExists, error: rpcError } = await supabase
+          .rpc('slug_exists', { slug_to_check: baseSlug });
+        return { slugExists, rpcError };
+      })();
+      
+      const { slugExists, rpcError } = await Promise.race([
+        checkPromise,
+        timeoutPromise
+      ]);
 
-    // Check if slug exists and keep incrementing until we find a unique one
-    while (true) {
-      const { data: existing, error } = await supabase
-        .from('organizations')
-        .select('slug')
-        .eq('slug', slug)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking slug availability:', error);
-        throw error;
+      if (rpcError) {
+        console.error('⚠️ Slug check RPC error:', rpcError);
+        // On RPC error, use timestamp fallback to ensure uniqueness
+        const fallbackSlug = `${baseSlug}-${Date.now()}`;
+        console.log('Using timestamp fallback:', fallbackSlug);
+        return fallbackSlug;
       }
 
-      if (!existing) {
-        return slug; // This slug is available
+      if (slugExists) {
+        console.log('❌ Slug already exists:', baseSlug);
+        // Return the slug anyway - INSERT will fail with clear duplicate error
+        // This allows user to see the error and choose a different name
+        return baseSlug;
       }
 
-      // Try next variation
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-
-      // Safety limit to prevent infinite loops
-      if (counter > 100) {
-        // Fallback with timestamp
-        slug = `${baseSlug}-${Date.now()}`;
-        break;
-      }
+      console.log('✅ Slug is available:', baseSlug);
+      return baseSlug;
+      
+    } catch (error) {
+      // On timeout or any other error, use timestamp fallback
+      console.error('⚠️ Slug check failed, using timestamp fallback:', error);
+      const fallbackSlug = `${baseSlug}-${Date.now()}`;
+      return fallbackSlug;
     }
-
-    return slug;
   };
 
   const handleCreateOrganization = async (e: React.FormEvent) => {
@@ -174,8 +186,10 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       setError(null);
       console.log('Creating organization:', { orgName: sanitizedName, userId: user.id });
 
-      // Generate final unique slug before creation
+      // Generate final unique slug before creation (with timeout protection)
       const finalSlug = await generateUniqueSlug(sanitizedName);
+
+      console.log('Generated slug:', finalSlug);
 
       // BUG FIX 1: Create organization and store ID for PaymentCompletionHandler
       const { data: orgData, error: orgError } = await supabase
@@ -196,7 +210,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         let errorMessage = 'Failed to create organization. ';
         
         if (orgError.code === '23505') {
-          errorMessage += 'Organization name already exists. Please try a different name.';
+          errorMessage = 'An organization with this name already exists. Please choose a different name.';
         } else if (orgError.message?.includes('permission denied')) {
           errorMessage += 'Permission denied. Please refresh the page and try again.';
         } else if (orgError.message?.includes('violates row-level security')) {
@@ -208,6 +222,7 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
         }
         
         setError(errorMessage);
+        toast.error(errorMessage);
         return;
       }
 
@@ -288,9 +303,20 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
       setShowPaymentSetup(true);
     } catch (error: any) {
       console.error('Error creating organization:', error);
-      setError(error.message || "Failed to create organization");
-      toast.error(`Failed to create organization: ${error.message || "Unknown error"}`);
+      
+      // Handle timeout errors specifically
+      if (error.message?.includes('timed out')) {
+        const timeoutError = 'Request timed out. Please check your connection and try again.';
+        setError(timeoutError);
+        toast.error(timeoutError);
+      } else {
+        const genericError = error.message || "Failed to create organization";
+        setError(genericError);
+        toast.error(`Failed to create organization: ${genericError}`);
+      }
     } finally {
+      // CRITICAL: Always reset loading states to prevent UI freeze
+      console.log('🔄 Resetting organization creation states');
       setIsLoading(false);
       setIsSubmitting(false);
     }

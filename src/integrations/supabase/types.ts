@@ -1743,6 +1743,7 @@ export type Database = {
         Returns: undefined
       }
       send_trial_expiration_warnings: { Args: never; Returns: undefined }
+      slug_exists: { Args: { slug_to_check: string }; Returns: boolean }
       submit_public_maintenance_request: {
         Args: {
           p_attachments?: string
