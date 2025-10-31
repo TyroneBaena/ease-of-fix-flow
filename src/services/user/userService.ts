@@ -109,6 +109,7 @@ export const userService: UserService = {
           
           // Try to extract the actual error response from the FunctionsHttpError
           let errorMessage = "Unable to send invitation. Please try again.";
+          let messageFound = false;
           
           try {
             // The error.context often contains the actual response body
@@ -127,13 +128,17 @@ export const userService: UserService = {
                 // Check for specific error patterns and provide user-friendly messages
                 if (serverMessage.includes('already been registered') || 
                     serverMessage.includes('already exists') ||
-                    serverMessage.includes('A user with this email')) {
+                    serverMessage.includes('A user with this email') ||
+                    serverMessage.includes('email address has already been registered')) {
                   errorMessage = "This email address is already registered. Please use a different email.";
+                  messageFound = true;
                 } else if (serverMessage.includes('already a member of your organization')) {
                   errorMessage = serverMessage; // Use the server message directly
-                } else {
-                  // Use the server message if it seems user-friendly
+                  messageFound = true;
+                } else if (serverMessage.length > 0) {
+                  // Use the server message if it exists
                   errorMessage = serverMessage;
+                  messageFound = true;
                 }
               }
             }
@@ -141,16 +146,20 @@ export const userService: UserService = {
             console.error('Could not parse error context:', parseError);
           }
           
-          // Fallback to checking error message patterns
-          if (errorMessage === "Unable to send invitation. Please try again.") {
+          // Also check the error message itself for patterns
+          if (!messageFound) {
             const errorStr = error.message || '';
             
-            if (errorStr.includes('timeout')) {
+            if (errorStr.includes('already been registered') || 
+                errorStr.includes('already exists') ||
+                errorStr.includes('email address has already been registered')) {
+              errorMessage = "This email address is already registered. Please use a different email.";
+            } else if (errorStr.includes('timeout')) {
               errorMessage = "The request took too long. Please check your connection and try again.";
             } else if (errorStr.includes('network')) {
               errorMessage = "Network error. Please check your connection and try again.";
             } else if (errorStr.includes('non-2xx status code')) {
-              // Generic message for HTTP errors
+              // Generic message for HTTP errors  
               errorMessage = "The invitation could not be processed. Please try again.";
             }
           }
