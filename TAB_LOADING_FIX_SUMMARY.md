@@ -20,29 +20,47 @@ Console logs revealed the real issue:
 ## Solution: Silent Refresh Strategy
 
 ### Implementation
-Created `src/utils/silentRefresh.ts` with automatic background refresh when users return to tabs after 60+ seconds away.
+Created `src/utils/silentRefresh.ts` with **TIERED automatic refresh** for ALL tab switches.
 
-**Strategy**:
-1. **Session Refresh**: Proactively refresh auth tokens before they expire
-2. **Connection Warming**: Send lightweight "wake-up" query to warm database connection
-3. **Silent Operation**: Runs in background WITHOUT showing loading states
-4. **Smart Timing**: Only triggers if user away for 60+ seconds (prevents rapid tab switch overhead)
+**3-Tier Strategy** (handles ANY time away):
+1. **Quick Check (< 5s away)**: Instant session validation, zero API calls
+2. **Medium Refresh (5-30s away)**: Session token refresh only
+3. **Full Refresh (30s+ away)**: Session + database connection warming
+4. **Priority Refresh (5+ min away)**: Guaranteed full refresh with wake-up
 
-### How It Works
+**Smart Features**:
+- Handles tab revisit after ANY amount of time
+- No performance overhead on quick switches (< 5s)
+- Progressive enhancement based on absence duration
+- Silent operation WITHOUT showing loading states
+
+### How It Works (Tiered Approach)
 
 ```typescript
-// On tab visibility after 60+ seconds:
-1. Refresh Supabase session → Fresh auth tokens
-2. Execute lightweight query → Warms up database connection
-3. Subsequent data queries → Fast, no timeouts
-4. All happens silently → No loading indicators
+// Tab visible - check time away:
+
+< 5 seconds:
+  → Quick check: Verify session exists (instant, no API)
+  → Result: Zero overhead, instant return
+
+5-30 seconds:
+  → Medium refresh: Refresh auth session only
+  → Result: Fresh tokens, fast
+
+30s - 5 minutes:
+  → Full refresh: Session + wake-up DB query
+  → Result: Fresh tokens + warm connection
+
+> 5 minutes:
+  → Priority full refresh: Guaranteed complete refresh
+  → Result: Maximum reliability, prevents all timeouts
 ```
 
 ### Integration
 - **File**: `src/contexts/UnifiedAuthContext.tsx`
 - **Setup**: Automatic via `setupSilentRefreshOnVisibility()`
-- **Trigger**: Tab visibility change after 60+ seconds away
-- **Impact**: Prevents timeout errors, eliminates loading states
+- **Trigger**: Tab visibility change at ANY time (intelligently tiered)
+- **Impact**: Prevents timeout errors, eliminates loading states, handles all tab switches
 
 ### Benefits
 
@@ -52,7 +70,10 @@ Created `src/utils/silentRefresh.ts` with automatic background refresh when user
 - Users see spinners, "Loading..." text everywhere
 
 **After Silent Refresh**:
-- Return after 5 minutes → Silent refresh → Fresh tokens → Fast queries
+- Return after ANY time → Appropriate refresh → Fresh tokens → Fast queries
+- Quick switches (< 5s) → Zero overhead → Instant
+- Medium switches (5-30s) → Token refresh → Fast
+- Long absences (30s+) → Full refresh → Guaranteed no timeouts
 - Warm connections → Instant RLS evaluation → Sub-second responses
 - Zero visible loading states
 
@@ -107,13 +128,31 @@ Proactive session and connection warming on tab return
 
 ## Monitoring
 
-Console logs will show:
+Console logs will show (based on time away):
+
+**Quick Switch (< 5s)**:
+```
+👁️ Tab visible at 2025-11-03T10:30:00.000Z
+⏱️ Time away: 3 seconds
+⚡ Quick tab switch - performing instant session check
+✅ Session valid
+```
+
+**Medium Absence (5-30s)**:
+```
+👁️ Tab visible at 2025-11-03T10:30:00.000Z
+⏱️ Time away: 15 seconds
+🔄 Medium absence - refreshing session
+✅ Medium refresh - session refreshed successfully
+```
+
+**Long Absence (30s+)**:
 ```
 👁️ Tab visible at 2025-11-03T10:30:00.000Z
 ⏱️ Time away: 315 seconds
-🔄 Triggering silent refresh (away for 60+ seconds)
-✅ Silent refresh - session refreshed successfully
-✅ Silent refresh - database connection warmed up
+🔄 Long absence (5+ min) - performing full refresh with priority
+✅ Full refresh - session refreshed successfully
+✅ Full refresh - database connection warmed up
 ```
 
 ## Technical Details
@@ -126,9 +165,11 @@ Console logs will show:
 
 ### Safety Features
 - Prevents concurrent refreshes
-- 60-second minimum interval
+- Tiered approach: no overhead on quick switches
+- Progressive enhancement based on time away
 - Error handling with fallback
 - Proper cleanup on unmount
+- Handles ALL tab switch scenarios optimally
 
 ## Deployment Status
 
