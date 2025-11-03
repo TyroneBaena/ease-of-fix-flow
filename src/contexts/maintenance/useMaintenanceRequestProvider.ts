@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
@@ -12,6 +12,9 @@ export const useMaintenanceRequestProvider = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser } = useUserContext();
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
+  
+  // Track the last user ID to prevent unnecessary refetches
+  const lastFetchedUserIdRef = useRef<string | null>(null);
 
   const loadRequests = useCallback(async () => {
     console.log('🔍 LOADING REQUESTS v3.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
@@ -65,45 +68,54 @@ export const useMaintenanceRequestProvider = () => {
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
 
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v3.0 - Current user changed:', currentUser?.email);
-    console.log('🔍 MAINTENANCE PROVIDER v3.0 - User ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v3.0 - User role:', currentUser?.role);
-    console.log('🔍 MAINTENANCE PROVIDER v3.0 - User organization_id:', currentUser?.organization_id);
+    console.log('🔍 MAINTENANCE PROVIDER v4.0 - useEffect triggered');
+    console.log('🔍 MAINTENANCE PROVIDER v4.0 - Current user ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v4.0 - Last fetched ID:', lastFetchedUserIdRef.current);
     
-    if (currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v3.0 - User authenticated, loading requests');
-      
-      loadRequests();
-      
-      // Set up real-time subscription for maintenance requests
-      const channel = supabase
-        .channel('maintenance-requests-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'maintenance_requests'
-          },
-          async (payload) => {
-            console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
-            console.log('🔄 REAL-TIME: Triggering immediate context refresh');
-            await loadRequests();
-          }
-        )
-        .subscribe((status) => {
-          console.log('🔌 REAL-TIME: Global maintenance subscription status:', status);
-        });
-
-      return () => {
-        console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
-        supabase.removeChannel(channel);
-      };
-    } else {
-      console.log('🔍 MAINTENANCE PROVIDER v3.0 - No current user, clearing requests');
+    // If no user, clear data
+    if (!currentUser?.id) {
+      console.log('🔍 MAINTENANCE PROVIDER v4.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
+      lastFetchedUserIdRef.current = null;
+      return;
     }
+    
+    // Only load if user ID actually changed
+    if (lastFetchedUserIdRef.current === currentUser.id) {
+      console.log('🔍 MAINTENANCE PROVIDER v4.0 - User ID unchanged, skipping refetch');
+      return;
+    }
+    
+    console.log('🔍 MAINTENANCE PROVIDER v4.0 - User ID changed, loading requests');
+    lastFetchedUserIdRef.current = currentUser.id;
+    
+    loadRequests();
+    
+    // Set up real-time subscription for maintenance requests
+    const channel = supabase
+      .channel('maintenance-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'maintenance_requests'
+        },
+        async (payload) => {
+          console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
+          console.log('🔄 REAL-TIME: Triggering immediate context refresh');
+          await loadRequests();
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔌 REAL-TIME: Global maintenance subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 

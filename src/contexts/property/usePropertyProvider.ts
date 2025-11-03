@@ -79,7 +79,7 @@ export const usePropertyProvider = (): PropertyContextType => {
     console.log('PropertyProvider: User ID changed, fetching properties');
     lastFetchedUserIdRef.current = currentUser.id;
     fetchAndSetProperties();
-  }, [currentUser?.id]); // FIXED: Removed fetchAndSetProperties from deps since it has empty deps
+  }, [currentUser?.id, fetchAndSetProperties]); // Add fetchAndSetProperties back for clarity
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
