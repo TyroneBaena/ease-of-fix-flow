@@ -17,15 +17,15 @@ export const useMaintenanceRequestContext = () => {
 export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = useMaintenanceRequestProvider();
 
-  // Ensure the provider has the correct type
-  const typedValue: MaintenanceRequestContextType = {
+  // CRITICAL: Use React.useMemo to prevent unnecessary re-renders
+  const typedValue: MaintenanceRequestContextType = React.useMemo(() => ({
     requests: value.requests as MaintenanceRequest[],
     loading: value.loading,
     getRequestsForProperty: value.getRequestsForProperty as (propertyId: string) => MaintenanceRequest[],
     addRequestToProperty: value.addRequestToProperty,
     fetchRequests: value.loadRequests,
     refreshRequests: async () => { await value.loadRequests(); }
-  };
+  }), [value.requests, value.loading, value.getRequestsForProperty, value.addRequestToProperty, value.loadRequests]);
 
   return (
     <MaintenanceRequestContext.Provider value={typedValue}>

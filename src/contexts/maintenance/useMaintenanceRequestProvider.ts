@@ -237,17 +237,27 @@ export const useMaintenanceRequestProvider = () => {
       const formattedNewRequest = formatRequestData(newRequest);
       console.log('🆕 addRequestToProperty - Formatted request:', formattedNewRequest);
       
-      // Add to state immediately (optimistic update)
+      // CRITICAL: Force immediate state update with new array reference
       setRequests(prev => {
         console.log('🆕 addRequestToProperty - Current requests count:', prev.length);
-        const exists = prev.some(r => r.id === formattedNewRequest.id);
-        if (exists) {
-          console.log('🆕 addRequestToProperty - Request already exists, skipping');
-          return prev;
+        // Check if already exists
+        const existingIndex = prev.findIndex(r => r.id === formattedNewRequest.id);
+        if (existingIndex !== -1) {
+          console.log('🆕 addRequestToProperty - Request already exists, updating');
+          const updated = [...prev];
+          updated[existingIndex] = formattedNewRequest;
+          return updated;
         }
-        console.log('🆕 addRequestToProperty - Adding request to state');
-        return [...prev, formattedNewRequest];
+        console.log('🆕 addRequestToProperty - Adding new request to state');
+        // Add to beginning of array for immediate visibility
+        return [formattedNewRequest, ...prev];
       });
+      
+      // Force a re-fetch after a short delay to ensure consistency
+      setTimeout(() => {
+        console.log('🔄 addRequestToProperty - Triggering delayed refresh');
+        loadRequests();
+      }, 1000);
       
       toast.success('Maintenance request added successfully');
       return formattedNewRequest;
@@ -255,7 +265,7 @@ export const useMaintenanceRequestProvider = () => {
       console.error('🆕 addRequestToProperty - Failed to create new request');
       return null;
     }
-  }, [addRequest]);
+  }, [addRequest, loadRequests]);
 
   // Helper function to determine if user should see this request
   const shouldUserSeeRequest = (requestData: any, userId: string) => {
