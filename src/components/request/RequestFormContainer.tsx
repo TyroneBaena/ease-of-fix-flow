@@ -279,8 +279,7 @@ export const RequestFormContainer = () => {
         
         toast.success("Your maintenance request has been submitted");
         
-        // CRITICAL: Wait a moment for state to propagate before navigating
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Navigate immediately - dashboard will refresh on mount
         navigate('/dashboard');
       }
     } catch (error) {

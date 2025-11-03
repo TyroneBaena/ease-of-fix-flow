@@ -295,10 +295,5 @@ export const useMaintenanceRequestProvider = () => {
     loadRequests
   ]);
   
-  // Log context value changes for debugging
-  useEffect(() => {
-    console.log('🔄 MaintenanceContext - Value updated, requests count:', requests.length);
-  }, [requests.length]);
-  
   return contextValue;
 };

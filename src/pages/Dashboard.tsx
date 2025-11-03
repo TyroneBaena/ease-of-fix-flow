@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -24,13 +24,31 @@ import { supabase } from '@/lib/supabase';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentUser, loading: userLoading } = useUserContext();
-  const { requests, loading: requestsLoading } = useMaintenanceRequestContext();
+  const { requests, loading: requestsLoading, refreshRequests } = useMaintenanceRequestContext();
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [contractorCheckDone, setContractorCheckDone] = useState(false);
+  const hasRefreshedOnMountRef = useRef(false);
   
   // Enable proactive contractor profile monitoring for admin users
   useContractorProfileMonitoring();
+  
+  // CRITICAL: Force refresh when returning to dashboard (e.g., after creating a request)
+  useEffect(() => {
+    // Reset the ref when user changes
+    hasRefreshedOnMountRef.current = false;
+  }, [currentUser?.id]);
+  
+  useEffect(() => {
+    if (currentUser && !userLoading && !requestsLoading && !hasRefreshedOnMountRef.current) {
+      console.log('📊 Dashboard - Mounted, triggering refresh for latest data');
+      hasRefreshedOnMountRef.current = true;
+      // Small delay to let any pending operations complete
+      setTimeout(() => {
+        refreshRequests();
+      }, 100);
+    }
+  }, [currentUser, userLoading, requestsLoading, refreshRequests]);
   
   // CRITICAL: Redirect contractors to their proper dashboard
   useEffect(() => {
@@ -82,31 +100,12 @@ const Dashboard = () => {
   // Show loading while user or requests are loading
   const isLoading = userLoading || requestsLoading;
   
-  console.log('🔍 DASHBOARD - Render state:');
-  console.log('🔍 DASHBOARD - currentUser:', currentUser);
-  console.log('🔍 DASHBOARD - userLoading:', userLoading);
-  console.log('🔍 DASHBOARD - requestsLoading:', requestsLoading);
-  console.log('🔍 DASHBOARD - requests count:', requests.length);
-  console.log('🔍 DASHBOARD - All requests:', requests.map(r => ({ id: r.id, title: r.title, userId: r.userId, status: r.status })));
-  
   // Filter requests based on role
   // Admins and managers see all requests (already filtered by RLS and assigned properties in context)
   // Regular users only see their own requests
   const userRequests = currentUser?.role === 'admin' || currentUser?.role === 'manager'
     ? requests 
-    : requests.filter(req => {
-        console.log(`🔍 DASHBOARD - Checking request ${req.id}: req.userId=${req.userId}, currentUser.id=${currentUser?.id}, match=${req.userId === currentUser?.id}`);
-        return req.userId === currentUser?.id;
-      });
-    
-  console.log('🔍 DASHBOARD - userRequests count:', userRequests.length);
-  console.log('🔍 DASHBOARD - userRequests:', userRequests.map(r => ({ id: r.id, title: r.title, status: r.status })));
-  
-  // Check for add24 specifically
-  const add24InRequests = requests.find(req => req.title?.includes('add24'));
-  const add24InUserRequests = userRequests.find(req => req.title?.includes('add24'));
-  console.log('🔍 DASHBOARD - add24 in all requests:', add24InRequests ? 'FOUND' : 'NOT FOUND');
-  console.log('🔍 DASHBOARD - add24 in user requests:', add24InUserRequests ? 'FOUND' : 'NOT FOUND');
+    : requests.filter(req => req.userId === currentUser?.id);
 
   // Find requests that have progress to show
   const requestsWithProgress = userRequests.filter(req => 
