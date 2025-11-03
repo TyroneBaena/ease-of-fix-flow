@@ -13,6 +13,8 @@ export const usePropertyProvider = (): PropertyContextType => {
   const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
   const { currentUser } = useUserContext();
   const lastFetchedUserIdRef = useRef<string | null>(null);
+  // CRITICAL: Track if we've completed initial load to prevent loading flashes
+  const hasCompletedInitialLoadRef = useRef(false);
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
@@ -50,6 +52,7 @@ export const usePropertyProvider = (): PropertyContextType => {
     } finally {
       console.log('🏁 PropertyProvider - Resetting loading state');
       setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
     }
   }, []); // CRITICAL: Empty dependencies
 
@@ -67,6 +70,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       setLoading(false);
       setLoadingFailed(false);
       lastFetchedUserIdRef.current = null;
+      hasCompletedInitialLoadRef.current = true; // Mark as complete even with no user
       return;
     }
     
@@ -262,7 +266,9 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   return useMemo(() => ({
     properties,
-    loading,
+    // CRITICAL: Override loading to false after initial load completes
+    // This prevents loading flashes on tab switches
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     loadingFailed,
     addProperty,
     getProperty,

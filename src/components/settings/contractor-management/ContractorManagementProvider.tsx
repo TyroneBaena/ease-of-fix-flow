@@ -30,6 +30,8 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const lastFetchedUserIdRef = React.useRef<string | null>(null);
+  // CRITICAL: Track if we've completed initial load to prevent loading flashes
+  const hasCompletedInitialLoadRef = React.useRef(false);
 
   console.log('🔧 ContractorManagement - Provider state:', {
     isAdmin,
@@ -77,10 +79,10 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
         toast.error('Failed to load contractors');
       }
     } finally {
-      // CRITICAL: Always reset loading state
       setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
     }
-  }, []);
+  }, [currentUser, isAdmin]);
 
   // Load contractors on initial mount and when user changes
   // CRITICAL FIX: Only refetch if user ID actually changed
@@ -97,6 +99,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       setLoading(false);
       setFetchedOnce(true);
       lastFetchedUserIdRef.current = null;
+      hasCompletedInitialLoadRef.current = true; // Mark as complete even if not admin
       return;
     }
     
@@ -122,7 +125,9 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
 
   const value: ContractorManagementContextType = useMemo(() => ({
     contractors,
-    loading,
+    // CRITICAL: Override loading to false after initial load completes
+    // This prevents loading flashes on tab switches
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     fetchError,
     loadContractors,
     isAdmin,

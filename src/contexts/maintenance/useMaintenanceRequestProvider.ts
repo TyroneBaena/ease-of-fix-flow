@@ -15,6 +15,8 @@ export const useMaintenanceRequestProvider = () => {
   
   // Track the last user ID to prevent unnecessary refetches
   const lastFetchedUserIdRef = useRef<string | null>(null);
+  // CRITICAL: Track if we've completed initial load to prevent loading flashes
+  const hasCompletedInitialLoadRef = useRef(false);
 
   const loadRequests = useCallback(async () => {
     console.log('🔍 LOADING REQUESTS v3.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
@@ -64,6 +66,7 @@ export const useMaintenanceRequestProvider = () => {
     } finally {
       // CRITICAL: Always reset loading state
       setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
     }
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
 
@@ -78,6 +81,7 @@ export const useMaintenanceRequestProvider = () => {
       setRequests([]);
       setLoading(false);
       lastFetchedUserIdRef.current = null;
+      hasCompletedInitialLoadRef.current = true; // Mark as complete even with no user
       return;
     }
     
@@ -166,7 +170,9 @@ export const useMaintenanceRequestProvider = () => {
 
   return useMemo(() => ({
     requests,
-    loading,
+    // CRITICAL: Override loading to false after initial load completes
+    // This prevents loading flashes on tab switches
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     getRequestsForProperty,
     addRequestToProperty,
     loadRequests,
