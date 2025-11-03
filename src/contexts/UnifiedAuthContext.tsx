@@ -478,10 +478,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [currentUser?.id, currentUser?.assignedProperties, effectiveRole]);
 
   // Create enhanced currentUser with effective role
-  const enhancedCurrentUser = useMemo(() => currentUser ? {
-    ...currentUser,
-    role: effectiveRole as UserRole
-  } : null, [currentUser, effectiveRole]);
+  // CRITICAL: Only create new object if actual values changed
+  const enhancedCurrentUser = useMemo(() => {
+    if (!currentUser) return null;
+    
+    // If role matches, return the same object to prevent unnecessary re-renders
+    if (currentUser.role === effectiveRole) {
+      return currentUser;
+    }
+    
+    // Only create new object if role actually changed
+    return {
+      ...currentUser,
+      role: effectiveRole as UserRole
+    };
+  }, [currentUser?.id, currentUser?.email, currentUser?.name, currentUser?.organization_id, currentUser?.session_organization_id, effectiveRole]);
 
   // User management functions
   const fetchUsers = useCallback(async () => {

@@ -108,10 +108,17 @@ export const useContractorManagement = () => {
     selectedContractorForDeletion
   } = useContractorActions(loadContractors);
 
-  // Initial load
-  useEffect(() => {
+  // Initial load - use useCallback to prevent recreating the function
+  const loadContractorsStable = useCallback(() => {
     loadContractors();
-  }, []);
+  }, [isAdmin]);
+
+  // Only load once on mount
+  useEffect(() => {
+    if (isAdmin) {
+      loadContractorsStable();
+    }
+  }, [isAdmin]);
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {
