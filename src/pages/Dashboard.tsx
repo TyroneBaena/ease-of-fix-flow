@@ -17,6 +17,7 @@ import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContex
 import { PropertyProvider } from '@/contexts/property/PropertyContext';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
 
 
 
@@ -26,9 +27,42 @@ const Dashboard = () => {
   const { requests, loading: requestsLoading } = useMaintenanceRequestContext();
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [contractorCheckDone, setContractorCheckDone] = useState(false);
   
   // Enable proactive contractor profile monitoring for admin users
   useContractorProfileMonitoring();
+  
+  // CRITICAL: Redirect contractors to their proper dashboard
+  useEffect(() => {
+    const checkAndRedirectContractor = async () => {
+      if (!currentUser || userLoading || contractorCheckDone) return;
+      
+      if (currentUser.role === 'contractor') {
+        console.log('🔄 Dashboard: Contractor detected, checking for contractor profile...');
+        
+        try {
+          const { data: contractor, error } = await supabase
+            .from('contractors')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+          
+          if (!error && contractor) {
+            console.log('✅ Dashboard: Contractor profile found, redirecting to contractor dashboard');
+            navigate('/contractor-dashboard', { replace: true });
+          } else {
+            console.log('⚠️ Dashboard: No contractor profile found, allowing access to regular dashboard');
+          }
+        } catch (error) {
+          console.error('❌ Dashboard: Error checking contractor profile:', error);
+        }
+      }
+      
+      setContractorCheckDone(true);
+    };
+    
+    checkAndRedirectContractor();
+  }, [currentUser, userLoading, navigate, contractorCheckDone]);
   
   // Add loading timeout detection
   useEffect(() => {
@@ -44,10 +78,6 @@ const Dashboard = () => {
       };
     }
   }, [userLoading, requestsLoading]);
-  
-  // Note: Removed auto-redirect for contractors to prevent infinite loops
-  // Contractors should access /contractor-dashboard directly
-  // The router guards will handle access control
   
   // Show loading while user or requests are loading
   const isLoading = userLoading || requestsLoading;
