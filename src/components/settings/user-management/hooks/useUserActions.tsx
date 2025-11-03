@@ -31,6 +31,12 @@ export const useUserActions = (
     // Use provided userData or fallback to state
     const userToSave = userData || newUser;
     
+    console.log('💾 handleSaveUser called', { 
+      isEditMode, 
+      hasSelectedUser: !!selectedUser,
+      userData: { email: userToSave.email, name: userToSave.name, role: userToSave.role }
+    });
+    
     // Validation is already handled by react-hook-form, no need for additional checks
     try {
       setIsLoading(true);
@@ -61,7 +67,7 @@ export const useUserActions = (
           }
         }, 1000);
       } else {
-        console.log("Adding new user:", {
+        console.log("📧 Adding new user:", {
           email: userToSave.email,
           name: userToSave.name,
           role: userToSave.role,
@@ -71,7 +77,7 @@ export const useUserActions = (
         try {
           // Clear any previous form state that might be cached 
           const result = await addUser(userToSave.email, userToSave.name, userToSave.role, userToSave.assignedProperties);
-          console.log("Add user result:", result);
+          console.log("📨 Add user result:", result);
           
           if (result.success) {
             if (result.isNewUser) {

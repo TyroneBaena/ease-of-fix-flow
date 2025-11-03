@@ -46,7 +46,7 @@ export const useUserManagement = () => {
       console.log("🏁 fetchUsers - Finally block, resetting loading");
       setIsLoadingUsers(false);
     }
-  }, []); // CRITICAL: Empty dependencies
+  }, [isAdmin, fetchUsersFromContext]); // Include dependencies
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -127,6 +127,23 @@ export const useUserManagement = () => {
     }
   }, [isDialogOpen, isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
+  // CRITICAL FIX: Memoize callbacks to prevent unnecessary re-renders
+  const handleEditUser = useCallback((user: User) => {
+    handleOpenDialog(true, user);
+  }, [handleOpenDialog]);
+
+  const handleDeleteUserConfirm = useCallback((userId: string) => {
+    confirmDeleteUser(userId);
+  }, [confirmDeleteUser]);
+
+  const handleResetPasswordCallback = useCallback((userId: string, email: string) => {
+    handleResetPassword(userId, email);
+  }, [handleResetPassword]);
+
+  const handleManualResetCallback = useCallback((userId: string, email: string) => {
+    openManualReset(userId, email);
+  }, [openManualReset]);
+
   // Remove the overly aggressive periodic refresh that was causing constant refreshes
 
   return {
@@ -151,11 +168,12 @@ export const useUserManagement = () => {
     handleUserChange,
     handlePropertySelection,
     handleSaveUser,
-    handleResetPassword,
-    openManualReset,
-    ManualResetDialog,
-    confirmDeleteUser,
+    handleResetPassword: handleResetPasswordCallback,
+    handleEditUser,
+    confirmDeleteUser: handleDeleteUserConfirm,
     handleDeleteUser,
+    openManualReset: handleManualResetCallback,
+    ManualResetDialog,
     handlePageChange,
     fetchUsers,
     ready,

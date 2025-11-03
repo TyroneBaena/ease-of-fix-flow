@@ -12,11 +12,16 @@ const UserManagementHeader: React.FC<UserManagementHeaderProps> = ({
   onInviteUser,
   isPreparingDialog = false
 }) => {
+  const handleClick = () => {
+    console.log('🎯 Invite User button clicked');
+    onInviteUser();
+  };
+
   return (
     <div className="flex justify-between items-center mb-6">
       <h2 className="text-xl font-semibold">User Management</h2>
       <Button 
-        onClick={onInviteUser} 
+        onClick={handleClick} 
         className="flex items-center"
         disabled={isPreparingDialog}
       >

@@ -32,7 +32,7 @@ export const useUserDialog = (session: Session | null) => {
 
     try {
       setIsPreparingDialog(true);
-      console.log('🚀 Opening user invitation dialog...');
+      console.log('🚀 Opening user invitation dialog...', { edit, hasUser: !!user });
       
       // Use session from context - no need for redundant API call
       // The visibility handler already validates the session
@@ -44,6 +44,7 @@ export const useUserDialog = (session: Session | null) => {
       
       // Proceed with opening dialog
       if (edit && user) {
+        console.log('📝 Opening in EDIT mode for user:', user.email);
         setIsEditMode(true);
         setSelectedUser(user);
         setNewUser({
@@ -53,6 +54,7 @@ export const useUserDialog = (session: Session | null) => {
           assignedProperties: user.assignedProperties || []
         });
       } else {
+        console.log('➕ Opening in INVITE mode');
         setIsEditMode(false);
         setSelectedUser(null);
         setNewUser({

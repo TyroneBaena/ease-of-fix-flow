@@ -27,16 +27,18 @@ const UserManagement = () => {
     totalPages,
     USERS_PER_PAGE,
     isDeleteConfirmOpen,
+    isManualResetOpen,
     setIsDeleteConfirmOpen,
     handleOpenDialog,
     handleUserChange,
     handlePropertySelection,
     handleSaveUser,
     handleResetPassword,
-    openManualReset,
-    ManualResetDialog,
+    handleEditUser,
     confirmDeleteUser,
     handleDeleteUser,
+    openManualReset,
+    ManualResetDialog,
     handlePageChange,
     fetchUsers,
     ready,
@@ -133,7 +135,7 @@ const UserManagement = () => {
         users={users}
         currentUser={currentUser}
         isLoading={isLoading}
-        onEditUser={(user) => handleOpenDialog(true, user)}
+        onEditUser={handleEditUser}
         onDeleteUser={confirmDeleteUser}
         onResetPassword={handleResetPassword}
         onManualResetPassword={openManualReset}
