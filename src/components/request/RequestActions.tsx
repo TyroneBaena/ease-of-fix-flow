@@ -12,13 +12,15 @@ interface RequestActionsProps {
   requestId: string;
   onStatusChange?: () => void;
   onEditRequest?: () => void; // New prop for edit functionality
+  onCancelSuccess?: () => void; // Navigation callback after successful cancellation
 }
 
 export const RequestActions = ({ 
   status, 
   requestId, 
   onStatusChange, 
-  onEditRequest 
+  onEditRequest,
+  onCancelSuccess 
 }: RequestActionsProps) => {
   const { updateJobProgress } = useContractorContext();
   const { currentUser, isAdmin } = useUserContext();
@@ -135,7 +137,13 @@ export const RequestActions = ({
       "Request cancelled successfully",
       'cancel'
     );
-  }, [performStatusUpdate, currentUser?.role]);
+    // Navigate away after a short delay to allow the toast to be seen
+    if (onCancelSuccess) {
+      setTimeout(() => {
+        onCancelSuccess();
+      }, 1500);
+    }
+  }, [performStatusUpdate, currentUser?.role, onCancelSuccess]);
 
   // Determine if a specific button should be disabled
   const isButtonDisabled = (action: 'reopen' | 'complete' | 'cancel') => {

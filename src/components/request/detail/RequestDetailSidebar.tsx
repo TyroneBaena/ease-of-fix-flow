@@ -75,6 +75,7 @@ export const RequestDetailSidebar = ({
         requestId={request.id}
         onStatusChange={onRefreshData}
         onEditRequest={canEditRequests ? handleEditRequest : undefined}
+        onCancelSuccess={() => window.location.href = '/requests'}
       />
       
       {/* Landlord Assignment - Admins and Managers can assign */}
