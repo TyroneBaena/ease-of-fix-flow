@@ -42,6 +42,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // CRITICAL: Check if user has pending password reset
+  // If they came via password reset link, they MUST complete password setup before accessing other pages
+  if (!loading && currentUser) {
+    const passwordResetPending = sessionStorage.getItem('password_reset_pending');
+    const resetEmail = sessionStorage.getItem('password_reset_email');
+    
+    if (passwordResetPending === 'true') {
+      console.log("🔒 ProtectedRoute: Password reset pending - redirecting to setup-password");
+      const redirectUrl = resetEmail 
+        ? `/setup-password?email=${encodeURIComponent(resetEmail)}`
+        : '/setup-password';
+      return <Navigate to={redirectUrl} replace />;
+    }
+  }
+
   console.log('🔒 ProtectedRoute - Rendering protected content for user:', currentUser?.email);
   return <>{children}</>;
 };

@@ -40,6 +40,13 @@ const SetupPassword = () => {
     const hasResetToken = location.hash && location.hash.includes("access_token");
     setIsResetMode(hasResetToken);
 
+    // CRITICAL: If user arrives via password reset link, mark that they MUST complete setup
+    if (hasResetToken) {
+      console.log("🔐 Password reset link detected - user MUST complete password setup");
+      sessionStorage.setItem('password_reset_pending', 'true');
+      sessionStorage.setItem('password_reset_email', emailParam || '');
+    }
+
     // Check if there's an active session
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -204,6 +211,11 @@ const SetupPassword = () => {
       }
 
       setSuccess(true);
+
+      // CRITICAL: Clear the password reset pending flag - user has completed setup
+      console.log("🔐 Password setup complete - clearing reset pending flag");
+      sessionStorage.removeItem('password_reset_pending');
+      sessionStorage.removeItem('password_reset_email');
 
       // Redirect after a short delay
       setTimeout(() => navigate(redirectPath), 2000);

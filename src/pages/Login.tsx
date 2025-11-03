@@ -151,6 +151,10 @@ const Login = () => {
       if (user) {
         console.log("🚀 Login - Sign in successful, waiting for auth context to handle redirection");
 
+        // Clear any password reset flags on successful login
+        sessionStorage.removeItem('password_reset_pending');
+        sessionStorage.removeItem('password_reset_email');
+
         // Log successful login attempt with redirect info if available
         const urlParams = new URLSearchParams(location.search);
         const redirectTo = urlParams.get("redirectTo");
