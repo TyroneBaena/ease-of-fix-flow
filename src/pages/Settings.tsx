@@ -27,21 +27,30 @@ const Settings = () => {
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === 'admin';
   const [stableLoadingState, setStableLoadingState] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
   
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
   
-  // Improved stable loading state management
+  // CRITICAL FIX: Prevent loading state on tab switches after initial load
   useEffect(() => {
     // Reset error state when dependencies change
     setError(null);
+
+    // If we've loaded once, don't show loading again
+    if (hasLoadedOnce && currentUser) {
+      setStableLoadingState(false);
+      return;
+    }
 
     const initialDelay = setTimeout(() => {
       if (!loading) {
         if (!currentUser) {
           setError("Unable to verify user credentials");
+        } else {
+          setHasLoadedOnce(true);
         }
   
         setStableLoadingState(false);
@@ -62,11 +71,10 @@ const Settings = () => {
       clearTimeout(initialDelay);
       clearTimeout(backupTimeout);
     };
-  }, [currentUser, loading]);
+  }, [currentUser, loading, hasLoadedOnce, stableLoadingState, error]);
   
-  
-  // Show consistent loading state
-  if (stableLoadingState) {
+  // Show consistent loading state only on first load
+  if (stableLoadingState && !hasLoadedOnce) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

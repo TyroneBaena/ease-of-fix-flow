@@ -93,17 +93,17 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
       </TableCell>
       <TableCell>{formattedDate}</TableCell>
       <TableCell className="text-right">
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" disabled={isLoading}>
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="z-50 bg-background">
             <DropdownMenuItem
               onClick={() => onEditUser(user)}
-              disabled={isLoading || !canEditUser}
+              disabled={!canEditUser}
               className="cursor-pointer"
             >
               <Pencil className="mr-2 h-4 w-4" />
@@ -112,7 +112,6 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             
             <DropdownMenuItem
               onClick={() => onResetPassword(user.id, user.email)}
-              disabled={isLoading}
               className="cursor-pointer"
             >
               <RotateCw className="mr-2 h-4 w-4" />
@@ -122,7 +121,6 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             {onManualResetPassword && (
               <DropdownMenuItem
                 onClick={() => onManualResetPassword(user.id, user.email)}
-                disabled={isLoading}
                 className="cursor-pointer"
               >
                 <Key className="mr-2 h-4 w-4" />
@@ -134,7 +132,7 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             
             <DropdownMenuItem
               onClick={() => onDeleteUser(user.id)}
-              disabled={isLoading || isSelf}
+              disabled={isSelf}
               className={`cursor-pointer ${isSelf ? 'text-gray-400' : 'text-red-600 focus:bg-red-50'}`}
             >
               <Trash2 className="mr-2 h-4 w-4" />
