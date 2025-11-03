@@ -7,10 +7,14 @@ import { toast } from '@/lib/toast';
 export const fetchProperties = async (signal?: AbortSignal): Promise<Property[]> => {
   console.log('PropertyOperations: Starting to fetch properties with clean RLS policies');
   
-  const { data, error } = await supabase
-    .from('properties')
-    .select('*')
-    .abortSignal(signal!);
+  let query = supabase.from('properties').select('*');
+  
+  // Only add abort signal if provided
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+  
+  const { data, error } = await query;
 
   if (error) {
     console.error('PropertyOperations: Error fetching properties:', error);

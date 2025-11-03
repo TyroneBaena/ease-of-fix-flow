@@ -52,7 +52,7 @@ export const useMaintenanceRequestProvider = () => {
     }, 60000);
 
     try {
-      const fetchedRequests = await fetchRequests();
+      const fetchedRequests = await fetchRequests(controller.signal);
       clearTimeout(timeoutId);
       
       console.log('🔍 LOADING REQUESTS v3.0 - Fetched:', fetchedRequests?.length, 'requests');

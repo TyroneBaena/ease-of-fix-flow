@@ -6,7 +6,7 @@ import { useCallback } from 'react';
 
 export const useMaintenanceRequestOperations = (currentUser: any) => {
   
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(async (signal?: AbortSignal) => {
     console.log('🔍 ADMIN DEBUG - fetchRequests called');
     console.log('🔍 ADMIN DEBUG - currentUser:', currentUser);
     console.log('🔍 ADMIN DEBUG - currentUser.role:', currentUser?.role);
@@ -40,6 +40,11 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       } else {
         console.log('🔍 ADMIN DEBUG - Non-admin user, filtering by user_id');
         query = query.eq('user_id', currentUser.id);
+      }
+
+      // Add abort signal if provided
+      if (signal) {
+        query = query.abortSignal(signal);
       }
 
       console.log('🔍 ADMIN DEBUG - About to execute query...');

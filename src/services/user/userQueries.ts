@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 
-export async function fetchAllUsers(): Promise<User[]> {
+export async function fetchAllUsers(signal?: AbortSignal): Promise<User[]> {
   console.log("📋 fetchAllUsers: Getting current user's organization");
   
   // First, get the current user's organization ID
@@ -16,11 +16,16 @@ export async function fetchAllUsers(): Promise<User[]> {
   console.log("📋 Current authenticated user:", { id: user.id, email: user.email });
 
   // Get the current user's profile to find their organization
-  const { data: initialProfile, error: profileError } = await supabase
+  let profileQuery = supabase
     .from('profiles')
     .select('organization_id, role, session_organization_id')
-    .eq('id', user.id)
-    .maybeSingle(); // Use maybeSingle instead of single to handle no rows
+    .eq('id', user.id);
+  
+  if (signal) {
+    profileQuery = profileQuery.abortSignal(signal);
+  }
+  
+  const { data: initialProfile, error: profileError } = await profileQuery.maybeSingle();
 
   console.log("📋 Profile query result:", { profile: initialProfile, error: profileError });
 
@@ -91,11 +96,17 @@ export async function fetchAllUsers(): Promise<User[]> {
   console.log("📋 Current user role:", currentUserProfile.role);
 
   // Fetch users from the same organization
-  const { data: profiles, error: profilesError } = await supabase
+  let profilesQuery = supabase
     .from('profiles')
     .select('*')
     .in('role', ['admin', 'manager'])
     .eq('organization_id', userOrgId);
+  
+  if (signal) {
+    profilesQuery = profilesQuery.abortSignal(signal);
+  }
+  
+  const { data: profiles, error: profilesError } = await profilesQuery;
     
   if (profilesError) {
     console.error("❌ Error fetching profiles:", profilesError);

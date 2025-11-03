@@ -516,26 +516,43 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log('UnifiedAuth - Fetching users for practice leader dropdown');
       const { fetchAllUsers } = await import('@/services/user/userQueries');
-      const userData = await fetchAllUsers();
       
-      console.log('UnifiedAuth - Raw user data received:', userData.length, 'users');
+      // CRITICAL FIX: 60-second timeout for user queries with RLS
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.warn('⏱️ User fetch timeout after 60s');
+      }, 60000);
       
-      // Convert to User type format
-      const convertedUsers = userData.map(user => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        assignedProperties: user.assignedProperties || [],
-        createdAt: user.createdAt,
-        organization_id: user.organization_id
-      }));
-      
-      console.log('UnifiedAuth - Converted users:', convertedUsers);
-      setUsers(convertedUsers);
-      console.log('UnifiedAuth - Users set for practice leaders:', convertedUsers.length);
+      try {
+        const userData = await fetchAllUsers(controller.signal);
+        clearTimeout(timeoutId);
+        
+        console.log('UnifiedAuth - Raw user data received:', userData.length, 'users');
+        
+        // Convert to User type format
+        const convertedUsers = userData.map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          assignedProperties: user.assignedProperties || [],
+          createdAt: user.createdAt,
+          organization_id: user.organization_id
+        }));
+        
+        console.log('UnifiedAuth - Converted users:', convertedUsers);
+        setUsers(convertedUsers);
+        console.log('UnifiedAuth - Users set for practice leaders:', convertedUsers.length);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
     } catch (error) {
       console.error('UnifiedAuth - Error fetching users:', error);
+      if (error instanceof Error && (error.message.includes('aborted') || error.message.includes('timeout'))) {
+        console.warn('⏱️ User fetch aborted due to timeout');
+      }
     }
   }, [effectiveRole]);
 

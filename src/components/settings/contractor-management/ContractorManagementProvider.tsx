@@ -65,7 +65,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       const timeoutId = setTimeout(() => controller.abort(), 60000);
       
       try {
-        const data = await fetchContractors();
+        const data = await fetchContractors(controller.signal);
         clearTimeout(timeoutId);
         
         console.log("Contractors loaded:", data.length);

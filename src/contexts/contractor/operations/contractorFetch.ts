@@ -2,15 +2,22 @@
 import { supabase } from '@/lib/supabase';
 import { Contractor } from '@/types/contractor';
 
-export const fetchContractors = async (): Promise<Contractor[]> => {
+export const fetchContractors = async (signal?: AbortSignal): Promise<Contractor[]> => {
   console.log("fetchContractors - Starting fetch from database (organization-filtered)");
   
   // SECURITY: RLS policies now handle organization filtering automatically
   // Use the safe organization function to prevent read-only transaction errors
-  const { data, error } = await supabase
+  let query = supabase
     .from('contractors')
     .select('*')
     .order('company_name');
+  
+  // Only add abort signal if provided
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+  
+  const { data, error } = await query;
 
   if (error) {
     console.error("fetchContractors - Error fetching contractors:", error);

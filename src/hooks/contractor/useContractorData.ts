@@ -92,7 +92,8 @@ export const useContractorData = (
             maintenance_requests!inner(*)
           `)
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'pending', 'submitted']);
+          .in('status', ['requested', 'pending', 'submitted'])
+          .abortSignal(controller.signal);
 
         clearTimeout(timeoutId);
           
@@ -106,14 +107,12 @@ export const useContractorData = (
         // Fetch active jobs assigned to this contractor
         console.log('🔍 useContractorData - Fetching active jobs for contractor:', contractorId);
         
-        const activeTimeoutId = setTimeout(() => controller.abort(), 60000);
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'in-progress']);
-
-        clearTimeout(activeTimeoutId);
+          .in('status', ['requested', 'in-progress'])
+          .abortSignal(controller.signal);
           
         console.log('🔍 useContractorData - Active jobs query result:');
         console.log('  - Data:', activeJobsData);
@@ -131,7 +130,8 @@ export const useContractorData = (
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
-          .eq('status', 'completed');
+          .eq('status', 'completed')
+          .abortSignal(controller.signal);
           
         if (completedJobsError) {
           console.error('useContractorData - Error fetching completed jobs:', completedJobsError);
