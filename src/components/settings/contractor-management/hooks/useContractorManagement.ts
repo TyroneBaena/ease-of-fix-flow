@@ -42,9 +42,9 @@ export const useContractorManagement = () => {
     handlePageChange
   } = useContractorPagination(contractors.length);
 
-  // Define loadContractors with timeout protection
+  // Define loadContractors with proper memoization
   const loadContractors = useCallback(async () => {
-    console.log("🔄 loadContractors - Starting", { loading });
+    console.log("🔄 loadContractors - Starting");
     
     try {
       setLoading(true);
@@ -101,7 +101,7 @@ export const useContractorManagement = () => {
       console.log("🏁 loadContractors - Finally block, resetting loading");
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, []); // CRITICAL: Empty dependencies to prevent recreation
 
   // Initialize the contractor actions after loadContractors is defined
   const {
@@ -115,41 +115,13 @@ export const useContractorManagement = () => {
     selectedContractorForDeletion
   } = useContractorActions(loadContractors);
 
-  // Initial load on mount
+  // Initial load on mount - only once
   useEffect(() => {
     console.log('🎬 useContractorManagement - Mount effect, isAdmin:', isAdmin);
     if (isAdmin) {
       loadContractors();
     }
   }, [isAdmin, loadContractors]);
-
-  // Handle tab visibility changes - refresh data when tab becomes visible
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    let visibilityTimeout: NodeJS.Timeout;
-    
-    const handleVisibilityChange = () => {
-      // Only refresh if tab becomes visible
-      if (!document.hidden) {
-        console.log('👁️ Tab visible - scheduling contractor data refresh');
-        // Debounce to prevent rapid calls
-        clearTimeout(visibilityTimeout);
-        visibilityTimeout = setTimeout(() => {
-          if (!loading) {
-            loadContractors();
-          }
-        }, 500);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearTimeout(visibilityTimeout);
-    };
-  }, [isAdmin, loadContractors, loading]);
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {

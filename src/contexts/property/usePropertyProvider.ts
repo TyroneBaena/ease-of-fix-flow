@@ -17,7 +17,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   const fetchAndSetProperties = useCallback(async () => {
     console.log('PropertyProvider: fetchAndSetProperties called');
     
-    // CRITICAL FIX: Add timeout protection (5s instead of 10s)
+    // CRITICAL FIX: Add timeout protection (5s)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -50,7 +50,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('🏁 PropertyProvider - Resetting loading state');
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, []); // CRITICAL: Empty dependencies
 
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
@@ -67,32 +67,6 @@ export const usePropertyProvider = (): PropertyContextType => {
       setLoading(false);
       setLoadingFailed(false);
     }
-  }, [currentUser?.id, fetchAndSetProperties]);
-
-  // Handle tab visibility changes - refresh data when tab becomes visible
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    let visibilityTimeout: NodeJS.Timeout;
-
-    const handleVisibilityChange = () => {
-      // Only refresh if tab becomes visible
-      if (!document.hidden) {
-        console.log('👁️ Tab visible - scheduling property data refresh');
-        // Debounce to prevent rapid calls
-        clearTimeout(visibilityTimeout);
-        visibilityTimeout = setTimeout(() => {
-          fetchAndSetProperties();
-        }, 500);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearTimeout(visibilityTimeout);
-    };
   }, [currentUser?.id, fetchAndSetProperties]);
 
 

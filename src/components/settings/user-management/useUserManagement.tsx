@@ -19,7 +19,7 @@ export const useUserManagement = () => {
   const [ready, setReady] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
   
-  // Function to safely fetch users - moved here to be available to useUserActions
+  // Function to safely fetch users
   const fetchUsers = useCallback(async () => {
     console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin);
     
@@ -46,7 +46,7 @@ export const useUserManagement = () => {
       console.log("🏁 fetchUsers - Finally block, resetting loading");
       setIsLoadingUsers(false);
     }
-  }, [isAdmin, fetchUsersFromContext]);
+  }, []); // CRITICAL: Empty dependencies
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -99,13 +99,13 @@ export const useUserManagement = () => {
   
   // Clean form error management - no need for window object
 
-  // Fetch users when component mounts - simplified approach
+  // Fetch users when component mounts
   useEffect(() => {
     if (isAdmin && !fetchedOnce && !isLoadingUsers) {
       console.log("Initial fetch for admin user");
       fetchUsers();
     }
-  }, [isAdmin]); // Only depend on isAdmin to avoid loops
+  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {
@@ -115,10 +115,9 @@ export const useUserManagement = () => {
     }
   }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
 
-  // Refresh user list when dialog is closed after successful operation - but only once
+  // Refresh user list when dialog is closed
   useEffect(() => {
     if (!isDialogOpen && isAdmin && fetchedOnce && !isLoadingUsers) {
-      // Add a small delay to ensure any pending operations complete
       const refreshTimeout = setTimeout(() => {
         console.log("Dialog closed, refreshing user list");
         fetchUsers();
@@ -126,35 +125,7 @@ export const useUserManagement = () => {
       
       return () => clearTimeout(refreshTimeout);
     }
-  }, [isDialogOpen, isAdmin]);
-
-  // Handle tab visibility changes - refresh data when tab becomes visible
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    let visibilityTimeout: NodeJS.Timeout;
-
-    const handleVisibilityChange = () => {
-      // Only refresh if tab becomes visible
-      if (!document.hidden) {
-        console.log('👁️ Tab visible - scheduling user data refresh');
-        // Debounce to prevent rapid calls
-        clearTimeout(visibilityTimeout);
-        visibilityTimeout = setTimeout(() => {
-          if (!isLoadingUsers) {
-            fetchUsers();
-          }
-        }, 500);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearTimeout(visibilityTimeout);
-    };
-  }, [isAdmin, isLoadingUsers, fetchUsers]);
+  }, [isDialogOpen, isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
   // Remove the overly aggressive periodic refresh that was causing constant refreshes
 
