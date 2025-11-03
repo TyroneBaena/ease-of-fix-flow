@@ -103,40 +103,13 @@ export const useUserManagement = () => {
     }
   }, [isAdmin]); // Only depend on isAdmin to avoid loops
 
-  // Improved loading state management - less aggressive
+  // Set ready once we have basic data - don't block on session checks
   useEffect(() => {
-    if ((users.length > 0 || fetchedOnce) && !isLoadingUsers) {
+    if (isAdmin && (users.length > 0 || fetchedOnce || !isLoadingUsers)) {
       console.log("UserManagement: Data is ready");
       setReady(true);
-    } else if (isAdmin && !fetchedOnce && !isLoadingUsers) {
-      console.log("UserManagement: No data yet, will fetch");
-      // Don't immediately fetch here to avoid loops, let the other effect handle it
-      setReady(true); // Set ready anyway to prevent infinite loading
     }
   }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
-  
-  // Track when currentUser AND SESSION are available for operations
-  useEffect(() => {
-    console.log('🔧 UserManagement - Checking context readiness:', {
-      hasCurrentUser: !!currentUser,
-      hasSession: !!session,
-      sessionUserId: session?.user?.id,
-      hasAccessToken: !!session?.access_token,
-      isAdmin,
-      ready
-    });
-    
-    if (currentUser && session && typeof isAdmin === 'boolean') {
-      console.log('🔧 UserManagement - User context ready WITH SESSION:', {
-        userEmail: currentUser.email,
-        sessionEmail: session.user?.email,
-        isAdmin,
-        hasAccessToken: !!session.access_token
-      });
-    } else if (currentUser && !session) {
-      console.warn('⚠️ UserManagement - currentUser exists but session is missing! Invitation will fail.');
-    }
-  }, [currentUser, session, isAdmin, ready]);
 
   // Refresh user list when dialog is closed after successful operation - but only once
   useEffect(() => {
@@ -182,7 +155,7 @@ export const useUserManagement = () => {
     handleDeleteUser,
     handlePageChange,
     fetchUsers,
-    ready: ready && !!currentUser && !!session,
+    ready,
     isPreparingDialog
   };
 };

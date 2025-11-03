@@ -141,7 +141,6 @@ const ContractorManagement = () => {
         onContractorChange={handleContractorChange}
         onSpecialtiesChange={handleSpecialtiesChange}
         onSave={handleSaveContractor}
-        ready={ready}
       />
       
       <DeleteContractorDialog

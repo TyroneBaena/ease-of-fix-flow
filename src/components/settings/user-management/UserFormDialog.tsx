@@ -64,11 +64,7 @@ interface UserFormDialogProps {
   onSave: (userData?: any) => Promise<void>;
 }
 
-interface UserFormDialogPropsWithError extends UserFormDialogProps {
-  ready?: boolean;
-}
-
-const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
+const UserFormDialog: React.FC<UserFormDialogProps> = ({
   isOpen,
   onOpenChange,
   isEditMode,
@@ -79,8 +75,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
   isLoading,
   onUserChange,
   onPropertySelection,
-  onSave,
-  ready = true
+  onSave
 }) => {
   const form = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
@@ -153,7 +148,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
                     <Input 
                       {...field}
                       placeholder="Enter full name"
-                      disabled={isLoading || !ready}
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage />
@@ -172,7 +167,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
                       {...field}
                       type="email"
                       placeholder="Enter email address"
-                      disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
+                      disabled={isLoading || (isEditMode && selectedUserId === currentUserId)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -189,7 +184,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
                   <Select 
                     value={field.value}
                     onValueChange={field.onChange}
-                    disabled={isLoading || !ready || (isEditMode && selectedUserId === currentUserId)}
+                    disabled={isLoading || (isEditMode && selectedUserId === currentUserId)}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -228,7 +223,7 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
                                 id={`property-${property.id}`}
                                 checked={assignedProperties.includes(property.id)}
                                 onCheckedChange={() => handlePropertyToggle(property.id)}
-                                disabled={isLoading || !ready}
+                                disabled={isLoading}
                               />
                               <label 
                                 htmlFor={`property-${property.id}`}
@@ -260,22 +255,17 @@ const UserFormDialog: React.FC<UserFormDialogPropsWithError> = ({
               </Button>
               <Button 
                 type="submit"
-                disabled={isLoading || !ready}
+                disabled={isLoading}
                 className="flex items-center"
               >
-                {!ready ? (
-                  <>
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
-                    Initializing...
-                  </>
-                ) : isLoading ? (
+                {isLoading ? (
                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></span>
                 ) : isEditMode ? (
                   <Check className="mr-2 h-4 w-4" />
                 ) : (
                   <Mail className="mr-2 h-4 w-4" />
                 )}
-                {!ready ? 'Initializing...' : isEditMode ? 'Update User' : 'Send Invitation'}
+                {isEditMode ? 'Update User' : 'Send Invitation'}
               </Button>
             </DialogFooter>
           </form>

@@ -113,34 +113,13 @@ export const useContractorManagement = () => {
     loadContractors();
   }, []);
 
-  // Track when the component is ready for operations - INCLUDING SESSION
+  // Set ready once we have basic data - don't block on session checks
   useEffect(() => {
-    console.log('🔧 useContractorManagement - Checking context readiness:', {
-      hasCurrentUser: !!currentUser,
-      hasSession: !!session,
-      sessionUserId: session?.user?.id,
-      hasAccessToken: !!session?.access_token,
-      isAdmin,
-      ready
-    });
-    
-    // Component is ready when we have current user, session, and admin status
-    // CRITICAL: Session MUST be available for edge function calls to work
-    if (currentUser && session && typeof isAdmin === 'boolean') {
-      console.log('🔧 useContractorManagement - Component ready WITH SESSION:', {
-        userEmail: currentUser.email,
-        sessionEmail: session.user?.email,
-        isAdmin,
-        hasAccessToken: !!session.access_token
-      });
+    if (isAdmin && (contractors.length > 0 || !loading)) {
+      console.log('✅ useContractorManagement - System ready for operations');
       setReady(true);
-    } else {
-      if (currentUser && !session) {
-        console.warn('⚠️ useContractorManagement - currentUser exists but session is missing! Invitation will fail.');
-      }
-      setReady(false);
     }
-  }, [currentUser, session, isAdmin]);
+  }, [isAdmin, contractors.length, loading]);
 
   const handleSave = async () => {
     const success = await handleSaveContractor(isEditMode, selectedContractor, newContractor);
@@ -175,7 +154,7 @@ export const useContractorManagement = () => {
     handlePageChange,
     fetchContractors: loadContractors,
     selectedContractorForDeletion,
-    ready: ready && !!currentUser && !!session,
+    ready,
     isPreparingDialog
   };
 };

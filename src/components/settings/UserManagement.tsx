@@ -155,7 +155,6 @@ const UserManagement = () => {
         onUserChange={handleUserChange}
         onPropertySelection={handlePropertySelection}
         onSave={handleSaveUser}
-        ready={ready}
       />
       
       <DeleteUserDialog

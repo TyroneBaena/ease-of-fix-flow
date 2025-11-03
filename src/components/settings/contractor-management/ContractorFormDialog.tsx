@@ -19,7 +19,6 @@ interface ContractorFormDialogProps {
   onContractorChange: (field: keyof Contractor, value: string) => void;
   onSpecialtiesChange: (specialties: string[]) => void;
   onSave: () => Promise<void>;
-  ready?: boolean;
 }
 
 const ContractorFormDialog = ({
@@ -31,8 +30,7 @@ const ContractorFormDialog = ({
   isLoading,
   onContractorChange,
   onSpecialtiesChange,
-  onSave,
-  ready = true
+  onSave
 }: ContractorFormDialogProps) => {
   const [specialty, setSpecialty] = useState<string>('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -66,12 +64,6 @@ const ContractorFormDialog = ({
   };
   
   const handleSave = async () => {
-    // Check if component is ready
-    if (!ready) {
-      setFormErrors({ general: 'Please wait for the form to initialize...' });
-      return;
-    }
-    
     // Validate form
     const errors: Record<string, string> = {};
     
@@ -124,7 +116,6 @@ const ContractorFormDialog = ({
               onChange={(e) => onContractorChange('companyName', e.target.value)}
               placeholder="ABC Contracting"
               className={formErrors.companyName ? 'border-red-500' : ''}
-              disabled={!ready}
             />
             {formErrors.companyName && (
               <p className="text-red-500 text-xs mt-1">{formErrors.companyName}</p>
@@ -142,7 +133,6 @@ const ContractorFormDialog = ({
               onChange={(e) => onContractorChange('contactName', e.target.value)}
               placeholder="John Doe"
               className={formErrors.contactName ? 'border-red-500' : ''}
-              disabled={!ready}
             />
             {formErrors.contactName && (
               <p className="text-red-500 text-xs mt-1">{formErrors.contactName}</p>
@@ -161,7 +151,6 @@ const ContractorFormDialog = ({
               onChange={(e) => onContractorChange('email', e.target.value)}
               placeholder="contractor@example.com"
               className={formErrors.email ? 'border-red-500' : ''}
-              disabled={!ready}
             />
             {formErrors.email && (
               <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
@@ -179,7 +168,6 @@ const ContractorFormDialog = ({
               onChange={(e) => onContractorChange('phone', e.target.value)}
               placeholder="(123) 456-7890"
               className={formErrors.phone ? 'border-red-500' : ''}
-              disabled={!ready}
             />
             {formErrors.phone && (
               <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
@@ -197,7 +185,6 @@ const ContractorFormDialog = ({
               onChange={(e) => onContractorChange('address', e.target.value)}
               placeholder="123 Main St, City, State, ZIP"
               rows={2}
-              disabled={!ready}
             />
           </div>
           
@@ -264,15 +251,10 @@ const ContractorFormDialog = ({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={isLoading || !ready}
+            disabled={isLoading}
             className="min-w-[100px]"
           >
-            {!ready ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Initializing...
-              </>
-            ) : isLoading ? (
+            {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 {isEditMode ? 'Saving...' : 'Inviting...'}
