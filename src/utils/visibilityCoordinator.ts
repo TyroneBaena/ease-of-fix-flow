@@ -79,13 +79,33 @@ class VisibilityCoordinator {
         const timeSinceLastChange = Date.now() - this.lastVisibilityChange;
         console.log('👁️ VisibilityCoordinator v4.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
         
-        // USER REQUESTED: Force page refresh on ANY tab revisit
+        // USER REQUESTED: Force page refresh on tab revisit if hidden >30s
         // This is a pragmatic solution to handle timeout issues
         // Trade-off: Loses form data, scroll position, cached state
-        console.log('🔄 VisibilityCoordinator v4.0 - Tab revisited, forcing page refresh');
-        console.log('⚠️ This will reset all unsaved data, scroll positions, and cached state');
-        this.showRefreshOverlay();
-        setTimeout(() => window.location.reload(), 300); // Small delay to show the overlay
+        // CRITICAL: Only refresh if no user is logged in OR tab was hidden for 30+ seconds
+        // This prevents aggressive refreshing during normal usage
+        const isAuthenticated = document.cookie.includes('sb-access-token') || 
+                               document.cookie.includes('supabase-auth-token');
+        
+        if (!isAuthenticated || timeSinceLastChange > 30000) {
+          console.log('🔄 VisibilityCoordinator v4.0 - Tab was hidden >30s or no auth, forcing page refresh');
+          console.log('⚠️ This will reset all unsaved data, scroll positions, and cached state');
+          this.showRefreshOverlay();
+          setTimeout(() => window.location.reload(), 300); // Small delay to show the overlay
+          return;
+        }
+        
+        console.log('👁️ VisibilityCoordinator v4.0 - Quick tab switch (<30s) with active session, using smart refresh');
+        this.lastVisibilityChange = Date.now();
+        
+        // Use smart refresh for authenticated users with quick tab switches
+        if (timeSinceLastChange < this.minHiddenTime) {
+          console.log('👁️ VisibilityCoordinator v4.0 - Tab switch too quick (<5s), skipping refresh');
+          return;
+        }
+        
+        console.log('👁️ VisibilityCoordinator v4.0 - Checking for stale data');
+        this.coordinateRefresh();
       } else {
         console.log('👁️ VisibilityCoordinator v4.0 - Tab hidden');
         this.lastVisibilityChange = Date.now();
