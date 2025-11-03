@@ -27,7 +27,7 @@ const Settings = () => {
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === 'admin';
   const [stableLoadingState, setStableLoadingState] = useState(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const hasLoadedOnceRef = React.useRef(false); // CRITICAL: Use ref to prevent reset on remount
   const [error, setError] = useState<string | null>(null);
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
@@ -40,7 +40,7 @@ const Settings = () => {
     setError(null);
 
     // If we've loaded once, don't show loading again
-    if (hasLoadedOnce && currentUser) {
+    if (hasLoadedOnceRef.current && currentUser) {
       setStableLoadingState(false);
       return;
     }
@@ -50,7 +50,7 @@ const Settings = () => {
         if (!currentUser) {
           setError("Unable to verify user credentials");
         } else {
-          setHasLoadedOnce(true);
+          hasLoadedOnceRef.current = true;
         }
   
         setStableLoadingState(false);
@@ -71,10 +71,10 @@ const Settings = () => {
       clearTimeout(initialDelay);
       clearTimeout(backupTimeout);
     };
-  }, [currentUser, loading, hasLoadedOnce, stableLoadingState, error]);
+  }, [currentUser, loading, stableLoadingState, error]);
   
   // Show consistent loading state only on first load
-  if (stableLoadingState && !hasLoadedOnce) {
+  if (stableLoadingState && !hasLoadedOnceRef.current) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
