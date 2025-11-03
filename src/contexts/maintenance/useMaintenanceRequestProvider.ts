@@ -265,11 +265,12 @@ export const useMaintenanceRequestProvider = () => {
       // USER REQUESTED: Force full page reload after creating maintenance request
       // This ensures all components see the new data immediately
       console.log('🔄 addRequestToProperty - Request created successfully, forcing page reload');
-      toast.success('Maintenance request added successfully. Refreshing...');
+      toast.success('Maintenance request added successfully. Redirecting to dashboard...');
       
+      // Navigate to dashboard first, then reload to show the new request
       setTimeout(() => {
-        console.log('🔄 addRequestToProperty - Executing page reload');
-        window.location.reload();
+        console.log('🔄 addRequestToProperty - Navigating to dashboard and reloading');
+        window.location.href = '/dashboard'; // Use href instead of reload to navigate AND refresh
       }, 800); // Small delay to show the success message
       
       return formattedNewRequest;

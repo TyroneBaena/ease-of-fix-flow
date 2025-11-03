@@ -277,8 +277,9 @@ export const RequestFormContainer = () => {
           // Don't block the success flow if email fails
         }
         
-        toast.success("Your maintenance request has been submitted");
-        navigate('/dashboard');
+        // Note: Page will automatically reload after 800ms (handled in addRequestToProperty)
+        // The reload takes user to dashboard with fresh data
+        console.log('RequestForm - Request created, waiting for auto-reload...');
       }
     } catch (error) {
       console.error('❌ [DEBUG] RequestForm - Overall submission error:', error);
