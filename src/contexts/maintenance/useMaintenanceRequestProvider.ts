@@ -6,6 +6,7 @@ import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperatio
 import { formatRequestData } from '@/hooks/request-detail/formatRequestData';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 export const useMaintenanceRequestProvider = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
@@ -65,11 +66,13 @@ export const useMaintenanceRequestProvider = () => {
         
         setRequests(formattedRequests);
         lastFetchTimeRef.current = Date.now();
+        visibilityCoordinator.updateLastFetchTime('maintenance');
         return formattedRequests;
       } else {
         console.log('🔍 LOADING REQUESTS v3.0 - No requests found');
         setRequests([]);
         lastFetchTimeRef.current = Date.now();
+        visibilityCoordinator.updateLastFetchTime('maintenance');
         return [];
       }
     } catch (error) {
@@ -157,24 +160,26 @@ export const useMaintenanceRequestProvider = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 
-  // CRITICAL: Tab visibility refresh - refetch data when tab becomes visible after 30+ seconds
+  // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && currentUser?.id) {
-        const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
-        const STALE_THRESHOLD = 30000; // 30 seconds
-        
-        if (timeSinceLastFetch > STALE_THRESHOLD) {
-          console.log('👁️ MaintenanceRequestProvider - Tab visible after', Math.round(timeSinceLastFetch / 1000), 's, refreshing data');
-          loadRequests();
-        } else {
-          console.log('👁️ MaintenanceRequestProvider - Tab visible but data fresh, skipping refresh');
-        }
-      }
+    if (!currentUser?.id) return;
+
+    const refreshMaintenance = async () => {
+      console.log('🔄 MaintenanceRequestProvider - Coordinator-triggered refresh');
+      await loadRequests();
+      visibilityCoordinator.updateLastFetchTime('maintenance');
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    visibilityCoordinator.register({
+      id: 'maintenance',
+      refresh: refreshMaintenance,
+      staleThreshold: 30000, // 30 seconds
+      priority: 3 // After auth and properties
+    });
+
+    return () => {
+      visibilityCoordinator.unregister('maintenance');
+    };
   }, [currentUser?.id, loadRequests]);
 
 

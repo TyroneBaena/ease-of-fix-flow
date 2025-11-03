@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast';
 import { authDebugMarker } from '@/auth-debug';
 import '@/auth-debug'; // Force import to trigger debug logs
 import { setSentryUser } from '@/lib/sentry';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 console.log('🚀 UnifiedAuth Context loading with debug marker:', authDebugMarker);
 
@@ -589,21 +590,52 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return { success: false, message: 'Not implemented' };
   }, []);
 
+  // Register auth refresh with visibility coordinator
   useEffect(() => {
-    console.log('🚀 UnifiedAuth v16.0 - Starting auth initialization at:', new Date().toISOString());
+    const refreshAuth = async () => {
+      console.log('🔄 UnifiedAuth - Coordinator-triggered auth refresh');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const user = await convertSupabaseUser(session.user);
+          setCurrentUser(user);
+          await fetchUserOrganizations(user);
+        }
+      } catch (error) {
+        console.error('🔄 UnifiedAuth - Coordinator auth refresh error:', error);
+      }
+    };
+
+    visibilityCoordinator.register({
+      id: 'auth',
+      refresh: refreshAuth,
+      staleThreshold: 30000, // 30 seconds
+      priority: 1 // Highest priority - auth first
+    });
+
+    return () => {
+      visibilityCoordinator.unregister('auth');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('🚀 UnifiedAuth v17.0 - Starting auth initialization at:', new Date().toISOString());
     const startTime = performance.now();
-    console.log('🚀 UnifiedAuth v6.0 - Setting up SINGLE auth listener (FIXED VERSION)', { authDebugMarker });
+    console.log('🚀 UnifiedAuth v17.0 - Setting up SINGLE auth listener with coordinator', { authDebugMarker });
     
     // Set up ONE auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🚀 UnifiedAuth v12.0 - Auth state changed:', event, 'Session exists:', !!session);
+      console.log('🚀 UnifiedAuth v17.0 - Auth state changed:', event, 'Session exists:', !!session);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🚀 UnifiedAuth v12.0 - SIGNED_IN event, user email:', session.user.email);
+        console.log('🚀 UnifiedAuth v17.0 - SIGNED_IN event, user email:', session.user.email);
         
         // Set session immediately (non-async)
         setSession(session);
-        console.log('🚀 UnifiedAuth v12.0 - Session set, starting user conversion...');
+        console.log('🚀 UnifiedAuth v17.0 - Session set, starting user conversion...');
+        
+        // Update coordinator fetch time
+        visibilityCoordinator.updateLastFetchTime('auth');
         
         // CRITICAL FIX: Use setTimeout to defer async Supabase calls to prevent deadlocks
         // This is the official Supabase recommendation to avoid auth callback deadlocks
@@ -645,7 +677,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }, 0);
         
       } else if (event === 'SIGNED_OUT') {
-        console.log('🚀 UnifiedAuth v12.0 - SIGNED_OUT event');
+        console.log('🚀 UnifiedAuth v17.0 - SIGNED_OUT event');
         setLoading(false);
         setCurrentUser(null);
         setSession(null);
@@ -685,9 +717,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }, 0);
       } else if (event === 'INITIAL_SESSION') {
         // Don't set loading to false on INITIAL_SESSION - let getSession() handle it
-        console.log('🚀 UnifiedAuth v12.0 - INITIAL_SESSION event - waiting for getSession()');
+        console.log('🚀 UnifiedAuth v17.0 - INITIAL_SESSION event - waiting for getSession()');
       } else {
-        console.log('🚀 UnifiedAuth v12.0 - Other auth event:', event);
+        console.log('🚀 UnifiedAuth v17.0 - Other auth event:', event);
         setLoading(false);
       }
     });

@@ -1,7 +1,7 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Contractor } from '@/types/contractor';
 import { fetchContractors } from '../operations';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
  * Hook for managing contractors state and loading operations
@@ -30,6 +30,7 @@ export const useContractorsState = () => {
       setContractors(contractorsList);
       setError(null);
       lastFetchTimeRef.current = Date.now();
+      visibilityCoordinator.updateLastFetchTime('contractors');
     } catch (err) {
       console.error("useContractorsState - Error loading contractors:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -48,24 +49,24 @@ export const useContractorsState = () => {
     loadContractors();
   }, [loadContractors]);
 
-  // CRITICAL: Tab visibility refresh - refetch data when tab becomes visible after 30+ seconds
+  // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
-        const STALE_THRESHOLD = 30000; // 30 seconds
-        
-        if (timeSinceLastFetch > STALE_THRESHOLD) {
-          console.log('👁️ ContractorProvider - Tab visible after', Math.round(timeSinceLastFetch / 1000), 's, refreshing data');
-          loadContractors();
-        } else {
-          console.log('👁️ ContractorProvider - Tab visible but data fresh, skipping refresh');
-        }
-      }
+    const refreshContractors = async () => {
+      console.log('🔄 ContractorProvider - Coordinator-triggered refresh');
+      await loadContractors();
+      visibilityCoordinator.updateLastFetchTime('contractors');
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    visibilityCoordinator.register({
+      id: 'contractors',
+      refresh: refreshContractors,
+      staleThreshold: 30000, // 30 seconds
+      priority: 4 // After auth, properties, and maintenance
+    });
+
+    return () => {
+      visibilityCoordinator.unregister('contractors');
+    };
   }, [loadContractors]);
 
   return {

@@ -55,6 +55,7 @@ import { PropertyProvider } from './contexts/property/PropertyContext';
 import { ContractorProvider } from './contexts/contractor';
 import { ContractorAuthProvider } from './contexts/contractor/ContractorAuthContext';
 import { ContractorRouteGuard } from './components/contractor/ContractorRouteGuard';
+import { TabVisibilityProvider } from './contexts/TabVisibilityContext';
 
 // New pages
 import Pricing from '@/pages/Pricing';
@@ -76,7 +77,7 @@ function AppRoutes() {
         console.error('⚠️ AppRoutes - Loading timeout exceeded! Forcing app to render.');
         setForceReady(true);
       }
-    }, 10000); // 10 second failsafe
+    }, 15000); // 15 second failsafe (increased from 10s to allow for coordinated refresh)
 
     return () => clearTimeout(failsafeTimer);
   }, [loading, forceReady]);
@@ -311,25 +312,27 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <UnifiedAuthProvider>
-          <UserProvider>
-            <SubscriptionProvider>
-              {/* CRITICAL FIX: Move data providers to app level so they persist across route changes */}
-              <MaintenanceRequestProvider>
-                <PropertyProvider>
-                  <ContractorProvider>
-                    <Router>
-                      <div className="App">
-                        <AppRoutes />
-                      </div>
-                      <Toaster />
-                    </Router>
-                  </ContractorProvider>
-                </PropertyProvider>
-              </MaintenanceRequestProvider>
-            </SubscriptionProvider>
-          </UserProvider>
-        </UnifiedAuthProvider>
+        <TabVisibilityProvider>
+          <UnifiedAuthProvider>
+            <UserProvider>
+              <SubscriptionProvider>
+                {/* CRITICAL FIX: Move data providers to app level so they persist across route changes */}
+                <MaintenanceRequestProvider>
+                  <PropertyProvider>
+                    <ContractorProvider>
+                      <Router>
+                        <div className="App">
+                          <AppRoutes />
+                        </div>
+                        <Toaster />
+                      </Router>
+                    </ContractorProvider>
+                  </PropertyProvider>
+                </MaintenanceRequestProvider>
+              </SubscriptionProvider>
+            </UserProvider>
+          </UnifiedAuthProvider>
+        </TabVisibilityProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

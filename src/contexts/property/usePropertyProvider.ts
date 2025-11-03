@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast';
 import { useUserContext } from '../UnifiedAuthContext';
 import { PropertyContextType } from './PropertyContextTypes';
 import { fetchProperties } from './propertyOperations';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 export const usePropertyProvider = (): PropertyContextType => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -55,6 +56,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
       lastFetchTimeRef.current = Date.now();
+      visibilityCoordinator.updateLastFetchTime('properties');
     } catch (err) {
       clearTimeout(timeoutId);
       
@@ -122,24 +124,26 @@ export const usePropertyProvider = (): PropertyContextType => {
     };
   }, [currentUser?.id, fetchAndSetProperties]);
 
-  // CRITICAL: Tab visibility refresh - refetch data when tab becomes visible after 30+ seconds
+  // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && currentUser?.id) {
-        const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
-        const STALE_THRESHOLD = 30000; // 30 seconds
-        
-        if (timeSinceLastFetch > STALE_THRESHOLD) {
-          console.log('👁️ PropertyProvider - Tab visible after', Math.round(timeSinceLastFetch / 1000), 's, refreshing data');
-          fetchAndSetProperties();
-        } else {
-          console.log('👁️ PropertyProvider - Tab visible but data fresh, skipping refresh');
-        }
-      }
+    if (!currentUser?.id) return;
+
+    const refreshProperties = async () => {
+      console.log('🔄 PropertyProvider - Coordinator-triggered refresh');
+      await fetchAndSetProperties();
+      visibilityCoordinator.updateLastFetchTime('properties');
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    visibilityCoordinator.register({
+      id: 'properties',
+      refresh: refreshProperties,
+      staleThreshold: 30000, // 30 seconds
+      priority: 2 // After auth
+    });
+
+    return () => {
+      visibilityCoordinator.unregister('properties');
+    };
   }, [currentUser?.id, fetchAndSetProperties]);
 
 
