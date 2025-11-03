@@ -113,22 +113,6 @@ export const useContractorManagement = () => {
     loadContractors();
   }, []);
 
-  // Tab visibility handler
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && ready) {
-        console.log('useContractorManagement - Tab became visible, refreshing data');
-        loadContractors();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [ready]);
-
   // Track when the component is ready for operations - INCLUDING SESSION
   useEffect(() => {
     console.log('🔧 useContractorManagement - Checking context readiness:', {

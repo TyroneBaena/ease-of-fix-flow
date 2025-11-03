@@ -108,37 +108,6 @@ export const useMaintenanceRequestProvider = () => {
   }, [currentUser?.id]);
 
   // Tab visibility detection - refresh stale data when tab becomes active
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    let lastFetchTime = Date.now();
-    const STALE_TIME = 60000; // 60 seconds
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const now = Date.now();
-        const timeSinceLastFetch = now - lastFetchTime;
-
-        console.log('🔄 MaintenanceProvider - Tab visible, time since last fetch:', timeSinceLastFetch / 1000, 's');
-
-        // Only refresh if data is stale (>60s)
-        if (timeSinceLastFetch > STALE_TIME) {
-          console.log('🔄 MaintenanceProvider - Data is stale, refreshing requests');
-          loadRequests().then(() => {
-            lastFetchTime = Date.now();
-          });
-        } else {
-          console.log('🔄 MaintenanceProvider - Data still fresh, skipping refresh');
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentUser?.id, loadRequests]);
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {
