@@ -13,23 +13,6 @@ export const usePropertyProvider = (): PropertyContextType => {
   const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
   const { currentUser } = useUserContext();
 
-  useEffect(() => {
-    console.log('PropertyProvider: useEffect triggered', { 
-      currentUser: currentUser ? `User: ${currentUser.email}` : 'No user',
-      userId: currentUser?.id 
-    });
-    
-    if (currentUser) {
-      console.log('PropertyProvider: User found, calling fetchAndSetProperties');
-      fetchAndSetProperties();
-    } else {
-      console.log('PropertyProvider: No user, clearing properties');
-      setProperties([]);
-      setLoading(false);
-      setLoadingFailed(false);
-    }
-  }, [currentUser]);
-
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
     // CRITICAL FIX: Add timeout protection
@@ -66,6 +49,23 @@ export const usePropertyProvider = (): PropertyContextType => {
       setLoading(false);
     }
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    console.log('PropertyProvider: useEffect triggered', { 
+      currentUser: currentUser ? `User: ${currentUser.email}` : 'No user',
+      userId: currentUser?.id 
+    });
+    
+    if (currentUser?.id) {
+      console.log('PropertyProvider: User found, calling fetchAndSetProperties');
+      fetchAndSetProperties();
+    } else {
+      console.log('PropertyProvider: No user, clearing properties');
+      setProperties([]);
+      setLoading(false);
+      setLoadingFailed(false);
+    }
+  }, [currentUser?.id, fetchAndSetProperties]);
 
   // REMOVED: Tab visibility checking
   // Properties are fetched once on mount and updated through user actions
@@ -133,7 +133,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('Unexpected error adding property:', err);
       toast.error('An unexpected error occurred');
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   const getProperty = useCallback((id: string): Property | undefined => {
     console.log('PropertyContext: getProperty called with ID:', id);
@@ -208,7 +208,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('PropertyContext: Unexpected error updating property:', err);
       toast.error('An unexpected error occurred');
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   const deleteProperty = useCallback(async (id: string) => {
     try {
@@ -248,7 +248,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.error('Unexpected error deleting property:', err);
       toast.error('An unexpected error occurred');
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   return useMemo(() => ({
     properties,
