@@ -121,7 +121,7 @@ export const useContractorManagement = () => {
     if (isAdmin) {
       loadContractors();
     }
-  }, [isAdmin, loadContractors]);
+  }, [isAdmin]); // FIXED: Removed loadContractors from deps since it has empty deps
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {

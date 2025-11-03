@@ -67,7 +67,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       setLoading(false);
       setLoadingFailed(false);
     }
-  }, [currentUser?.id, fetchAndSetProperties]);
+  }, [currentUser?.id]); // FIXED: Removed fetchAndSetProperties from deps since it has empty deps
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
