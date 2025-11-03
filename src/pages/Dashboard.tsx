@@ -87,15 +87,20 @@ const Dashboard = () => {
   console.log('🔍 DASHBOARD - userLoading:', userLoading);
   console.log('🔍 DASHBOARD - requestsLoading:', requestsLoading);
   console.log('🔍 DASHBOARD - requests count:', requests.length);
+  console.log('🔍 DASHBOARD - All requests:', requests.map(r => ({ id: r.id, title: r.title, userId: r.userId, status: r.status })));
   
   // Filter requests based on role
   // Admins and managers see all requests (already filtered by RLS and assigned properties in context)
   // Regular users only see their own requests
   const userRequests = currentUser?.role === 'admin' || currentUser?.role === 'manager'
     ? requests 
-    : requests.filter(req => req.userId === currentUser?.id);
+    : requests.filter(req => {
+        console.log(`🔍 DASHBOARD - Checking request ${req.id}: req.userId=${req.userId}, currentUser.id=${currentUser?.id}, match=${req.userId === currentUser?.id}`);
+        return req.userId === currentUser?.id;
+      });
     
   console.log('🔍 DASHBOARD - userRequests count:', userRequests.length);
+  console.log('🔍 DASHBOARD - userRequests:', userRequests.map(r => ({ id: r.id, title: r.title, status: r.status })));
   
   // Check for add24 specifically
   const add24InRequests = requests.find(req => req.title?.includes('add24'));
@@ -177,6 +182,27 @@ const Dashboard = () => {
           <Navbar />
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <DashboardHeader title="Dashboard" />
+            
+            {/* DEBUG: Manual Refresh Button */}
+            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Debug Info</p>
+                    <p className="text-xs text-blue-700">
+                      Requests in context: {requests.length} | User requests: {userRequests.length} | Role: {currentUser?.role}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    Refresh Page
+                  </Button>
+                </div>
+              </div>
+            )}
             
             {/* Trial/Billing Alert */}
             {/* <div className="mb-6">

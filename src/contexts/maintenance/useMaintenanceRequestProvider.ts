@@ -141,26 +141,35 @@ export const useMaintenanceRequestProvider = () => {
           table: 'maintenance_requests'
         },
         (payload) => {
-          console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
+          console.log('🔄 REAL-TIME: Maintenance request change detected');
+          console.log('🔄 REAL-TIME: Event type:', payload.eventType);
+          console.log('🔄 REAL-TIME: Payload:', payload);
           
           // Handle different event types intelligently to avoid race conditions
           if (payload.eventType === 'INSERT' && payload.new) {
-            console.log('🔄 REAL-TIME: Adding new request to state');
+            console.log('🔄 REAL-TIME: INSERT event - New request ID:', payload.new.id);
             const formattedRequest = formatRequestData(payload.new);
+            console.log('🔄 REAL-TIME: Formatted request:', formattedRequest);
+            
             setRequests(prev => {
+              console.log('🔄 REAL-TIME: Current requests count before INSERT:', prev.length);
               // Avoid duplicates
               const exists = prev.some(r => r.id === formattedRequest.id);
-              if (exists) return prev;
+              if (exists) {
+                console.log('🔄 REAL-TIME: Request already exists in state, skipping duplicate');
+                return prev;
+              }
+              console.log('🔄 REAL-TIME: Adding new request to state');
               return [...prev, formattedRequest];
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            console.log('🔄 REAL-TIME: Updating request in state');
+            console.log('🔄 REAL-TIME: UPDATE event - Request ID:', payload.new.id);
             const formattedRequest = formatRequestData(payload.new);
             setRequests(prev => prev.map(r => 
               r.id === formattedRequest.id ? formattedRequest : r
             ));
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            console.log('🔄 REAL-TIME: Removing request from state');
+            console.log('🔄 REAL-TIME: DELETE event - Request ID:', payload.old.id);
             setRequests(prev => prev.filter(r => r.id !== payload.old.id));
           }
         }
@@ -207,7 +216,8 @@ export const useMaintenanceRequestProvider = () => {
   }, [requests]);
 
   const addRequestToProperty = useCallback(async (requestData: Omit<MaintenanceRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-    console.log('Adding request to property with data:', requestData);
+    console.log('🆕 addRequestToProperty - Starting with data:', requestData);
+    
     // Ensure required fields are present with defaults
     const requestWithDefaults = {
       ...requestData,
@@ -220,14 +230,29 @@ export const useMaintenanceRequestProvider = () => {
     const newRequest = await addRequest(requestWithDefaults);
     
     if (newRequest) {
-      console.log('New request created successfully:', newRequest);
+      console.log('🆕 addRequestToProperty - Database insert successful:', newRequest);
+      console.log('🆕 addRequestToProperty - New request ID:', newRequest.id);
+      
       // Format the new request before adding to state
       const formattedNewRequest = formatRequestData(newRequest);
-      setRequests(prev => [...prev, formattedNewRequest]);
+      console.log('🆕 addRequestToProperty - Formatted request:', formattedNewRequest);
+      
+      // Add to state immediately (optimistic update)
+      setRequests(prev => {
+        console.log('🆕 addRequestToProperty - Current requests count:', prev.length);
+        const exists = prev.some(r => r.id === formattedNewRequest.id);
+        if (exists) {
+          console.log('🆕 addRequestToProperty - Request already exists, skipping');
+          return prev;
+        }
+        console.log('🆕 addRequestToProperty - Adding request to state');
+        return [...prev, formattedNewRequest];
+      });
+      
       toast.success('Maintenance request added successfully');
-      return formattedNewRequest; // Return the formatted request with its ID
+      return formattedNewRequest;
     } else {
-      console.error('Failed to create new request');
+      console.error('🆕 addRequestToProperty - Failed to create new request');
       return null;
     }
   }, [addRequest]);
