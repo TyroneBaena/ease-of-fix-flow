@@ -254,6 +254,10 @@ export const RequestFormContainer = () => {
         
         console.log('RequestForm - addRequestToProperty returned:', newRequest);
         
+        if (!newRequest) {
+          throw new Error('Failed to create maintenance request');
+        }
+        
         // Send email notifications
         try {
           const { data: session } = await supabase.auth.getSession();
@@ -274,6 +278,9 @@ export const RequestFormContainer = () => {
         }
         
         toast.success("Your maintenance request has been submitted");
+        
+        // CRITICAL: Wait a moment for state to propagate before navigating
+        await new Promise(resolve => setTimeout(resolve, 500));
         navigate('/dashboard');
       }
     } catch (error) {

@@ -17,6 +17,11 @@ export const useMaintenanceRequestContext = () => {
 export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = useMaintenanceRequestProvider();
 
+  // Log provider re-renders for debugging
+  React.useEffect(() => {
+    console.log('🔄 MaintenanceRequestProvider - Re-rendered with requests:', value.requests.length);
+  }, [value.requests.length]);
+
   // CRITICAL: Use React.useMemo to prevent unnecessary re-renders
   const typedValue: MaintenanceRequestContextType = React.useMemo(() => ({
     requests: value.requests as MaintenanceRequest[],

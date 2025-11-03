@@ -279,7 +279,7 @@ export const useMaintenanceRequestProvider = () => {
     return true;
   };
 
-  return useMemo(() => ({
+  const contextValue = useMemo(() => ({
     requests,
     // CRITICAL: Override loading to false after initial load completes
     // This prevents loading flashes on tab switches
@@ -294,4 +294,11 @@ export const useMaintenanceRequestProvider = () => {
     addRequestToProperty,
     loadRequests
   ]);
+  
+  // Log context value changes for debugging
+  useEffect(() => {
+    console.log('🔄 MaintenanceContext - Value updated, requests count:', requests.length);
+  }, [requests.length]);
+  
+  return contextValue;
 };

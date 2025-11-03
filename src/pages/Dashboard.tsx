@@ -183,37 +183,6 @@ const Dashboard = () => {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <DashboardHeader title="Dashboard" />
             
-            {/* DEBUG: Manual Refresh Button */}
-            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">Debug Info</p>
-                    <p className="text-xs text-blue-700">
-                      Requests in context: {requests.length} | User requests: {userRequests.length} | Role: {currentUser?.role}
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={() => window.location.reload()} 
-                    variant="outline"
-                    size="sm"
-                  >
-                    Refresh Page
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {/* Trial/Billing Alert */}
-            {/* <div className="mb-6">
-              <TrialBillingAlert />
-            </div> */}
-
-            {/* Billing Widgets */}
-            {/* <div className="mb-6">
-              <BillingWidgets />
-            </div> */}
-
             {/* Property Management Widget */}
             <div className="mb-6">
               <PropertyManagementWidget />
@@ -221,7 +190,10 @@ const Dashboard = () => {
             
             <div className={`grid gap-6 mt-6 ${selectedRequest ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1 lg:grid-cols-4'}`}>
               <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>
-                <StatsOverview requestsData={userRequests} />
+                <StatsOverview 
+                  key={`stats-${userRequests.length}-${userRequests.filter(r => r.status === 'pending').length}`}
+                  requestsData={userRequests} 
+                />
                 <RequestsList 
                   key={`requests-${userRequests.filter(r => r.status !== 'cancelled').length}`}
                   allRequests={userRequests as any} 
