@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Property } from '@/types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
@@ -12,6 +12,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
   const { currentUser } = useUserContext();
+  const lastFetchedUserIdRef = useRef<string | null>(null);
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
@@ -55,18 +56,29 @@ export const usePropertyProvider = (): PropertyContextType => {
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
       currentUser: currentUser ? `User: ${currentUser.email}` : 'No user',
-      userId: currentUser?.id 
+      userId: currentUser?.id,
+      lastFetchedUserId: lastFetchedUserIdRef.current
     });
     
-    if (currentUser?.id) {
-      console.log('PropertyProvider: User found, calling fetchAndSetProperties');
-      fetchAndSetProperties();
-    } else {
+    // If no user, clear everything
+    if (!currentUser?.id) {
       console.log('PropertyProvider: No user, clearing properties');
       setProperties([]);
       setLoading(false);
       setLoadingFailed(false);
+      lastFetchedUserIdRef.current = null;
+      return;
     }
+    
+    // Only fetch if the user ID has actually changed
+    if (lastFetchedUserIdRef.current === currentUser.id) {
+      console.log('PropertyProvider: User ID unchanged, skipping fetch');
+      return;
+    }
+    
+    console.log('PropertyProvider: User ID changed, fetching properties');
+    lastFetchedUserIdRef.current = currentUser.id;
+    fetchAndSetProperties();
   }, [currentUser?.id]); // FIXED: Removed fetchAndSetProperties from deps since it has empty deps
 
 

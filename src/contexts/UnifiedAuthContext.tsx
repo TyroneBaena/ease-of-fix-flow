@@ -633,8 +633,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Clear Sentry user context
         setSentryUser(null);
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🚀 UnifiedAuth v12.0 - TOKEN_REFRESHED event');
-        setSession(session);
+        console.log('🚀 UnifiedAuth v12.0 - TOKEN_REFRESHED event - silently updating session without triggering re-renders');
+        // Update session reference without triggering unnecessary re-renders
+        // Only update if the access token actually changed to minimize re-renders
+        setSession((prevSession) => {
+          if (prevSession?.access_token !== session.access_token) {
+            return session;
+          }
+          return prevSession;
+        });
       } else if (event === 'USER_UPDATED' && session?.user) {
         console.log('🚀 UnifiedAuth v12.0 - USER_UPDATED event');
         // Use setTimeout for USER_UPDATED as well

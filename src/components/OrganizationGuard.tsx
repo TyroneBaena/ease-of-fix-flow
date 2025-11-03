@@ -75,6 +75,8 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
 
       // Only check if the user ID has changed to prevent infinite loops
       if (lastCheckedUserRef.current === currentUser.id) {
+        // User hasn't changed, keep existing organization status
+        setIsCheckingOrganization(false);
         return;
       }
 
@@ -87,7 +89,7 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
     };
 
     checkOrganization();
-  }, [currentUser?.id, checkUserOrganization]); // Only depend on user ID, not the full user object
+  }, [currentUser?.id]); // Only depend on user ID - checkUserOrganization is stable
 
   const handleOrganizationComplete = async () => {
     console.log('🚀 OrganizationGuard - Organization setup completed, refetching...');
