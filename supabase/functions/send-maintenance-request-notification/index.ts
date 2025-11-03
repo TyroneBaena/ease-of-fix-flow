@@ -165,13 +165,6 @@ const handler = async (req: Request): Promise<Response> => {
            <p><strong>Address:</strong> ${propertyData.address}</p>
         </div>
 
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${directLink}" 
-             style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            View Request Details
-          </a>
-        </div>
-
         <p style="color: #666; font-size: 14px; margin-top: 30px;">
           You are receiving this email as the ${recipientType} for this property. 
           Please log in to the system to review and manage this maintenance request.
