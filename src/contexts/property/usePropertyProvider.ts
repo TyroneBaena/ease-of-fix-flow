@@ -67,38 +67,9 @@ export const usePropertyProvider = (): PropertyContextType => {
     }
   }, [currentUser?.id]);
 
-  // Tab visibility detection - refresh stale data when tab becomes active
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    let lastFetchTime = Date.now();
-    const STALE_TIME = 60000; // 60 seconds
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const now = Date.now();
-        const timeSinceLastFetch = now - lastFetchTime;
-
-        console.log('🔄 PropertyProvider - Tab visible, time since last fetch:', timeSinceLastFetch / 1000, 's');
-
-        // Only refresh if data is stale (>60s)
-        if (timeSinceLastFetch > STALE_TIME) {
-          console.log('🔄 PropertyProvider - Data is stale, refreshing properties');
-          fetchAndSetProperties().then(() => {
-            lastFetchTime = Date.now();
-          });
-        } else {
-          console.log('🔄 PropertyProvider - Data still fresh, skipping refresh');
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentUser?.id, fetchAndSetProperties]);
+  // REMOVED: Tab visibility checking
+  // Properties are fetched once on mount and updated through user actions
+  // No need for automatic refresh on tab visibility - Supabase handles sessions naturally
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
