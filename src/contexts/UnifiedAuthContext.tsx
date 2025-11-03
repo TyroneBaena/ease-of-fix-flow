@@ -595,8 +595,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Only refresh if:
         // 1. Not already refreshing
         // 2. Tab was hidden for more than 500ms (prevents rapid tab switches)
-        // 3. We have a current session to refresh
-        if (!isRefreshing && hiddenDuration > 500 && session) {
+        if (!isRefreshing && hiddenDuration > 500) {
           // Debounce: wait 300ms before actually refreshing
           // This prevents multiple rapid visibility changes from triggering multiple refreshes
           visibilityTimeout = setTimeout(async () => {
@@ -621,7 +620,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 console.log('✅ UnifiedAuth - Session refreshed successfully');
                 setSession(refreshedSession);
               } else {
-                console.warn('⚠️ UnifiedAuth - No session after refresh');
+                console.log('ℹ️ UnifiedAuth - No session to refresh');
               }
             } catch (error) {
               console.error('❌ UnifiedAuth - Visibility refresh error:', error);
@@ -634,8 +633,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             console.log('⏭️ UnifiedAuth - Skipping refresh, already in progress');
           } else if (hiddenDuration <= 500) {
             console.log('⏭️ UnifiedAuth - Skipping refresh, tab switch too quick:', hiddenDuration, 'ms');
-          } else if (!session) {
-            console.log('⏭️ UnifiedAuth - Skipping refresh, no session');
           }
         }
       }
@@ -813,7 +810,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       subscription.unsubscribe();
     };
-  }, [session]); // Add session to dependencies so we can check if it exists
+  }, []); // CRITICAL: Empty deps - session check is inside handler
 
   // REMOVED: Tab visibility checking
   // Supabase handles session refresh automatically through API calls
