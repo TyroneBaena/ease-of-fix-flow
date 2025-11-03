@@ -565,22 +565,73 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const startTime = performance.now();
     console.log('🚀 UnifiedAuth v6.0 - Setting up SINGLE auth listener (FIXED VERSION)', { authDebugMarker });
     
-    // Add tab visibility handler to refresh session
+    // CRITICAL: Add debouncing and locking for session refresh to prevent race conditions
+    let isRefreshing = false;
+    let lastHiddenTime = 0;
+    let visibilityTimeout: ReturnType<typeof setTimeout> | null = null;
+    
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('👁️ UnifiedAuth - Tab visible, refreshing session');
-        supabase.auth.getSession().then(({ data: { session: refreshedSession }, error }) => {
-          if (error) {
-            console.error('❌ UnifiedAuth - Session refresh error:', error);
-            return;
+      // Clear any pending refresh
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = null;
+      }
+      
+      if (document.hidden) {
+        // Tab is being hidden - record the time
+        lastHiddenTime = Date.now();
+        console.log('👁️ UnifiedAuth - Tab hidden at:', new Date().toISOString());
+      } else {
+        // Tab is becoming visible
+        const hiddenDuration = Date.now() - lastHiddenTime;
+        console.log('👁️ UnifiedAuth - Tab visible, was hidden for:', hiddenDuration, 'ms');
+        
+        // Only refresh if:
+        // 1. Not already refreshing
+        // 2. Tab was hidden for more than 500ms (prevents rapid tab switches)
+        // 3. We have a current session to refresh
+        if (!isRefreshing && hiddenDuration > 500 && session) {
+          // Debounce: wait 300ms before actually refreshing
+          // This prevents multiple rapid visibility changes from triggering multiple refreshes
+          visibilityTimeout = setTimeout(async () => {
+            if (isRefreshing) {
+              console.log('⏭️ UnifiedAuth - Skipping refresh, already in progress');
+              return;
+            }
+            
+            isRefreshing = true;
+            console.log('🔄 UnifiedAuth - Starting session refresh after tab return');
+            
+            try {
+              const { data: { session: refreshedSession }, error } = await supabase.auth.getSession();
+              
+              if (error) {
+                console.error('❌ UnifiedAuth - Session refresh error:', error);
+                isRefreshing = false;
+                return;
+              }
+              
+              if (refreshedSession) {
+                console.log('✅ UnifiedAuth - Session refreshed successfully');
+                setSession(refreshedSession);
+              } else {
+                console.warn('⚠️ UnifiedAuth - No session after refresh');
+              }
+            } catch (error) {
+              console.error('❌ UnifiedAuth - Visibility refresh error:', error);
+            } finally {
+              isRefreshing = false;
+            }
+          }, 300); // 300ms debounce delay
+        } else {
+          if (isRefreshing) {
+            console.log('⏭️ UnifiedAuth - Skipping refresh, already in progress');
+          } else if (hiddenDuration <= 500) {
+            console.log('⏭️ UnifiedAuth - Skipping refresh, tab switch too quick:', hiddenDuration, 'ms');
+          } else if (!session) {
+            console.log('⏭️ UnifiedAuth - Skipping refresh, no session');
           }
-          if (refreshedSession) {
-            console.log('✅ UnifiedAuth - Session refreshed successfully');
-            setSession(refreshedSession);
-          }
-        }).catch((error) => {
-          console.error('❌ UnifiedAuth - Visibility refresh error:', error);
-        });
+        }
       }
     };
     
@@ -746,10 +797,16 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return () => {
       console.log('🚀 UnifiedAuth v7.0 - Cleaning up auth listener');
+      
+      // Clear any pending visibility timeout
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [session]); // Add session to dependencies so we can check if it exists
 
   // REMOVED: Tab visibility checking
   // Supabase handles session refresh automatically through API calls

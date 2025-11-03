@@ -7,25 +7,21 @@ export const createContractor = async (newContractor: Partial<Contractor>) => {
   console.log('🚀 createContractor - Starting contractor creation', { email: newContractor.email });
   
   try {
-    // CRITICAL: Force session refresh to ensure we have a valid session after tab switches
-    console.log('🔐 createContractor - Force refreshing session');
-    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+    // CRITICAL: Ensure we have a valid session before making any requests
+    console.log('🔐 createContractor - Validating session');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
-      console.error('❌ createContractor - Session refresh error:', sessionError);
-      // Fall back to getting the current session
-      const { data: { session: fallbackSession }, error: fallbackError } = await supabase.auth.getSession();
-      if (fallbackError || !fallbackSession) {
-        console.error('❌ createContractor - No valid session available');
-        throw new Error('Your session has expired. Please refresh the page and try again.');
-      }
-      console.log('✅ createContractor - Using fallback session');
-    } else if (!session) {
-      console.error('❌ createContractor - No active session after refresh');
-      throw new Error('Your session has expired. Please refresh the page and try again.');
-    } else {
-      console.log('✅ createContractor - Session refreshed successfully');
+      console.error('❌ createContractor - Session error:', sessionError);
+      throw new Error('Authentication error. Please refresh the page and try again.');
     }
+    
+    if (!session) {
+      console.error('❌ createContractor - No active session');
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    
+    console.log('✅ createContractor - Session validated, access token length:', session.access_token?.length);
     
     // First check if this email already exists as a contractor
     console.log('🔍 createContractor - Checking for existing contractor');
