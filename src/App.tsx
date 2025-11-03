@@ -63,8 +63,37 @@ import AdminSettings from '@/pages/AdminSettings';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 import { EnhancedSignupFlow } from '@/components/auth/EnhancedSignupFlow';
 import { TeamManagement } from '@/pages/TeamManagement';
+import { TabRevisitDiagnostic } from '@/components/testing/TabRevisitDiagnostic';
 
-const queryClient = new QueryClient();
+// CRITICAL: Configure QueryClient to work with visibility coordinator
+// Disable aggressive refetching - let coordinator handle background refreshes
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Disable automatic refetching - coordinator handles this
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      
+      // Long stale time - data is considered fresh for 5 minutes
+      // Individual queries can override this if needed
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      
+      // Cache data for 10 minutes
+      gcTime: 10 * 60 * 1000, // Renamed from cacheTime in v5
+      
+      // Disable retries by default - let individual queries handle this
+      retry: false,
+      
+      // No automatic background refetching
+      refetchInterval: false,
+    },
+    mutations: {
+      // Mutations should not retry by default
+      retry: false,
+    },
+  },
+});
 
 function AppRoutes() {
   const { loading } = useSimpleAuth();
@@ -299,6 +328,15 @@ function AppRoutes() {
             <Route path="/test-data-fetching" element={
               <ProtectedRoute>
                 <TestDataFetching />
+              </ProtectedRoute>
+            } />
+            
+            {/* Tab Revisit Diagnostic Tool */}
+            <Route path="/test-tab-revisit" element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background p-8">
+                  <TabRevisitDiagnostic />
+                </div>
               </ProtectedRoute>
             } />
             
