@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
@@ -23,12 +23,14 @@ const AllRequests = () => {
   });
   const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
 
-  // Log what we're working with
+  // CRITICAL FIX: Track if we've loaded data at least once to prevent loading on tab switches
+  const hasLoadedDataRef = React.useRef(false);
+  
   useEffect(() => {
-    console.log('AllRequests - Properties:', properties);
-    console.log('AllRequests - Requests:', requests);
-    console.log('AllRequests - Loading state:', loading);
-  }, [properties, requests, loading]);
+    if (!loading && requests) {
+      hasLoadedDataRef.current = true;
+    }
+  }, [loading, requests]);
 
   // Filter and sort requests
   useEffect(() => {
@@ -111,9 +113,12 @@ const AllRequests = () => {
     )
   );
 
+  // CRITICAL FIX: Don't show loading message after first load completes
+  const showLoading = loading && !hasLoadedDataRef.current;
+  
   // Message to display when no requests are found
   const getEmptyMessage = () => {
-    if (loading) return "Loading requests...";
+    if (showLoading) return "Loading requests...";
     if (requests.length === 0) return "No maintenance requests found. Submit a new request to get started.";
     if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || dateRange.from || dateRange.to) {
       return "No requests match your filters. Try adjusting your search criteria.";
@@ -148,7 +153,7 @@ const AllRequests = () => {
         />
         
         <div className="mb-4 text-sm text-gray-600">
-          {loading ? (
+          {showLoading ? (
             "Loading requests..."
           ) : (
             `Showing ${filteredRequests.length} ${filteredRequests.length === 1 ? 'request' : 'requests'}`
