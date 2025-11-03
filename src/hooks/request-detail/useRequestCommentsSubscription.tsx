@@ -56,23 +56,8 @@ export function useRequestCommentsSubscription(requestId: string | undefined, on
     // Save the channel reference
     channelRef.current = channel;
     
-    // Handle visibility changes for seamless reconnection
-    const handleVisibilityChange = () => {
-      if (!document.hidden && channelRef.current) {
-        // Tab became visible - ensure subscription is still active
-        const channelState = channelRef.current.state;
-        if (channelState !== 'joined') {
-          console.log('Real-time channel not active, reconnecting...');
-          // Supabase automatically handles reconnection
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     // Cleanup the subscription when component unmounts or requestId changes
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

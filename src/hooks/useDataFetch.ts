@@ -159,32 +159,6 @@ export function useDataFetch<T>({
   }, [executeFetch]);
 
   /**
-   * Handle tab visibility changes
-   */
-  useEffect(() => {
-    if (!refreshOnVisibility || !enabled) return;
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('useDataFetch - Tab became visible, checking for stale data');
-        const now = Date.now();
-        
-        // If data is stale, refetch
-        if ((now - lastFetchRef.current) > staleTime) {
-          console.log('useDataFetch - Data is stale, refetching');
-          refetch();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refreshOnVisibility, enabled, staleTime, refetch]);
-
-  /**
    * Initial fetch when enabled
    */
   useEffect(() => {
