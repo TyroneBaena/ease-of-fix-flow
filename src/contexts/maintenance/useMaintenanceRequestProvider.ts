@@ -140,10 +140,29 @@ export const useMaintenanceRequestProvider = () => {
           schema: 'public',
           table: 'maintenance_requests'
         },
-        async (payload) => {
+        (payload) => {
           console.log('🔄 REAL-TIME: Maintenance request change detected:', payload.eventType, payload);
-          console.log('🔄 REAL-TIME: Triggering immediate context refresh');
-          await loadRequests();
+          
+          // Handle different event types intelligently to avoid race conditions
+          if (payload.eventType === 'INSERT' && payload.new) {
+            console.log('🔄 REAL-TIME: Adding new request to state');
+            const formattedRequest = formatRequestData(payload.new);
+            setRequests(prev => {
+              // Avoid duplicates
+              const exists = prev.some(r => r.id === formattedRequest.id);
+              if (exists) return prev;
+              return [...prev, formattedRequest];
+            });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            console.log('🔄 REAL-TIME: Updating request in state');
+            const formattedRequest = formatRequestData(payload.new);
+            setRequests(prev => prev.map(r => 
+              r.id === formattedRequest.id ? formattedRequest : r
+            ));
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            console.log('🔄 REAL-TIME: Removing request from state');
+            setRequests(prev => prev.filter(r => r.id !== payload.old.id));
+          }
         }
       )
       .subscribe((status) => {
