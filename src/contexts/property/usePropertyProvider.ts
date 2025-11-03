@@ -17,12 +17,6 @@ export const usePropertyProvider = (): PropertyContextType => {
   const fetchAndSetProperties = useCallback(async () => {
     console.log('PropertyProvider: fetchAndSetProperties called');
     
-    // Prevent multiple simultaneous fetches
-    if (loading) {
-      console.log('⏳ PropertyProvider - Already loading, skipping');
-      return;
-    }
-    
     // CRITICAL FIX: Add timeout protection (5s instead of 10s)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -56,7 +50,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('🏁 PropertyProvider - Resetting loading state');
       setLoading(false);
     }
-  }, [currentUser?.id, loading]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
@@ -79,11 +73,17 @@ export const usePropertyProvider = (): PropertyContextType => {
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    let visibilityTimeout: NodeJS.Timeout;
+
     const handleVisibilityChange = () => {
-      // Only refresh if tab becomes visible and we're not already loading
-      if (!document.hidden && !loading) {
-        console.log('👁️ Tab visible - refreshing property data');
-        fetchAndSetProperties();
+      // Only refresh if tab becomes visible
+      if (!document.hidden) {
+        console.log('👁️ Tab visible - scheduling property data refresh');
+        // Debounce to prevent rapid calls
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          fetchAndSetProperties();
+        }, 500);
       }
     };
 
@@ -91,8 +91,9 @@ export const usePropertyProvider = (): PropertyContextType => {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(visibilityTimeout);
     };
-  }, [currentUser?.id, loading, fetchAndSetProperties]);
+  }, [currentUser?.id, fetchAndSetProperties]);
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {

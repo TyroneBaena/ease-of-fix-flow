@@ -43,14 +43,8 @@ export const useContractorManagement = () => {
   } = useContractorPagination(contractors.length);
 
   // Define loadContractors with timeout protection
-  const loadContractors = async () => {
-    console.log("🔄 loadContractors - Starting");
-    
-    // Prevent multiple simultaneous loads
-    if (loading) {
-      console.log("⏳ loadContractors - Already loading, skipping");
-      return;
-    }
+  const loadContractors = useCallback(async () => {
+    console.log("🔄 loadContractors - Starting", { loading });
     
     try {
       setLoading(true);
@@ -107,7 +101,7 @@ export const useContractorManagement = () => {
       console.log("🏁 loadContractors - Finally block, resetting loading");
       setLoading(false);
     }
-  };
+  }, [isAdmin]);
 
   // Initialize the contractor actions after loadContractors is defined
   const {
@@ -127,17 +121,25 @@ export const useContractorManagement = () => {
     if (isAdmin) {
       loadContractors();
     }
-  }, [isAdmin]);
+  }, [isAdmin, loadContractors]);
 
   // Handle tab visibility changes - refresh data when tab becomes visible
   useEffect(() => {
     if (!isAdmin) return;
 
+    let visibilityTimeout: NodeJS.Timeout;
+    
     const handleVisibilityChange = () => {
-      // Only refresh if tab becomes visible and we're not already loading
-      if (!document.hidden && !loading) {
-        console.log('👁️ Tab visible - refreshing contractor data');
-        loadContractors();
+      // Only refresh if tab becomes visible
+      if (!document.hidden) {
+        console.log('👁️ Tab visible - scheduling contractor data refresh');
+        // Debounce to prevent rapid calls
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          if (!loading) {
+            loadContractors();
+          }
+        }, 500);
       }
     };
 
@@ -145,8 +147,9 @@ export const useContractorManagement = () => {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(visibilityTimeout);
     };
-  }, [isAdmin, loading]);
+  }, [isAdmin, loadContractors, loading]);
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {

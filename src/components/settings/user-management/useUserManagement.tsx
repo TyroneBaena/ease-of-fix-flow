@@ -21,18 +21,12 @@ export const useUserManagement = () => {
   
   // Function to safely fetch users - moved here to be available to useUserActions
   const fetchUsers = useCallback(async () => {
-    console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin, "isLoading:", isLoadingUsers);
+    console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin);
     
     if (!isAdmin) {
       console.log("Not fetching users because user is not admin");
       setIsLoadingUsers(false);
       setFetchedOnce(true);
-      return;
-    }
-
-    // Prevent duplicate fetches
-    if (isLoadingUsers) {
-      console.log("⏳ fetchUsers - Already loading, skipping");
       return;
     }
 
@@ -52,7 +46,7 @@ export const useUserManagement = () => {
       console.log("🏁 fetchUsers - Finally block, resetting loading");
       setIsLoadingUsers(false);
     }
-  }, [isAdmin, fetchUsersFromContext, isLoadingUsers]);
+  }, [isAdmin, fetchUsersFromContext]);
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -138,11 +132,19 @@ export const useUserManagement = () => {
   useEffect(() => {
     if (!isAdmin) return;
 
+    let visibilityTimeout: NodeJS.Timeout;
+
     const handleVisibilityChange = () => {
-      // Only refresh if tab becomes visible and we're not already loading
-      if (!document.hidden && !isLoadingUsers) {
-        console.log('👁️ Tab visible - refreshing user data');
-        fetchUsers();
+      // Only refresh if tab becomes visible
+      if (!document.hidden) {
+        console.log('👁️ Tab visible - scheduling user data refresh');
+        // Debounce to prevent rapid calls
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          if (!isLoadingUsers) {
+            fetchUsers();
+          }
+        }, 500);
       }
     };
 
@@ -150,6 +152,7 @@ export const useUserManagement = () => {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(visibilityTimeout);
     };
   }, [isAdmin, isLoadingUsers, fetchUsers]);
 
