@@ -171,7 +171,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
         error: profileError?.message 
       });
     } catch (timeoutError) {
-      console.warn('🔄 UnifiedAuth v11.0 - Profile query timed out after 2s, using fallback');
+      console.warn('🔄 UnifiedAuth v11.0 - Profile query timed out after 5s, using fallback');
       profileError = timeoutError;
     }
 
