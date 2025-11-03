@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ export const ContractorRouteGuard: React.FC<ContractorRouteGuardProps> = ({ chil
   const { currentUser, loading } = useSimpleAuth();
   const [checkingContractor, setCheckingContractor] = useState(true);
   const [hasContractorProfile, setHasContractorProfile] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
   // Check if user has contractor profile in contractors table
   useEffect(() => {
@@ -54,17 +55,25 @@ export const ContractorRouteGuard: React.FC<ContractorRouteGuardProps> = ({ chil
     checkContractorProfile();
   }, [currentUser?.id, currentUser?.role]);
 
-  console.log('🔒 ContractorRouteGuard - State:', { 
+  // CRITICAL FIX: Track when we've completed initial checks
+  useEffect(() => {
+    if (!loading && !checkingContractor) {
+      hasLoadedOnceRef.current = true;
+    }
+  }, [loading, checkingContractor]);
+
+  console.log('🔒 ContractorRouteGuard v2.0 - State:', { 
     currentUser: !!currentUser, 
     role: currentUser?.role,
     loading,
     checkingContractor,
-    hasContractorProfile
+    hasContractorProfile,
+    hasLoadedOnce: hasLoadedOnceRef.current
   });
 
-  // Show loading while authentication is in progress
-  if (loading || checkingContractor) {
-    console.log('🔒 ContractorRouteGuard - Showing loading state');
+  // CRITICAL FIX: Only show loading during initial load, not on tab switches
+  if ((loading || checkingContractor) && !hasLoadedOnceRef.current) {
+    console.log('🔒 ContractorRouteGuard - Showing loading state (initial load)');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
