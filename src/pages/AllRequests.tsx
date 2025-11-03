@@ -43,6 +43,13 @@ const AllRequests = () => {
     let result = [...requests];
     console.log('Filtering requests, count before:', result.length);
     
+    // Exclude cancelled requests by default unless user specifically filters for them
+    if (statusFilter === 'all') {
+      result = result.filter(request => request.status !== 'cancelled');
+    } else {
+      result = result.filter(request => request.status === statusFilter);
+    }
+    
     if (searchTerm) {
       result = result.filter(request => {
         const title = request.title || request.issueNature || '';
@@ -50,10 +57,6 @@ const AllRequests = () => {
         return title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                description.toLowerCase().includes(searchTerm.toLowerCase());
       });
-    }
-    
-    if (statusFilter !== 'all') {
-      result = result.filter(request => request.status === statusFilter);
     }
     
     if (categoryFilter !== 'all') {

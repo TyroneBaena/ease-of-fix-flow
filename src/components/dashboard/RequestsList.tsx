@@ -42,8 +42,9 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
     }
   };
 
-  // Show recent requests (limit to 10 for better UI)
+  // Show recent requests (limit to 10 for better UI), excluding cancelled ones
   const recentRequests = allRequests
+    .filter(req => req.status !== 'cancelled')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10);
 

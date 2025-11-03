@@ -8,8 +8,9 @@ interface StatusChartProps {
 }
 
 const StatusChart: React.FC<StatusChartProps> = ({ requests }) => {
-  // Calculate status counts from actual data
-  const statusCounts = requests.reduce((acc, request) => {
+  // Calculate status counts from actual data, excluding cancelled requests
+  const activeRequests = requests.filter(req => req.status !== 'cancelled');
+  const statusCounts = activeRequests.reduce((acc, request) => {
     acc[request.status] = (acc[request.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
