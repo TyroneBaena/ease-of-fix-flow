@@ -824,14 +824,17 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Supabase handles session refresh automatically through API calls
   // No need for aggressive tab visibility checking that causes loading cascades
 
-  // Fetch users when user becomes admin
+  // Fetch users when user becomes admin - ONCE per session
   useEffect(() => {
     console.log('UnifiedAuth - useEffect triggered:', { isAdmin, loading, hasCurrentOrganization: !!currentOrganization });
-    if (isAdmin && !loading && currentOrganization) {
-      console.log('UnifiedAuth - Conditions met, calling fetchUsers');
+    
+    // CRITICAL FIX: Only fetch users ONCE when admin becomes available
+    // Don't refetch on every currentOrganization change
+    if (isAdmin && !loading && currentOrganization && users.length === 0) {
+      console.log('UnifiedAuth - Initial admin fetch, calling fetchUsers');
       fetchUsers();
     }
-  }, [isAdmin, loading, currentOrganization?.id]); // Remove fetchUsers from dependencies to prevent loop
+  }, [isAdmin, loading]); // REMOVED currentOrganization?.id to prevent constant refetches
 
 
   const value: UnifiedAuthContextType = useMemo(() => ({

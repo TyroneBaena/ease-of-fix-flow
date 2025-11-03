@@ -45,15 +45,53 @@ serve(async (req: Request) => {
     
     console.log(`Deleting user with ID: ${userId}`);
     
-    // Delete the auth user 
+    // CRITICAL: Delete all related data FIRST before deleting auth user
+    // This prevents foreign key constraint errors
+    
+    // 1. Delete from profiles (cascades to most other tables via user_id FK)
+    const { error: profileError } = await supabaseClient
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (profileError) {
+      console.error("Error deleting user profile:", profileError);
+      throw new Error(`Failed to delete user profile: ${profileError.message}`);
+    }
+    
+    console.log(`Profile deleted for user ${userId}`);
+    
+    // 2. Delete from user_organizations (if not cascaded)
+    const { error: userOrgError } = await supabaseClient
+      .from('user_organizations')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (userOrgError) {
+      console.warn("Warning deleting user_organizations:", userOrgError);
+      // Don't fail if this doesn't exist
+    }
+    
+    // 3. Delete from user_roles (if not cascaded)
+    const { error: userRoleError } = await supabaseClient
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (userRoleError) {
+      console.warn("Warning deleting user_roles:", userRoleError);
+      // Don't fail if this doesn't exist
+    }
+    
+    // 4. Now delete the auth user
     const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
     
     if (authError) {
-      console.error("Error deleting user:", authError);
-      throw authError;
+      console.error("Error deleting auth user:", authError);
+      throw new Error(`Failed to delete auth user: ${authError.message}`);
     }
     
-    console.log(`User ${userId} deleted successfully`);
+    console.log(`User ${userId} deleted successfully from auth`);
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -62,7 +100,7 @@ serve(async (req: Request) => {
     console.error("Delete user error:", error);
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
