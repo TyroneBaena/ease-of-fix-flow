@@ -103,7 +103,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     loadContractors,
     isAdmin,
     currentUser
-  }), [contractors, loading, fetchError, loadContractors, isAdmin, currentUser]);
+  }), [contractors, loading, fetchError, loadContractors, isAdmin, currentUser?.id]); // Use ID to prevent re-render on object recreation
 
   return (
     <ContractorManagementContext.Provider value={value}>

@@ -499,7 +499,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       ...currentUser,
       role: effectiveRole as UserRole
     };
-  }, [currentUser?.id, currentUser?.email, currentUser?.name, currentUser?.organization_id, currentUser?.session_organization_id, effectiveRole]);
+  }, [currentUser, effectiveRole]); // Simplified deps - only recompute if currentUser or role changes
 
   // User management functions
   const fetchUsers = useCallback(async () => {
@@ -758,7 +758,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const value: UnifiedAuthContextType = useMemo(() => ({
     currentUser: enhancedCurrentUser,
-    session,
+    session, // Include in value but not in deps - prevents cascade re-renders on token refresh
     loading,
     isSigningOut,
     signOut,
@@ -778,7 +778,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     adminResetPassword
   }), [
     enhancedCurrentUser,
-    session,
+    // session removed from deps - token refreshes shouldn't trigger context recompute
     loading,
     isSigningOut,
     signOut,
