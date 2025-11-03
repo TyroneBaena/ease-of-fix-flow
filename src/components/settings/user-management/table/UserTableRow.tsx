@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from '@/types/user';
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,8 @@ interface UserTableRowProps {
   onManualResetPassword?: (userId: string, email: string) => void;
 }
 
-// Custom comparison function for UserTableRow
+// CRITICAL FIX: Only compare data props, NOT callback functions
+// Comparing callbacks causes unnecessary re-renders and dropdown flickering
 const arePropsEqual = (prevProps: UserTableRowProps, nextProps: UserTableRowProps) => {
   const prevUser = prevProps.user;
   const nextUser = nextProps.user;
@@ -37,11 +38,8 @@ const arePropsEqual = (prevProps: UserTableRowProps, nextProps: UserTableRowProp
     prevUser.createdAt === nextUser.createdAt &&
     JSON.stringify(prevUser.assignedProperties) === JSON.stringify(nextUser.assignedProperties) &&
     prevProps.currentUserId === nextProps.currentUserId &&
-    prevProps.isLoading === nextProps.isLoading &&
-    prevProps.onEditUser === nextProps.onEditUser &&
-    prevProps.onDeleteUser === nextProps.onDeleteUser &&
-    prevProps.onResetPassword === nextProps.onResetPassword &&
-    prevProps.onManualResetPassword === nextProps.onManualResetPassword
+    prevProps.isLoading === nextProps.isLoading
+    // REMOVED: Callback function comparisons - they cause flickering
   );
 };
 
@@ -54,6 +52,9 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
   onResetPassword,
   onManualResetPassword
 }) => {
+  // CRITICAL FIX: Local state to control dropdown - prevents flickering
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  
   const isSelf = user.id === currentUserId;
   const canEditUser = !isSelf || (isSelf && user.role === 'admin');
   
@@ -93,16 +94,36 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
       </TableCell>
       <TableCell>{formattedDate}</TableCell>
       <TableCell className="text-right">
-        <DropdownMenu modal={false}>
+        <DropdownMenu 
+          modal={false} 
+          open={dropdownOpen} 
+          onOpenChange={setDropdownOpen}
+        >
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" disabled={isLoading}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              disabled={isLoading}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDropdownOpen(!dropdownOpen);
+              }}
+            >
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="z-50 bg-background">
+          <DropdownMenuContent 
+            align="end" 
+            className="z-[100] bg-background border shadow-md"
+            onInteractOutside={() => setDropdownOpen(false)}
+          >
             <DropdownMenuItem
-              onClick={() => onEditUser(user)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditUser(user);
+                setDropdownOpen(false);
+              }}
               disabled={!canEditUser}
               className="cursor-pointer"
             >
@@ -111,7 +132,11 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             </DropdownMenuItem>
             
             <DropdownMenuItem
-              onClick={() => onResetPassword(user.id, user.email)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onResetPassword(user.id, user.email);
+                setDropdownOpen(false);
+              }}
               className="cursor-pointer"
             >
               <RotateCw className="mr-2 h-4 w-4" />
@@ -120,7 +145,11 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             
             {onManualResetPassword && (
               <DropdownMenuItem
-                onClick={() => onManualResetPassword(user.id, user.email)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onManualResetPassword(user.id, user.email);
+                  setDropdownOpen(false);
+                }}
                 className="cursor-pointer"
               >
                 <Key className="mr-2 h-4 w-4" />
@@ -131,9 +160,13 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             <DropdownMenuSeparator />
             
             <DropdownMenuItem
-              onClick={() => onDeleteUser(user.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteUser(user.id);
+                setDropdownOpen(false);
+              }}
               disabled={isSelf}
-              className={`cursor-pointer ${isSelf ? 'text-gray-400' : 'text-red-600 focus:bg-red-50'}`}
+              className={`cursor-pointer ${isSelf ? 'text-gray-400' : 'text-red-600 focus:bg-red-50 focus:text-red-600'}`}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete User
