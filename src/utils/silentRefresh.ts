@@ -30,8 +30,10 @@ const performQuickCheck = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     console.log('✅ Session valid');
+    return true;
   } else {
-    console.log('⚠️ No session found');
+    console.log('⚠️ No session found - user not logged in');
+    return false;
   }
 };
 
@@ -43,9 +45,21 @@ const performMediumRefresh = async (config?: SilentRefreshConfig) => {
   try {
     console.log('🔄 Medium refresh - refreshing session only');
     
+    // First check if we have a session to refresh
+    const { data: { session: existingSession } } = await supabase.auth.getSession();
+    if (!existingSession) {
+      console.log('⚠️ Medium refresh skipped - no session to refresh (user not logged in)');
+      return;
+    }
+    
     const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
     
     if (sessionError) {
+      // If it's just a missing session error, don't treat it as a critical error
+      if (sessionError.message?.includes('session')) {
+        console.log('⚠️ Medium refresh - no active session to refresh');
+        return;
+      }
       console.warn('🔄 Medium refresh - session refresh failed:', sessionError);
       config?.onRefreshError?.(sessionError as Error);
       return;
@@ -76,10 +90,22 @@ export const performFullRefresh = async (config?: SilentRefreshConfig) => {
     isRefreshing = true;
     console.log('🔄 Starting FULL silent refresh...');
 
+    // Step 0: Check if we have a session to refresh
+    const { data: { session: existingSession } } = await supabase.auth.getSession();
+    if (!existingSession) {
+      console.log('⚠️ Full refresh skipped - no session to refresh (user not logged in)');
+      return;
+    }
+
     // Step 1: Refresh auth session (this ensures fresh tokens)
     const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
     
     if (sessionError) {
+      // If it's just a missing session error, don't treat it as a critical error
+      if (sessionError.message?.includes('session')) {
+        console.log('⚠️ Full refresh - no active session to refresh');
+        return;
+      }
       console.warn('🔄 Full refresh - session refresh failed:', sessionError);
       throw sessionError;
     }
