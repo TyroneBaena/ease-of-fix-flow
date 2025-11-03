@@ -4,12 +4,13 @@ import { Property } from '@/types/property';
 import { toast } from '@/lib/toast';
 
 // Fetch properties from Supabase
-export const fetchProperties = async (): Promise<Property[]> => {
+export const fetchProperties = async (signal?: AbortSignal): Promise<Property[]> => {
   console.log('PropertyOperations: Starting to fetch properties with clean RLS policies');
   
   const { data, error } = await supabase
     .from('properties')
-    .select('*');
+    .select('*')
+    .abortSignal(signal!);
 
   if (error) {
     console.error('PropertyOperations: Error fetching properties:', error);

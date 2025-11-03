@@ -60,9 +60,9 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       isFetchingRef.current = true;
       console.log("Loading contractors...");
       
-      // Timeout protection - 30 seconds for contractor queries
+      // Timeout protection - 60 seconds for contractor queries with RLS
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       
       try {
         const data = await fetchContractors();

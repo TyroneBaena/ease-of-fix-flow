@@ -29,12 +29,13 @@ export const usePropertyProvider = (): PropertyContextType => {
       return;
     }
     
-    // Timeout protection - 30 seconds for complex RLS queries
+    // CRITICAL FIX: 60-second timeout for RLS queries that call get_current_user_organization_safe()
+    // This function does up to 3 DB queries (profiles table x2 + user_organizations)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.warn('⏱️ Properties fetch timeout after 30s');
-    }, 30000);
+      console.warn('⏱️ Properties fetch timeout after 60s');
+    }, 60000);
 
     try {
       // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
@@ -45,7 +46,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       isFetchingRef.current = true;
       console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
       
-      const formattedProperties = await fetchProperties();
+      const formattedProperties = await fetchProperties(controller.signal);
       clearTimeout(timeoutId);
       
       console.log('✅ PropertyContext: Properties fetched successfully');

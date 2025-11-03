@@ -44,12 +44,12 @@ export const useMaintenanceRequestProvider = () => {
     
     isFetchingRef.current = true;
     
-    // CRITICAL FIX: 30-second timeout instead of 10 seconds - RLS queries need more time
+    // CRITICAL FIX: 60-second timeout - RLS queries calling get_current_user_organization_safe() are slow
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.warn('⏱️ Request fetch timeout after 30s');
-    }, 30000);
+      console.warn('⏱️ Request fetch timeout after 60s');
+    }, 60000);
 
     try {
       const fetchedRequests = await fetchRequests();

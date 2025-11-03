@@ -42,9 +42,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoadingError(null);
       console.log('🔧 UserContext - Fetching users');
       
-      // Timeout protection - 30 seconds for auth queries
+      // Timeout protection - 60 seconds for auth queries
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       try {
         const userData = await userService.getAllUsers();
