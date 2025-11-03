@@ -14,6 +14,7 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
   const [hasOrganization, setHasOrganization] = useState<boolean | null>(null);
   const [isCheckingOrganization, setIsCheckingOrganization] = useState(true);
   const lastCheckedUserRef = useRef<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
 
   const checkUserOrganization = useCallback(async (user: any) => {
     if (!user?.id) return false;
@@ -86,6 +87,7 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
       const hasOrg = await checkUserOrganization(currentUser);
       setHasOrganization(hasOrg);
       setIsCheckingOrganization(false);
+      hasLoadedOnceRef.current = true; // Mark as loaded after first check
     };
 
     checkOrganization();
@@ -99,12 +101,13 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
     // based on the user's role
   };
 
-  console.log('🔒 OrganizationGuard - State check:', { 
+  console.log('🔒 OrganizationGuard v2.0 - State check:', { 
     currentUser: !!currentUser, 
     authLoading,
     isSigningOut,
     isCheckingOrganization,
     hasOrganization,
+    hasLoadedOnce: hasLoadedOnceRef.current,
     timestamp: new Date().toISOString()
   });
 
@@ -118,9 +121,9 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
     );
   }
 
-  // Show loading while auth is loading
-  if (authLoading) {
-    console.log('🔒 OrganizationGuard - Auth loading');
+  // CRITICAL FIX: Only show loading during initial load, not on tab switches
+  if (authLoading && !hasLoadedOnceRef.current) {
+    console.log('🔒 OrganizationGuard - Auth loading (initial load)');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
@@ -134,9 +137,9 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Show loading while checking organization
-  if (isCheckingOrganization) {
-    console.log('🔒 OrganizationGuard - Checking organization');
+  // CRITICAL FIX: Only show loading while checking organization on initial load
+  if (isCheckingOrganization && !hasLoadedOnceRef.current) {
+    console.log('🔒 OrganizationGuard - Checking organization (initial load)');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />

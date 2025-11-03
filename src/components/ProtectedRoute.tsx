@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { Loader2 } from 'lucide-react';
@@ -9,18 +9,26 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useSimpleAuth();
+  const hasLoadedOnceRef = useRef(false);
 
-  console.log('🔒 ProtectedRoute v8.0 - State check:', { 
+  // CRITICAL FIX: Track when we've completed initial auth check
+  useEffect(() => {
+    if (!loading && (currentUser || !currentUser)) {
+      hasLoadedOnceRef.current = true;
+    }
+  }, [loading, currentUser]);
+
+  console.log('🔒 ProtectedRoute v9.0 - State check:', { 
     currentUser: !!currentUser, 
     currentUserEmail: currentUser?.email,
     loading,
+    hasLoadedOnce: hasLoadedOnceRef.current,
     timestamp: new Date().toISOString()
   });
 
-  // CRITICAL: Show loading while authentication is in progress
-  // This prevents the flash of login page during initial load
-  if (loading) {
-    console.log('🔒 ProtectedRoute - Showing loading state');
+  // CRITICAL FIX: Only show loading during initial load, not on tab switches
+  if (loading && !hasLoadedOnceRef.current) {
+    console.log('🔒 ProtectedRoute - Showing loading state (initial load)');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -34,7 +42,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  console.log('🔒 ProtectedRoute - Rendering protected content for user:', currentUser.email);
+  console.log('🔒 ProtectedRoute - Rendering protected content for user:', currentUser?.email);
   return <>{children}</>;
 };
 
