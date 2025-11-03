@@ -64,19 +64,15 @@ class VisibilityCoordinator {
     this.visibilityListener = () => {
       if (!document.hidden) {
         const timeSinceLastChange = Date.now() - this.lastVisibilityChange;
-        console.log('👁️ VisibilityCoordinator v2.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
+        console.log('👁️ VisibilityCoordinator v3.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
         this.lastVisibilityChange = Date.now();
         
-        // Only trigger refresh if tab was hidden for a meaningful amount of time (>5s)
-        // This prevents rapid tab switches from causing refresh cascades
-        if (timeSinceLastChange > 5000) {
-          console.log('👁️ VisibilityCoordinator v2.0 - Tab hidden long enough, triggering coordinated refresh');
-          this.coordinateRefresh();
-        } else {
-          console.log('👁️ VisibilityCoordinator v2.0 - Tab switch too quick, skipping refresh');
-        }
+        // ALWAYS trigger refresh check - coordinator will decide what's stale
+        // This ensures data is fresh regardless of how long user was away
+        console.log('👁️ VisibilityCoordinator v3.0 - Checking for stale data');
+        this.coordinateRefresh();
       } else {
-        console.log('👁️ VisibilityCoordinator v2.0 - Tab hidden');
+        console.log('👁️ VisibilityCoordinator v3.0 - Tab hidden');
         this.lastVisibilityChange = Date.now();
       }
     };
@@ -97,11 +93,12 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate refresh across all registered handlers
-   * Executes in priority order with staggered delays to prevent database congestion
+   * CRITICAL: This runs in background - NEVER blocks UI or shows loading states
+   * Only refreshes data that is actually stale based on each handler's threshold
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.log('🔄 VisibilityCoordinator - Refresh already in progress, skipping');
+      console.log('🔄 VisibilityCoordinator v3.0 - Refresh already in progress, skipping');
       return;
     }
 
@@ -110,59 +107,51 @@ class VisibilityCoordinator {
     try {
       const now = Date.now();
       
-      // Filter handlers that need refresh (data is stale)
+      // Filter handlers that need refresh (data is stale based on THEIR threshold)
       const staleHandlers = Array.from(this.handlers.values())
         .filter(handler => {
           const timeSinceLastFetch = now - handler.lastFetchTime;
           const isStale = timeSinceLastFetch > handler.staleThreshold;
           
-          if (isStale) {
-            console.log('🔄 VisibilityCoordinator v2.0 - Handler needs refresh:', handler.id, 
-              'Time since last fetch:', Math.round(timeSinceLastFetch / 1000), 's',
-              'Threshold:', Math.round(handler.staleThreshold / 1000), 's');
-          } else {
-            console.log('🔄 VisibilityCoordinator v2.0 - Handler fresh:', handler.id,
-              'Time since last fetch:', Math.round(timeSinceLastFetch / 1000), 's');
-          }
+          console.log(`🔄 VisibilityCoordinator v3.0 - ${handler.id}: ${Math.round(timeSinceLastFetch / 1000)}s old, threshold: ${Math.round(handler.staleThreshold / 1000)}s, ${isStale ? 'STALE - refreshing' : 'FRESH - skipping'}`);
           
           return isStale;
         })
         .sort((a, b) => a.priority - b.priority); // Sort by priority
 
       if (staleHandlers.length === 0) {
-        console.log('🔄 VisibilityCoordinator v2.0 - All data fresh, no refresh needed');
+        console.log('🔄 VisibilityCoordinator v3.0 - All data fresh, no refresh needed');
         return;
       }
 
-      console.log('🔄 VisibilityCoordinator v2.0 - Refreshing', staleHandlers.length, 'handlers in priority order');
+      console.log('🔄 VisibilityCoordinator v3.0 - Refreshing', staleHandlers.length, 'stale handlers in background');
 
-      // Execute refreshes with staggered delays
+      // Execute refreshes with staggered delays - BACKGROUND ONLY, NO BLOCKING
       for (let i = 0; i < staleHandlers.length; i++) {
         const handler = staleHandlers[i];
         
         try {
-          console.log('🔄 VisibilityCoordinator v2.0 - Refreshing:', handler.id, '(priority', handler.priority + ')');
+          console.log('🔄 VisibilityCoordinator v3.0 - Starting background refresh:', handler.id, '(priority', handler.priority + ')');
           
-          // Execute refresh (don't await - let it run in background)
+          // Execute refresh in background (don't await - truly non-blocking)
           handler.refresh().catch(error => {
-            console.error('🔄 VisibilityCoordinator v2.0 - Refresh error for', handler.id, ':', error);
+            console.error('🔄 VisibilityCoordinator v3.0 - Background refresh error for', handler.id, ':', error);
           });
           
           // Update fetch time immediately (optimistic)
           handler.lastFetchTime = Date.now();
           
           // Stagger next refresh to prevent database congestion
-          // Auth gets minimal delay, data providers get more
           if (i < staleHandlers.length - 1) {
-            const delay = i === 0 ? 200 : 500; // Auth gets 200ms, others 500ms for better spacing
+            const delay = i === 0 ? 200 : 500; // Reasonable spacing
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         } catch (error) {
-          console.error('🔄 VisibilityCoordinator v2.0 - Error refreshing', handler.id, ':', error);
+          console.error('🔄 VisibilityCoordinator v3.0 - Error refreshing', handler.id, ':', error);
         }
       }
 
-      console.log('🔄 VisibilityCoordinator v2.0 - Coordinated refresh complete');
+      console.log('🔄 VisibilityCoordinator v3.0 - Background refresh initiated for all stale handlers');
     } finally {
       this.isRefreshing = false;
     }

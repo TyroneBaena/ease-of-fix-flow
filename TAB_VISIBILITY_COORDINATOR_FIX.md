@@ -95,58 +95,68 @@ Updated all data providers to:
 - Deleted `src/utils/silentRefresh.ts` (replaced by coordinator)
 - Kept `src/utils/tabVisibility.ts` (generic utility, backward compatible)
 
-## How It Works Now (v2.0)
+## How It Works Now (v3.0 - Instant Seamless Experience)
 
-### On Tab Revisit:
+### Core Principle:
+**ALWAYS render immediately with existing data, refresh stale data silently in background**
+
+### On Tab Revisit (ANY time - 2s, 10s, 60s):
 1. **User switches back to tab** → `visibilitychange` event fires
-2. **Coordinator checks minimum hidden time** → Must be >5s to trigger refresh
-3. **Coordinator checks stale data** → Which providers have data >threshold age
-4. **Coordinator executes** refreshes in priority order with longer delays:
-   ```
-   Auth Session Check (if >60s old) → [200ms delay] → 
-   Properties (if >30s old) → [500ms delay] → 
-   Maintenance (if >30s old) → [500ms delay] → 
-   Contractors (if >30s old)
-   ```
-5. **Auth checks session only** → No profile re-fetch unless necessary (~100ms vs 5-15s)
-6. **Data updates silently** without blocking UI
-7. **User can work immediately** with fresh data
+2. **UI renders IMMEDIATELY** → User can work right away with existing data
+3. **Coordinator checks in background** → Which data is actually stale (>threshold)
+4. **Only stale data refreshes** → Silently updates without blocking UI
+5. **Zero loading states** → hasCompletedInitialLoadRef prevents all loading spinners
 
-### Example Timeline (Normal Case):
+### Example Timeline (Quick Return - 5 seconds):
+```
+T+0ms:    User returns to tab after 5s away
+T+0ms:    ✅ UI renders instantly - user can work immediately
+T+0ms:    Coordinator checks stale data:
+          - Auth: 5s < 60s threshold ✗ (fresh, skip)
+          - Properties: 5s < 30s threshold ✗ (fresh, skip)
+          - Maintenance: 5s < 30s threshold ✗ (fresh, skip)
+          - Contractors: 5s < 30s threshold ✗ (fresh, skip)
+T+0ms:    Result: All data fresh, zero refreshes
+User Experience: Instant, seamless, perfect ✅
+```
+
+### Example Timeline (Long Away - 45 seconds):
 ```
 T+0ms:    User returns to tab after 45s away
-T+0ms:    Coordinator checks: Tab was hidden >5s ✓
-T+0ms:    Coordinator checks stale handlers:
-          - Auth: 45s > 60s threshold? ✗ (fresh, skip)
-          - Properties: 45s > 30s threshold? ✓ (stale, refresh)
-          - Maintenance: 45s > 30s threshold? ✓ (stale, refresh)
-          - Contractors: 45s > 30s threshold? ✓ (stale, refresh)
-T+0ms:    Properties refresh starts
-T+500ms:  Maintenance refresh starts
-T+1000ms: Contractors refresh starts
-T+1500ms: All data fresh, user working seamlessly
+T+0ms:    ✅ UI renders instantly - user can work immediately
+T+0ms:    Coordinator checks stale data:
+          - Auth: 45s < 60s threshold ✗ (fresh, skip)
+          - Properties: 45s > 30s threshold ✓ (stale, refresh in bg)
+          - Maintenance: 45s > 30s threshold ✓ (stale, refresh in bg)
+          - Contractors: 45s > 30s threshold ✓ (stale, refresh in bg)
+T+0ms:    Properties background refresh starts
+T+500ms:  Maintenance background refresh starts  
+T+1000ms: Contractors background refresh starts
+T+1500ms: All data silently updated
+User Experience: Instant + auto-updated, seamless ✅
 ```
 
-### Example Timeline (Quick Tab Switch):
+### Example Timeline (Very Quick - 2 seconds):
 ```
-T+0ms:    User returns to tab after 3s away
-T+0ms:    Coordinator checks: Tab was hidden >5s ✗
-T+0ms:    Coordinator: "Tab switch too quick, skipping refresh"
-Result:   No refresh triggered, zero database queries
+T+0ms:    User returns to tab after 2s away
+T+0ms:    ✅ UI renders instantly - user can work immediately
+T+0ms:    Coordinator checks stale data:
+          - All handlers: <30s threshold ✗ (all fresh, skip)
+T+0ms:    Result: Zero refreshes needed
+User Experience: Lightning fast, zero overhead ✅
 ```
 
-## Benefits (v2.0)
+## Benefits (v3.0 - Ultimate User Experience)
 
-✅ **Zero profile timeout errors** - 15s timeout accommodates all RLS queries
-✅ **90% faster auth checks** - Session validation only, no database query
-✅ **50% fewer auth refreshes** - 60s threshold vs 30s
-✅ **No rapid-switch triggers** - Requires >5s hidden time
-✅ **Better database spacing** - 500ms delays prevent congestion
-✅ **Always fresh data** - 30s threshold for data, 60s for auth
-✅ **Seamless UX** - User can work immediately, no loading states
-✅ **Same functionality** - All existing features work exactly as before
-
-## Configuration (v2.0)
+✅ **Instant on ANY revisit** - 2s, 10s, or 60s away - always instant
+✅ **Zero loading states ever** - After initial load, never see loading again
+✅ **Smart background refresh** - Only updates stale data (>30s old)
+✅ **Zero wasted queries** - Fresh data (<30s) never re-fetched
+✅ **Work immediately always** - UI never blocked, always responsive
+✅ **Silently stays fresh** - Data auto-updates in background when needed
+✅ **Profile timeout eliminated** - 15s timeout + lightweight session checks
+✅ **Database friendly** - Staggered queries, only when necessary
+✅ **Same functionality** - All features work exactly as before
 
 ### Profile Query Timeout:
 ```typescript
@@ -197,48 +207,60 @@ const delay = i === 0 ? 200 : 500; // Auth gets 200ms, others 500ms
 ```
 Adjust in `visibilityCoordinator.ts` if needed
 
-## Testing (v2.0)
+## Testing (v3.0 - All Scenarios)
 
-### Manual Test:
-1. Login to project
-2. Switch to another browser tab
-3. Wait 35+ seconds (past 30s data threshold)
-4. Switch back to project tab
-5. ✅ Should see console logs showing coordinated refresh
-6. ✅ Should NOT see profile timeout errors
-7. ✅ Should NOT see loading states
-8. ✅ Should be able to work immediately
-9. ✅ Data should be fresh (add property, contractor, etc.)
-
-### Quick Switch Test:
+### Test 1: Quick Return (2-3 seconds)
 1. Login to project
 2. Switch to another tab for just 2-3 seconds
 3. Switch back
-4. ✅ Should see "Tab switch too quick, skipping refresh"
-5. ✅ Should NOT trigger any refreshes
+4. ✅ **Should work INSTANTLY** - no delay, no loading, immediate interaction
+5. ✅ Console: "All data fresh, no refresh needed"
+6. ✅ Zero database queries
 
-### Console Log Pattern (Success - v2.0):
+### Test 2: Medium Return (10-15 seconds)
+1. Login to project
+2. Switch to another tab for 10-15 seconds
+3. Switch back
+4. ✅ **Should work INSTANTLY** - add properties, contractors immediately
+5. ✅ Console: "All data fresh, no refresh needed"
+6. ✅ Zero database queries
+
+### Test 3: Long Return (35+ seconds)
+1. Login to project
+2. Switch to another tab for 35+ seconds
+3. Switch back
+4. ✅ **Should work INSTANTLY** - no waiting, immediate interaction
+5. ✅ Console: Shows background refresh starting for stale data
+6. ✅ Data silently updates in background
+7. ✅ NEVER see "Loading contractor data..." or any loading state
+
+### Console Log Pattern (Quick Return - 2s):
 ```
-👁️ VisibilityCoordinator v2.0 - Tab visible after 45 s
-👁️ VisibilityCoordinator v2.0 - Tab hidden long enough, triggering coordinated refresh
-🔄 VisibilityCoordinator v2.0 - Handler fresh: auth (Time since last fetch: 45 s)
-🔄 VisibilityCoordinator v2.0 - Handler needs refresh: properties (Time since last fetch: 45 s, Threshold: 30 s)
-🔄 VisibilityCoordinator v2.0 - Handler needs refresh: maintenance (Time since last fetch: 45 s, Threshold: 30 s)
-🔄 VisibilityCoordinator v2.0 - Handler needs refresh: contractors (Time since last fetch: 45 s, Threshold: 30 s)
-🔄 VisibilityCoordinator v2.0 - Refreshing 3 handlers in priority order
-🔄 VisibilityCoordinator v2.0 - Refreshing: properties (priority 2)
+👁️ VisibilityCoordinator v3.0 - Tab visible after 2 s
+👁️ VisibilityCoordinator v3.0 - Checking for stale data
+🔄 VisibilityCoordinator v3.0 - auth: 2s old, threshold: 60s, FRESH - skipping
+🔄 VisibilityCoordinator v3.0 - properties: 2s old, threshold: 30s, FRESH - skipping
+🔄 VisibilityCoordinator v3.0 - maintenance: 2s old, threshold: 30s, FRESH - skipping
+🔄 VisibilityCoordinator v3.0 - contractors: 2s old, threshold: 30s, FRESH - skipping
+🔄 VisibilityCoordinator v3.0 - All data fresh, no refresh needed
+```
+
+### Console Log Pattern (Long Return - 45s):
+```
+👁️ VisibilityCoordinator v3.0 - Tab visible after 45 s
+👁️ VisibilityCoordinator v3.0 - Checking for stale data
+🔄 VisibilityCoordinator v3.0 - auth: 45s old, threshold: 60s, FRESH - skipping
+🔄 VisibilityCoordinator v3.0 - properties: 45s old, threshold: 30s, STALE - refreshing
+🔄 VisibilityCoordinator v3.0 - maintenance: 45s old, threshold: 30s, STALE - refreshing
+🔄 VisibilityCoordinator v3.0 - contractors: 45s old, threshold: 30s, STALE - refreshing
+🔄 VisibilityCoordinator v3.0 - Refreshing 3 stale handlers in background
+🔄 VisibilityCoordinator v3.0 - Starting background refresh: properties (priority 2)
 🔄 PropertyProvider - Coordinator-triggered refresh
-🔄 VisibilityCoordinator v2.0 - Refreshing: maintenance (priority 3)
+🔄 VisibilityCoordinator v3.0 - Starting background refresh: maintenance (priority 3)
 🔄 MaintenanceRequestProvider - Coordinator-triggered refresh
-🔄 VisibilityCoordinator v2.0 - Refreshing: contractors (priority 4)
+🔄 VisibilityCoordinator v3.0 - Starting background refresh: contractors (priority 4)
 🔄 ContractorProvider - Coordinator-triggered refresh
-🔄 VisibilityCoordinator v2.0 - Coordinated refresh complete
-```
-
-### Console Log Pattern (Quick Switch - v2.0):
-```
-👁️ VisibilityCoordinator v2.0 - Tab visible after 3 s
-👁️ VisibilityCoordinator v2.0 - Tab switch too quick, skipping refresh
+🔄 VisibilityCoordinator v3.0 - Background refresh initiated for all stale handlers
 ```
 
 ## Debugging
