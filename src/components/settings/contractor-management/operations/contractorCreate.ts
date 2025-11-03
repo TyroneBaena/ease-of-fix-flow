@@ -7,21 +7,25 @@ export const createContractor = async (newContractor: Partial<Contractor>) => {
   console.log('🚀 createContractor - Starting contractor creation', { email: newContractor.email });
   
   try {
-    // CRITICAL: Validate session before making any requests
-    console.log('🔐 createContractor - Checking session');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // CRITICAL: Force session refresh to ensure we have a valid session after tab switches
+    console.log('🔐 createContractor - Force refreshing session');
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
     
     if (sessionError) {
-      console.error('❌ createContractor - Session error:', sessionError);
-      throw new Error('Authentication error. Please try logging out and back in.');
+      console.error('❌ createContractor - Session refresh error:', sessionError);
+      // Fall back to getting the current session
+      const { data: { session: fallbackSession }, error: fallbackError } = await supabase.auth.getSession();
+      if (fallbackError || !fallbackSession) {
+        console.error('❌ createContractor - No valid session available');
+        throw new Error('Your session has expired. Please refresh the page and try again.');
+      }
+      console.log('✅ createContractor - Using fallback session');
+    } else if (!session) {
+      console.error('❌ createContractor - No active session after refresh');
+      throw new Error('Your session has expired. Please refresh the page and try again.');
+    } else {
+      console.log('✅ createContractor - Session refreshed successfully');
     }
-    
-    if (!session) {
-      console.error('❌ createContractor - No active session');
-      throw new Error('No active session. Please log in again.');
-    }
-    
-    console.log('✅ createContractor - Session validated');
     
     // First check if this email already exists as a contractor
     console.log('🔍 createContractor - Checking for existing contractor');

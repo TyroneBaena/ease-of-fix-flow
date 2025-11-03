@@ -565,6 +565,27 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const startTime = performance.now();
     console.log('🚀 UnifiedAuth v6.0 - Setting up SINGLE auth listener (FIXED VERSION)', { authDebugMarker });
     
+    // Add tab visibility handler to refresh session
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('👁️ UnifiedAuth - Tab visible, refreshing session');
+        supabase.auth.getSession().then(({ data: { session: refreshedSession }, error }) => {
+          if (error) {
+            console.error('❌ UnifiedAuth - Session refresh error:', error);
+            return;
+          }
+          if (refreshedSession) {
+            console.log('✅ UnifiedAuth - Session refreshed successfully');
+            setSession(refreshedSession);
+          }
+        }).catch((error) => {
+          console.error('❌ UnifiedAuth - Visibility refresh error:', error);
+        });
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     // Set up ONE auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🚀 UnifiedAuth v12.0 - Auth state changed:', event, 'Session exists:', !!session);
@@ -725,6 +746,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return () => {
       console.log('🚀 UnifiedAuth v7.0 - Cleaning up auth listener');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       subscription.unsubscribe();
     };
   }, []);
