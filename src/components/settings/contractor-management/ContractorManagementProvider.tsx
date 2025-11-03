@@ -29,6 +29,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [fetchedOnce, setFetchedOnce] = useState(false);
+  const lastFetchedUserIdRef = React.useRef<string | null>(null);
 
   console.log('🔧 ContractorManagement - Provider state:', {
     isAdmin,
@@ -81,14 +82,37 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     }
   }, []);
 
-  // Load contractors on initial mount and when tab becomes visible
+  // Load contractors on initial mount and when user changes
+  // CRITICAL FIX: Only refetch if user ID actually changed
   useEffect(() => {
-    if (currentUser && isAdmin && !fetchedOnce) {
-      console.log("Initial contractor fetch for admin user");
-      loadContractors();
-    } else if (!currentUser || !isAdmin) {
+    console.log('🔧 ContractorManagement - useEffect triggered', {
+      currentUserId: currentUser?.id,
+      isAdmin,
+      fetchedOnce,
+      lastFetchedUserId: lastFetchedUserIdRef.current
+    });
+    
+    if (!currentUser || !isAdmin) {
+      console.log('🔧 ContractorManagement - Not admin or no user, skipping');
       setLoading(false);
       setFetchedOnce(true);
+      lastFetchedUserIdRef.current = null;
+      return;
+    }
+    
+    // Only fetch if user ID changed OR we haven't fetched yet
+    const userIdChanged = lastFetchedUserIdRef.current !== currentUser.id;
+    
+    if (!fetchedOnce && userIdChanged) {
+      console.log("🔧 ContractorManagement - Initial contractor fetch for admin user");
+      lastFetchedUserIdRef.current = currentUser.id;
+      loadContractors();
+    } else if (userIdChanged && fetchedOnce) {
+      console.log("🔧 ContractorManagement - User changed, refetching");
+      lastFetchedUserIdRef.current = currentUser.id;
+      loadContractors();
+    } else {
+      console.log("🔧 ContractorManagement - No changes, skipping fetch");
     }
   }, [currentUser?.id, isAdmin, fetchedOnce, loadContractors]);
 

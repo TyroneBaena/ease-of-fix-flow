@@ -38,6 +38,8 @@ export const useUserProvider = () => {
     [currentUser?.role]
   );
   const fetchInProgress = useRef(false);
+  const lastFetchedUserIdRef = useRef<string | null>(null);
+  const lastFetchedOrgIdRef = useRef<string | null>(null);
 
   // Debug logging for auth state
   useEffect(() => {
@@ -52,7 +54,7 @@ export const useUserProvider = () => {
       isAdmin,
       canFetchUsers
     });
-  }, [currentUser, authLoading, isAdmin, canFetchUsers]);
+  }, [currentUser?.id, authLoading, isAdmin, canFetchUsers]);
 
   const fetchUsers = useCallback(async () => {
     // Prevent concurrent fetches and only allow admins and managers
@@ -110,14 +112,39 @@ export const useUserProvider = () => {
   }, [canFetchUsers, currentUser?.role, currentUser?.organization_id, currentUser?.session_organization_id]);
 
   // Force fetch users when component mounts and user is admin or manager
+  // CRITICAL FIX: Only refetch if user ID or org ID actually changed
   useEffect(() => {
-    if (canFetchUsers && !fetchInProgress.current) {
-      console.log("Auto-fetching users since user is admin or manager");
+    console.log('👥 UserProvider: useEffect triggered', {
+      canFetchUsers,
+      currentUserId: currentUser?.id,
+      currentOrgId: currentUser?.organization_id,
+      lastFetchedUserId: lastFetchedUserIdRef.current,
+      lastFetchedOrgId: lastFetchedOrgIdRef.current
+    });
+    
+    if (!canFetchUsers) {
+      console.log('👥 UserProvider: User cannot fetch users, skipping');
+      return;
+    }
+    
+    // Check if user ID or org ID actually changed
+    const userIdChanged = lastFetchedUserIdRef.current !== currentUser?.id;
+    const orgIdChanged = lastFetchedOrgIdRef.current !== currentUser?.organization_id;
+    
+    if (!userIdChanged && !orgIdChanged) {
+      console.log("👥 UserProvider: No changes detected, skipping fetch");
+      return;
+    }
+    
+    if (!fetchInProgress.current) {
+      console.log("👥 UserProvider: Changes detected, auto-fetching users");
+      lastFetchedUserIdRef.current = currentUser?.id || null;
+      lastFetchedOrgIdRef.current = currentUser?.organization_id || null;
       // Force refresh by clearing any existing data
       setUsers([]);
       fetchUsers().catch(console.error);
     }
-  }, [canFetchUsers, currentUser?.organization_id]); // Add organization_id as dependency
+  }, [canFetchUsers, currentUser?.id, currentUser?.organization_id, fetchUsers]); // Use IDs only
 
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
