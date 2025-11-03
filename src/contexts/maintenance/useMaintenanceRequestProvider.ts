@@ -262,20 +262,22 @@ export const useMaintenanceRequestProvider = () => {
         return [formattedNewRequest, ...prev];
       });
       
-      // CRITICAL FIX: Force a full refresh to ensure UI updates everywhere
-      // This is a fallback in case real-time doesn't work or navigation happens too fast
-      console.log('🆕 addRequestToProperty - Forcing full refresh to ensure UI update');
-      setTimeout(() => {
-        loadRequests();
-      }, 500);
+      // USER REQUESTED: Force full page reload after creating maintenance request
+      // This ensures all components see the new data immediately
+      console.log('🔄 addRequestToProperty - Request created successfully, forcing page reload');
+      toast.success('Maintenance request added successfully. Refreshing...');
       
-      toast.success('Maintenance request added successfully');
+      setTimeout(() => {
+        console.log('🔄 addRequestToProperty - Executing page reload');
+        window.location.reload();
+      }, 800); // Small delay to show the success message
+      
       return formattedNewRequest;
     } else {
       console.error('🆕 addRequestToProperty - Failed to create new request');
       return null;
     }
-  }, [addRequest, loadRequests]);
+  }, [addRequest]);
 
   // Helper function to determine if user should see this request
   const shouldUserSeeRequest = (requestData: any, userId: string) => {
