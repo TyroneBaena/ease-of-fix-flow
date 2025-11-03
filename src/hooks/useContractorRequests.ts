@@ -130,7 +130,7 @@ export const useContractorRequests = () => {
     };
 
     fetchQuoteRequests();
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.role]);
 
   return { requests, isLoading, error };
 };

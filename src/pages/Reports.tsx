@@ -48,7 +48,7 @@ const Reports = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser]);
+  }, [currentUser?.id]);
   
   // Use a better loading mechanism with stable state
   useEffect(() => {

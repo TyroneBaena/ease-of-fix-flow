@@ -194,7 +194,7 @@ export const useContractorProfileData = () => {
       organizationId: currentUser?.organization_id
     });
     fetchContractorProfile();
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.role]);
 
   return { 
     contractor, 

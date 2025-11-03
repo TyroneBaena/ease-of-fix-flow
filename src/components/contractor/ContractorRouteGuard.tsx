@@ -52,7 +52,7 @@ export const ContractorRouteGuard: React.FC<ContractorRouteGuardProps> = ({ chil
     };
 
     checkContractorProfile();
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.role]);
 
   console.log('🔒 ContractorRouteGuard - State:', { 
     currentUser: !!currentUser, 

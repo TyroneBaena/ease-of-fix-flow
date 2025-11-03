@@ -100,7 +100,7 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
   
   const markAllAsRead = async () => {
     try {

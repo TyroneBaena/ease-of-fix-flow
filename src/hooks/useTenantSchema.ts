@@ -51,7 +51,7 @@ export const useTenantSchema = (): UseTenantSchemaResult => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
   
   // Function to set schema for an operation (now a no-op for organization-based approach)
   const setSchemaForOperation = async (operation: string): Promise<boolean> => {
