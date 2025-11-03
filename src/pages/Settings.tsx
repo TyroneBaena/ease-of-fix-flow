@@ -111,7 +111,8 @@ const Settings = () => {
             {/* Only show contractor management to admins, not managers */}
             {isAdmin && <TabsTrigger value="contractors">Contractor Management</TabsTrigger>}
             {isAdmin && <TabsTrigger value="team">Team Management</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="app">App Settings</TabsTrigger>}
+            {/* Commented out - App Settings tab not needed */}
+            {/* {isAdmin && <TabsTrigger value="app">App Settings</TabsTrigger>} */}
             {isAdmin && <TabsTrigger value="billing">Billing & Security</TabsTrigger>}
             <TabsTrigger value="account">Account Settings</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -142,6 +143,7 @@ const Settings = () => {
           )}
           
           {/* App Settings - Google Maps etc. - Admin only */}
+          {/* Commented out as per user request - not needed in UI
           {isAdmin && (
             <TabsContent value="app">
               <div className="max-w-2xl">
@@ -149,6 +151,7 @@ const Settings = () => {
               </div>
             </TabsContent>
           )}
+          */}
           
           {/* Billing & Security - Admin only */}
           {isAdmin && (
