@@ -721,100 +721,141 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     let lastHiddenTime = 0;
     let isReconnecting = false;
+    let visibilityCheckTimeout: NodeJS.Timeout | null = null;
     
     const handleVisibilityChange = async () => {
-      // Only check when tab becomes visible and we have an existing session
-      if (!document.hidden && session && currentUser) {
-        // Prevent concurrent session checks
-        if (isReconnecting) {
-          console.log('🔄 UnifiedAuth - Session check already in progress, skipping');
-          return;
-        }
-        
-        const hiddenDuration = lastHiddenTime ? Date.now() - lastHiddenTime : 0;
-        console.log('🔄 UnifiedAuth - Tab became visible (was hidden for', Math.round(hiddenDuration / 1000), 'seconds)');
-        
-        // Only refresh if tab was hidden for more than 5 minutes
-        // For shorter periods, session is still fresh - no need to check
-        // This prevents unnecessary loading states on quick tab switches
-        if (hiddenDuration < 300000 && hiddenDuration > 0) {
-          console.log('🔄 UnifiedAuth - Short absence (<5 min), session still fresh, skipping check');
-          return;
-        }
-        
-        isReconnecting = true;
-        
-        try {
-          // Add timeout protection for session check
-          const sessionCheckPromise = supabase.auth.getSession();
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Session check timeout')), 5000)
-          );
-          
-          const { data: { session: currentSession }, error } = await Promise.race([
-            sessionCheckPromise,
-            timeoutPromise
-          ]).catch((err) => {
-            console.warn('🔄 UnifiedAuth - Session check timed out:', err);
-            return { data: { session: null }, error: err };
-          }) as any;
-          
-          if (error) {
-            console.error('🔄 UnifiedAuth - Session check error on visibility change:', error);
-            
-            // Only sign out if it's an actual auth error, not a timeout
-            if (!error.message?.includes('timeout')) {
-              toast.error('Your session has expired. Please sign in again.');
-              await signOut();
-              return;
-            }
-            
-            // On timeout, just continue - session is likely still valid
-            console.log('🔄 UnifiedAuth - Timeout, continuing with existing session');
-            isReconnecting = false;
-            return;
-          }
-          
-          if (!currentSession) {
-            console.warn('🔄 UnifiedAuth - No session found on visibility change, signing out');
-            toast.error('Your session has expired. Please sign in again.');
-            await signOut();
-            return;
-          }
-          
-          // Session is valid, update it seamlessly WITHOUT causing re-renders
-          console.log('🔄 UnifiedAuth - Session validated successfully, keeping existing user data');
-          
-          // CRITICAL: Only update session if it actually changed
-          // Compare session IDs to prevent unnecessary re-renders
-          if (currentSession.access_token !== session?.access_token) {
-            console.log('🔄 UnifiedAuth - Access token changed, updating session');
-            setSession(currentSession);
-          } else {
-            console.log('🔄 UnifiedAuth - Session unchanged, no update needed');
-          }
-          
-          // User data stays completely unchanged - no re-renders triggered
-        } catch (error) {
-          console.error('🔄 UnifiedAuth - Error handling visibility change:', error);
-        } finally {
-          isReconnecting = false;
-        }
-      }
+      // CRITICAL FIX: Always log visibility changes for debugging
+      console.log('🔄 UnifiedAuth - Visibility changed:', { 
+        hidden: document.hidden, 
+        hasSession: !!session, 
+        hasUser: !!currentUser,
+        isReconnecting 
+      });
       
       // Track when tab was hidden
       if (document.hidden) {
         lastHiddenTime = Date.now();
         console.log('🔄 UnifiedAuth - Tab hidden at:', new Date().toISOString());
+        return;
+      }
+      
+      // Tab became visible - log this clearly
+      console.log('🔄 UnifiedAuth - Tab became VISIBLE', {
+        hasSession: !!session,
+        hasCurrentUser: !!currentUser,
+        isReconnecting
+      });
+      
+      // Only check when we have an existing session
+      if (!session || !currentUser) {
+        console.log('🔄 UnifiedAuth - Skipping visibility check: no session or user');
+        return;
+      }
+      
+      // Prevent concurrent session checks
+      if (isReconnecting) {
+        console.log('🔄 UnifiedAuth - Session check already in progress, skipping');
+        return;
+      }
+      
+      const hiddenDuration = lastHiddenTime ? Date.now() - lastHiddenTime : 0;
+      console.log('🔄 UnifiedAuth - Tab was hidden for', Math.round(hiddenDuration / 1000), 'seconds');
+      
+      // Only refresh if tab was hidden for more than 5 minutes
+      // For shorter periods, session is still fresh - no need to check
+      if (hiddenDuration < 300000 && hiddenDuration > 0) {
+        console.log('🔄 UnifiedAuth - Short absence (<5 min), session still fresh, skipping check');
+        return;
+      }
+      
+      // Set reconnecting flag
+      isReconnecting = true;
+      console.log('🔄 UnifiedAuth - Starting session validation...');
+      
+      // CRITICAL FIX: Add a master timeout to force recovery if everything hangs
+      visibilityCheckTimeout = setTimeout(() => {
+        console.error('🔄 UnifiedAuth - MASTER TIMEOUT: Visibility check took >10s, forcing recovery');
+        isReconnecting = false;
+        // Don't sign out on master timeout - just continue with existing session
+      }, 10000);
+      
+      try {
+        // Add timeout protection for session check (5 second timeout)
+        const sessionCheckPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        );
+        
+        const result = await Promise.race([
+          sessionCheckPromise,
+          timeoutPromise
+        ]).catch((err) => {
+          console.warn('🔄 UnifiedAuth - Session check timed out or errored:', err);
+          return { data: { session: null }, error: err };
+        }) as any;
+        
+        const { data: { session: currentSession } = {}, error } = result || {};
+        
+        if (error) {
+          console.error('🔄 UnifiedAuth - Session check error:', error.message);
+          
+          // Only sign out if it's an actual auth error, not a timeout
+          if (!error.message?.includes('timeout')) {
+            console.log('🔄 UnifiedAuth - Auth error detected, signing out');
+            toast.error('Your session has expired. Please sign in again.');
+            await signOut();
+            return;
+          }
+          
+          // On timeout, just continue - session is likely still valid
+          console.log('🔄 UnifiedAuth - Timeout error, continuing with existing session');
+          return;
+        }
+        
+        if (!currentSession) {
+          console.warn('🔄 UnifiedAuth - No session found, signing out');
+          toast.error('Your session has expired. Please sign in again.');
+          await signOut();
+          return;
+        }
+        
+        // Session is valid, update it seamlessly WITHOUT causing re-renders
+        console.log('🔄 UnifiedAuth - Session validated successfully');
+        
+        // CRITICAL: Only update session if it actually changed
+        // Compare access tokens to prevent unnecessary re-renders
+        if (currentSession.access_token !== session?.access_token) {
+          console.log('🔄 UnifiedAuth - Access token changed, updating session');
+          setSession(currentSession);
+        } else {
+          console.log('🔄 UnifiedAuth - Session unchanged, no update needed');
+        }
+        
+        console.log('🔄 UnifiedAuth - ✅ Visibility check completed successfully');
+      } catch (error) {
+        console.error('🔄 UnifiedAuth - Unexpected error in visibility handler:', error);
+        // Don't sign out on unexpected errors - just log and continue
+      } finally {
+        // CRITICAL: Always clear the timeout and reset flag
+        if (visibilityCheckTimeout) {
+          clearTimeout(visibilityCheckTimeout);
+          visibilityCheckTimeout = null;
+        }
+        isReconnecting = false;
+        console.log('🔄 UnifiedAuth - Visibility check cleanup completed');
       }
     };
 
     // Add event listener
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    console.log('🔄 UnifiedAuth - Tab visibility monitoring enabled with global data refresh broadcast');
+    console.log('🔄 UnifiedAuth - Tab visibility monitoring enabled');
     
     return () => {
+      // Clean up any pending timeouts
+      if (visibilityCheckTimeout) {
+        clearTimeout(visibilityCheckTimeout);
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       console.log('🔄 UnifiedAuth - Tab visibility monitoring disabled');
     };
