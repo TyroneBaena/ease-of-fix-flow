@@ -262,16 +262,19 @@ export const useMaintenanceRequestProvider = () => {
         return [formattedNewRequest, ...prev];
       });
       
-      // USER REQUESTED: Force full page reload after creating maintenance request
+      // USER REQUESTED: Force full page reload and redirect to dashboard after creating maintenance request
       // This ensures all components see the new data immediately
-      console.log('🔄 addRequestToProperty - Request created successfully, forcing page reload');
-      toast.success('Maintenance request added successfully. Redirecting to dashboard...');
+      console.log('🔄 addRequestToProperty - Request created successfully, redirecting to dashboard NOW');
+      toast.success('Maintenance request added successfully. Redirecting...', { duration: 1500 });
       
-      // Navigate to dashboard first, then reload to show the new request
-      setTimeout(() => {
-        console.log('🔄 addRequestToProperty - Navigating to dashboard and reloading');
-        window.location.href = '/dashboard'; // Use href instead of reload to navigate AND refresh
-      }, 800); // Small delay to show the success message
+      // Immediate redirect to dashboard with page refresh
+      // No setTimeout - execute immediately to prevent any interference from component lifecycle
+      console.log('🔄 addRequestToProperty - Current URL:', window.location.href);
+      const dashboardUrl = `${window.location.origin}/dashboard`;
+      console.log('🔄 addRequestToProperty - Redirecting to:', dashboardUrl);
+      
+      // Use replace to avoid back button issues
+      window.location.replace(dashboardUrl);
       
       return formattedNewRequest;
     } else {

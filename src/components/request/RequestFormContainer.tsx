@@ -258,14 +258,15 @@ export const RequestFormContainer = () => {
           throw new Error('Failed to create maintenance request');
         }
         
-        // Send email notifications
+        // Send email notifications (non-blocking - happens in background during redirect)
         try {
           const { data: session } = await supabase.auth.getSession();
           const accessToken = session.session?.access_token;
           
           if (accessToken && newRequest?.id) {
             console.log('Sending email notifications for request:', newRequest.id);
-            await supabase.functions.invoke('send-maintenance-request-notification', {
+            // Fire and forget - don't await, let it happen during redirect
+            supabase.functions.invoke('send-maintenance-request-notification', {
               body: { request_id: newRequest.id },
               headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -277,9 +278,9 @@ export const RequestFormContainer = () => {
           // Don't block the success flow if email fails
         }
         
-        // Note: Page will automatically reload after 800ms (handled in addRequestToProperty)
-        // The reload takes user to dashboard with fresh data
-        console.log('RequestForm - Request created, waiting for auto-reload...');
+        // Note: Page will automatically redirect immediately (handled in addRequestToProperty)
+        // Don't set isSubmitting to false - we're redirecting anyway
+        console.log('RequestForm - Request created, redirect in progress...');
       }
     } catch (error) {
       console.error('❌ [DEBUG] RequestForm - Overall submission error:', error);
