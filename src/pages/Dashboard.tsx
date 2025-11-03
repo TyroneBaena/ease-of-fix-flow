@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -24,31 +24,13 @@ import { supabase } from '@/lib/supabase';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentUser, loading: userLoading } = useUserContext();
-  const { requests, loading: requestsLoading, refreshRequests } = useMaintenanceRequestContext();
+  const { requests, loading: requestsLoading } = useMaintenanceRequestContext();
   const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [contractorCheckDone, setContractorCheckDone] = useState(false);
-  const hasRefreshedOnMountRef = useRef(false);
   
   // Enable proactive contractor profile monitoring for admin users
   useContractorProfileMonitoring();
-  
-  // CRITICAL: Force refresh when returning to dashboard (e.g., after creating a request)
-  useEffect(() => {
-    // Reset the ref when user changes
-    hasRefreshedOnMountRef.current = false;
-  }, [currentUser?.id]);
-  
-  useEffect(() => {
-    if (currentUser && !userLoading && !requestsLoading && !hasRefreshedOnMountRef.current) {
-      console.log('📊 Dashboard - Mounted, triggering refresh for latest data');
-      hasRefreshedOnMountRef.current = true;
-      // Small delay to let any pending operations complete
-      setTimeout(() => {
-        refreshRequests();
-      }, 100);
-    }
-  }, [currentUser, userLoading, requestsLoading, refreshRequests]);
   
   // CRITICAL: Redirect contractors to their proper dashboard
   useEffect(() => {

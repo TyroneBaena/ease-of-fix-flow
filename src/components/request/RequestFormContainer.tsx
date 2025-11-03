@@ -278,8 +278,6 @@ export const RequestFormContainer = () => {
         }
         
         toast.success("Your maintenance request has been submitted");
-        
-        // Navigate immediately - dashboard will refresh on mount
         navigate('/dashboard');
       }
     } catch (error) {

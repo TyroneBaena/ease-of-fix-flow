@@ -253,19 +253,13 @@ export const useMaintenanceRequestProvider = () => {
         return [formattedNewRequest, ...prev];
       });
       
-      // Force a re-fetch after a short delay to ensure consistency
-      setTimeout(() => {
-        console.log('🔄 addRequestToProperty - Triggering delayed refresh');
-        loadRequests();
-      }, 1000);
-      
       toast.success('Maintenance request added successfully');
       return formattedNewRequest;
     } else {
       console.error('🆕 addRequestToProperty - Failed to create new request');
       return null;
     }
-  }, [addRequest, loadRequests]);
+  }, [addRequest]);
 
   // Helper function to determine if user should see this request
   const shouldUserSeeRequest = (requestData: any, userId: string) => {
