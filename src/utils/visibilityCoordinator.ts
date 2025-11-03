@@ -78,6 +78,17 @@ class VisibilityCoordinator {
       if (!document.hidden) {
         const timeSinceLastChange = Date.now() - this.lastVisibilityChange;
         console.log('👁️ VisibilityCoordinator v4.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
+        
+        // USER REQUESTED: Force page refresh on tab revisit if hidden >30s
+        // This is a pragmatic solution to handle timeout issues
+        // Trade-off: Loses form data, scroll position, cached state
+        if (timeSinceLastChange > 30000) {
+          console.log('🔄 VisibilityCoordinator v4.0 - Tab was hidden >30s, forcing page refresh');
+          console.log('⚠️ This will reset all unsaved data, scroll positions, and cached state');
+          window.location.reload();
+          return;
+        }
+        
         this.lastVisibilityChange = Date.now();
         
         // CRITICAL FIX: Only refresh if tab was hidden for minimum duration
