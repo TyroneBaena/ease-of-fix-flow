@@ -20,6 +20,8 @@ export const useMaintenanceRequestProvider = () => {
   // CRITICAL: Prevent concurrent fetches during rapid tab switches
   const isFetchingRef = useRef(false);
   const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
+  const lastFetchTimeRef = useRef<number>(0);
 
   const loadRequests = useCallback(async () => {
     console.log('🔍 LOADING REQUESTS v4.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
@@ -62,10 +64,12 @@ export const useMaintenanceRequestProvider = () => {
         console.log('🔍 LOADING REQUESTS v3.0 - Formatted:', formattedRequests.length, 'requests');
         
         setRequests(formattedRequests);
+        lastFetchTimeRef.current = Date.now();
         return formattedRequests;
       } else {
         console.log('🔍 LOADING REQUESTS v3.0 - No requests found');
         setRequests([]);
+        lastFetchTimeRef.current = Date.now();
         return [];
       }
     } catch (error) {
@@ -146,11 +150,32 @@ export const useMaintenanceRequestProvider = () => {
     return () => {
       console.log('🔌 REAL-TIME: Unsubscribing from global maintenance requests channel');
       supabase.removeChannel(channel);
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 
-  // Tab visibility detection - refresh stale data when tab becomes active
+  // CRITICAL: Tab visibility refresh - refetch data when tab becomes visible after 30+ seconds
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentUser?.id) {
+        const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
+        const STALE_THRESHOLD = 30000; // 30 seconds
+        
+        if (timeSinceLastFetch > STALE_THRESHOLD) {
+          console.log('👁️ MaintenanceRequestProvider - Tab visible after', Math.round(timeSinceLastFetch / 1000), 's, refreshing data');
+          loadRequests();
+        } else {
+          console.log('👁️ MaintenanceRequestProvider - Tab visible but data fresh, skipping refresh');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [currentUser?.id, loadRequests]);
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {

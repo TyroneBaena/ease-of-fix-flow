@@ -18,6 +18,8 @@ export const usePropertyProvider = (): PropertyContextType => {
   // CRITICAL: Prevent concurrent fetches during rapid tab switches
   const isFetchingRef = useRef(false);
   const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
+  const lastFetchTimeRef = useRef<number>(0);
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
@@ -52,6 +54,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('✅ PropertyContext: Properties fetched successfully');
       console.log('PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
+      lastFetchTimeRef.current = Date.now();
     } catch (err) {
       clearTimeout(timeoutId);
       
@@ -117,6 +120,26 @@ export const usePropertyProvider = (): PropertyContextType => {
         clearTimeout(fetchDebounceTimerRef.current);
       }
     };
+  }, [currentUser?.id, fetchAndSetProperties]);
+
+  // CRITICAL: Tab visibility refresh - refetch data when tab becomes visible after 30+ seconds
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentUser?.id) {
+        const timeSinceLastFetch = Date.now() - lastFetchTimeRef.current;
+        const STALE_THRESHOLD = 30000; // 30 seconds
+        
+        if (timeSinceLastFetch > STALE_THRESHOLD) {
+          console.log('👁️ PropertyProvider - Tab visible after', Math.round(timeSinceLastFetch / 1000), 's, refreshing data');
+          fetchAndSetProperties();
+        } else {
+          console.log('👁️ PropertyProvider - Tab visible but data fresh, skipping refresh');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [currentUser?.id, fetchAndSetProperties]);
 
 
