@@ -594,36 +594,44 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // CRITICAL: Only refresh session validity, NOT full profile re-fetch
   useEffect(() => {
     const refreshAuth = async () => {
-      console.log('🔄 UnifiedAuth v18.0 - Coordinator-triggered session check');
+      console.log('🔄 UnifiedAuth v19.0 - Coordinator-triggered session check');
       try {
-        // Only check if session is still valid, don't re-fetch profile
+        // CRITICAL: Don't make unnecessary requests if we have a valid session
+        // Supabase automatically handles token refresh, we just verify it's still valid
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('🔄 UnifiedAuth v18.0 - Session check error:', error);
+          console.error('🔄 UnifiedAuth v19.0 - Session check error:', error);
           return;
         }
         
         if (!session) {
-          console.log('🔄 UnifiedAuth v18.0 - No session found, clearing user');
+          console.log('🔄 UnifiedAuth v19.0 - No session found, clearing user');
           setCurrentUser(null);
           setSession(null);
           return;
         }
         
-        // Session is valid - just update the session object
-        // Don't re-fetch profile or organizations unless we have to
-        console.log('🔄 UnifiedAuth v18.0 - Session valid, no profile re-fetch needed');
-        setSession(session);
+        // Session is valid - Supabase handles the rest automatically
+        // Only update if session object has actually changed
+        setSession(prevSession => {
+          if (prevSession?.access_token !== session.access_token) {
+            console.log('🔄 UnifiedAuth v19.0 - Session token updated');
+            return session;
+          }
+          return prevSession;
+        });
+        
+        console.log('🔄 UnifiedAuth v19.0 - Session valid, no changes needed');
       } catch (error) {
-        console.error('🔄 UnifiedAuth v18.0 - Coordinator session check error:', error);
+        console.error('🔄 UnifiedAuth v19.0 - Coordinator session check error:', error);
       }
     };
 
     visibilityCoordinator.register({
       id: 'auth',
       refresh: refreshAuth,
-      staleThreshold: 60000, // 60 seconds (increased from 30s to reduce frequency)
+      staleThreshold: 90000, // 90 seconds - increased to reduce frequency
       priority: 1 // Highest priority - auth first
     });
 

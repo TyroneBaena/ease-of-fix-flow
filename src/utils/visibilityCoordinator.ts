@@ -19,16 +19,29 @@ class VisibilityCoordinator {
   private isRefreshing = false;
   private lastVisibilityChange = Date.now();
   private visibilityListener: (() => void) | null = null;
+  private minHiddenTime = 5000; // Only refresh if tab was hidden for at least 5 seconds
 
   /**
    * Register a data provider for coordinated refresh
+   * CRITICAL: Prevents duplicate registrations and maintains existing fetch times
    */
   register(handler: Omit<RefreshHandler, 'lastFetchTime'>) {
-    console.log('🔄 VisibilityCoordinator - Registering handler:', handler.id);
-    this.handlers.set(handler.id, {
-      ...handler,
-      lastFetchTime: Date.now()
-    });
+    const existing = this.handlers.get(handler.id);
+    
+    // If already registered, update handler but keep the lastFetchTime
+    if (existing) {
+      console.log('🔄 VisibilityCoordinator - Updating existing handler:', handler.id);
+      this.handlers.set(handler.id, {
+        ...handler,
+        lastFetchTime: existing.lastFetchTime // Preserve existing fetch time
+      });
+    } else {
+      console.log('🔄 VisibilityCoordinator - Registering new handler:', handler.id);
+      this.handlers.set(handler.id, {
+        ...handler,
+        lastFetchTime: Date.now()
+      });
+    }
   }
 
   /**
@@ -64,15 +77,20 @@ class VisibilityCoordinator {
     this.visibilityListener = () => {
       if (!document.hidden) {
         const timeSinceLastChange = Date.now() - this.lastVisibilityChange;
-        console.log('👁️ VisibilityCoordinator v3.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
+        console.log('👁️ VisibilityCoordinator v4.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
         this.lastVisibilityChange = Date.now();
         
-        // ALWAYS trigger refresh check - coordinator will decide what's stale
-        // This ensures data is fresh regardless of how long user was away
-        console.log('👁️ VisibilityCoordinator v3.0 - Checking for stale data');
+        // CRITICAL FIX: Only refresh if tab was hidden for minimum duration
+        // Prevents unnecessary refreshes on quick tab switches
+        if (timeSinceLastChange < this.minHiddenTime) {
+          console.log('👁️ VisibilityCoordinator v4.0 - Tab switch too quick (<5s), skipping refresh');
+          return;
+        }
+        
+        console.log('👁️ VisibilityCoordinator v4.0 - Checking for stale data');
         this.coordinateRefresh();
       } else {
-        console.log('👁️ VisibilityCoordinator v3.0 - Tab hidden');
+        console.log('👁️ VisibilityCoordinator v4.0 - Tab hidden');
         this.lastVisibilityChange = Date.now();
       }
     };
@@ -98,7 +116,7 @@ class VisibilityCoordinator {
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.log('🔄 VisibilityCoordinator v3.0 - Refresh already in progress, skipping');
+      console.log('🔄 VisibilityCoordinator v4.0 - Refresh already in progress, skipping');
       return;
     }
 
@@ -113,45 +131,51 @@ class VisibilityCoordinator {
           const timeSinceLastFetch = now - handler.lastFetchTime;
           const isStale = timeSinceLastFetch > handler.staleThreshold;
           
-          console.log(`🔄 VisibilityCoordinator v3.0 - ${handler.id}: ${Math.round(timeSinceLastFetch / 1000)}s old, threshold: ${Math.round(handler.staleThreshold / 1000)}s, ${isStale ? 'STALE - refreshing' : 'FRESH - skipping'}`);
+          console.log(`🔄 VisibilityCoordinator v4.0 - ${handler.id}: ${Math.round(timeSinceLastFetch / 1000)}s old, threshold: ${Math.round(handler.staleThreshold / 1000)}s, ${isStale ? 'STALE - refreshing' : 'FRESH - skipping'}`);
           
           return isStale;
         })
         .sort((a, b) => a.priority - b.priority); // Sort by priority
 
       if (staleHandlers.length === 0) {
-        console.log('🔄 VisibilityCoordinator v3.0 - All data fresh, no refresh needed');
+        console.log('🔄 VisibilityCoordinator v4.0 - All data fresh, no refresh needed');
         return;
       }
 
-      console.log('🔄 VisibilityCoordinator v3.0 - Refreshing', staleHandlers.length, 'stale handlers in background');
+      console.log('🔄 VisibilityCoordinator v4.0 - Refreshing', staleHandlers.length, 'stale handlers in background');
 
       // Execute refreshes with staggered delays - BACKGROUND ONLY, NO BLOCKING
       for (let i = 0; i < staleHandlers.length; i++) {
         const handler = staleHandlers[i];
         
         try {
-          console.log('🔄 VisibilityCoordinator v3.0 - Starting background refresh:', handler.id, '(priority', handler.priority + ')');
+          console.log('🔄 VisibilityCoordinator v4.0 - Starting background refresh:', handler.id, '(priority', handler.priority + ')');
           
-          // Execute refresh in background (don't await - truly non-blocking)
-          handler.refresh().catch(error => {
-            console.error('🔄 VisibilityCoordinator v3.0 - Background refresh error for', handler.id, ':', error);
+          // CRITICAL: Execute refresh in truly non-blocking manner
+          Promise.resolve().then(async () => {
+            try {
+              await handler.refresh();
+              console.log('🔄 VisibilityCoordinator v4.0 - Successfully refreshed:', handler.id);
+            } catch (error) {
+              console.error('🔄 VisibilityCoordinator v4.0 - Background refresh error for', handler.id, ':', error);
+            }
           });
           
           // Update fetch time immediately (optimistic)
           handler.lastFetchTime = Date.now();
           
           // Stagger next refresh to prevent database congestion
+          // CRITICAL: Use longer delays to prevent overwhelming the database
           if (i < staleHandlers.length - 1) {
-            const delay = i === 0 ? 200 : 500; // Reasonable spacing
+            const delay = i === 0 ? 300 : 800; // Increased spacing for stability
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         } catch (error) {
-          console.error('🔄 VisibilityCoordinator v3.0 - Error refreshing', handler.id, ':', error);
+          console.error('🔄 VisibilityCoordinator v4.0 - Error refreshing', handler.id, ':', error);
         }
       }
 
-      console.log('🔄 VisibilityCoordinator v3.0 - Background refresh initiated for all stale handlers');
+      console.log('🔄 VisibilityCoordinator v4.0 - Background refresh initiated for all stale handlers');
     } finally {
       this.isRefreshing = false;
     }
