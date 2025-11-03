@@ -582,12 +582,70 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const resetPassword = useCallback(async (userId: string, email: string) => {
     console.log('resetPassword called:', { userId, email });
-    return { success: false, message: 'Not implemented' };
+    try {
+      // Use production URL if on production, otherwise use current origin
+      const isProduction = window.location.hostname === 'housinghub.app' || window.location.hostname === 'www.housinghub.app';
+      const redirectUrl = isProduction 
+        ? `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`
+        : `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      
+      if (error) {
+        console.error('Error requesting password reset:', error);
+        return {
+          success: false,
+          message: error.message || 'Password reset failed'
+        };
+      }
+      
+      return {
+        success: true,
+        message: `Password reset email sent to ${email}`
+      };
+    } catch (error: any) {
+      console.error('Error in resetPassword:', error);
+      return {
+        success: false,
+        message: error.message || 'Unknown error occurred'
+      };
+    }
   }, []);
 
   const adminResetPassword = useCallback(async (userId: string, email: string) => {
     console.log('adminResetPassword called:', { userId, email });
-    return { success: false, message: 'Not implemented' };
+    try {
+      // Use production URL if on production, otherwise use current origin
+      const isProduction = window.location.hostname === 'housinghub.app' || window.location.hostname === 'www.housinghub.app';
+      const redirectUrl = isProduction 
+        ? `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`
+        : `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      
+      if (error) {
+        console.error('Error requesting admin password reset:', error);
+        return {
+          success: false,
+          message: error.message || 'Password reset failed'
+        };
+      }
+      
+      return {
+        success: true,
+        message: `Password reset email sent to ${email}`
+      };
+    } catch (error: any) {
+      console.error('Error in adminResetPassword:', error);
+      return {
+        success: false,
+        message: error.message || 'Unknown error occurred'
+      };
+    }
   }, []);
 
   // Register auth refresh with visibility coordinator

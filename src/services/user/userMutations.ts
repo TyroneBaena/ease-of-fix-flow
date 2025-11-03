@@ -42,8 +42,14 @@ export async function updateUserProfile(user: User): Promise<void> {
 
 export async function sendPasswordReset(email: string): Promise<{success: boolean; message: string}> {
   try {
+    // Use production URL if on production, otherwise use current origin
+    const isProduction = window.location.hostname === 'housinghub.app' || window.location.hostname === 'www.housinghub.app';
+    const redirectUrl = isProduction 
+      ? `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`
+      : `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`;
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: redirectUrl,
     });
     
     if (error) {

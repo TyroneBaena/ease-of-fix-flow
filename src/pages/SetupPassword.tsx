@@ -87,31 +87,37 @@ const SetupPassword = () => {
       setIsLoading(true);
       console.log(`Setting up new password for email: ${email}, isResetMode: ${isResetMode}`);
 
-      if (isResetMode && !hasSession) {
-        // For password reset flow when no session exists
-        // We need to extract the access token from URL hash
+      // Handle password reset flow - check for tokens in URL hash
+      if (isResetMode) {
+        // Extract the access token from URL hash (if not already in session)
         const hashParams = new URLSearchParams(location.hash.substring(1)); // Remove the leading '#'
         const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
 
-        if (!accessToken) {
-          toast.error("Password reset link is invalid or has expired");
-          return;
-        }
+        if (accessToken && refreshToken && !hasSession) {
+          console.log("Found reset tokens in URL, establishing session");
+          // Set the session with the access token
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
-        // Set the session with the access token
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: hashParams.get("refresh_token") || "",
-        });
-
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          toast.error(`Failed to authenticate: ${sessionError.message}`);
+          if (sessionError) {
+            console.error("Session error:", sessionError);
+            toast.error(`Failed to authenticate: ${sessionError.message}`);
+            return;
+          }
+          
+          // Update hasSession state after successful session creation
+          setHasSession(true);
+        } else if (!hasSession) {
+          // No tokens and no session - invalid reset link
+          toast.error("Password reset link is invalid or has expired. Please request a new reset link.");
           return;
         }
       }
 
-      // Now update the password
+      // Now update the password (session should be established at this point)
       const { error, data } = await supabase.auth.updateUser({
         password: password,
       });
