@@ -38,38 +38,24 @@ const performQuickCheck = async () => {
 };
 
 /**
- * Medium refresh - just refresh the session token
- * Lightweight but ensures fresh auth
+ * Medium refresh - just verify session validity
+ * Lightweight check that relies on Supabase's auto-refresh
  */
 const performMediumRefresh = async (config?: SilentRefreshConfig) => {
   try {
-    console.log('🔄 Medium refresh - refreshing session only');
+    console.log('🔄 Medium refresh - verifying session');
     
-    // First check if we have a session to refresh
-    const { data: { session: existingSession } } = await supabase.auth.getSession();
-    if (!existingSession) {
-      console.log('⚠️ Medium refresh skipped - no session to refresh (user not logged in)');
-      return;
-    }
+    // Just check if session exists - Supabase handles auto-refresh automatically
+    const { data: { session } } = await supabase.auth.getSession();
     
-    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
-    
-    if (sessionError) {
-      // If it's just a missing session error, don't treat it as a critical error
-      if (sessionError.message?.includes('session')) {
-        console.log('⚠️ Medium refresh - no active session to refresh');
-        return;
-      }
-      console.warn('🔄 Medium refresh - session refresh failed:', sessionError);
-      config?.onRefreshError?.(sessionError as Error);
+    if (!session) {
+      console.log('⚠️ Medium refresh - no session found (user not logged in)');
       return;
     }
 
-    if (session) {
-      console.log('✅ Medium refresh - session refreshed successfully');
-      lastFullRefreshTime = Date.now();
-      config?.onRefreshComplete?.();
-    }
+    console.log('✅ Medium refresh - session valid');
+    lastFullRefreshTime = Date.now();
+    config?.onRefreshComplete?.();
   } catch (error) {
     console.error('❌ Medium refresh failed:', error);
     config?.onRefreshError?.(error as Error);
@@ -79,6 +65,7 @@ const performMediumRefresh = async (config?: SilentRefreshConfig) => {
 /**
  * Full refresh with database connection warming
  * Most comprehensive but only for long absences
+ * NOTE: Does NOT call refreshSession() - Supabase auto-refreshes tokens automatically
  */
 export const performFullRefresh = async (config?: SilentRefreshConfig) => {
   if (isRefreshing) {
@@ -90,32 +77,18 @@ export const performFullRefresh = async (config?: SilentRefreshConfig) => {
     isRefreshing = true;
     console.log('🔄 Starting FULL silent refresh...');
 
-    // Step 0: Check if we have a session to refresh
-    const { data: { session: existingSession } } = await supabase.auth.getSession();
-    if (!existingSession) {
-      console.log('⚠️ Full refresh skipped - no session to refresh (user not logged in)');
+    // Step 1: Verify session exists (don't call refreshSession - let Supabase auto-refresh)
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log('⚠️ Full refresh - no session found (user not logged in)');
       return;
     }
 
-    // Step 1: Refresh auth session (this ensures fresh tokens)
-    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
-    
-    if (sessionError) {
-      // If it's just a missing session error, don't treat it as a critical error
-      if (sessionError.message?.includes('session')) {
-        console.log('⚠️ Full refresh - no active session to refresh');
-        return;
-      }
-      console.warn('🔄 Full refresh - session refresh failed:', sessionError);
-      throw sessionError;
-    }
-
-    if (session) {
-      console.log('✅ Full refresh - session refreshed successfully');
-    }
+    console.log('✅ Full refresh - session valid');
 
     // Step 2: Trigger a lightweight query to "wake up" the database connection
-    // This helps subsequent queries run faster
+    // This helps subsequent queries run faster after long absence
     const { error: wakeError } = await supabase
       .from('profiles')
       .select('id')
@@ -124,6 +97,8 @@ export const performFullRefresh = async (config?: SilentRefreshConfig) => {
 
     if (!wakeError) {
       console.log('✅ Full refresh - database connection warmed up');
+    } else {
+      console.log('⚠️ Full refresh - database wake-up query failed (this is OK if user not logged in)');
     }
 
     lastFullRefreshTime = Date.now();
