@@ -32,6 +32,9 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
   const lastFetchedUserIdRef = React.useRef<string | null>(null);
   // CRITICAL: Track if we've completed initial load to prevent loading flashes
   const hasCompletedInitialLoadRef = React.useRef(false);
+  // CRITICAL: Prevent concurrent fetches during rapid tab switches
+  const isFetchingRef = React.useRef(false);
+  const fetchDebounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   console.log('🔧 ContractorManagement - Provider state:', {
     isAdmin,
@@ -42,12 +45,19 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
   });
 
   const loadContractors = useCallback(async () => {
+    // CRITICAL: Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('🔧 ContractorManagement - Fetch already in progress, skipping');
+      return;
+    }
+    
     try {
       // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(true);
       }
       setFetchError(null);
+      isFetchingRef.current = true;
       console.log("Loading contractors...");
       
       // Timeout protection with abort controller
@@ -87,6 +97,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
         setLoading(false);
       }
       hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
     }
   }, [currentUser, isAdmin]);
 
@@ -100,12 +111,18 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       lastFetchedUserId: lastFetchedUserIdRef.current
     });
     
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
     if (!currentUser || !isAdmin) {
       console.log('🔧 ContractorManagement - Not admin or no user, skipping');
       setLoading(false);
       setFetchedOnce(true);
       lastFetchedUserIdRef.current = null;
-      hasCompletedInitialLoadRef.current = true; // Mark as complete even if not admin
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
       return;
     }
     
@@ -113,16 +130,28 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     const userIdChanged = lastFetchedUserIdRef.current !== currentUser.id;
     
     if (!fetchedOnce && userIdChanged) {
-      console.log("🔧 ContractorManagement - Initial contractor fetch for admin user");
+      console.log("🔧 ContractorManagement - Initial contractor fetch for admin user (debounced)");
       lastFetchedUserIdRef.current = currentUser.id;
-      loadContractors();
+      // CRITICAL: Debounce rapid tab switches (300ms delay)
+      fetchDebounceTimerRef.current = setTimeout(() => {
+        loadContractors();
+      }, 300);
     } else if (userIdChanged && fetchedOnce) {
-      console.log("🔧 ContractorManagement - User changed, refetching");
+      console.log("🔧 ContractorManagement - User changed, refetching (debounced)");
       lastFetchedUserIdRef.current = currentUser.id;
-      loadContractors();
+      // CRITICAL: Debounce rapid tab switches (300ms delay)
+      fetchDebounceTimerRef.current = setTimeout(() => {
+        loadContractors();
+      }, 300);
     } else {
       console.log("🔧 ContractorManagement - No changes, skipping fetch");
     }
+    
+    return () => {
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
+    };
   }, [currentUser?.id, isAdmin, fetchedOnce, loadContractors]);
 
   // Tab visibility handler removed - prevents excessive loading on tab switches

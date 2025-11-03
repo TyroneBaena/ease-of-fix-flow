@@ -15,10 +15,19 @@ export const usePropertyProvider = (): PropertyContextType => {
   const lastFetchedUserIdRef = useRef<string | null>(null);
   // CRITICAL: Track if we've completed initial load to prevent loading flashes
   const hasCompletedInitialLoadRef = useRef(false);
+  // CRITICAL: Prevent concurrent fetches during rapid tab switches
+  const isFetchingRef = useRef(false);
+  const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
     console.log('PropertyProvider: fetchAndSetProperties called');
+    
+    // CRITICAL: Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('PropertyProvider: Fetch already in progress, skipping');
+      return;
+    }
     
     // CRITICAL FIX: Add timeout protection (5s)
     const controller = new AbortController();
@@ -33,6 +42,7 @@ export const usePropertyProvider = (): PropertyContextType => {
         setLoading(true);
       }
       setLoadingFailed(false);
+      isFetchingRef.current = true;
       console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
       
       const formattedProperties = await fetchProperties();
@@ -59,6 +69,7 @@ export const usePropertyProvider = (): PropertyContextType => {
         setLoading(false);
       }
       hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
     }
   }, []); // CRITICAL: Empty dependencies
 
@@ -69,6 +80,11 @@ export const usePropertyProvider = (): PropertyContextType => {
       lastFetchedUserId: lastFetchedUserIdRef.current
     });
     
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
     // If no user, clear everything
     if (!currentUser?.id) {
       console.log('PropertyProvider: No user, clearing properties');
@@ -76,7 +92,8 @@ export const usePropertyProvider = (): PropertyContextType => {
       setLoading(false);
       setLoadingFailed(false);
       lastFetchedUserIdRef.current = null;
-      hasCompletedInitialLoadRef.current = true; // Mark as complete even with no user
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
       return;
     }
     
@@ -86,10 +103,20 @@ export const usePropertyProvider = (): PropertyContextType => {
       return;
     }
     
-    console.log('PropertyProvider: User ID changed, fetching properties');
+    console.log('PropertyProvider: User ID changed, debouncing fetch');
     lastFetchedUserIdRef.current = currentUser.id;
-    fetchAndSetProperties();
-  }, [currentUser?.id, fetchAndSetProperties]); // Add fetchAndSetProperties back for clarity
+    
+    // CRITICAL: Debounce rapid tab switches (300ms delay)
+    fetchDebounceTimerRef.current = setTimeout(() => {
+      fetchAndSetProperties();
+    }, 300);
+    
+    return () => {
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
+    };
+  }, [currentUser?.id, fetchAndSetProperties]);
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {

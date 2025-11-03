@@ -17,13 +17,23 @@ export const useMaintenanceRequestProvider = () => {
   const lastFetchedUserIdRef = useRef<string | null>(null);
   // CRITICAL: Track if we've completed initial load to prevent loading flashes
   const hasCompletedInitialLoadRef = useRef(false);
+  // CRITICAL: Prevent concurrent fetches during rapid tab switches
+  const isFetchingRef = useRef(false);
+  const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadRequests = useCallback(async () => {
-    console.log('🔍 LOADING REQUESTS v3.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
+    console.log('🔍 LOADING REQUESTS v4.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
     
     if (!currentUser?.id) {
-      console.log('🔍 LOADING REQUESTS v3.0 - No user, skipping');
+      console.log('🔍 LOADING REQUESTS v4.0 - No user, skipping');
       setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
+      return [];
+    }
+    
+    // CRITICAL: Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('🔍 LOADING REQUESTS v4.0 - Fetch already in progress, skipping');
       return [];
     }
     
@@ -31,6 +41,8 @@ export const useMaintenanceRequestProvider = () => {
     if (!hasCompletedInitialLoadRef.current) {
       setLoading(true);
     }
+    
+    isFetchingRef.current = true;
     
     // CRITICAL FIX: 10-second timeout instead of 15 seconds
     const controller = new AbortController();
@@ -72,34 +84,44 @@ export const useMaintenanceRequestProvider = () => {
         setLoading(false);
       }
       hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
     }
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
 
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v4.0 - useEffect triggered');
-    console.log('🔍 MAINTENANCE PROVIDER v4.0 - Current user ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v4.0 - Last fetched ID:', lastFetchedUserIdRef.current);
+    console.log('🔍 MAINTENANCE PROVIDER v5.0 - useEffect triggered');
+    console.log('🔍 MAINTENANCE PROVIDER v5.0 - Current user ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v5.0 - Last fetched ID:', lastFetchedUserIdRef.current);
+    
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
     
     // If no user, clear data
     if (!currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v4.0 - No current user, clearing requests');
+      console.log('🔍 MAINTENANCE PROVIDER v5.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
       lastFetchedUserIdRef.current = null;
-      hasCompletedInitialLoadRef.current = true; // Mark as complete even with no user
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
       return;
     }
     
     // Only load if user ID actually changed
     if (lastFetchedUserIdRef.current === currentUser.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v4.0 - User ID unchanged, skipping refetch');
+      console.log('🔍 MAINTENANCE PROVIDER v5.0 - User ID unchanged, skipping refetch');
       return;
     }
     
-    console.log('🔍 MAINTENANCE PROVIDER v4.0 - User ID changed, loading requests');
+    console.log('🔍 MAINTENANCE PROVIDER v5.0 - User ID changed, debouncing load');
     lastFetchedUserIdRef.current = currentUser.id;
     
-    loadRequests();
+    // CRITICAL: Debounce rapid tab switches (300ms delay)
+    fetchDebounceTimerRef.current = setTimeout(() => {
+      loadRequests();
+    }, 300);
     
     // Set up real-time subscription for maintenance requests
     const channel = supabase
