@@ -55,15 +55,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currency, setCurrency] = useState<string | null>(null);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
 
-  // Track if this is the initial mount to prevent loading on subsequent renders
-  const [isInitialMount, setIsInitialMount] = useState(true);
-  
-  useEffect(() => {
-    if (isInitialMount) {
-      setLoading(true);
-      setIsInitialMount(false);
-    }
-  }, [isInitialMount]);
+  // CRITICAL: Track completion and prevent concurrent fetches/flashes
+  const hasCompletedInitialLoadRef = React.useRef(false);
+  const isFetchingRef = React.useRef(false);
+  const fetchDebounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const clear = useCallback(() => {
     setSubscribed(null);
@@ -95,9 +90,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLoading(false);
       return;
     }
+    
+    // CRITICAL: Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      console.log('🔄 SubscriptionContext - Fetch already in progress, skipping');
+      return;
+    }
 
     try {
-      setLoading(true);
+      isFetchingRef.current = true;
+      // CRITICAL: Only set loading on first fetch
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      }
       
       console.log('🔄 SubscriptionContext - Fetching for organization:', currentOrganization.id);
       
@@ -245,8 +250,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setMonthlyAmount(0);
       setCurrency('aud');
     } finally {
-      // CRITICAL: Always set loading false
-      setLoading(false);
+      // CRITICAL: Only reset loading on first load, keep it false after
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
     }
   }, [currentUser?.id, currentOrganization?.id]);
 
@@ -465,6 +474,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const prevOrgIdRef = React.useRef<string | undefined>();
   
   useEffect(() => {
+    console.log('SubscriptionContext - useEffect triggered');
+    
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
     // CRITICAL FIX: Only refresh if user or org IDs ACTUALLY changed
     // This prevents loading cascade when tab becomes visible
     const userIdChanged = prevUserIdRef.current !== currentUser?.id;
@@ -477,22 +493,36 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       currentOrgId: currentOrganization?.id
     });
     
-    if (currentUser?.id && currentOrganization?.id && (userIdChanged || orgIdChanged)) {
-      console.log('SubscriptionContext - IDs changed, refreshing subscription');
-      prevUserIdRef.current = currentUser.id;
-      prevOrgIdRef.current = currentOrganization.id;
-      setLoading(true);
-      refresh();
-    } else if (!currentUser?.id || !currentOrganization?.id) {
+    if (!currentUser?.id || !currentOrganization?.id) {
       // Clear all subscription data when no user/org
       clear();
       setLoading(false);
       prevUserIdRef.current = undefined;
       prevOrgIdRef.current = undefined;
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
+      return;
+    }
+    
+    if (userIdChanged || orgIdChanged) {
+      console.log('SubscriptionContext - IDs changed, debouncing refresh');
+      prevUserIdRef.current = currentUser.id;
+      prevOrgIdRef.current = currentOrganization.id;
+      
+      // CRITICAL: Debounce rapid tab switches (300ms delay)
+      fetchDebounceTimerRef.current = setTimeout(() => {
+        refresh();
+      }, 300);
     } else {
       // User/org exist but haven't changed - don't refresh, don't show loading
       console.log('SubscriptionContext - No changes detected, keeping current state');
     }
+    
+    return () => {
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
+    };
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, currentOrganization?.id]);
@@ -535,7 +565,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     subscribed,
     subscriptionTier,
     subscriptionEnd,
-    loading,
+    // CRITICAL: Override loading to false after initial load completes
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     refresh,
     pauseAutoRefresh,
     resumeAutoRefresh,

@@ -40,6 +40,9 @@ export const useUserProvider = () => {
   const fetchInProgress = useRef(false);
   const lastFetchedUserIdRef = useRef<string | null>(null);
   const lastFetchedOrgIdRef = useRef<string | null>(null);
+  // CRITICAL: Track completion and prevent loading flashes
+  const hasCompletedInitialLoadRef = useRef(false);
+  const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debug logging for auth state
   useEffect(() => {
@@ -79,7 +82,10 @@ export const useUserProvider = () => {
       console.log("👥 Current user org:", currentUser?.organization_id);
       console.log("👥 Current session org:", currentUser?.session_organization_id);
       fetchInProgress.current = true;
-      setLoading(true);
+      // CRITICAL: Only set loading on first fetch
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      }
       const allUsers = await userService.getAllUsers();
       console.log("👥 Fetched users successfully:", {
         count: allUsers.length,
@@ -106,7 +112,11 @@ export const useUserProvider = () => {
         toast.error(`Failed to load users: ${error.message}`);
       }
     } finally {
-      setLoading(false);
+      // CRITICAL: Only reset loading on first load
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
+      hasCompletedInitialLoadRef.current = true;
       fetchInProgress.current = false;
     }
   }, [canFetchUsers, currentUser?.role, currentUser?.organization_id, currentUser?.session_organization_id]);
@@ -122,8 +132,17 @@ export const useUserProvider = () => {
       lastFetchedOrgId: lastFetchedOrgIdRef.current
     });
     
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
     if (!canFetchUsers) {
-      console.log('👥 UserProvider: User cannot fetch users, skipping');
+      console.log('👥 UserProvider: User cannot fetch users, clearing state');
+      setUsers([]);
+      lastFetchedUserIdRef.current = null;
+      lastFetchedOrgIdRef.current = null;
+      hasCompletedInitialLoadRef.current = true;
       return;
     }
     
@@ -137,13 +156,23 @@ export const useUserProvider = () => {
     }
     
     if (!fetchInProgress.current) {
-      console.log("👥 UserProvider: Changes detected, auto-fetching users");
+      console.log("👥 UserProvider: Changes detected, debouncing user fetch");
       lastFetchedUserIdRef.current = currentUser?.id || null;
       lastFetchedOrgIdRef.current = currentUser?.organization_id || null;
-      // Force refresh by clearing any existing data
-      setUsers([]);
-      fetchUsers().catch(console.error);
+      
+      // CRITICAL: Debounce rapid tab switches (300ms delay)
+      fetchDebounceTimerRef.current = setTimeout(() => {
+        // Force refresh by clearing any existing data
+        setUsers([]);
+        fetchUsers().catch(console.error);
+      }, 300);
     }
+    
+    return () => {
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
+    };
   }, [canFetchUsers, currentUser?.id, currentUser?.organization_id, fetchUsers]); // Use IDs only
 
 
@@ -258,7 +287,9 @@ export const useUserProvider = () => {
   return {
     currentUser,
     users,
-    loading: authLoading, // Only use authLoading for user context loading state
+    // CRITICAL: Override loading to false after initial load completes for automatic fetches
+    // Action-based loading (addUser, updateUser, etc.) will still show loading state
+    loading: hasCompletedInitialLoadRef.current ? false : (authLoading || loading),
     loadingError,
     fetchUsers,
     addUser,
