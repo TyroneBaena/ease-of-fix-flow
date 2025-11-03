@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/maintenance';
@@ -15,15 +15,22 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const [request, setRequest] = useState<MaintenanceRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useUserContext();
+  const hasLoadedOnceRef = useRef(false); // CRITICAL: Track if we've loaded once to prevent loading on tab revisit
 
   useEffect(() => {
     if (!requestId || !currentUser) {
-      setLoading(false);
+      // CRITICAL: Only set loading false if we haven't loaded before
+      if (!hasLoadedOnceRef.current) {
+        setLoading(false);
+      }
       return;
     }
     
     const loadRequestData = async () => {
-      setLoading(true);
+      // CRITICAL: Only show loading on first load, not on tab revisit
+      if (!hasLoadedOnceRef.current) {
+        setLoading(true);
+      }
       
       console.log("useMaintenanceRequestData - Loading request data for ID:", requestId);
       
@@ -91,6 +98,8 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         }
       }
       
+      // CRITICAL: Mark as loaded and set loading false
+      hasLoadedOnceRef.current = true;
       setLoading(false);
     };
     
@@ -147,7 +156,8 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
 
   return {
     request,
-    loading,
+    // CRITICAL: Return false for loading if we've loaded once, regardless of internal state
+    loading: hasLoadedOnceRef.current ? false : loading,
     refreshRequestData
   };
 }
