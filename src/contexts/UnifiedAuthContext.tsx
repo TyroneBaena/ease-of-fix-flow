@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types/user';
@@ -217,6 +217,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [loading, setLoading] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
+  const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
   
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
@@ -633,15 +634,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Clear Sentry user context
         setSentryUser(null);
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🚀 UnifiedAuth v12.0 - TOKEN_REFRESHED event - silently updating session without triggering re-renders');
-        // Update session reference without triggering unnecessary re-renders
-        // Only update if the access token actually changed to minimize re-renders
-        setSession((prevSession) => {
-          if (prevSession?.access_token !== session.access_token) {
-            return session;
-          }
-          return prevSession;
-        });
+        console.log('🚀 UnifiedAuth v13.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally');
+        // CRITICAL FIX: Do NOT update session state on TOKEN_REFRESHED
+        // Supabase client handles token refresh internally and maintains the real session
+        // Updating our state snapshot here causes unnecessary re-renders and loading flashes
+        // Our session state is just a reference - Supabase keeps it valid automatically
       } else if (event === 'USER_UPDATED' && session?.user) {
         console.log('🚀 UnifiedAuth v12.0 - USER_UPDATED event');
         // Use setTimeout for USER_UPDATED as well
@@ -704,6 +701,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               setCurrentUser(user);
               setLoading(false);
               setInitialCheckDone(true);
+              hasCompletedInitialSetup.current = true; // Mark that we've successfully initialized
               console.log('🚀 UnifiedAuth v16.0 - Initial auth complete, starting background org fetch');
               
               // Fetch organizations in background WITHOUT blocking UI
@@ -724,6 +722,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           setSession(null);
           setLoading(false);
           setInitialCheckDone(true);
+          hasCompletedInitialSetup.current = true; // Mark even if no session
         }
       })
       .catch((error) => {
@@ -759,7 +758,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const value: UnifiedAuthContextType = useMemo(() => ({
     currentUser: enhancedCurrentUser,
     session, // Include in value but not in deps - prevents cascade re-renders on token refresh
-    loading,
+    // CRITICAL: Override loading to false if we've completed setup once
+    // This prevents loading flashes on tab switches even if state updates occur
+    loading: hasCompletedInitialSetup.current ? false : loading,
     isSigningOut,
     signOut,
     currentOrganization,
