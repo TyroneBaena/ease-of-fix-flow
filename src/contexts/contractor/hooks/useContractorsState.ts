@@ -10,13 +10,20 @@ export const useContractorsState = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  // CRITICAL: Track if we've completed initial load to prevent loading flashes on tab switches
+  const hasCompletedInitialLoadRef = useRef(false);
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
 
   // Load contractors function
   const loadContractors = useCallback(async () => {
     console.log("useContractorsState - Loading contractors");
-    setLoading(true);
+    
+    // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+    if (!hasCompletedInitialLoadRef.current) {
+      setLoading(true);
+    }
+    
     try {
       const contractorsList = await fetchContractors();
       console.log("useContractorsState - Contractors loaded successfully:", contractorsList);
@@ -27,7 +34,11 @@ export const useContractorsState = () => {
       console.error("useContractorsState - Error loading contractors:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
-      setLoading(false);
+      // CRITICAL: Only reset loading on first load, keep it false after
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
+      hasCompletedInitialLoadRef.current = true;
     }
   }, []);
 
@@ -59,7 +70,9 @@ export const useContractorsState = () => {
 
   return {
     contractors,
-    loading,
+    // CRITICAL: Override loading to false after initial load completes
+    // This prevents loading flashes on tab switches
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     error,
     loadContractors,
     setLoading,
