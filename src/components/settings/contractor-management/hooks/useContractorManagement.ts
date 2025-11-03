@@ -44,14 +44,25 @@ export const useContractorManagement = () => {
 
   // Define loadContractors with timeout protection
   const loadContractors = async () => {
+    console.log("🔄 loadContractors - Starting");
+    
+    // Prevent multiple simultaneous loads
+    if (loading) {
+      console.log("⏳ loadContractors - Already loading, skipping");
+      return;
+    }
+    
     try {
       setLoading(true);
       console.log("Fetching contractors in useContractorManagement...");
       console.log("User is admin:", isAdmin);
       
-      // Timeout protection
+      // CRITICAL: 5-second timeout to prevent blocking
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error("⏱️ loadContractors - Timeout after 5s");
+      }, 5000);
       
       try {
         console.log("Attempting to fetch contractors directly from Supabase...");
@@ -75,6 +86,7 @@ export const useContractorManagement = () => {
         
         setContractors(data);
         setFetchError(null);
+        console.log("✅ loadContractors - Success, loaded", data.length, "contractors");
         
         if (data.length === 0) {
           console.log("No contractors were returned after fetching");
@@ -84,7 +96,7 @@ export const useContractorManagement = () => {
         throw fetchErr;
       }
     } catch (err) {
-      console.error("Error loading contractors:", err);
+      console.error("❌ loadContractors - Error:", err);
       setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
       
       if (err instanceof Error && (err.message.includes('aborted') || err.message.includes('timeout'))) {
@@ -92,6 +104,7 @@ export const useContractorManagement = () => {
       }
     } finally {
       // CRITICAL: Always reset loading state
+      console.log("🏁 loadContractors - Finally block, resetting loading");
       setLoading(false);
     }
   };
@@ -108,17 +121,32 @@ export const useContractorManagement = () => {
     selectedContractorForDeletion
   } = useContractorActions(loadContractors);
 
-  // Initial load - use useCallback to prevent recreating the function
-  const loadContractorsStable = useCallback(() => {
-    loadContractors();
-  }, [isAdmin]);
-
-  // Only load once on mount
+  // Initial load on mount
   useEffect(() => {
+    console.log('🎬 useContractorManagement - Mount effect, isAdmin:', isAdmin);
     if (isAdmin) {
-      loadContractorsStable();
+      loadContractors();
     }
   }, [isAdmin]);
+
+  // Handle tab visibility changes - refresh data when tab becomes visible
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const handleVisibilityChange = () => {
+      // Only refresh if tab becomes visible and we're not already loading
+      if (!document.hidden && !loading) {
+        console.log('👁️ Tab visible - refreshing contractor data');
+        loadContractors();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAdmin, loading]);
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {

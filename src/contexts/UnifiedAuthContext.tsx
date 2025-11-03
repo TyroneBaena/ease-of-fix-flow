@@ -137,16 +137,17 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
   try {
     console.log('🔄 UnifiedAuth v11.0 - convertSupabaseUser called for:', supabaseUser.email);
     
-    // Create a promise with timeout for the database query
+    // CRITICAL: Use shorter timeout to prevent tab-switch blocking
+    // Create a promise with 2-second timeout for the database query
     const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', supabaseUser.id)
       .maybeSingle();
 
-    // Create timeout promise
+    // Create timeout promise - 2 seconds instead of 10
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile query timeout')), 10000);
+      setTimeout(() => reject(new Error('Profile query timeout')), 2000);
     });
 
     let profile = null;
@@ -163,7 +164,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
         error: profileError?.message 
       });
     } catch (timeoutError) {
-      console.warn('🔄 UnifiedAuth v11.0 - Profile query timed out, using fallback');
+      console.warn('🔄 UnifiedAuth v11.0 - Profile query timed out after 2s, using fallback');
       profileError = timeoutError;
     }
 
@@ -277,9 +278,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log('UnifiedAuth - Fetching organizations for user:', user.id);
 
-      // CRITICAL FIX: 10-second timeout instead of 30 seconds
+      // CRITICAL FIX: 3-second timeout to prevent blocking on tab switches
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       try {
         // Fetch user organizations
@@ -310,7 +311,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
 
         // Fetch organization details with timeout
-        const orgTimeoutId = setTimeout(() => controller.abort(), 10000);
+        const orgTimeoutId = setTimeout(() => controller.abort(), 3000);
         const orgIds = userOrgs.map((uo: any) => uo.organization_id);
         
         const { data: organizations, error: orgsError } = await supabase
@@ -371,7 +372,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       } catch (fetchError) {
         clearTimeout(timeoutId);
         if (controller.signal.aborted) {
-          console.warn('UnifiedAuth - Organization fetch timeout after 10s');
+          console.warn('UnifiedAuth - Organization fetch timeout after 3s');
           throw new Error('Organization fetch timeout');
         }
         throw fetchError;

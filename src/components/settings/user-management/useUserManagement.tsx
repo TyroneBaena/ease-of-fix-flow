@@ -21,10 +21,18 @@ export const useUserManagement = () => {
   
   // Function to safely fetch users - moved here to be available to useUserActions
   const fetchUsers = useCallback(async () => {
+    console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin, "isLoading:", isLoadingUsers);
+    
     if (!isAdmin) {
       console.log("Not fetching users because user is not admin");
       setIsLoadingUsers(false);
       setFetchedOnce(true);
+      return;
+    }
+
+    // Prevent duplicate fetches
+    if (isLoadingUsers) {
+      console.log("⏳ fetchUsers - Already loading, skipping");
       return;
     }
 
@@ -35,14 +43,16 @@ export const useUserManagement = () => {
       await fetchUsersFromContext();
       setFetchedOnce(true);
       setLastRefreshTime(Date.now());
+      console.log("✅ fetchUsers - Success");
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("❌ fetchUsers - Error:", error);
       setFetchError(error as Error);
       toast.error("Failed to load users. Please try again.");
     } finally {
+      console.log("🏁 fetchUsers - Finally block, resetting loading");
       setIsLoadingUsers(false);
     }
-  }, [isAdmin, fetchUsersFromContext]);
+  }, [isAdmin, fetchUsersFromContext, isLoadingUsers]);
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -123,6 +133,25 @@ export const useUserManagement = () => {
       return () => clearTimeout(refreshTimeout);
     }
   }, [isDialogOpen, isAdmin]);
+
+  // Handle tab visibility changes - refresh data when tab becomes visible
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const handleVisibilityChange = () => {
+      // Only refresh if tab becomes visible and we're not already loading
+      if (!document.hidden && !isLoadingUsers) {
+        console.log('👁️ Tab visible - refreshing user data');
+        fetchUsers();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAdmin, isLoadingUsers, fetchUsers]);
 
   // Remove the overly aggressive periodic refresh that was causing constant refreshes
 

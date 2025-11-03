@@ -15,15 +15,22 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
-    // CRITICAL FIX: Add timeout protection
+    console.log('PropertyProvider: fetchAndSetProperties called');
+    
+    // Prevent multiple simultaneous fetches
+    if (loading) {
+      console.log('⏳ PropertyProvider - Already loading, skipping');
+      return;
+    }
+    
+    // CRITICAL FIX: Add timeout protection (5s instead of 10s)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.warn('Properties fetch timeout after 10s');
-    }, 10000);
+      console.warn('⏱️ Properties fetch timeout after 5s');
+    }, 5000);
 
     try {
-      console.log('PropertyProvider: fetchAndSetProperties called');
       setLoading(true);
       setLoadingFailed(false);
       console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
@@ -31,24 +38,25 @@ export const usePropertyProvider = (): PropertyContextType => {
       const formattedProperties = await fetchProperties();
       clearTimeout(timeoutId);
       
-      console.log('PropertyContext: Properties fetched successfully');
+      console.log('✅ PropertyContext: Properties fetched successfully');
       console.log('PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
     } catch (err) {
       clearTimeout(timeoutId);
       
       if (controller.signal.aborted) {
-        console.warn('Properties fetch aborted due to timeout');
+        console.warn('❌ Properties fetch aborted due to timeout');
         toast.error('Loading properties timed out. Please refresh.');
       } else {
-        console.error('PropertyContext: Error fetching properties:', err);
+        console.error('❌ PropertyContext: Error fetching properties:', err);
         toast.error('Failed to load properties');
       }
       setLoadingFailed(true);
     } finally {
+      console.log('🏁 PropertyProvider - Resetting loading state');
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, loading]);
 
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
@@ -67,9 +75,24 @@ export const usePropertyProvider = (): PropertyContextType => {
     }
   }, [currentUser?.id, fetchAndSetProperties]);
 
-  // REMOVED: Tab visibility checking
-  // Properties are fetched once on mount and updated through user actions
-  // No need for automatic refresh on tab visibility - Supabase handles sessions naturally
+  // Handle tab visibility changes - refresh data when tab becomes visible
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const handleVisibilityChange = () => {
+      // Only refresh if tab becomes visible and we're not already loading
+      if (!document.hidden && !loading) {
+        console.log('👁️ Tab visible - refreshing property data');
+        fetchAndSetProperties();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser?.id, loading, fetchAndSetProperties]);
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
