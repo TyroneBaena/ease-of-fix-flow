@@ -594,37 +594,39 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // CRITICAL: Only refresh session validity, NOT full profile re-fetch
   useEffect(() => {
     const refreshAuth = async () => {
-      console.log('🔄 UnifiedAuth v19.0 - Coordinator-triggered session check');
+      console.log('🔄 UnifiedAuth v20.0 - Coordinator-triggered session check');
       try {
-        // CRITICAL: Don't make unnecessary requests if we have a valid session
-        // Supabase automatically handles token refresh, we just verify it's still valid
+        // CRITICAL FIX: Background refresh should VERIFY session, not clear it
+        // Only the main auth listener should clear user state on logout
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('🔄 UnifiedAuth v19.0 - Session check error:', error);
+          console.error('🔄 UnifiedAuth v20.0 - Session check error:', error);
+          // Don't clear user on error during background refresh
           return;
         }
         
         if (!session) {
-          console.log('🔄 UnifiedAuth v19.0 - No session found, clearing user');
-          setCurrentUser(null);
-          setSession(null);
+          console.log('🔄 UnifiedAuth v20.0 - No session found in background check');
+          // CRITICAL: Don't clear user during background refresh
+          // The main auth listener will handle SIGNED_OUT event properly
+          // This prevents false logouts when session check is slow
           return;
         }
         
-        // Session is valid - Supabase handles the rest automatically
-        // Only update if session object has actually changed
+        // Session is valid - update if token changed
         setSession(prevSession => {
           if (prevSession?.access_token !== session.access_token) {
-            console.log('🔄 UnifiedAuth v19.0 - Session token updated');
+            console.log('🔄 UnifiedAuth v20.0 - Session token updated');
             return session;
           }
           return prevSession;
         });
         
-        console.log('🔄 UnifiedAuth v19.0 - Session valid, no changes needed');
+        console.log('🔄 UnifiedAuth v20.0 - Session valid, no changes needed');
       } catch (error) {
-        console.error('🔄 UnifiedAuth v19.0 - Coordinator session check error:', error);
+        console.error('🔄 UnifiedAuth v20.0 - Coordinator session check error:', error);
+        // Don't clear user on error during background refresh
       }
     };
 

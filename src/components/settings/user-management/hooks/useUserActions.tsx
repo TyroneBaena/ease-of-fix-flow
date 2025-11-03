@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from "sonner";
 import { useUserContext } from '@/contexts/UserContext';
 import { User } from '@/types/user';
@@ -27,7 +27,7 @@ export const useUserActions = (
   const [userToReset, setUserToReset] = useState<{id: string, email: string} | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const handleSaveUser = async (userData?: NewUserFormState) => {
+  const handleSaveUser = useCallback(async (userData?: NewUserFormState) => {
     // Use provided userData or fallback to state
     const userToSave = userData || newUser;
     
@@ -129,9 +129,9 @@ export const useUserActions = (
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isEditMode, selectedUser, newUser, updateUser, setIsDialogOpen, fetchUsers, addUser]);
   
-  const handleResetPassword = async (userId: string, email: string) => {
+  const handleResetPassword = useCallback(async (userId: string, email: string) => {
     try {
       setIsLoading(true);
       const result = await resetPassword(userId, email);
@@ -147,7 +147,7 @@ export const useUserActions = (
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [resetPassword]);
   
   const handleManualResetPassword = async () => {
     if (!userToReset) return;
@@ -188,19 +188,19 @@ export const useUserActions = (
     });
   };
   
-  const openManualReset = (userId: string, email: string) => {
+  const openManualReset = useCallback((userId: string, email: string) => {
     setUserToReset({ id: userId, email });
     setIsManualResetOpen(true);
     setTempPassword(null);
     setCopied(false);
-  };
+  }, []);
   
-  const confirmDeleteUser = (userId: string) => {
+  const confirmDeleteUser = useCallback((userId: string) => {
     setUserToDelete(userId);
     setIsDeleteConfirmOpen(true);
-  };
+  }, []);
   
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = useCallback(async () => {
     if (!userToDelete) return;
     
     try {
@@ -219,7 +219,7 @@ export const useUserActions = (
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userToDelete, removeUser, fetchUsers]);
   
   const ManualResetDialog = () => (
     <Dialog open={isManualResetOpen} onOpenChange={setIsManualResetOpen}>
