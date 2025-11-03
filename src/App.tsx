@@ -106,11 +106,7 @@ function AppRoutes() {
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <MaintenanceRequestProvider>
-                    <PropertyProvider>
-                      <Dashboard />
-                    </PropertyProvider>
-                  </MaintenanceRequestProvider>
+                  <Dashboard />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -118,13 +114,7 @@ function AppRoutes() {
             <Route path="/requests" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <MaintenanceRequestProvider>
-                    <PropertyProvider>
-                      <ContractorProvider>
-                        <AllRequests />
-                      </ContractorProvider>
-                    </PropertyProvider>
-                  </MaintenanceRequestProvider>
+                  <AllRequests />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -137,11 +127,7 @@ function AppRoutes() {
             <Route path="/requests/:id" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <MaintenanceRequestProvider>
-                    <ContractorProvider>
-                      <RequestDetail />
-                    </ContractorProvider>
-                  </MaintenanceRequestProvider>
+                  <RequestDetail />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -149,9 +135,7 @@ function AppRoutes() {
             <Route path="/properties" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <PropertyProvider>
-                    <Properties />
-                  </PropertyProvider>
+                  <Properties />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -183,9 +167,7 @@ function AppRoutes() {
             <Route path="/settings" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <PropertyProvider>
-                    <Settings />
-                  </PropertyProvider>
+                  <Settings />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -193,9 +175,7 @@ function AppRoutes() {
             <Route path="/reports" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <PropertyProvider>
-                    <Reports />
-                  </PropertyProvider>
+                  <Reports />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -231,13 +211,11 @@ function AppRoutes() {
             
             <Route path="/contractor-jobs/:id" element={
               <ProtectedRoute>
-                <MaintenanceRequestProvider>
-                  <ContractorAuthProvider>
-                    <ContractorRouteGuard>
-                      <ContractorJobDetail />
-                    </ContractorRouteGuard>
-                  </ContractorAuthProvider>
-                </MaintenanceRequestProvider>
+                <ContractorAuthProvider>
+                  <ContractorRouteGuard>
+                    <ContractorJobDetail />
+                  </ContractorRouteGuard>
+                </ContractorAuthProvider>
               </ProtectedRoute>
             } />
             
@@ -283,11 +261,7 @@ function AppRoutes() {
             
             <Route path="/contractor/quote-submission/:id" element={
               <ProtectedRoute>
-                <MaintenanceRequestProvider>
-                  <ContractorProvider>
-                    <QuoteSubmission />
-                  </ContractorProvider>
-                </MaintenanceRequestProvider>
+                <QuoteSubmission />
               </ProtectedRoute>
             } />
 
@@ -295,9 +269,7 @@ function AppRoutes() {
             <Route path="/billing-security" element={
               <ProtectedRoute>
                 <OrganizationGuard>
-                  <PropertyProvider>
-                    <AdminSettings />
-                  </PropertyProvider>
+                  <AdminSettings />
                 </OrganizationGuard>
               </ProtectedRoute>
             } />
@@ -342,12 +314,19 @@ function App() {
         <UnifiedAuthProvider>
           <UserProvider>
             <SubscriptionProvider>
-              <Router>
-                <div className="App">
-                  <AppRoutes />
-                </div>
-                <Toaster />
-              </Router>
+              {/* CRITICAL FIX: Move data providers to app level so they persist across route changes */}
+              <MaintenanceRequestProvider>
+                <PropertyProvider>
+                  <ContractorProvider>
+                    <Router>
+                      <div className="App">
+                        <AppRoutes />
+                      </div>
+                      <Toaster />
+                    </Router>
+                  </ContractorProvider>
+                </PropertyProvider>
+              </MaintenanceRequestProvider>
             </SubscriptionProvider>
           </UserProvider>
         </UnifiedAuthProvider>
