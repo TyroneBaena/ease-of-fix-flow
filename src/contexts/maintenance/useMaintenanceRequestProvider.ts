@@ -131,6 +131,7 @@ export const useMaintenanceRequestProvider = () => {
     }, 300);
     
     // Set up real-time subscription for maintenance requests
+    console.log('🔌 REAL-TIME: Setting up maintenance_requests subscription');
     const channel = supabase
       .channel('maintenance-requests-changes')
       .on(
@@ -160,7 +161,7 @@ export const useMaintenanceRequestProvider = () => {
                 return prev;
               }
               console.log('🔄 REAL-TIME: Adding new request to state');
-              return [...prev, formattedRequest];
+              return [formattedRequest, ...prev]; // Add to beginning for visibility
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             console.log('🔄 REAL-TIME: UPDATE event - Request ID:', payload.new.id);
@@ -174,8 +175,16 @@ export const useMaintenanceRequestProvider = () => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('🔌 REAL-TIME: Global maintenance subscription status:', status);
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ REAL-TIME: Successfully subscribed to maintenance_requests changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ REAL-TIME: Channel error:', err);
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ REAL-TIME: Subscription timed out');
+        } else {
+          console.log('🔌 REAL-TIME: Subscription status:', status);
+        }
       });
 
     return () => {
@@ -237,7 +246,7 @@ export const useMaintenanceRequestProvider = () => {
       const formattedNewRequest = formatRequestData(newRequest);
       console.log('🆕 addRequestToProperty - Formatted request:', formattedNewRequest);
       
-      // CRITICAL: Force immediate state update with new array reference
+      // CRITICAL FIX: Force immediate state update with new array reference
       setRequests(prev => {
         console.log('🆕 addRequestToProperty - Current requests count:', prev.length);
         // Check if already exists
@@ -253,13 +262,20 @@ export const useMaintenanceRequestProvider = () => {
         return [formattedNewRequest, ...prev];
       });
       
+      // CRITICAL FIX: Force a full refresh to ensure UI updates everywhere
+      // This is a fallback in case real-time doesn't work or navigation happens too fast
+      console.log('🆕 addRequestToProperty - Forcing full refresh to ensure UI update');
+      setTimeout(() => {
+        loadRequests();
+      }, 500);
+      
       toast.success('Maintenance request added successfully');
       return formattedNewRequest;
     } else {
       console.error('🆕 addRequestToProperty - Failed to create new request');
       return null;
     }
-  }, [addRequest]);
+  }, [addRequest, loadRequests]);
 
   // Helper function to determine if user should see this request
   const shouldUserSeeRequest = (requestData: any, userId: string) => {
