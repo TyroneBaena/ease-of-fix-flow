@@ -139,17 +139,22 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
   try {
     console.log('🔄 UnifiedAuth v11.0 - convertSupabaseUser called for:', supabaseUser.email);
     
-    // CRITICAL: Use shorter timeout to prevent tab-switch blocking
-    // Create a promise with 2-second timeout for the database query
+    // CRITICAL FIX: Add AbortSignal to actually cancel slow database queries
+    const abortController = new AbortController();
+    
     const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', supabaseUser.id)
+      .abortSignal(abortController.signal)
       .maybeSingle();
 
-    // Create timeout promise - 2 seconds instead of 10
+    // Create timeout promise - 5 seconds (increased from 2s to match typical auth flows)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile query timeout')), 2000);
+      setTimeout(() => {
+        abortController.abort(); // Actually cancel the database query
+        reject(new Error('Profile query timeout'));
+      }, 5000);
     });
 
     let profile = null;
