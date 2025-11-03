@@ -79,28 +79,13 @@ class VisibilityCoordinator {
         const timeSinceLastChange = Date.now() - this.lastVisibilityChange;
         console.log('👁️ VisibilityCoordinator v4.0 - Tab visible after', Math.round(timeSinceLastChange / 1000), 's');
         
-        // USER REQUESTED: Force page refresh on tab revisit if hidden >6s
+        // USER REQUESTED: Force page refresh on ANY tab revisit
         // This is a pragmatic solution to handle timeout issues
         // Trade-off: Loses form data, scroll position, cached state
-        if (timeSinceLastChange > 6000) {
-          console.log('🔄 VisibilityCoordinator v4.0 - Tab was hidden >6s, forcing page refresh');
-          console.log('⚠️ This will reset all unsaved data, scroll positions, and cached state');
-          this.showRefreshOverlay();
-          setTimeout(() => window.location.reload(), 300); // Small delay to show the overlay
-          return;
-        }
-        
-        this.lastVisibilityChange = Date.now();
-        
-        // CRITICAL FIX: Only refresh if tab was hidden for minimum duration
-        // Prevents unnecessary refreshes on quick tab switches
-        if (timeSinceLastChange < this.minHiddenTime) {
-          console.log('👁️ VisibilityCoordinator v4.0 - Tab switch too quick (<5s), skipping refresh');
-          return;
-        }
-        
-        console.log('👁️ VisibilityCoordinator v4.0 - Checking for stale data');
-        this.coordinateRefresh();
+        console.log('🔄 VisibilityCoordinator v4.0 - Tab revisited, forcing page refresh');
+        console.log('⚠️ This will reset all unsaved data, scroll positions, and cached state');
+        this.showRefreshOverlay();
+        setTimeout(() => window.location.reload(), 300); // Small delay to show the overlay
       } else {
         console.log('👁️ VisibilityCoordinator v4.0 - Tab hidden');
         this.lastVisibilityChange = Date.now();
