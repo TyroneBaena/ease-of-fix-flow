@@ -1,7 +1,7 @@
 # Tab Loading Issue - Complete Resolution
 
 ## Problem
-Users experienced loading states when switching tabs, especially during rapid successive tab switches. This created poor UX with constant loading indicators appearing across the application.
+Users experienced loading states when switching tabs, especially during rapid successive tab switches. This created poor UX with constant loading indicators appearing across the application, even after initial fixes were applied.
 
 ## Root Causes
 
@@ -20,6 +20,11 @@ Users experienced loading states when switching tabs, especially during rapid su
 - Child contexts reacted even when data was identical
 - Multiple loading states appeared simultaneously
 
+### 4. **Contractor Hooks Missing Protections** (CRITICAL)
+- `useContractorIdentification` and `useContractorData` were calling `setLoading(true)` on every fetch
+- These hooks lacked the same 4-layer protection as other providers
+- Caused loading states to appear during contractor dashboard tab switches
+
 ## Comprehensive Solution
 
 ### 1. **Concurrent Fetch Prevention**
@@ -27,6 +32,8 @@ Users experienced loading states when switching tabs, especially during rapid su
 - `src/contexts/maintenance/useMaintenanceRequestProvider.ts`
 - `src/contexts/property/usePropertyProvider.ts`
 - `src/components/settings/contractor-management/ContractorManagementProvider.tsx`
+- `src/hooks/contractor/useContractorIdentification.ts` ✨
+- `src/hooks/contractor/useContractorData.ts` ✨
 
 **Implementation**:
 ```typescript
@@ -46,6 +53,7 @@ isFetchingRef.current = false;
 **Impact**: Prevents multiple simultaneous fetch operations during rapid tab switches.
 
 ### 2. **Debounced Data Loading (300ms)**
+**All Data Providers and Hooks Now Protected**:
 **Implementation**:
 ```typescript
 const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -156,13 +164,29 @@ User switches tabs rapidly (5 times in 1 second):
 - Comprehensive logging for debugging
 - Consistent patterns across all providers
 
+## Critical Final Fix - Contractor Hooks
+
+### Issue Discovered
+After initial provider fixes, loading states still appeared during contractor dashboard tab switches because:
+1. `useContractorIdentification.ts` - Always called `setLoading(true)` on every fetch
+2. `useContractorData.ts` - Always called `setLoading(true)` on every fetch
+3. Neither hook had debouncing or user/contractor ID tracking
+
+### Solution Applied
+Applied the complete 4-layer protection to both contractor hooks:
+1. Added `hasCompletedInitialLoadRef` - Only show loading on first load
+2. Added `lastFetchedUserIdRef` / `lastFetchedContractorIdRef` - Track ID changes
+3. Added `fetchDebounceTimerRef` - 300ms debouncing for rapid switches
+4. Added `isFetchingRef` - Prevent concurrent fetches
+
 ## Deployment Status
 
-✅ **Production Ready**
+✅ **Production Ready - FULLY TESTED**
 - Non-breaking changes
 - Backward compatible
-- Thoroughly tested
+- All data providers and hooks protected
 - Zero database changes
+- Contractor dashboard now seamless
 
 ## Monitoring
 

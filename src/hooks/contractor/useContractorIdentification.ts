@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
@@ -9,6 +9,12 @@ export const useContractorIdentification = () => {
   const [contractorId, setContractorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // CRITICAL: Track completion and prevent concurrent fetches
+  const lastFetchedUserIdRef = useRef<string | null>(null);
+  const hasCompletedInitialLoadRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('useContractorIdentification - Hook initialized. CurrentUser:', currentUser?.id, 'Loading:', loading);
 
@@ -16,22 +22,47 @@ export const useContractorIdentification = () => {
     console.log('useContractorIdentification - Effect triggered, currentUser:', currentUser?.id);
     console.log('useContractorIdentification - Full currentUser object:', currentUser);
     
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
     if (!currentUser) {
       console.log('useContractorIdentification - No current user, clearing state');
       setContractorId(null);
       setError(null);
       setLoading(false);
+      lastFetchedUserIdRef.current = null;
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
       return;
     }
-
-    console.log('useContractorIdentification - Current user found, proceeding to fetch contractor ID');
+    
+    // Only fetch if user ID actually changed
+    if (lastFetchedUserIdRef.current === currentUser.id) {
+      console.log('useContractorIdentification - User ID unchanged, skipping refetch');
+      return;
+    }
+    
+    console.log('useContractorIdentification - User ID changed, debouncing fetch');
+    lastFetchedUserIdRef.current = currentUser.id;
 
     const fetchContractorId = async () => {
+      // CRITICAL: Prevent concurrent fetches
+      if (isFetchingRef.current) {
+        console.log('useContractorIdentification - Fetch already in progress, skipping');
+        return;
+      }
+      
       try {
-        console.log('useContractorIdentification - fetchContractorId called, current loading state:', loading);
+        console.log('useContractorIdentification - fetchContractorId called');
         
-        setLoading(true);
+        // CRITICAL: Only set loading on first fetch
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(true);
+        }
         setError(null);
+        isFetchingRef.current = true;
         
         console.log('useContractorIdentification - Fetching contractor ID for user:', currentUser.id);
         console.log('useContractorIdentification - Current user full object:', currentUser);
@@ -97,22 +128,37 @@ export const useContractorIdentification = () => {
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
-        setLoading(false);
+        // CRITICAL: Only reset loading on first load, keep it false after
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(false);
+        }
+        hasCompletedInitialLoadRef.current = true;
+        isFetchingRef.current = false;
       }
     };
 
-    // Add a small delay to ensure authentication is stable
-    console.log('useContractorIdentification - Setting timeout to fetch contractor data');
-    const timeoutId = setTimeout(() => {
-      console.log('useContractorIdentification - Timeout fired, calling fetchContractorId');
+    // CRITICAL: Debounce rapid tab switches (300ms delay)
+    console.log('useContractorIdentification - Setting debounced timeout to fetch contractor data');
+    fetchDebounceTimerRef.current = setTimeout(() => {
+      console.log('useContractorIdentification - Debounce timeout fired, calling fetchContractorId');
       fetchContractorId();
-    }, 100);
+    }, 300);
 
     return () => {
       console.log('useContractorIdentification - Cleanup: clearing timeout');
-      clearTimeout(timeoutId);
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
     };
   }, [currentUser?.id]); // Only depend on user ID, not the entire user object
 
-  return { contractorId, setContractorId, loading, setLoading, error, setError };
+  return { 
+    contractorId, 
+    setContractorId, 
+    // CRITICAL: Override loading to false after initial load completes
+    loading: hasCompletedInitialLoadRef.current ? false : loading, 
+    setLoading, 
+    error, 
+    setError 
+  };
 };

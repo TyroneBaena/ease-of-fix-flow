@@ -17,6 +17,10 @@ export const useContractorData = (
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const isFetchingRef = useRef(false); // Prevent concurrent fetches
   const hasInitializedRef = useRef(false); // Track initial data load
+  // CRITICAL: Track if initial load completed to prevent loading flashes
+  const hasCompletedInitialLoadRef = useRef(false);
+  const lastFetchedContractorIdRef = useRef<string | null>(null);
+  const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     console.log('🚨 useContractorData - useEffect TRIGGERED');
@@ -25,16 +29,34 @@ export const useContractorData = (
     console.log('🚨 useContractorData - loading:', loading);
     console.log('🚨 useContractorData - refreshTrigger:', refreshTrigger);
     
+    // Clear any pending debounce timers
+    if (fetchDebounceTimerRef.current) {
+      clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
     if (!contractorId) {
       console.log('🚨 useContractorData - No contractor ID, clearing data');
       setPendingQuoteRequests([]);
       setActiveJobs([]);
       setCompletedJobs([]);
       hasInitializedRef.current = false;
+      lastFetchedContractorIdRef.current = null;
+      hasCompletedInitialLoadRef.current = true;
+      isFetchingRef.current = false;
+      return;
+    }
+    
+    // Only fetch if contractor ID actually changed OR manual refresh triggered
+    const contractorIdChanged = lastFetchedContractorIdRef.current !== contractorId;
+    const isManualRefresh = refreshTrigger > 0 && lastFetchedContractorIdRef.current === contractorId;
+    
+    if (!contractorIdChanged && !isManualRefresh) {
+      console.log('useContractorData - Contractor ID unchanged and no manual refresh, skipping');
       return;
     }
     
     console.log('useContractorData - Starting fetch for contractor ID:', contractorId);
+    lastFetchedContractorIdRef.current = contractorId;
     
     const fetchContractorData = async () => {
       // CRITICAL FIX: Add timeout protection
@@ -52,7 +74,10 @@ export const useContractorData = (
         }
 
         isFetchingRef.current = true;
-        setLoading(true);
+        // CRITICAL: Only set loading on first fetch
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(true);
+        }
         setError(null);
         
         console.log('useContractorData - Fetching contractor data for contractor ID:', contractorId);
@@ -189,17 +214,25 @@ export const useContractorData = (
           toast.error('Could not load job data. Please try refreshing the page.');
         }
       } finally {
-        setLoading(false);
+        // CRITICAL: Only reset loading on first load, keep it false after
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(false);
+        }
+        hasCompletedInitialLoadRef.current = true;
         isFetchingRef.current = false;
       }
     };
     
-    // Add delay for initial load to prevent race conditions
-    const timeoutId = setTimeout(() => {
+    // CRITICAL: Debounce rapid tab switches (300ms delay)
+    fetchDebounceTimerRef.current = setTimeout(() => {
       fetchContractorData();
-    }, hasInitializedRef.current ? 0 : 200);
+    }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      if (fetchDebounceTimerRef.current) {
+        clearTimeout(fetchDebounceTimerRef.current);
+      }
+    };
     
     // Set up real-time subscription only after initial load
     // This prevents rapid successive calls during initialization
