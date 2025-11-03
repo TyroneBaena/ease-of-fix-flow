@@ -197,6 +197,7 @@ const Dashboard = () => {
               <div className={`space-y-6 ${selectedRequest ? 'lg:col-span-3' : 'lg:col-span-3'}`}>
                 <StatsOverview requestsData={userRequests} />
                 <RequestsList 
+                  key={`requests-${userRequests.filter(r => r.status !== 'cancelled').length}`}
                   allRequests={userRequests as any} 
                   onRequestSelect={setSelectedRequest}
                   selectedRequest={selectedRequest}
