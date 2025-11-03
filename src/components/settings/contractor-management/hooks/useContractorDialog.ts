@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Contractor } from '@/types/contractor';
 import { toast } from '@/lib/toast';
 import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 export const useContractorDialog = (session: Session | null) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -29,13 +30,23 @@ export const useContractorDialog = (session: Session | null) => {
       setIsPreparingDialog(true);
       console.log('🚀 Opening contractor invitation dialog...');
       
-      // Use session from context - no need for redundant API call
-      // The visibility handler already validates the session
-      if (!session) {
-        console.warn('⚠️ No active session found');
-        // Don't block the user - let the actual API call handle auth errors
-        // This provides a smoother experience
+      // CRITICAL: Validate session before opening dialog
+      console.log('🔐 Validating session before opening dialog');
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ Session validation error:', sessionError);
+        toast.error('Authentication error. Please refresh the page and try again.');
+        return;
       }
+      
+      if (!currentSession) {
+        console.error('❌ No active session found');
+        toast.error('Your session has expired. Please log in again.');
+        return;
+      }
+      
+      console.log('✅ Session validated successfully');
       
       // Proceed with opening dialog
       if (edit && contractor) {

@@ -19,27 +19,38 @@ export const useContractorActions = (
     selectedContractor: Contractor | null,
     newContractor: Partial<Contractor>
   ) => {
+    console.log('💾 handleSaveContractor - Starting', { isEditMode, hasSelectedContractor: !!selectedContractor });
+    
     try {
+      console.log('⏳ handleSaveContractor - Setting loading to true');
       setLoading(true);
       
       let success = false;
       if (isEditMode && selectedContractor) {
+        console.log('✏️ handleSaveContractor - Update mode');
         success = await updateContractor(selectedContractor, newContractor);
       } else {
+        console.log('➕ handleSaveContractor - Create mode');
         success = await createContractor(newContractor);
       }
       
+      console.log('📊 handleSaveContractor - Operation result:', { success });
+      
       if (success) {
+        console.log('🔄 handleSaveContractor - Refreshing contractors list');
         // Force refresh the contractors list
         await fetchContractors();
+        console.log('✅ handleSaveContractor - Completed successfully');
         return true;
       }
+      console.log('⚠️ handleSaveContractor - Operation returned false');
       return false;
     } catch (err) {
-      console.error('Error saving contractor:', err);
+      console.error('❌ handleSaveContractor - Error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save contractor');
       return false;
     } finally {
+      console.log('🏁 handleSaveContractor - Finally block, setting loading to false');
       setLoading(false);
     }
   };
