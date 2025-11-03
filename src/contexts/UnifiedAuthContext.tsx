@@ -6,7 +6,6 @@ import { toast } from '@/lib/toast';
 import { authDebugMarker } from '@/auth-debug';
 import '@/auth-debug'; // Force import to trigger debug logs
 import { setSentryUser } from '@/lib/sentry';
-import { setupSilentRefreshOnVisibility } from '@/utils/silentRefresh';
 
 console.log('🚀 UnifiedAuth Context loading with debug marker:', authDebugMarker);
 
@@ -756,24 +755,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [isAdmin, loading, currentOrganization?.id]); // Remove fetchUsers from dependencies to prevent loop
 
-  // Setup silent refresh on tab visibility
-  useEffect(() => {
-    console.log('🔄 Setting up silent refresh on tab visibility');
-    
-    const cleanup = setupSilentRefreshOnVisibility({
-      onRefreshComplete: () => {
-        console.log('✅ Silent refresh completed successfully');
-      },
-      onRefreshError: (error) => {
-        console.error('❌ Silent refresh error:', error);
-      }
-    });
-
-    return () => {
-      console.log('🔄 Cleaning up silent refresh listener');
-      cleanup();
-    };
-  }, []); // Run once on mount
 
   const value: UnifiedAuthContextType = useMemo(() => ({
     currentUser: enhancedCurrentUser,
