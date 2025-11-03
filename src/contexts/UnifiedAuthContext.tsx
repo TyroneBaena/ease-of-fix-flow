@@ -286,9 +286,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log('UnifiedAuth - Fetching organizations for user:', user.id);
 
-      // CRITICAL FIX: 3-second timeout to prevent blocking on tab switches
+      // CRITICAL FIX: 30-second timeout to prevent blocking on tab switches
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       try {
         // Fetch user organizations
@@ -318,8 +318,8 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           return user.organization_id || null;
         }
 
-        // Fetch organization details with timeout
-        const orgTimeoutId = setTimeout(() => controller.abort(), 3000);
+        // Fetch organization details with timeout - 30 seconds
+        const orgTimeoutId = setTimeout(() => controller.abort(), 30000);
         const orgIds = userOrgs.map((uo: any) => uo.organization_id);
         
         const { data: organizations, error: orgsError } = await supabase

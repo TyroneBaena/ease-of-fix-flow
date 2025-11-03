@@ -29,12 +29,12 @@ export const usePropertyProvider = (): PropertyContextType => {
       return;
     }
     
-    // CRITICAL FIX: Add timeout protection (5s)
+    // Timeout protection - 30 seconds for complex RLS queries
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.warn('⏱️ Properties fetch timeout after 5s');
-    }, 5000);
+      console.warn('⏱️ Properties fetch timeout after 30s');
+    }, 30000);
 
     try {
       // CRITICAL: Only set loading on first fetch to prevent flash on tab switches

@@ -59,12 +59,12 @@ export const useContractorData = (
     lastFetchedContractorIdRef.current = contractorId;
     
     const fetchContractorData = async () => {
-      // CRITICAL FIX: Add timeout protection
+      // CRITICAL FIX: 30-second timeout for contractor queries with RLS
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.warn('Contractor data fetch timeout after 10s');
-      }, 10000);
+        console.warn('Contractor data fetch timeout after 30s');
+      }, 30000);
 
       try {
         // Prevent concurrent requests
@@ -106,7 +106,7 @@ export const useContractorData = (
         // Fetch active jobs assigned to this contractor
         console.log('🔍 useContractorData - Fetching active jobs for contractor:', contractorId);
         
-        const activeTimeoutId = setTimeout(() => controller.abort(), 10000);
+        const activeTimeoutId = setTimeout(() => controller.abort(), 30000);
         const { data: activeJobsData, error: activeJobsError } = await supabase
           .from('maintenance_requests')
           .select('*')
