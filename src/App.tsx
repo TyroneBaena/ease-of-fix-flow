@@ -106,7 +106,7 @@ function AppRoutes() {
         console.error('⚠️ AppRoutes - Loading timeout exceeded! Forcing app to render.');
         setForceReady(true);
       }
-    }, 15000); // 15 second failsafe (increased from 10s to allow for coordinated refresh)
+    }, 8000); // 8 second failsafe (reduced from 15s for faster recovery)
 
     return () => clearTimeout(failsafeTimer);
   }, [loading, forceReady]);

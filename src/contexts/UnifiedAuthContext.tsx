@@ -143,19 +143,19 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
     // CRITICAL FIX: Add AbortSignal to actually cancel slow database queries
     const abortController = new AbortController();
     
-    const profilePromise = supabase
+      const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', supabaseUser.id)
       .abortSignal(abortController.signal)
       .maybeSingle();
 
-    // Create timeout promise - 15 seconds to accommodate complex RLS queries
+    // CRITICAL: Reduced timeout to 5s to prevent loading delays
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
-        abortController.abort(); // Actually cancel the database query
+        abortController.abort();
         reject(new Error('Profile query timeout'));
-      }, 15000);
+      }, 5000); // 5 seconds max
     });
 
     let profile = null;

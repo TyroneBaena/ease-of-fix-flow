@@ -151,7 +151,9 @@ export const useUserManagement = () => {
     properties,
     currentUser,
     isAdmin,
-    isLoading: (isLoading || isLoadingUsers || !ready) && isAdmin,
+    // CRITICAL FIX: Only show loading on INITIAL load, not background refreshes
+    // This prevents action buttons from being disabled during tab revisit refreshes
+    isLoading: (isLoading || (!fetchedOnce && isLoadingUsers) || !ready) && isAdmin,
     fetchError,
     isDialogOpen,
     setIsDialogOpen,
