@@ -27,7 +27,10 @@ export const useMaintenanceRequestProvider = () => {
       return [];
     }
     
-    setLoading(true);
+    // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+    if (!hasCompletedInitialLoadRef.current) {
+      setLoading(true);
+    }
     
     // CRITICAL FIX: 10-second timeout instead of 15 seconds
     const controller = new AbortController();
@@ -64,8 +67,10 @@ export const useMaintenanceRequestProvider = () => {
       setRequests([]);
       return [];
     } finally {
-      // CRITICAL: Always reset loading state
-      setLoading(false);
+      // CRITICAL: Only reset loading on first load, keep it false after
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
       hasCompletedInitialLoadRef.current = true;
     }
   }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);

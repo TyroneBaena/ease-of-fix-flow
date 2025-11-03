@@ -43,7 +43,10 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
 
   const loadContractors = useCallback(async () => {
     try {
-      setLoading(true);
+      // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      }
       setFetchError(null);
       console.log("Loading contractors...");
       
@@ -79,7 +82,10 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
         toast.error('Failed to load contractors');
       }
     } finally {
-      setLoading(false);
+      // CRITICAL: Only reset loading on first load, keep it false after
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
       hasCompletedInitialLoadRef.current = true;
     }
   }, [currentUser, isAdmin]);

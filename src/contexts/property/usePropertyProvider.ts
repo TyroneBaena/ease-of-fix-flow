@@ -28,7 +28,10 @@ export const usePropertyProvider = (): PropertyContextType => {
     }, 5000);
 
     try {
-      setLoading(true);
+      // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      }
       setLoadingFailed(false);
       console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
       
@@ -51,7 +54,10 @@ export const usePropertyProvider = (): PropertyContextType => {
       setLoadingFailed(true);
     } finally {
       console.log('🏁 PropertyProvider - Resetting loading state');
-      setLoading(false);
+      // CRITICAL: Only reset loading on first load, keep it false after
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
       hasCompletedInitialLoadRef.current = true;
     }
   }, []); // CRITICAL: Empty dependencies
