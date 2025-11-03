@@ -51,6 +51,7 @@ interface UnifiedAuthContextType {
   currentUser: User | null;
   session: Session | null;
   loading: boolean;
+  isSigningOut: boolean; // Track sign out process to prevent UI flashing
   signOut: () => Promise<void>;
   
   // Multi-organization properties
@@ -91,6 +92,7 @@ export const useSimpleAuth = () => {
     currentUser: context.currentUser,
     session: context.session,
     loading: context.loading,
+    isSigningOut: context.isSigningOut,
     signOut: context.signOut,
     isAdmin: context.isAdmin,
     switchOrganization: context.switchOrganization,
@@ -214,6 +216,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
   
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
@@ -228,6 +231,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const signOut = useCallback(async () => {
     try {
       console.log('🔐 UnifiedAuth - Starting sign out process');
+      
+      // Set signing out flag FIRST to prevent UI flashing during cleanup
+      setIsSigningOut(true);
       
       // Clear Sentry user context immediately
       setSentryUser(null);
@@ -694,6 +700,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setSession(null);
         setUserOrganizations([]);
         setCurrentOrganization(null);
+        setIsSigningOut(false); // Clear signing out flag
         
         // Clear Sentry user context
         setSentryUser(null);
@@ -825,6 +832,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     currentUser: enhancedCurrentUser,
     session,
     loading,
+    isSigningOut,
     signOut,
     currentOrganization,
     userOrganizations,
@@ -844,6 +852,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     enhancedCurrentUser,
     session,
     loading,
+    isSigningOut,
     signOut,
     currentOrganization,
     userOrganizations,

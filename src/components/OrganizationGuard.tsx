@@ -10,7 +10,7 @@ interface OrganizationGuardProps {
 }
 
 const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
-  const { currentUser, loading: authLoading } = useSimpleAuth();
+  const { currentUser, loading: authLoading, isSigningOut } = useSimpleAuth();
   const [hasOrganization, setHasOrganization] = useState<boolean | null>(null);
   const [isCheckingOrganization, setIsCheckingOrganization] = useState(true);
   const lastCheckedUserRef = useRef<string | null>(null);
@@ -100,10 +100,21 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children }) => {
   console.log('🔒 OrganizationGuard - State check:', { 
     currentUser: !!currentUser, 
     authLoading,
+    isSigningOut,
     isCheckingOrganization,
     hasOrganization,
     timestamp: new Date().toISOString()
   });
+
+  // If signing out, show loading to prevent organization onboarding flash
+  if (isSigningOut) {
+    console.log('🔒 OrganizationGuard - User signing out, showing loading');
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   // Show loading while auth is loading
   if (authLoading) {
