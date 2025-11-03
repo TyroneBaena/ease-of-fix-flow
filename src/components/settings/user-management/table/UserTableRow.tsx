@@ -104,10 +104,6 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
               variant="ghost" 
               size="sm" 
               disabled={isLoading}
-              onClick={(e) => {
-                e.stopPropagation();
-                setDropdownOpen(!dropdownOpen);
-              }}
             >
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
