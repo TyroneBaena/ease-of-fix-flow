@@ -221,7 +221,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const initialCheckDone = useRef(false); // CRITICAL: Use ref to prevent reset on remount
   const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
   const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
   
@@ -753,7 +753,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
       console.error(`🚀 UnifiedAuth v16.0 - getSession() timeout after ${timeElapsed}s! Forcing loading to false`);
       setLoading(false);
-      setInitialCheckDone(true);
+      initialCheckDone.current = true;
       toast.error('Authentication initialization timed out. Please refresh the page.');
     }, 8000); // 8 second max for getSession
     
@@ -778,7 +778,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               // CRITICAL: Set user and mark as ready FIRST
               setCurrentUser(user);
               setLoading(false);
-              setInitialCheckDone(true);
+              initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true; // Mark that we've successfully initialized
               console.log('🚀 UnifiedAuth v16.0 - Initial auth complete, starting background org fetch');
               
@@ -792,14 +792,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               setCurrentUser(null);
               setSession(null);
               setLoading(false);
-              setInitialCheckDone(true);
+              initialCheckDone.current = true;
             }
           }, 0);
         } else {
           setCurrentUser(null);
           setSession(null);
           setLoading(false);
-          setInitialCheckDone(true);
+          initialCheckDone.current = true;
           hasCompletedInitialSetup.current = true; // Mark even if no session
         }
       })
@@ -810,7 +810,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setCurrentUser(null);
         setSession(null);
         setLoading(false);
-        setInitialCheckDone(true);
+        initialCheckDone.current = true;
         toast.error('Error initializing authentication. Please refresh the page.');
       });
 
@@ -895,7 +895,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   return (
     <UnifiedAuthContext.Provider value={value}>
-      {!initialCheckDone ? (
+      {!initialCheckDone.current && !hasCompletedInitialSetup.current ? (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
