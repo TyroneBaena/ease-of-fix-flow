@@ -5,27 +5,29 @@ import { User, UserRole } from '@/types/user';
 export async function fetchAllUsers(signal?: AbortSignal): Promise<User[]> {
   console.log("📋 fetchAllUsers: Getting current user's organization");
   
-  // First, get the current user's organization ID
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // Create abort controller with timeout if signal not provided
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10 second timeout
+  const effectiveSignal = signal || abortController.signal;
   
-  if (authError || !user) {
-    console.error("❌ Error getting current user for organization filtering:", authError);
-    throw new Error("Authentication required to fetch users");
-  }
+  try {
+    // First, get the current user's organization ID
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("❌ Error getting current user for organization filtering:", authError);
+      throw new Error("Authentication required to fetch users");
+    }
 
-  console.log("📋 Current authenticated user:", { id: user.id, email: user.email });
+    console.log("📋 Current authenticated user:", { id: user.id, email: user.email });
 
-  // Get the current user's profile to find their organization
-  let profileQuery = supabase
-    .from('profiles')
-    .select('organization_id, role, session_organization_id')
-    .eq('id', user.id);
-  
-  if (signal) {
-    profileQuery = profileQuery.abortSignal(signal);
-  }
-  
-  const { data: initialProfile, error: profileError } = await profileQuery.maybeSingle();
+    // Get the current user's profile to find their organization
+    const { data: initialProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_id, role, session_organization_id')
+      .eq('id', user.id)
+      .abortSignal(effectiveSignal)
+      .maybeSingle();
 
   console.log("📋 Profile query result:", { profile: initialProfile, error: profileError });
 
@@ -124,6 +126,9 @@ export async function fetchAllUsers(signal?: AbortSignal): Promise<User[]> {
     organization_id: profile.organization_id || undefined,
     createdAt: profile.created_at || ''
   }));
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export async function checkExistingUser(email: string): Promise<boolean> {

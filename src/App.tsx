@@ -453,6 +453,7 @@ import { MaintenanceRequestProvider } from "@/contexts/maintenance";
 import { PropertyProvider } from "@/contexts/property/PropertyContext";
 import { ContractorProvider } from "@/contexts/contractor";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
 import ErrorBoundary from "@/components/ui/error-boundary";
 
 // Your route components
@@ -500,90 +501,92 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+    <OrganizationGuard>
+      <Routes>
+        <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
 
-      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
 
-      <Route
-        path="/setup-password"
-        element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
-      />
+        <Route
+          path="/setup-password"
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
+        />
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/properties"
-        element={
-          <ProtectedRoute>
-            <Properties />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/properties"
+          element={
+            <ProtectedRoute>
+              <Properties />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/properties/:id"
-        element={
-          <ProtectedRoute>
-            <PropertyDetail />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/properties/:id"
+          element={
+            <ProtectedRoute>
+              <PropertyDetail />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/requests"
-        element={
-          <ProtectedRoute>
-            <AllRequests />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <AllRequests />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/new-request"
-        element={
-          <ProtectedRoute>
-            <NewRequest />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/new-request"
+          element={
+            <ProtectedRoute>
+              <NewRequest />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/requests/:id"
-        element={
-          <ProtectedRoute>
-            <RequestDetail />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/requests/:id"
+          element={
+            <ProtectedRoute>
+              <RequestDetail />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </OrganizationGuard>
   );
 };
 

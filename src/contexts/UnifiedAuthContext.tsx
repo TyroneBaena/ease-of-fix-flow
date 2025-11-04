@@ -140,68 +140,78 @@ export const useUserContext = () => {
 // Simple user conversion with timeout and better error handling
 const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
   try {
-    console.log('🔄 UnifiedAuth v11.0 - convertSupabaseUser called for:', supabaseUser.email);
+    console.log('🔄 UnifiedAuth v12.0 - convertSupabaseUser called for:', supabaseUser.email);
     
-    // CRITICAL FIX: Add AbortSignal to actually cancel slow database queries
+    // CRITICAL FIX: Add AbortSignal with aggressive timeout to prevent hanging
     const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 8000); // 8 second timeout
     
-      const profilePromise = supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', supabaseUser.id)
-      .abortSignal(abortController.signal)
-      .maybeSingle();
-
-    // CRITICAL: Reduced timeout to 5s to prevent loading delays
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        abortController.abort();
-        reject(new Error('Profile query timeout'));
-      }, 5000); // 5 seconds max
-    });
-
-    let profile = null;
-    let profileError = null;
-
     try {
-      // Race between profile query and timeout
-      const result = await Promise.race([profilePromise, timeoutPromise]);
-      profile = (result as any).data;
-      profileError = (result as any).error;
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .abortSignal(abortController.signal)
+        .maybeSingle();
       
-      console.log('🔄 UnifiedAuth v11.0 - Profile query completed:', { 
+      clearTimeout(timeoutId);
+      
+      if (profileError) {
+        console.warn('🔄 UnifiedAuth v12.0 - Profile query error:', profileError.message);
+      }
+      
+      console.log('🔄 UnifiedAuth v12.0 - Profile query completed:', { 
         hasProfile: !!profile, 
+        hasOrganization: !!profile?.organization_id,
         error: profileError?.message 
       });
-    } catch (timeoutError) {
-      console.warn('🔄 UnifiedAuth v18.0 - Profile query timed out after 15s, using fallback');
-      profileError = timeoutError;
+
+      // Create user object with fallbacks - always succeed
+      const user: User = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+        role: (profile?.role as UserRole) || 'manager',
+        assignedProperties: profile?.assigned_properties || [],
+        createdAt: profile?.created_at || supabaseUser.created_at,
+        organization_id: profile?.organization_id || null,
+        session_organization_id: profile?.session_organization_id || null
+      };
+
+      console.log('🔄 UnifiedAuth v12.0 - User converted successfully:', {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        organization_id: user.organization_id,
+        session_organization_id: user.session_organization_id,
+        needsOnboarding: !user.organization_id
+      });
+
+      return user;
+    } catch (queryError: any) {
+      clearTimeout(timeoutId);
+      
+      if (queryError.name === 'AbortError') {
+        console.warn('🔄 UnifiedAuth v12.0 - Profile query timed out, using fallback');
+      } else {
+        console.error('🔄 UnifiedAuth v12.0 - Profile query failed:', queryError);
+      }
+      
+      // Return basic user on timeout/error
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.email?.split('@')[0] || 'User',
+        role: 'manager' as UserRole,
+        assignedProperties: [],
+        createdAt: supabaseUser.created_at,
+        organization_id: null,
+        session_organization_id: null
+      };
     }
-
-    // Create user object with fallbacks - always succeed
-    const user: User = {
-      id: supabaseUser.id,
-      email: supabaseUser.email || '',
-      name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-      role: (profile?.role as UserRole) || 'manager',
-      assignedProperties: profile?.assigned_properties || [],
-      createdAt: profile?.created_at || supabaseUser.created_at,
-      organization_id: profile?.organization_id || null,
-      session_organization_id: profile?.session_organization_id || null
-    };
-
-    console.log('🔄 UnifiedAuth v11.0 - User converted successfully:', {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      organization_id: user.organization_id,
-      session_organization_id: user.session_organization_id
-    });
-
-    return user;
   } catch (error) {
-    console.error('🔄 UnifiedAuth v6.0 - Error converting user:', error);
+    console.error('🔄 UnifiedAuth v12.0 - Error converting user:', error);
     // Return basic user on error
     const fallbackUser = {
       id: supabaseUser.id,
@@ -214,7 +224,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       session_organization_id: null
     };
     
-    console.log('🔄 UnifiedAuth v6.0 - Returning fallback user:', fallbackUser);
+    console.log('🔄 UnifiedAuth v12.0 - Returning fallback user:', fallbackUser);
     return fallbackUser;
   }
 };
