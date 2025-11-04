@@ -1603,6 +1603,7 @@ export type Database = {
         }
         Returns: string
       }
+      admin_delete_user: { Args: { target_user_id: string }; Returns: Json }
       analytics_query: { Args: { query: string }; Returns: Json }
       can_manage_organization: { Args: { org_id: string }; Returns: boolean }
       can_view_organization_profiles: {
