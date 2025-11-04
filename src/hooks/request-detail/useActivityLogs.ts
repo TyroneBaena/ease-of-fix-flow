@@ -14,18 +14,29 @@ export interface ActivityLog {
   created_at: string;
 }
 
-export const useActivityLogs = (requestId: string | undefined, refreshCounter: number = 0) => {
+export const useActivityLogs = (
+  requestId: string | undefined, 
+  refreshCounter: number = 0,
+  isSessionReady?: boolean
+) => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchActivityLogs = async () => {
+      // CRITICAL: Wait for session to be ready before querying
+      if (!isSessionReady) {
+        console.log('🔄 useActivityLogs - Waiting for session to be ready...');
+        setLoading(true);
+        return;
+      }
+      
       if (!requestId) {
         setLoading(false);
         return;
       }
 
-      // CRITICAL FIX: Add timeout protection
+      // Reduced timeout now that we wait for session
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
@@ -65,7 +76,7 @@ export const useActivityLogs = (requestId: string | undefined, refreshCounter: n
     };
 
     fetchActivityLogs();
-  }, [requestId, refreshCounter]);
+  }, [requestId, refreshCounter, isSessionReady]); // Add isSessionReady to deps
 
   return { activityLogs, loading };
 };

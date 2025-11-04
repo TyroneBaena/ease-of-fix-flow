@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestData } from './request-detail/useMaintenanceRequestData';
 import { useRequestQuotes } from './request-detail/useRequestQuotes';
 import { useContractorStatus } from './request-detail/useContractorStatus';
@@ -10,21 +10,22 @@ import { toast } from 'sonner';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
+ * CRITICAL: Now waits for session to be ready before querying
  */
 export const useRequestDetailData = (requestId: string | undefined) => {
-  const { currentUser } = useUserContext();
+  const { currentUser, isSessionReady } = useSimpleAuth();
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Use specialized hooks with the refresh counter
+  // Use specialized hooks with the refresh counter and session ready flag
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(
     requestId, 
     refreshCounter
   );
   
-  const quotes = useRequestQuotes(requestId, refreshCounter);
-  const isContractor = useContractorStatus(currentUser?.id);
-  const { activityLogs, loading: activityLoading } = useActivityLogs(requestId, refreshCounter);
+  const quotes = useRequestQuotes(requestId, refreshCounter, isSessionReady);
+  const isContractor = useContractorStatus(currentUser?.id, isSessionReady);
+  const { activityLogs, loading: activityLoading } = useActivityLogs(requestId, refreshCounter, isSessionReady);
   
   // Listen for comments but don't auto-refresh on every comment
   useRequestCommentsSubscription(requestId, () => {

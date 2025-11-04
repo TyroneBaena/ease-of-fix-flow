@@ -7,12 +7,22 @@ import { retryableQuery } from '@/utils/retryLogic';
 
 /**
  * Hook to fetch quotes for a specific maintenance request
- * Now with retry logic for transient failures
+ * CRITICAL: Waits for session to be ready before querying
  */
-export function useRequestQuotes(requestId: string | undefined, forceRefresh: number = 0) {
+export function useRequestQuotes(
+  requestId: string | undefined, 
+  forceRefresh: number = 0,
+  isSessionReady?: boolean
+) {
   const [quotes, setQuotes] = useState<Quote[]>([]);
 
   useEffect(() => {
+    // CRITICAL: Wait for session to be ready before querying
+    if (!isSessionReady) {
+      console.log('🔄 useRequestQuotes - Waiting for session to be ready...');
+      return;
+    }
+    
     if (!requestId) return;
     
     const fetchQuotes = async () => {
@@ -80,7 +90,7 @@ export function useRequestQuotes(requestId: string | undefined, forceRefresh: nu
     };
     
     fetchQuotes();
-  }, [requestId, forceRefresh]);
+  }, [requestId, forceRefresh, isSessionReady]); // Add isSessionReady to deps
 
   return quotes;
 }

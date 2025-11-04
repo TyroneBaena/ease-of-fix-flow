@@ -38,7 +38,7 @@ interface SubscriptionContextValue {
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, currentOrganization } = useUnifiedAuth();
+  const { currentUser, currentOrganization, isSessionReady } = useUnifiedAuth();
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
@@ -75,6 +75,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const refresh = useCallback(async () => {
+    // CRITICAL: Wait for session to be ready before querying
+    if (!isSessionReady) {
+      console.log('🔄 SubscriptionContext - Waiting for session to be ready...');
+      setLoading(true);
+      return;
+    }
+    
     if (!currentUser?.id || !currentOrganization?.id) {
       setSubscribed(null);
       setSubscriptionTier(null);
@@ -472,6 +479,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Track previous values to prevent unnecessary refreshes on tab revisit
   const prevUserIdRef = React.useRef<string | undefined>();
   const prevOrgIdRef = React.useRef<string | undefined>();
+  const prevIsSessionReadyRef = React.useRef<boolean>(false);
   
   useEffect(() => {
     console.log('SubscriptionContext - useEffect triggered');
@@ -481,16 +489,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       clearTimeout(fetchDebounceTimerRef.current);
     }
     
-    // CRITICAL FIX: Only refresh if user or org IDs ACTUALLY changed
+    // CRITICAL: Wait for session to be ready before refreshing
+    if (!isSessionReady) {
+      console.log('SubscriptionContext - Waiting for session to be ready');
+      setLoading(true);
+      return;
+    }
+    
+    // CRITICAL FIX: Only refresh if user or org IDs ACTUALLY changed OR session just became ready
     // This prevents loading cascade when tab becomes visible
     const userIdChanged = prevUserIdRef.current !== currentUser?.id;
     const orgIdChanged = prevOrgIdRef.current !== currentOrganization?.id;
+    const sessionReadyChanged = prevIsSessionReadyRef.current !== isSessionReady;
     
     console.log('SubscriptionContext - Checking for changes:', {
       userIdChanged,
       orgIdChanged,
+      sessionReadyChanged,
       currentUserId: currentUser?.id,
-      currentOrgId: currentOrganization?.id
+      currentOrgId: currentOrganization?.id,
+      isSessionReady
     });
     
     if (!currentUser?.id || !currentOrganization?.id) {
@@ -499,15 +517,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setLoading(false);
       prevUserIdRef.current = undefined;
       prevOrgIdRef.current = undefined;
+      prevIsSessionReadyRef.current = false;
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
       return;
     }
     
-    if (userIdChanged || orgIdChanged) {
-      console.log('SubscriptionContext - IDs changed, debouncing refresh');
+    if (userIdChanged || orgIdChanged || sessionReadyChanged) {
+      console.log('SubscriptionContext - IDs or session ready changed, debouncing refresh');
       prevUserIdRef.current = currentUser.id;
       prevOrgIdRef.current = currentOrganization.id;
+      prevIsSessionReadyRef.current = isSessionReady;
       
       // CRITICAL: Debounce rapid tab switches (300ms delay)
       fetchDebounceTimerRef.current = setTimeout(() => {
@@ -525,7 +545,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
     // We intentionally exclude refresh from deps to avoid re-creating effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, currentOrganization?.id]);
+  }, [currentUser?.id, currentOrganization?.id, isSessionReady]);
 
   // Pause/resume functions for auto-refresh
   const pauseAutoRefresh = useCallback(() => {

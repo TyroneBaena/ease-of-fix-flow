@@ -4,15 +4,22 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * Hook to check if the current user is a contractor
+ * CRITICAL: Waits for session to be ready before querying
  */
-export function useContractorStatus(userId: string | undefined): boolean {
+export function useContractorStatus(userId: string | undefined, isSessionReady?: boolean): boolean {
   const [isContractor, setIsContractor] = useState(false);
 
   useEffect(() => {
+    // CRITICAL: Wait for session to be ready before querying
+    if (!isSessionReady) {
+      console.log('🔄 useContractorStatus - Waiting for session to be ready...');
+      return;
+    }
+    
     if (!userId) return;
     
     const checkContractorStatus = async () => {
-      // CRITICAL FIX: Add timeout protection
+      // Reduced timeout now that we wait for session
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
@@ -57,7 +64,7 @@ export function useContractorStatus(userId: string | undefined): boolean {
     };
     
     checkContractorStatus();
-  }, [userId]);
+  }, [userId, isSessionReady]); // Add isSessionReady to deps
 
   return isContractor;
 }
