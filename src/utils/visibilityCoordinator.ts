@@ -7,7 +7,7 @@
  * - Executes refreshes immediately without blocking
  */
 
-type RefreshHandler = () => Promise<void> | void;
+type RefreshHandler = () => Promise<void | boolean> | void | boolean;
 
 class VisibilityCoordinator {
   private isRefreshing = false;
@@ -98,16 +98,25 @@ class VisibilityCoordinator {
       // This ensures session AND user are fully restored before other queries run
       if (this.refreshHandlers.length > 0) {
         const authHandler = this.refreshHandlers[0];
-        await authHandler();
-        console.log("✅ Auth handler completed, session and user restored");
+        const authSuccess = await authHandler();
         
-        // CRITICAL: Longer delay (800ms) to ensure:
-        // 1. Session is set in Supabase client
-        // 2. User conversion completes  
-        // 3. React context state updates propagate
-        // 4. Queries have authenticated user context
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log("✅ Auth propagation complete, ready for data queries");
+        // CRITICAL FIX: Only proceed if auth actually succeeded
+        if (authSuccess === true) {
+          console.log("✅ Auth handler completed, session and user restored");
+          
+          // CRITICAL: Longer delay (800ms) to ensure:
+          // 1. Session is set in Supabase client
+          // 2. User conversion completes  
+          // 3. React context state updates propagate
+          // 4. Queries have authenticated user context
+          await new Promise(resolve => setTimeout(resolve, 800));
+          console.log("✅ Auth propagation complete, ready for data queries");
+        } else {
+          console.error("❌ Auth handler failed - session restoration unsuccessful");
+          console.warn("⚠️ Skipping data refresh - user needs to re-login");
+          this.isRefreshing = false;
+          return; // Don't proceed with data handlers if auth failed
+        }
       }
       
       // Execute remaining handlers in parallel

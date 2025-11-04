@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Quote } from '@/types/contractor';
 import { toast } from 'sonner';
+import { retryableQuery } from '@/utils/retryLogic';
 
 /**
  * Hook to fetch quotes for a specific maintenance request
+ * Now with retry logic for transient failures
  */
 export function useRequestQuotes(requestId: string | undefined, forceRefresh: number = 0) {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -22,13 +24,27 @@ export function useRequestQuotes(requestId: string | undefined, forceRefresh: nu
       }, 10000);
 
       try {
-        const { data, error } = await supabase
-          .from('quotes')
-          .select('*')
-          .eq('request_id', requestId)
-          .order('created_at', { ascending: false });
+        // Wrap with retry logic
+        const result = await retryableQuery(
+          async () => {
+            return await supabase
+              .from('quotes')
+              .select('*')
+              .eq('request_id', requestId)
+              .order('created_at', { ascending: false });
+          },
+          {
+            maxAttempts: 3,
+            baseDelay: 2000,
+            onRetry: (attempt) => {
+              console.log(`🔄 Retrying quotes fetch (attempt ${attempt}/3)...`);
+            }
+          }
+        );
 
         clearTimeout(timeoutId);
+        
+        const { data, error } = result;
           
         if (!error && data) {
           const mappedQuotes: Quote[] = data.map(quote => ({
