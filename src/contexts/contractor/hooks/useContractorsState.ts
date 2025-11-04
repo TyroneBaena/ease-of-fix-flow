@@ -55,10 +55,12 @@ export const useContractorsState = () => {
       await loadContractors();
     };
 
-    visibilityCoordinator.onRefresh(refreshContractors);
+    const unregister = visibilityCoordinator.onRefresh(refreshContractors);
+    console.log('🔄 ContractorProvider - Registered with visibility coordinator');
 
     return () => {
-      // No cleanup needed for new coordinator
+      unregister();
+      console.log('🔄 ContractorProvider - Cleanup: Unregistered from visibility coordinator');
     };
   }, [loadContractors]);
 

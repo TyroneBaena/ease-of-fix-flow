@@ -197,17 +197,22 @@ export const useMaintenanceRequestProvider = () => {
 
   // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      console.log('🔄 MaintenanceRequestProvider - No user, skipping registration');
+      return;
+    }
 
     const refreshMaintenance = async () => {
       console.log('🔄 MaintenanceRequestProvider - Coordinator-triggered refresh');
       await loadRequests();
     };
 
-    visibilityCoordinator.onRefresh(refreshMaintenance);
+    const unregister = visibilityCoordinator.onRefresh(refreshMaintenance);
+    console.log('🔄 MaintenanceRequestProvider - Registered with visibility coordinator');
 
     return () => {
-      // No cleanup needed for new coordinator
+      unregister();
+      console.log('🔄 MaintenanceRequestProvider - Cleanup: Unregistered from visibility coordinator');
     };
   }, [currentUser?.id, loadRequests]);
 

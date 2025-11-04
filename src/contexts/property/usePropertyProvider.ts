@@ -125,17 +125,22 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      console.log('🔄 PropertyProvider - No user, skipping registration');
+      return;
+    }
 
     const refreshProperties = async () => {
       console.log('🔄 PropertyProvider - Coordinator-triggered refresh');
       await fetchAndSetProperties();
     };
 
-    visibilityCoordinator.onRefresh(refreshProperties);
+    const unregister = visibilityCoordinator.onRefresh(refreshProperties);
+    console.log('🔄 PropertyProvider - Registered with visibility coordinator');
 
     return () => {
-      // No cleanup needed for new coordinator
+      unregister();
+      console.log('🔄 PropertyProvider - Cleanup: Unregistered from visibility coordinator');
     };
   }, [currentUser?.id, fetchAndSetProperties]);
 
