@@ -679,129 +679,133 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // REACT STATE-BASED SESSION RESTORATION: Use React state as source of truth
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log('🔄 UnifiedAuth v31.0 - Coordinator-triggered session restoration');
+      console.log('🔄 UnifiedAuth v32.0 - Coordinator-triggered session restoration');
       
-      // CRITICAL NEW APPROACH: Use React state session as primary source
-      // React state persists in memory even when tab is hidden (unlike browser storage in iframes)
+      // CRITICAL FIX: Check Supabase client FIRST (it has auto-refresh built-in)
+      // Priority: Supabase client > React state > Backup storage
       
-      // Step 1: Check if we have a valid session in React state (via refs to avoid stale closures)
-      const currentSession = sessionRef.current;
-      const currentUserData = currentUserRef.current;
-      
-      if (currentSession?.access_token && currentUserData?.id) {
-        console.log('✅ UnifiedAuth v31.0 - Session found in React state');
+      try {
+        // Step 1: Check if Supabase client already has a valid session
+        console.log('📡 Step 1: Checking Supabase client session...');
+        const { data: { session: clientSession } } = await supabase.auth.getSession();
         
-        // Validate session isn't expired
-        const expiresAt = currentSession.expires_at ? currentSession.expires_at * 1000 : 0;
-        const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-        
-        if (!isExpired) {
-          console.log('✅ UnifiedAuth v31.0 - React state session is valid, re-injecting into Supabase client...');
+        if (clientSession?.access_token) {
+          const expiresAt = clientSession.expires_at ? clientSession.expires_at * 1000 : 0;
+          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
           
-          try {
-            // CRITICAL: Re-inject session into Supabase client
-            // This ensures Supabase client has the session for authenticated queries
-            const { error: setError } = await supabase.auth.setSession({
+          if (!isExpired) {
+            console.log('✅ UnifiedAuth v32.0 - Valid session found in Supabase client');
+            
+            // Update React state to match Supabase client
+            const convertedUser = await convertSupabaseUser(clientSession.user);
+            if (convertedUser) {
+              sessionRef.current = clientSession;
+              currentUserRef.current = convertedUser;
+              setSession(clientSession);
+              setCurrentUser(convertedUser);
+              setIsSessionReady(true);
+              
+              // Backup to storage
+              const { forceSessionBackup } = await import('@/integrations/supabase/client');
+              forceSessionBackup(clientSession);
+              
+              return true;
+            }
+          } else {
+            console.warn('⚠️ UnifiedAuth v32.0 - Client session expired, trying refresh...');
+            
+            // Try to refresh the token
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (!refreshError && refreshedSession?.access_token) {
+              console.log('✅ UnifiedAuth v32.0 - Token refreshed successfully');
+              
+              const convertedUser = await convertSupabaseUser(refreshedSession.user);
+              if (convertedUser) {
+                sessionRef.current = refreshedSession;
+                currentUserRef.current = convertedUser;
+                setSession(refreshedSession);
+                setCurrentUser(convertedUser);
+                setIsSessionReady(true);
+                
+                const { forceSessionBackup } = await import('@/integrations/supabase/client');
+                forceSessionBackup(refreshedSession);
+                
+                return true;
+              }
+            } else {
+              console.error('❌ UnifiedAuth v32.0 - Token refresh failed:', refreshError?.message);
+            }
+          }
+        }
+        
+        // Step 2: If client has no session, try React state
+        console.log('📦 Step 2: Trying React state session...');
+        const currentSession = sessionRef.current;
+        const currentUserData = currentUserRef.current;
+        
+        if (currentSession?.access_token && currentUserData?.id) {
+          const expiresAt = currentSession.expires_at ? currentSession.expires_at * 1000 : 0;
+          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+          
+          if (!isExpired) {
+            console.log('✅ UnifiedAuth v32.0 - Session found in React state, re-injecting...');
+            
+            // Re-inject React state session into Supabase client
+            const { data: { session: reinjectedSession }, error: setError } = await supabase.auth.setSession({
               access_token: currentSession.access_token,
               refresh_token: currentSession.refresh_token
             });
             
-            if (setError) {
-              console.error('❌ UnifiedAuth v31.0 - Failed to set session in Supabase client:', setError);
-              setIsSessionReady(false);
-              return false;
-            }
-            
-            console.log('✅ UnifiedAuth v31.0 - Session successfully re-injected into Supabase client');
-            
-            // Step 2: Wait for session propagation in Supabase client (critical for queries)
-            console.log('⏳ UnifiedAuth v31.0 - Waiting for session propagation...');
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            // Step 3: Verify session is available in Supabase client
-            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
-            if (verifiedSession?.access_token) {
-              console.log('✅ UnifiedAuth v31.0 - Session verified in Supabase client');
-              setIsSessionReady(true);
+            if (!setError && reinjectedSession?.access_token) {
+              console.log('✅ UnifiedAuth v32.0 - React state session re-injected successfully');
               
-              // Backup to storage for redundancy
-              const { forceSessionBackup } = await import('@/integrations/supabase/client');
-              forceSessionBackup(verifiedSession);
+              // Wait for propagation
+              await new Promise(resolve => setTimeout(resolve, 800));
               
-              return true;
+              // Verify
+              const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+              if (verifiedSession?.access_token) {
+                console.log('✅ UnifiedAuth v32.0 - Session verified after re-injection');
+                setIsSessionReady(true);
+                
+                const { forceSessionBackup } = await import('@/integrations/supabase/client');
+                forceSessionBackup(verifiedSession);
+                
+                return true;
+              }
             } else {
-              console.error('❌ UnifiedAuth v31.0 - Session verification failed after re-injection');
-              setIsSessionReady(false);
-              return false;
+              console.error('❌ UnifiedAuth v32.0 - Failed to re-inject React state session:', setError?.message);
             }
-            
-          } catch (error) {
-            console.error('❌ UnifiedAuth v31.0 - Error re-injecting session:', error);
-            setIsSessionReady(false);
-            return false;
-          }
-        } else {
-          console.warn('⚠️ UnifiedAuth v31.0 - React state session is expired');
-        }
-      } else {
-        console.warn('⚠️ UnifiedAuth v31.0 - No valid session in React state');
-      }
-      
-      // Fallback: Try browser storage restoration (for edge cases)
-      console.log('🔄 UnifiedAuth v31.0 - Falling back to storage restoration...');
-      
-      try {
-        // Check Supabase client storage first
-        const { data: { session: storedSession } } = await supabase.auth.getSession();
-        
-        if (storedSession?.access_token) {
-          const expiresAt = storedSession.expires_at ? storedSession.expires_at * 1000 : 0;
-          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-          
-          if (!isExpired) {
-            console.log('✅ UnifiedAuth v31.0 - Valid session found in storage');
-            
-            // Update React state
-            const user = await convertSupabaseUser(storedSession.user);
-            setCurrentUser(user);
-            setSession(storedSession);
-            setIsSessionReady(true);
-            
-            // Backup to storage
-            const { forceSessionBackup } = await import('@/integrations/supabase/client');
-            forceSessionBackup(storedSession);
-            
-            return true;
           }
         }
         
-        // Last resort: Try backup restoration
+        // Step 3: Try backup storage as last resort
+        console.log('🍪 Step 3: Trying backup storage...');
         const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
         const backupSession = await restoreSessionFromBackup();
         
         if (backupSession?.access_token) {
-          const expiresAt = backupSession.expires_at ? backupSession.expires_at * 1000 : 0;
-          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+          console.log('✅ UnifiedAuth v32.0 - Session restored from backup');
           
-          if (!isExpired) {
-            console.log('✅ UnifiedAuth v31.0 - Session restored from backup');
-            
-            const user = await convertSupabaseUser(backupSession.user);
-            setCurrentUser(user);
+          const convertedUser = await convertSupabaseUser(backupSession.user);
+          if (convertedUser) {
+            sessionRef.current = backupSession;
+            currentUserRef.current = convertedUser;
             setSession(backupSession);
+            setCurrentUser(convertedUser);
             setIsSessionReady(true);
-            
             return true;
           }
         }
         
       } catch (error) {
-        console.error('❌ UnifiedAuth v31.0 - Storage restoration error:', error);
+        console.error('❌ UnifiedAuth v32.0 - All restoration attempts failed:', error);
       }
       
       // All restoration attempts failed
-      console.error('❌ UnifiedAuth v31.0 - Session restoration failed');
-      console.log('🔐 UnifiedAuth v31.0 - User needs to login again');
+      console.error('❌ UnifiedAuth v32.0 - No valid session found');
+      console.log('🔐 UnifiedAuth v32.0 - User needs to login again');
       setIsSessionReady(false);
       return false;
     };
