@@ -18,8 +18,75 @@
 // });
 
 // integrations/supabase/client.ts
+// import { createClient } from "@supabase/supabase-js";
+// import type { Database } from "./types";
+
+// const SUPABASE_URL = "https://ltjlswzrdgtoddyqmydo.supabase.co";
+// const SUPABASE_PUBLISHABLE_KEY =
+//   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0amxzd3pyZGd0b2RkeXFteWRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NDA5OTIsImV4cCI6MjA2MDExNjk5Mn0.YXg-x4oflJUdoRdQQQGI2NisUqUVHAXkhgyrr-4CoE0";
+
+// const COOKIE_NAME = "sb-auth-token";
+
+// function getCookie(name: string) {
+//   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+//   return match ? decodeURIComponent(match[2]) : null;
+// }
+
+// function setCookie(name: string, value: string, days = 7) {
+//   const expires = new Date(Date.now() + days * 864e5).toUTCString();
+//   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+// }
+
+// function deleteCookie(name: string) {
+//   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+// }
+
+// export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+//   auth: {
+//     autoRefreshToken: true,
+//     persistSession: true,
+//     detectSessionInUrl: true,
+//   },
+// });
+
+// // 🔄 Keep cookie updated when session changes
+// supabase.auth.onAuthStateChange((_, session) => {
+//   if (session?.access_token) {
+//     setCookie(COOKIE_NAME, JSON.stringify(session));
+//   } else {
+//     deleteCookie(COOKIE_NAME);
+//   }
+// });
+
+// // 🔁 Restore session from cookie (used in App.tsx)
+// export async function restoreSessionFromCookie() {
+//   const cookieValue = getCookie(COOKIE_NAME);
+//   if (cookieValue) {
+//     try {
+//       const session = JSON.parse(cookieValue);
+//       if (session?.access_token) {
+//         await supabase.auth.setSession(session);
+//         console.log("✅ Restored session from cookie");
+//         return session;
+//       }
+//     } catch (e) {
+//       console.error("Failed to parse cookie session:", e);
+//     }
+//   }
+//   return null;
+// }
+
+// integrations/supabase/client.ts
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
+
+/**
+ * 🧠 Purpose:
+ * - Keeps session alive after tab inactivity or browser sleep
+ * - Automatically restores session from cookie
+ * - Ensures Realtime reconnection on tab focus
+ * - Fixes query timeout issues after long idle periods
+ */
 
 const SUPABASE_URL = "https://ltjlswzrdgtoddyqmydo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
@@ -27,6 +94,7 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 const COOKIE_NAME = "sb-auth-token";
 
+/* ----------------------- Cookie Helpers ----------------------- */
 function getCookie(name: string) {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   return match ? decodeURIComponent(match[2]) : null;
@@ -41,24 +109,34 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
+/* ----------------------- Supabase Client ----------------------- */
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 5,
+    },
+  },
 });
 
-// 🔄 Keep cookie updated when session changes
-supabase.auth.onAuthStateChange((_, session) => {
+/* ----------------------- Auth State Sync ----------------------- */
+supabase.auth.onAuthStateChange(async (event, session) => {
   if (session?.access_token) {
     setCookie(COOKIE_NAME, JSON.stringify(session));
   } else {
     deleteCookie(COOKIE_NAME);
   }
+
+  if (event === "TOKEN_REFRESHED") {
+    console.log("🔁 Token refreshed successfully");
+  }
 });
 
-// 🔁 Restore session from cookie (used in App.tsx)
+/* ----------------------- Restore Session ----------------------- */
 export async function restoreSessionFromCookie() {
   const cookieValue = getCookie(COOKIE_NAME);
   if (cookieValue) {
@@ -66,12 +144,60 @@ export async function restoreSessionFromCookie() {
       const session = JSON.parse(cookieValue);
       if (session?.access_token) {
         await supabase.auth.setSession(session);
-        console.log("✅ Restored session from cookie");
+        console.log("✅ Restored Supabase session from cookie");
         return session;
       }
     } catch (e) {
-      console.error("Failed to parse cookie session:", e);
+      console.error("❌ Failed to parse cookie session:", e);
     }
   }
   return null;
 }
+
+/* ----------------------- Realtime Reconnect Logic ----------------------- */
+let reconnectTimeout: NodeJS.Timeout | null = null;
+
+function reconnectRealtime() {
+  if (reconnectTimeout) clearTimeout(reconnectTimeout);
+  reconnectTimeout = setTimeout(async () => {
+    try {
+      console.log("🔌 Reconnecting Supabase Realtime...");
+      // Refresh session if needed
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.access_token) {
+        await supabase.realtime.connect();
+        console.log("🟢 Realtime reconnected successfully");
+      } else {
+        console.warn("⚠️ No active session while reconnecting Realtime");
+      }
+    } catch (error) {
+      console.error("❌ Realtime reconnection failed:", error);
+    }
+  }, 1000);
+}
+
+/* ----------------------- Handle Visibility Events ----------------------- */
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", async () => {
+    if (document.hidden) {
+      console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
+      supabase.realtime.disconnect();
+    } else {
+      console.log("👀 Tab visible again — restoring session & reconnecting...");
+      await restoreSessionFromCookie();
+      reconnectRealtime();
+    }
+  });
+}
+
+/* ----------------------- Health Ping (Optional) ----------------------- */
+// Keeps connection warm in long-running sessions
+setInterval(
+  async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.access_token) {
+      console.log("💓 Supabase session still active");
+    }
+  },
+  10 * 60 * 1000,
+); // every 10 minutes
