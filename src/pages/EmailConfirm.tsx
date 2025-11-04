@@ -30,11 +30,38 @@ const EmailConfirm = () => {
         const errorDescription = hashParams.get('error_description');
         
         if (error || errorCode) {
+          console.log('Error detected in URL:', { error, errorCode, errorDescription });
+          
+          // Special handling for token-related errors that might indicate an already-confirmed account
+          if (error === 'access_denied' || 
+              errorDescription?.includes('expired') || 
+              errorDescription?.includes('not found') || 
+              errorDescription?.includes('invalid')) {
+            
+            console.log('Token error detected - checking if account already exists...');
+            
+            // Try to check if this user already exists by attempting to get session
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              if (sessionData.session?.user?.email_confirmed_at) {
+                console.log('User already confirmed, redirecting to verified state');
+                setIsVerified(true);
+                toast.success('Your email is already confirmed!');
+                return;
+              }
+            } catch (e) {
+              console.log('Session check failed:', e);
+            }
+            
+            // Show a more helpful error for expired/invalid tokens
+            throw new Error('This confirmation link is no longer valid or has already been used. If you already have an account, please sign in instead.');
+          }
+          
           // Handle specific error cases
           if (errorCode === 'otp_expired') {
             throw new Error('The confirmation link has expired. Please request a new confirmation email or sign up again.');
           } else if (error === 'access_denied') {
-            throw new Error(errorDescription || 'Access was denied. The confirmation link may be invalid or expired.');
+            throw new Error('This confirmation link is invalid. If you already have an account, please sign in instead.');
           } else {
             throw new Error(errorDescription || `Confirmation failed: ${error || errorCode}`);
           }
@@ -168,24 +195,41 @@ const EmailConfirm = () => {
               </AlertDescription>
             </Alert>
           )}
+          
+          {(error?.includes('already been used') || error?.includes('no longer valid') || error?.includes('already have an account')) && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertDescription className="text-blue-800">
+                <strong>Already have an account?</strong><br />
+                If you've already confirmed your email, you can sign in directly using your credentials.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <p className="text-muted-foreground text-center">
-            There was an issue confirming your email. This might be due to:
+            Common reasons for this error:
           </p>
           <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-            <li>An expired confirmation link</li>
-            <li>An invalid or malformed URL</li>
-            <li>The confirmation link was already used</li>
+            <li>Confirmation link has expired</li>
+            <li>Link has already been used</li>
+            <li>You may already have a confirmed account</li>
           </ul>
           <div className="flex flex-col gap-2">
-            <Button onClick={() => navigate('/signup', { replace: true })} className="w-full">
-              Try Signing Up Again
+            <Button onClick={() => navigate('/login', { replace: true })} className="w-full">
+              Sign In to Your Account
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => navigate('/login', { replace: true })} 
+              onClick={() => navigate('/signup', { replace: true })} 
               className="w-full"
             >
-              Go to Login
+              Create New Account
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/forgot-password', { replace: true })} 
+              className="w-full text-sm"
+            >
+              Forgot Password?
             </Button>
           </div>
         </CardContent>
