@@ -7,29 +7,23 @@ import * as Sentry from '@sentry/react';
 export const initSentry = () => {
   const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
   
-  // Only initialize with a valid DSN (temporarily enabled for testing)
-  if (sentryDsn) {
+  // Only initialize in production with a valid DSN
+  if (sentryDsn && import.meta.env.PROD) {
     Sentry.init({
       dsn: sentryDsn,
       environment: import.meta.env.MODE,
       
-      // Performance Monitoring
+      // Minimal integrations to avoid React conflicts
       integrations: [
         Sentry.browserTracingIntegration(),
-        Sentry.replayIntegration({
-          maskAllText: true,
-          blockAllMedia: true,
-        }),
       ],
       
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
-      // Lower this in production (e.g., 0.1 = 10%)
+      // Lower sampling for production
       tracesSampleRate: 0.1,
       
-      // Capture Replay for 10% of all sessions,
-      // plus 100% of sessions with an error
-      replaysSessionSampleRate: 0.1,
-      replaysOnErrorSampleRate: 1.0,
+      // Disable replay to prevent React interference
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
       
       // Filter out sensitive data before sending
       beforeSend(event, hint) {
