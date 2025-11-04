@@ -52,6 +52,7 @@ interface UnifiedAuthContextType {
   currentUser: User | null;
   session: Session | null;
   loading: boolean;
+  isInitialized: boolean; // Track if initial auth check is complete
   isSigningOut: boolean; // Track sign out process to prevent UI flashing
   signOut: () => Promise<void>;
   
@@ -93,6 +94,7 @@ export const useSimpleAuth = () => {
     currentUser: context.currentUser,
     session: context.session,
     loading: context.loading,
+    isInitialized: context.isInitialized,
     isSigningOut: context.isSigningOut,
     signOut: context.signOut,
     isAdmin: context.isAdmin,
@@ -901,6 +903,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // CRITICAL: Override loading to false if we've completed setup once
     // This prevents loading flashes on tab switches even if state updates occur
     loading: hasCompletedInitialSetup.current ? false : loading,
+    isInitialized: initialCheckDone.current,
     isSigningOut,
     signOut,
     currentOrganization,

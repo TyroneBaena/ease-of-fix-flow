@@ -448,11 +448,11 @@ import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContex
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Your route components
-import LoginPage from "@/pages/LoginPage";
-import SetupPasswordPage from "@/pages/SetupPasswordPage";
-import DashboardPage from "@/pages/DashboardPage";
-import SettingsPage from "@/pages/SettingsPage";
-import NotFoundPage from "@/pages/NotFoundPage";
+import Login from "@/pages/Login";
+import SetupPassword from "@/pages/SetupPassword";
+import Dashboard from "@/pages/Dashboard";
+import Settings from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
 
 const AppRoutes = () => {
@@ -471,18 +471,18 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
 
-      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
 
       <Route
         path="/setup-password"
-        element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPasswordPage />}
+        element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
       />
 
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <Dashboard />
           </ProtectedRoute>
         }
       />
@@ -491,12 +491,12 @@ const AppRoutes = () => {
         path="/settings"
         element={
           <ProtectedRoute>
-            <SettingsPage />
+            <Settings />
           </ProtectedRoute>
         }
       />
 
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
