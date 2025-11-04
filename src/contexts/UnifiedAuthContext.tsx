@@ -249,6 +249,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   
   // CRITICAL FIX: Track if this is a background refresh to prevent loading cascades
   const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false);
+  
+  // CRITICAL: Create refs to hold current session/user for visibility coordinator
+  // These refs are updated whenever session/user changes to prevent stale closures
+  const sessionRef = useRef<Session | null>(null);
+  const currentUserRef = useRef<User | null>(null);
 
   const signOut = useCallback(async () => {
     try {
@@ -664,22 +669,24 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
+  // CRITICAL: Update refs whenever session or currentUser changes
+  useEffect(() => {
+    sessionRef.current = session;
+    currentUserRef.current = currentUser;
+  }, [session, currentUser]);
+
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
   // REACT STATE-BASED SESSION RESTORATION: Use React state as source of truth
   useEffect(() => {
-    // Create stable reference to current session/user state
-    const sessionRef = { current: session };
-    const userRef = { current: currentUser };
-    
     const refreshAuth = async (): Promise<boolean> => {
       console.log('🔄 UnifiedAuth v31.0 - Coordinator-triggered session restoration');
       
       // CRITICAL NEW APPROACH: Use React state session as primary source
       // React state persists in memory even when tab is hidden (unlike browser storage in iframes)
       
-      // Step 1: Check if we have a valid session in React state
+      // Step 1: Check if we have a valid session in React state (via refs to avoid stale closures)
       const currentSession = sessionRef.current;
-      const currentUserData = userRef.current;
+      const currentUserData = currentUserRef.current;
       
       if (currentSession?.access_token && currentUserData?.id) {
         console.log('✅ UnifiedAuth v31.0 - Session found in React state');
@@ -798,10 +805,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setIsSessionReady(false);
       return false;
     };
-
-    // Update refs when state changes
-    sessionRef.current = session;
-    userRef.current = currentUser;
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
     console.log('🔄 UnifiedAuth v31.0 - Registered with visibility coordinator');
