@@ -299,9 +299,12 @@ function reconnectRealtime() {
 }
 
 /* ----------------------- Handle Visibility Events ----------------------- */
-// NOTE: Session restoration is handled by visibilityCoordinator in UnifiedAuthContext
-// This listener ONLY manages Realtime connection state
-if (typeof document !== "undefined") {
+// CRITICAL: Use singleton pattern to prevent multiple listener registrations
+let visibilityListenerRegistered = false;
+
+if (typeof document !== "undefined" && !visibilityListenerRegistered) {
+  visibilityListenerRegistered = true;
+  
   document.addEventListener("visibilitychange", async () => {
     if (document.hidden) {
       console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
@@ -325,6 +328,8 @@ if (typeof document !== "undefined") {
       reconnectRealtime();
     }
   });
+  
+  console.log("✅ Visibility listener registered (singleton)");
 }
 
 /* ----------------------- Health Ping & Auto-Start ----------------------- */

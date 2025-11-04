@@ -974,9 +974,95 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []); // Empty deps - let Supabase handle session refresh internally
 
-  // REMOVED: Tab visibility checking
-  // Supabase handles session refresh automatically through API calls
-  // No need for aggressive tab visibility checking that causes loading cascades
+  // CRITICAL: Register with visibility coordinator for session restoration on tab revisit
+  useEffect(() => {
+    console.log('🔄 UnifiedAuth v29.0 - Registering with visibility coordinator');
+    
+    const handleTabRevisit = async () => {
+      console.log('🔄 UnifiedAuth v29.0 - Coordinator-triggered session check');
+      
+      // Only restore if we had a session before
+      if (!hasCompletedInitialSetup.current) {
+        console.log('🔄 UnifiedAuth v29.0 - Skipping refresh - not initialized yet');
+        return;
+      }
+      
+      try {
+        // Step 1: Quick check (0ms delay)
+        console.log('⚡ UnifiedAuth v29.0 - Quick session check (in-memory)...');
+        const { data: { session: quickSession } } = await supabase.auth.getSession();
+        
+        if (quickSession?.access_token) {
+          // Validate not expired
+          const expiresAt = quickSession.expires_at ? quickSession.expires_at * 1000 : 0;
+          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+          
+          if (!isExpired) {
+            console.log('✅ UnifiedAuth v29.0 - Quick session check: Valid session found!');
+            // Ensure cookie backup is fresh
+            const { forceSessionBackup } = await import('@/integrations/supabase/client');
+            const backed = forceSessionBackup(quickSession);
+            console.log(`💾 UnifiedAuth v29.0 - Session backup to cookie: ${backed ? 'SUCCESS' : 'FAILED'}`);
+            return;
+          } else {
+            console.warn('⚠️ UnifiedAuth v29.0 - Quick check: Session expired');
+          }
+        } else {
+          console.warn('⚠️ UnifiedAuth v29.0 - Quick check: No session in memory');
+        }
+        
+        // Step 2: Full restoration with retries (only if quick check fails)
+        console.log('🔄 UnifiedAuth v29.0 - Starting full session restoration...');
+        
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          try {
+            console.log(`🔄 UnifiedAuth v29.0 - Restoration attempt ${attempt}/5`);
+            
+            // Delay increases with each attempt
+            const delayMs = attempt * 300; // 300ms, 600ms, 900ms, 1200ms, 1500ms
+            if (attempt > 1) {
+              console.log(`⏳ UnifiedAuth v29.0 - Waiting ${delayMs}ms before attempt ${attempt}...`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+            
+            // Try cookie restoration
+            const { restoreSessionFromCookie } = await import('@/integrations/supabase/client');
+            const restoredSession = await restoreSessionFromCookie();
+            
+            if (restoredSession?.access_token) {
+              console.log(`✅ UnifiedAuth v29.0 - Session restored successfully on attempt ${attempt}`);
+              
+              // Update session state
+              setSession(restoredSession);
+              
+              // Convert user
+              const user = await convertSupabaseUser(restoredSession.user);
+              setCurrentUser(user);
+              
+              console.log('✅ UnifiedAuth v29.0 - User state updated after restoration');
+              return;
+            }
+            
+            console.warn(`⚠️ UnifiedAuth v29.0 - Attempt ${attempt} failed: No session restored`);
+          } catch (error) {
+            console.error(`❌ UnifiedAuth v29.0 - Attempt ${attempt} error:`, error);
+          }
+        }
+        
+        console.error('❌ UnifiedAuth v29.0 - All restoration attempts failed');
+      } catch (error) {
+        console.error('❌ UnifiedAuth v29.0 - Fatal error during tab revisit:', error);
+      }
+    };
+    
+    const unregister = visibilityCoordinator.onRefresh(handleTabRevisit);
+    console.log('✅ UnifiedAuth v29.0 - Registered with visibility coordinator');
+    
+    return () => {
+      unregister();
+      console.log('🔄 UnifiedAuth v29.0 - Unregistered from visibility coordinator');
+    };
+  }, []); // Empty deps - register once
 
   // Fetch users when user becomes admin - ONCE per session
   useEffect(() => {
