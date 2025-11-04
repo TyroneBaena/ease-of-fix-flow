@@ -1025,12 +1025,75 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }
           }, 0);
         } else {
-          setCurrentUser(null);
-          setSession(null);
-          setIsSessionReady(false);
-          setLoading(false);
-          initialCheckDone.current = true;
-          hasCompletedInitialSetup.current = true; // Mark even if no session
+          // v36.0: CRITICAL FIX - Attempt backup restoration when no session found
+          console.log('🚀 UnifiedAuth v36.0 - No session in client, attempting backup restoration...');
+          
+          setTimeout(async () => {
+            try {
+              const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+              
+              const restoredSession = await Promise.race([
+                restoreSessionFromBackup(),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))
+              ]);
+              
+              if (restoredSession?.access_token && restoredSession.user) {
+                console.log('✅ UnifiedAuth v36.0 - Initial session restored from backup');
+                
+                // Wait for propagation
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // Verify in client
+                const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+                if (verifiedSession?.access_token) {
+                  console.log('✅ UnifiedAuth v36.0 - Restored session verified');
+                  
+                  // Convert user
+                  const user = await convertSupabaseUser(verifiedSession.user);
+                  
+                  setCurrentUser(user);
+                  setSession(verifiedSession);
+                  setLoading(false);
+                  initialCheckDone.current = true;
+                  hasCompletedInitialSetup.current = true;
+                  
+                  // Wait for session propagation
+                  await new Promise(resolve => setTimeout(resolve, 1200));
+                  
+                  const { data: { session: readySession } } = await supabase.auth.getSession();
+                  if (readySession?.access_token) {
+                    setIsSessionReady(true);
+                    console.log('✅ UnifiedAuth v36.0 - Initial auth complete via backup restoration');
+                  }
+                  
+                  // Fetch organizations
+                  fetchUserOrganizations(user).catch((orgError) => {
+                    console.error('🚀 UnifiedAuth v36.0 - Non-critical org error:', orgError);
+                  });
+                  
+                  return;
+                }
+              }
+              
+              // If we get here, backup restoration failed
+              console.log('🚀 UnifiedAuth v36.0 - No backup session found, user needs to login');
+              setCurrentUser(null);
+              setSession(null);
+              setIsSessionReady(false);
+              setLoading(false);
+              initialCheckDone.current = true;
+              hasCompletedInitialSetup.current = true;
+              
+            } catch (error) {
+              console.error('🚀 UnifiedAuth v36.0 - Backup restoration error:', error);
+              setCurrentUser(null);
+              setSession(null);
+              setIsSessionReady(false);
+              setLoading(false);
+              initialCheckDone.current = true;
+              hasCompletedInitialSetup.current = true;
+            }
+          }, 0);
         }
       })
       .catch((error) => {
@@ -1111,7 +1174,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     adminResetPassword
   ]);
 
-  console.log('🚀 UnifiedAuth v8.0 - Provider render:', { 
+  console.log('🚀 UnifiedAuth v36.0 - Provider render:', { 
     hasCurrentUser: !!enhancedCurrentUser, 
     currentUserEmail: enhancedCurrentUser?.email,
     currentUserRole: enhancedCurrentUser?.role,
