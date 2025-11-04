@@ -443,9 +443,17 @@
 
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
 import { TabVisibilityProvider } from "@/contexts/TabVisibilityContext";
 import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContext";
+import { UserProvider } from "@/contexts/UserContext";
+import { SubscriptionProvider } from "@/contexts/subscription/SubscriptionContext";
+import { MaintenanceRequestProvider } from "@/contexts/maintenance";
+import { PropertyProvider } from "@/contexts/property/PropertyContext";
+import { ContractorProvider } from "@/contexts/contractor";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ui/error-boundary";
 
 // Your route components
 import Login from "@/pages/Login";
@@ -454,6 +462,24 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
+
+// Configure QueryClient to work with visibility coordinator
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000,
+      retry: false,
+      refetchInterval: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
 
 const AppRoutes = () => {
   const { currentUser, loading, isInitialized } = useSimpleAuth();
@@ -503,15 +529,28 @@ const AppRoutes = () => {
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      {/* Mount the tab visibility coordinator ONCE */}
-      <TabVisibilityProvider>
-        {/* Mount the unified auth context ONCE, for all routes */}
-        <UnifiedAuthProvider>
-          <AppRoutes />
-        </UnifiedAuthProvider>
-      </TabVisibilityProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <TabVisibilityProvider>
+            <UnifiedAuthProvider>
+              <UserProvider>
+                <SubscriptionProvider>
+                  <MaintenanceRequestProvider>
+                    <PropertyProvider>
+                      <ContractorProvider>
+                        <AppRoutes />
+                        <Toaster />
+                      </ContractorProvider>
+                    </PropertyProvider>
+                  </MaintenanceRequestProvider>
+                </SubscriptionProvider>
+              </UserProvider>
+            </UnifiedAuthProvider>
+          </TabVisibilityProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
