@@ -343,8 +343,15 @@ function startPeriodicBackup() {
           console.log("⏰ Periodic session backup successful");
         }
       } else {
-        console.log("⏰ No active session to backup");
-        stopPeriodicBackup();
+        // v37.0: If Supabase client has no session, try to restore from backup
+        console.warn("⏰ v37.0 - No session in client, attempting restoration...");
+        const restored = await restoreSessionFromBackup();
+        if (restored?.access_token) {
+          console.log("✅ v37.0 - Session restored proactively by periodic backup");
+        } else {
+          console.log("⏰ No active session to backup and no backup to restore");
+          stopPeriodicBackup();
+        }
       }
     } catch (error) {
       console.error("⏰ Periodic backup error:", error);
@@ -373,6 +380,26 @@ function startKeepalive() {
   
   keepaliveInterval = setInterval(async () => {
     try {
+      // CRITICAL v37.0: Check if Supabase client has lost its session
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession?.access_token) {
+        console.warn("💓 v37.0 - Supabase client lost session! Attempting restoration...");
+        
+        // Try to restore from our backups
+        const restored = await restoreSessionFromBackup();
+        if (restored?.access_token) {
+          console.log("✅ v37.0 - Session restored proactively by keepalive");
+          forceSessionBackup(restored);
+          return;
+        } else {
+          console.error("❌ v37.0 - Keepalive restoration failed, stopping keepalive");
+          stopKeepalive();
+          stopPeriodicBackup();
+          return;
+        }
+      }
+      
       // CRITICAL: Actively refresh the session to keep it alive
       const { data: { session }, error } = await supabase.auth.refreshSession();
       

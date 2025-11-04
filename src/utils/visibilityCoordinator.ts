@@ -1,10 +1,11 @@
 /**
- * Tab Visibility Coordinator v5.0
+ * Tab Visibility Coordinator v37.0
  *
  * Handles safe data refresh when user revisits the tab.
  * - No forced reload (prevents logout or data loss)
  * - Coordinates refresh across registered data providers
  * - Executes refreshes immediately without blocking
+ * - v37.0: Proactive session monitoring and restoration
  */
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
@@ -60,27 +61,53 @@ class VisibilityCoordinator {
 
   /**
    * Handle visibility change events
+   * v37.0: Added proactive restoration if client session is lost
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
       this.lastHiddenTime = Date.now();
       console.log("🔒 Tab hidden at", new Date(this.lastHiddenTime).toISOString());
       
-      // CRITICAL: Backup session FIRST (synchronously), then disconnect Realtime
+      // CRITICAL v37.0: Try multiple times to get and backup session
       try {
-        const { supabase, forceSessionBackup } = await import('@/integrations/supabase/client');
+        const { supabase, forceSessionBackup, restoreSessionFromBackup } = await import('@/integrations/supabase/client');
         
-        // Get and backup session immediately
-        const { data: { session } } = await supabase.auth.getSession();
+        // Get session with retries
+        let session = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!session?.access_token && attempts < maxAttempts) {
+          attempts++;
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          
+          if (currentSession?.access_token) {
+            session = currentSession;
+            break;
+          } else if (attempts < maxAttempts) {
+            console.warn(`⚠️ v37.0 - No session found (attempt ${attempts}/${maxAttempts}), trying backup...`);
+            // Try to restore from backup if client lost it
+            const restored = await restoreSessionFromBackup();
+            if (restored?.access_token) {
+              session = restored;
+              console.log("✅ v37.0 - Session restored before hiding tab");
+              break;
+            }
+            // Wait a bit before retry
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
+        
+        // Backup whatever we have
         if (session?.access_token) {
           const backed = forceSessionBackup(session);
           if (backed) {
-            console.log("💾 Pre-hide session backup successful");
+            console.log("💾 v37.0 - Pre-hide session backup successful");
           } else {
-            console.warn("⚠️ Pre-hide session backup failed");
+            console.warn("⚠️ v37.0 - Pre-hide session backup failed");
           }
         } else {
-          console.warn("⚠️ No session to backup on hide");
+          console.error("❌ v37.0 - No session to backup after all attempts!");
         }
         
         // Then disconnect Realtime

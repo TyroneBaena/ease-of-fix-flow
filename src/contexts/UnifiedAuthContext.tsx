@@ -686,10 +686,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
-  // v35.0: BULLETPROOF restoration with proper timeout handling and session propagation
+  // v37.0: BULLETPROOF restoration with proactive session monitoring
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log('🔄 UnifiedAuth v35.0 - Coordinator-triggered session restoration START');
+      console.log('🔄 UnifiedAuth v37.0 - Coordinator-triggered session restoration START');
       const startTime = Date.now();
       
       try {
@@ -705,7 +705,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           );
           clientSession = result.data?.session;
         } catch (timeoutError) {
-          console.warn('⚠️ UnifiedAuth v35.0 - getSession timed out, proceeding to backup');
+          console.warn('⚠️ UnifiedAuth v37.0 - getSession timed out, proceeding to backup');
         }
         
         // Step 2: If no session or expired, try backup restoration IMMEDIATELY
@@ -722,7 +722,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             );
             
             if (restoredSession?.access_token) {
-              console.log('✅ UnifiedAuth v35.0 - Session restored from backup');
+              console.log('✅ UnifiedAuth v37.0 - Session restored from backup');
               
               // CRITICAL: Wait for Supabase client to fully propagate the restored session
               await new Promise(resolve => setTimeout(resolve, 800));
@@ -731,19 +731,19 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               const { data: { session: verifiedSession } } = await supabase.auth.getSession();
               if (verifiedSession?.access_token) {
                 clientSession = verifiedSession;
-                console.log('✅ UnifiedAuth v35.0 - Restored session verified in client');
+                console.log('✅ UnifiedAuth v37.0 - Restored session verified in client');
               } else {
-                console.error('❌ UnifiedAuth v35.0 - Restored session not in client!');
+                console.error('❌ UnifiedAuth v37.0 - Restored session not in client!');
                 setIsSessionReady(false);
                 return false;
               }
             } else {
-              console.error('❌ UnifiedAuth v35.0 - Backup restoration returned no session');
+              console.error('❌ UnifiedAuth v37.0 - Backup restoration returned no session');
               setIsSessionReady(false);
               return false;
             }
           } catch (backupError) {
-            console.error('❌ UnifiedAuth v35.0 - Backup restoration failed:', backupError instanceof Error ? backupError.message : backupError);
+            console.error('❌ UnifiedAuth v37.0 - Backup restoration failed:', backupError instanceof Error ? backupError.message : backupError);
             setIsSessionReady(false);
             return false;
           }
@@ -755,7 +755,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
           
           if (isExpired) {
-            console.warn('⚠️ UnifiedAuth v35.0 - Session expired, attempting refresh...');
+            console.warn('⚠️ UnifiedAuth v37.0 - Session expired, attempting refresh...');
             
             try {
               const { data: { session: refreshedSession }, error: refreshError } = await withTimeout(
@@ -765,7 +765,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               );
               
               if (!refreshError && refreshedSession?.access_token) {
-                console.log('✅ UnifiedAuth v35.0 - Token refreshed successfully');
+                console.log('✅ UnifiedAuth v37.0 - Token refreshed successfully');
                 clientSession = refreshedSession;
                 
                 // Backup the refreshed session
@@ -773,12 +773,12 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
                   forceSessionBackup(refreshedSession);
                 });
               } else {
-                console.error('❌ UnifiedAuth v35.0 - Token refresh failed');
+                console.error('❌ UnifiedAuth v37.0 - Token refresh failed');
                 setIsSessionReady(false);
                 return false;
               }
             } catch (refreshError) {
-              console.error('❌ UnifiedAuth v35.0 - Refresh error:', refreshError);
+              console.error('❌ UnifiedAuth v37.0 - Refresh error:', refreshError);
               setIsSessionReady(false);
               return false;
             }
@@ -787,7 +787,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         
         // Step 4: Convert user and update state
         if (clientSession?.access_token && clientSession.user) {
-          console.log('✅ UnifiedAuth v35.0 - Valid session confirmed, converting user...');
+          console.log('✅ UnifiedAuth v37.0 - Valid session confirmed, converting user...');
           
           try {
             const convertedUser = await withTimeout(
@@ -810,34 +810,34 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               });
               
               const duration = Date.now() - startTime;
-              console.log(`✅ UnifiedAuth v35.0 - Restoration complete in ${duration}ms`);
+              console.log(`✅ UnifiedAuth v37.0 - Restoration complete in ${duration}ms`);
               return true;
             }
           } catch (conversionError) {
-            console.error('❌ UnifiedAuth v35.0 - User conversion failed:', conversionError);
+            console.error('❌ UnifiedAuth v37.0 - User conversion failed:', conversionError);
             setIsSessionReady(false);
             return false;
           }
         }
         
-        console.error('❌ UnifiedAuth v35.0 - All restoration paths exhausted');
+        console.error('❌ UnifiedAuth v37.0 - All restoration paths exhausted');
         setIsSessionReady(false);
         return false;
         
       } catch (error) {
         const duration = Date.now() - startTime;
-        console.error(`❌ UnifiedAuth v35.0 - Critical error after ${duration}ms:`, error instanceof Error ? error.message : error);
+        console.error(`❌ UnifiedAuth v37.0 - Critical error after ${duration}ms:`, error instanceof Error ? error.message : error);
         setIsSessionReady(false);
         return false;
       }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log('🔄 UnifiedAuth v35.0 - Registered with visibility coordinator');
+    console.log('🔄 UnifiedAuth v37.0 - Registered with visibility coordinator');
 
     return () => {
       unregister();
-      console.log('🔄 UnifiedAuth v35.0 - Cleanup: Unregistered from visibility coordinator');
+      console.log('🔄 UnifiedAuth v37.0 - Cleanup: Unregistered from visibility coordinator');
     };
   }, []); // CRITICAL: Empty deps to register only once, use refs for state access
 
