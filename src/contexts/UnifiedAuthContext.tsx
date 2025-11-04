@@ -686,20 +686,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
-  // v33.0: Added timeout protection to prevent hanging operations
+  // v33.1: Optimized timeout strategy - fail fast on critical errors
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log('🔄 UnifiedAuth v33.0 - Coordinator-triggered session restoration');
+      console.log('🔄 UnifiedAuth v33.1 - Coordinator-triggered session restoration');
       
       // CRITICAL FIX: Check Supabase client FIRST (it has auto-refresh built-in)
       // Priority: Supabase client > React state > Backup storage
+      // v33.1: Reduced timeouts to prevent cumulative timeout exceeding 20s limit
       
       try {
         // Step 1: Check if Supabase client already has a valid session (with timeout)
         console.log('📡 Step 1: Checking Supabase client session...');
         const { data: { session: clientSession } } = await withTimeout(
           supabase.auth.getSession(),
-          8000,
+          5000, // v33.1: Reduced from 8s to 5s
           'getSession timeout'
         );
         
@@ -713,7 +714,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             // Update React state to match Supabase client (with timeout)
             const convertedUser = await withTimeout(
               convertSupabaseUser(clientSession.user),
-              5000,
+              3000, // v33.1: Reduced from 5s to 3s
               'User conversion timeout'
             );
             
@@ -732,21 +733,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               return true;
             }
           } else {
-            console.warn('⚠️ UnifiedAuth v33.0 - Client session expired, trying refresh...');
+            console.warn('⚠️ UnifiedAuth v33.1 - Client session expired, trying refresh...');
             
             // Try to refresh the token (with timeout)
             const { data: { session: refreshedSession }, error: refreshError } = await withTimeout(
               supabase.auth.refreshSession(),
-              10000,
+              8000, // v33.1: Reduced from 10s to 8s
               'refreshSession timeout'
             );
             
             if (!refreshError && refreshedSession?.access_token) {
-              console.log('✅ UnifiedAuth v33.0 - Token refreshed successfully');
+              console.log('✅ UnifiedAuth v33.1 - Token refreshed successfully');
               
               const convertedUser = await withTimeout(
                 convertSupabaseUser(refreshedSession.user),
-                5000,
+                3000, // v33.1: Reduced from 5s to 3s
                 'User conversion timeout'
               );
               
@@ -764,107 +765,31 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 return true;
               }
             } else {
-              console.error('❌ UnifiedAuth v33.0 - Token refresh failed:', refreshError?.message);
+              console.error('❌ UnifiedAuth v33.1 - Token refresh failed:', refreshError?.message);
             }
           }
         }
         
-        // Step 2: If client has no session, try React state (with timeout)
-        console.log('📦 Step 2: Trying React state session...');
-        const currentSession = sessionRef.current;
-        const currentUserData = currentUserRef.current;
-        
-        if (currentSession?.access_token && currentUserData?.id) {
-          const expiresAt = currentSession.expires_at ? currentSession.expires_at * 1000 : 0;
-          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-          
-          if (!isExpired) {
-            console.log('✅ UnifiedAuth v33.0 - Session found in React state, re-injecting...');
-            
-            // Re-inject React state session into Supabase client (with timeout)
-            const { data: { session: reinjectedSession }, error: setError } = await withTimeout(
-              supabase.auth.setSession({
-                access_token: currentSession.access_token,
-                refresh_token: currentSession.refresh_token
-              }),
-              10000,
-              'setSession timeout'
-            );
-            
-            if (!setError && reinjectedSession?.access_token) {
-              console.log('✅ UnifiedAuth v33.0 - React state session re-injected successfully');
-              
-              // Wait for propagation (reduced from 800ms to 500ms)
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              // Verify (with timeout)
-              const { data: { session: verifiedSession } } = await withTimeout(
-                supabase.auth.getSession(),
-                5000,
-                'Session verification timeout'
-              );
-              
-              if (verifiedSession?.access_token) {
-                console.log('✅ UnifiedAuth v33.0 - Session verified after re-injection');
-                setIsSessionReady(true);
-                
-                import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
-                  forceSessionBackup(verifiedSession);
-                });
-                
-                return true;
-              }
-            } else {
-              console.error('❌ UnifiedAuth v33.0 - Failed to re-inject React state session:', setError?.message);
-            }
-          }
-        }
-        
-        // Step 3: Try backup storage as last resort (with timeout)
-        console.log('🍪 Step 3: Trying backup storage...');
-        const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
-        const backupSession = await withTimeout(
-          restoreSessionFromBackup(),
-          10000,
-          'Backup restoration timeout'
-        );
-        
-        if (backupSession?.access_token) {
-          console.log('✅ UnifiedAuth v33.0 - Session restored from backup');
-          
-          const convertedUser = await withTimeout(
-            convertSupabaseUser(backupSession.user),
-            5000,
-            'User conversion timeout'
-          );
-          
-          if (convertedUser) {
-            sessionRef.current = backupSession;
-            currentUserRef.current = convertedUser;
-            setSession(backupSession);
-            setCurrentUser(convertedUser);
-            setIsSessionReady(true);
-            return true;
-          }
-        }
+        // v33.1: FAIL FAST - If Step 1 failed, don't try fallbacks
+        // Step 1 failing means Supabase client is corrupted, user needs to re-login
+        console.error('❌ UnifiedAuth v33.1 - Supabase client check failed, bailing out');
+        console.log('🔐 UnifiedAuth v33.1 - User needs to login again');
+        setIsSessionReady(false);
+        return false;
         
       } catch (error) {
-        console.error('❌ UnifiedAuth v33.0 - Restoration failed:', error instanceof Error ? error.message : error);
+        console.error('❌ UnifiedAuth v33.1 - Critical error during restoration:', error instanceof Error ? error.message : error);
+        setIsSessionReady(false);
+        return false;
       }
-      
-      // All restoration attempts failed
-      console.error('❌ UnifiedAuth v33.0 - No valid session found');
-      console.log('🔐 UnifiedAuth v33.0 - User needs to login again');
-      setIsSessionReady(false);
-      return false;
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log('🔄 UnifiedAuth v33.0 - Registered with visibility coordinator');
+    console.log('🔄 UnifiedAuth v33.1 - Registered with visibility coordinator');
 
     return () => {
       unregister();
-      console.log('🔄 UnifiedAuth v33.0 - Cleanup: Unregistered from visibility coordinator');
+      console.log('🔄 UnifiedAuth v33.1 - Cleanup: Unregistered from visibility coordinator');
     };
   }, []); // CRITICAL: Empty deps to register only once, use refs for state access
 
