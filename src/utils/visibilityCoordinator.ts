@@ -17,9 +17,23 @@ class VisibilityCoordinator {
 
   /**
    * Register a handler to run when refreshing data on tab visibility change
+   * Returns cleanup function to unregister the handler
    */
-  public onRefresh(handler: RefreshHandler) {
-    this.refreshHandlers.push(handler);
+  public onRefresh(handler: RefreshHandler): () => void {
+    // Prevent duplicate registrations
+    if (!this.refreshHandlers.includes(handler)) {
+      this.refreshHandlers.push(handler);
+      console.log(`📝 Registered refresh handler (total: ${this.refreshHandlers.length})`);
+    }
+    
+    // Return cleanup function
+    return () => {
+      const index = this.refreshHandlers.indexOf(handler);
+      if (index > -1) {
+        this.refreshHandlers.splice(index, 1);
+        console.log(`🗑️ Unregistered refresh handler (remaining: ${this.refreshHandlers.length})`);
+      }
+    };
   }
 
   /**
@@ -68,7 +82,7 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate data refresh across all tabs when tab becomes visible again
-   * Executes all refresh handlers in parallel for faster loading
+   * Executes auth first, then other handlers in parallel
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
@@ -77,12 +91,26 @@ class VisibilityCoordinator {
     }
 
     this.isRefreshing = true;
-    console.log("🔁 Coordinating refresh across tabs...");
+    console.log(`🔁 Coordinating refresh (${this.refreshHandlers.length} handlers registered)...`);
 
     try {
-      // Execute all refresh handlers in parallel for faster loading
-      await Promise.all(this.refreshHandlers.map(handler => handler()));
-      console.log("✅ All refresh handlers completed successfully");
+      // CRITICAL: Execute auth handler first (it's always registered first)
+      // This ensures session is restored before other queries run
+      if (this.refreshHandlers.length > 0) {
+        const authHandler = this.refreshHandlers[0];
+        await authHandler();
+        console.log("✅ Auth handler completed, session restored");
+        
+        // Small delay to ensure session propagates
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
+      
+      // Execute remaining handlers in parallel
+      if (this.refreshHandlers.length > 1) {
+        const dataHandlers = this.refreshHandlers.slice(1);
+        await Promise.all(dataHandlers.map(handler => handler()));
+        console.log("✅ All data handlers completed successfully");
+      }
     } catch (error) {
       console.error("❌ Error during coordinated refresh", error);
     } finally {
