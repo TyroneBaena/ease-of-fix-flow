@@ -665,145 +665,139 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
-  // MULTI-LAYER SESSION RESTORATION WITH RETRY: localStorage → cookies → retry → fail gracefully
+  // REACT STATE-BASED SESSION RESTORATION: Use React state as source of truth
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log('🔄 UnifiedAuth v28.0 - Coordinator-triggered session check');
+      console.log('🔄 UnifiedAuth v31.0 - Coordinator-triggered session restoration');
       
-      // CRITICAL FIX: First, try to get current session WITHOUT any delays
-      // This checks if Supabase client already has the session in memory
-      try {
-        console.log('⚡ UnifiedAuth v28.0 - Quick session check (in-memory)...');
-        const { data: { session: quickSession } } = await supabase.auth.getSession();
+      // CRITICAL NEW APPROACH: Use React state session as primary source
+      // React state persists in memory even when tab is hidden (unlike browser storage in iframes)
+      
+      // Step 1: Check if we have a valid session in React state
+      if (session?.access_token && currentUser?.id) {
+        console.log('✅ UnifiedAuth v31.0 - Session found in React state');
         
-        if (quickSession?.access_token) {
-          const expiresAt = quickSession.expires_at ? quickSession.expires_at * 1000 : 0;
+        // Validate session isn't expired
+        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+        const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+        
+        if (!isExpired) {
+          console.log('✅ UnifiedAuth v31.0 - React state session is valid, re-injecting into Supabase client...');
+          
+          try {
+            // CRITICAL: Re-inject session into Supabase client
+            // This ensures Supabase client has the session for authenticated queries
+            const { error: setError } = await supabase.auth.setSession({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token
+            });
+            
+            if (setError) {
+              console.error('❌ UnifiedAuth v31.0 - Failed to set session in Supabase client:', setError);
+              return false;
+            }
+            
+            console.log('✅ UnifiedAuth v31.0 - Session successfully re-injected into Supabase client');
+            
+            // Step 2: Wait for session propagation in Supabase client (critical for queries)
+            console.log('⏳ UnifiedAuth v31.0 - Waiting for session propagation...');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Step 3: Verify session is available in Supabase client
+            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+            if (verifiedSession?.access_token) {
+              console.log('✅ UnifiedAuth v31.0 - Session verified in Supabase client');
+              setIsSessionReady(true);
+              
+              // Backup to storage for redundancy
+              const { forceSessionBackup } = await import('@/integrations/supabase/client');
+              forceSessionBackup(verifiedSession);
+              
+              return true;
+            } else {
+              console.error('❌ UnifiedAuth v31.0 - Session verification failed after re-injection');
+              setIsSessionReady(false);
+              return false;
+            }
+            
+          } catch (error) {
+            console.error('❌ UnifiedAuth v31.0 - Error re-injecting session:', error);
+            return false;
+          }
+        } else {
+          console.warn('⚠️ UnifiedAuth v31.0 - React state session is expired');
+        }
+      } else {
+        console.warn('⚠️ UnifiedAuth v31.0 - No valid session in React state');
+      }
+      
+      // Fallback: Try browser storage restoration (for edge cases)
+      console.log('🔄 UnifiedAuth v31.0 - Falling back to storage restoration...');
+      
+      try {
+        // Check Supabase client storage first
+        const { data: { session: storedSession } } = await supabase.auth.getSession();
+        
+        if (storedSession?.access_token) {
+          const expiresAt = storedSession.expires_at ? storedSession.expires_at * 1000 : 0;
           const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
           
           if (!isExpired) {
-            console.log('✅ UnifiedAuth v28.0 - Quick session check: Valid session found!');
+            console.log('✅ UnifiedAuth v31.0 - Valid session found in storage');
             
-            // Force immediate backup
+            // Update React state
+            const user = await convertSupabaseUser(storedSession.user);
+            setCurrentUser(user);
+            setSession(storedSession);
+            setIsSessionReady(true);
+            
+            // Backup to storage
             const { forceSessionBackup } = await import('@/integrations/supabase/client');
-            forceSessionBackup(quickSession);
-            
-            // Update state if needed
-            if (currentUser?.id !== quickSession.user.id || !session?.access_token) {
-              console.log('🔄 UnifiedAuth v28.0 - Updating user state from quick session');
-              const user = await convertSupabaseUser(quickSession.user);
-              setCurrentUser(user);
-              setSession(quickSession);
-            }
+            forceSessionBackup(storedSession);
             
             return true;
           }
         }
         
-        console.log('⚡ UnifiedAuth v28.0 - Quick check failed, proceeding to full restoration...');
-      } catch (quickError) {
-        console.warn('⚡ UnifiedAuth v28.0 - Quick check error:', quickError);
-      }
-      
-      // AGGRESSIVE RETRY: Try up to 5 times with increasing delays
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        try {
-          if (attempt > 1) {
-            const delayMs = attempt * 300; // 300ms, 600ms, 900ms, 1200ms, 1500ms
-            console.log(`🔄 UnifiedAuth v28.0 - Retry attempt ${attempt}/5 (delay: ${delayMs}ms)`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-          }
+        // Last resort: Try backup restoration
+        const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+        const backupSession = await restoreSessionFromBackup();
+        
+        if (backupSession?.access_token) {
+          const expiresAt = backupSession.expires_at ? backupSession.expires_at * 1000 : 0;
+          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
           
-          // LAYER 1: Try localStorage FIRST (fastest and most reliable)
-          console.log('📦 UnifiedAuth v28.0 - Trying localStorage...');
-          const { data: { session: currentSession }, error: currentError } = await supabase.auth.getSession();
-          
-          if (!currentError && currentSession?.access_token) {
-            // Validate session isn't expired
-            const expiresAt = currentSession.expires_at ? currentSession.expires_at * 1000 : 0;
-            const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+          if (!isExpired) {
+            console.log('✅ UnifiedAuth v31.0 - Session restored from backup');
             
-            if (!isExpired) {
-              console.log('✅ UnifiedAuth v28.0 - Valid session found in localStorage');
-              
-              // CRITICAL: Force immediate backup to cookie
-              const { forceSessionBackup } = await import('@/integrations/supabase/client');
-              const backed = forceSessionBackup(currentSession);
-              console.log('💾 UnifiedAuth v28.0 - Session backup to cookie:', backed ? 'SUCCESS' : 'FAILED');
-              
-              // Update state if needed
-              if (currentUser?.id !== currentSession.user.id || !session?.access_token) {
-                console.log('🔄 UnifiedAuth v28.0 - Updating user state from localStorage');
-                const user = await convertSupabaseUser(currentSession.user);
-                setCurrentUser(user);
-                setSession(currentSession);
-              }
-              
-              return true;
-            } else {
-              console.warn('⚠️ UnifiedAuth v28.0 - localStorage session expired');
-            }
-          } else if (currentError) {
-            console.error('📦 UnifiedAuth v28.0 - localStorage error:', currentError);
-          } else {
-            console.warn('📦 UnifiedAuth v28.0 - No session in localStorage');
-          }
-          
-          // LAYER 2: Try multi-layer backup (sessionStorage + cookie)
-          console.log('🔄 UnifiedAuth v29.0 - Trying multi-layer backup...');
-          const { restoreSessionFromBackup, forceSessionBackup } = await import('@/integrations/supabase/client');
-          const cookieSession = await restoreSessionFromBackup();
-          
-          if (cookieSession?.access_token) {
-            // Validate session isn't expired
-            const expiresAt = cookieSession.expires_at ? cookieSession.expires_at * 1000 : 0;
-            const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+            const user = await convertSupabaseUser(backupSession.user);
+            setCurrentUser(user);
+            setSession(backupSession);
+            setIsSessionReady(true);
             
-            if (!isExpired) {
-              console.log('✅ UnifiedAuth v29.0 - Session restored from backup!');
-              
-              // CRITICAL: Force immediate re-backup after successful restore
-              forceSessionBackup(cookieSession);
-              
-              const user = await convertSupabaseUser(cookieSession.user);
-              setCurrentUser(user);
-              setSession(cookieSession);
-              return true;
-            } else {
-              console.warn('⚠️ UnifiedAuth v29.0 - Backup session expired');
-            }
-          } else {
-            console.warn('🔄 UnifiedAuth v29.0 - No valid backup session found');
+            return true;
           }
-          
-          // If we're not on last attempt, retry
-          if (attempt < 5) {
-            console.warn(`⚠️ UnifiedAuth v28.0 - Attempt ${attempt} failed, will retry...`);
-            continue;
-          }
-          
-          // LAYER 3: All attempts exhausted - user needs to re-login
-          console.error('❌ UnifiedAuth v28.0 - Session restoration failed after all retries');
-          console.log('🔐 UnifiedAuth v28.0 - User needs to login again');
-          return false;
-          
-        } catch (error) {
-          console.error('❌ UnifiedAuth v28.0 - Coordinator session check error:', error);
-          if (attempt === 5) return false;
-          continue;
         }
+        
+      } catch (error) {
+        console.error('❌ UnifiedAuth v31.0 - Storage restoration error:', error);
       }
       
+      // All restoration attempts failed
+      console.error('❌ UnifiedAuth v31.0 - Session restoration failed');
+      console.log('🔐 UnifiedAuth v31.0 - User needs to login again');
+      setIsSessionReady(false);
       return false;
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log('🔄 UnifiedAuth v28.0 - Registered with visibility coordinator');
+    console.log('🔄 UnifiedAuth v31.0 - Registered with visibility coordinator');
 
     return () => {
       unregister();
-      console.log('🔄 UnifiedAuth v28.0 - Cleanup: Unregistered from visibility coordinator');
+      console.log('🔄 UnifiedAuth v31.0 - Cleanup: Unregistered from visibility coordinator');
     };
-  }, []); // CRITICAL FIX: Empty deps - register only once!
+  }, [session, currentUser]); // Track session and user changes
 
   useEffect(() => {
     console.log('🚀 UnifiedAuth v17.0 - Starting auth initialization at:', new Date().toISOString());
