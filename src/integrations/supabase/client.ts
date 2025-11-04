@@ -299,38 +299,13 @@ function reconnectRealtime() {
 }
 
 /* ----------------------- Handle Visibility Events ----------------------- */
-// CRITICAL: Use singleton pattern to prevent multiple listener registrations
-let visibilityListenerRegistered = false;
-
-if (typeof document !== "undefined" && !visibilityListenerRegistered) {
-  visibilityListenerRegistered = true;
-  
-  document.addEventListener("visibilitychange", async () => {
-    if (document.hidden) {
-      console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
-      supabase.realtime.disconnect();
-      
-      // CRITICAL FIX: Force immediate backup before tab becomes hidden
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const backed = forceSessionBackup(session);
-          if (backed) {
-            console.log("💾 Pre-hide session backup successful");
-          }
-        }
-      } catch (error) {
-        console.error("❌ Pre-hide backup failed:", error);
-      }
-    } else {
-      console.log("👀 Tab visible again — reconnecting Realtime...");
-      // Session restoration happens in UnifiedAuthContext via coordinator
-      reconnectRealtime();
-    }
-  });
-  
-  console.log("✅ Visibility listener registered (singleton)");
-}
+// REMOVED: Duplicate visibility listener - now handled by visibilityCoordinator
+// The visibilityCoordinator in UnifiedAuthContext handles:
+// 1. Session restoration (via refreshAuth handler)
+// 2. Pre-hide session backup
+// 3. Realtime reconnection coordination
+//
+// This prevents race conditions from multiple visibility listeners
 
 /* ----------------------- Health Ping & Auto-Start ----------------------- */
 // Keeps connection warm in long-running sessions
