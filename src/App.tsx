@@ -452,6 +452,10 @@ import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContex
 import { UserProvider } from "@/contexts/UserContext";
 import { Loader2 } from "lucide-react";
 
+// ✅ import the cookie restore helper
+import { restoreSessionFromCookie } from "@/integrations/supabase/client";
+
+// Import all pages
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -475,6 +479,8 @@ import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
+
+// Contractor pages
 import ContractorDashboard from "@/pages/ContractorDashboard";
 import ContractorJobs from "@/pages/contractor/ContractorJobs";
 import ContractorJobDetail from "@/pages/ContractorJobDetail";
@@ -487,6 +493,8 @@ import PropertyDetailWrapper from "@/components/PropertyDetailWrapper";
 import NewRequestWrapper from "@/components/NewRequestWrapper";
 import PaymentMethodSetup from "@/pages/PaymentMethodSetup";
 import TestDataFetching from "@/pages/TestDataFetching";
+
+// Context providers
 import { SubscriptionProvider } from "./contexts/subscription/SubscriptionContext";
 import { MaintenanceRequestProvider } from "./contexts/maintenance";
 import { PropertyProvider } from "./contexts/property/PropertyContext";
@@ -494,16 +502,17 @@ import { ContractorProvider } from "./contexts/contractor";
 import { ContractorAuthProvider } from "./contexts/contractor/ContractorAuthContext";
 import { ContractorRouteGuard } from "./components/contractor/ContractorRouteGuard";
 import { TabVisibilityProvider } from "./contexts/TabVisibilityContext";
+
+// New pages
 import Pricing from "@/pages/Pricing";
 import AdminSettings from "@/pages/AdminSettings";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
-import { EnhancedSignupFlow } from "@/components/auth/EnhancedSignupFlow";
 import { TeamManagement } from "@/pages/TeamManagement";
 import { TabRevisitDiagnostic } from "@/components/testing/TabRevisitDiagnostic";
 
-// ✅ Import the restore function
-import { restoreSessionFromCookie } from "@/integrations/supabase/client";
-
+// -----------------------------------------------------------------------------
+// React Query Client setup
+// -----------------------------------------------------------------------------
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -515,9 +524,7 @@ const queryClient = new QueryClient({
       retry: false,
       refetchInterval: false,
     },
-    mutations: {
-      retry: false,
-    },
+    mutations: { retry: false },
   },
 });
 
@@ -528,7 +535,7 @@ function AppRoutes() {
   React.useEffect(() => {
     const failsafeTimer = setTimeout(() => {
       if (loading && !forceReady) {
-        console.error("⚠️ AppRoutes - Loading timeout exceeded! Forcing app to render.");
+        console.error("⚠️ AppRoutes - Loading timeout exceeded! Forcing render.");
         setForceReady(true);
       }
     }, 8000);
@@ -545,15 +552,271 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* all your existing routes remain unchanged */}
-      {/* ... */}
+      {/* --- Public routes --- */}
+      <Route path="/" element={<Index />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/signup-status" element={<SignupStatus />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/setup-password" element={<SetupPassword />} />
+      <Route path="/email-confirm" element={<EmailConfirm />} />
+
+      {/* --- Protected routes --- */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <Dashboard />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/requests"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <AllRequests />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/new-request" element={<NewRequestWrapper />} />
+      <Route path="/public-request/:id" element={<PublicRequestDetail />} />
+
+      <Route
+        path="/requests/:id"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <RequestDetail />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/properties"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <Properties />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/properties/:id" element={<PropertyDetailWrapper />} />
+      <Route path="/qr/:token" element={<QRCodeRedirect />} />
+      <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
+      <Route path="/property-access/:propertyId" element={<PropertyAccess />} />
+      <Route path="/public-new-request" element={<PublicNewRequestRedirect />} />
+
+      <Route
+        path="/private/property-requests/:id"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <PropertyRequestsView />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <Settings />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <Reports />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <Notifications />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* --- Contractor routes --- */}
+      <Route
+        path="/contractor-dashboard"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorDashboard />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor-jobs"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorJobs />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor-jobs/:id"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorJobDetail />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor-profile"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorProfile />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor-schedule"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorSchedule />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor-settings"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorSettings />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor-notifications"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorNotifications />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contractor/quote-submission/:id"
+        element={
+          <ProtectedRoute>
+            <QuoteSubmission />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* --- Admin & Billing --- */}
+      <Route
+        path="/billing-security"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <AdminSettings />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing/payment-method"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <PaymentMethodSetup />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team-management"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <AdminRouteGuard>
+                <TeamManagement />
+              </AdminRouteGuard>
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/test-data-fetching"
+        element={
+          <ProtectedRoute>
+            <TestDataFetching />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/test-tab-revisit"
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-background p-8">
+              <TabRevisitDiagnostic />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
 
+// -----------------------------------------------------------------------------
+// Root App Component
+// -----------------------------------------------------------------------------
 function App() {
-  // ✅ Restore session before auth context initializes
+  // ✅ Restore session *before* contexts mount
   React.useEffect(() => {
     restoreSessionFromCookie();
   }, []);
