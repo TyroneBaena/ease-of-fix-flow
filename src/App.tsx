@@ -462,6 +462,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Properties from "@/pages/Properties";
 import AllRequests from "@/pages/AllRequests";
+import RequestDetail from "@/pages/RequestDetail";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -530,6 +531,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <AllRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/requests/:id"
+        element={
+          <ProtectedRoute>
+            <RequestDetail />
           </ProtectedRoute>
         }
       />
