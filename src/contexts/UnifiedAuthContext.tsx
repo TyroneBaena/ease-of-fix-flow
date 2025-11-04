@@ -686,10 +686,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
-  // v37.1: BULLETPROOF restoration with rebalanced timeouts
+  // v37.2: Use refresh_token for recovery (30+ day lifetime vs 1hr access_token)
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log('🔄 UnifiedAuth v37.1 - Coordinator-triggered session restoration START');
+      console.log('🔄 UnifiedAuth v37.2 - Coordinator-triggered session restoration START');
       const startTime = Date.now();
       
       try {
@@ -722,7 +722,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             );
             
             if (restoredSession?.access_token) {
-              console.log('✅ UnifiedAuth v37.1 - Session restored from backup');
+              console.log('✅ UnifiedAuth v37.2 - Session restored from backup (refresh_token used)');
               
               // CRITICAL: Wait for Supabase client to fully propagate the restored session
               await new Promise(resolve => setTimeout(resolve, 800));
@@ -731,14 +731,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               const { data: { session: verifiedSession } } = await supabase.auth.getSession();
               if (verifiedSession?.access_token) {
                 clientSession = verifiedSession;
-                console.log('✅ UnifiedAuth v37.1 - Restored session verified in client');
+                console.log('✅ UnifiedAuth v37.2 - Restored session verified in client');
               } else {
-                console.error('❌ UnifiedAuth v37.1 - Restored session not in client!');
+                console.error('❌ UnifiedAuth v37.2 - Restored session not in client!');
                 setIsSessionReady(false);
                 return false;
               }
             } else {
-              console.error('❌ UnifiedAuth v37.1 - Backup restoration returned no session');
+              console.error('❌ UnifiedAuth v37.2 - Backup restoration failed (refresh_token likely expired)');
               setIsSessionReady(false);
               return false;
             }

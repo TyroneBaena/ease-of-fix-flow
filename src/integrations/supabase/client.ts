@@ -217,34 +217,30 @@ export async function restoreSessionFromBackup() {
     try {
       const session = JSON.parse(sessionStorageValue);
       
-      if (session?.access_token) {
-        // Validate session hasn't expired
-        const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-        const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+      if (session?.access_token && session?.refresh_token) {
+        console.log("✅ Session found in sessionStorage, attempting restore...");
         
-        if (!isExpired) {
-          console.log("✅ Valid session found in sessionStorage, restoring...");
+        // CRITICAL v37.2: Always try to restore, even if access_token expired
+        // The refresh_token lasts 30+ days, so it might still be valid
+        const { data, error } = await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
+        
+        if (!error && data.session) {
+          console.log("✅ Successfully restored session from sessionStorage");
           
-          const { data, error } = await supabase.auth.setSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token
-          });
+          // Re-save the fresh session to all layers
+          const sessionStr = JSON.stringify(data.session);
+          setCookie(COOKIE_NAME, sessionStr);
+          setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
           
-          if (!error && data.session) {
-            console.log("✅ Successfully restored session from sessionStorage");
-            
-            // Re-save to all layers
-            const sessionStr = JSON.stringify(data.session);
-            setCookie(COOKIE_NAME, sessionStr);
-            setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-            
-            startPeriodicBackup();
-            startKeepalive();
-            
-            return data.session;
-          }
+          startPeriodicBackup();
+          startKeepalive();
+          
+          return data.session;
         } else {
-          console.warn("⚠️ sessionStorage session expired");
+          console.warn("❌ v37.2 - Session restoration from sessionStorage failed:", error?.message);
           deleteSessionStorage(SESSION_STORAGE_KEY);
         }
       }
@@ -262,33 +258,30 @@ export async function restoreSessionFromBackup() {
     try {
       const session = JSON.parse(cookieValue);
       
-      if (session?.access_token) {
-        const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-        const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+      if (session?.access_token && session?.refresh_token) {
+        console.log("✅ Session found in cookie, attempting restore...");
         
-        if (!isExpired) {
-          console.log("✅ Valid session found in cookie, restoring...");
+        // CRITICAL v37.2: Always try to restore, even if access_token expired
+        // The refresh_token lasts 30+ days, so it might still be valid
+        const { data, error } = await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
+        
+        if (!error && data.session) {
+          console.log("✅ Successfully restored session from cookie");
           
-          const { data, error } = await supabase.auth.setSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token
-          });
+          // Re-save the fresh session to all layers
+          const sessionStr = JSON.stringify(data.session);
+          setCookie(COOKIE_NAME, sessionStr);
+          setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
           
-          if (!error && data.session) {
-            console.log("✅ Successfully restored session from cookie");
-            
-            // Re-save to all layers
-            const sessionStr = JSON.stringify(data.session);
-            setCookie(COOKIE_NAME, sessionStr);
-            setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-            
-            startPeriodicBackup();
-            startKeepalive();
-            
-            return data.session;
-          }
+          startPeriodicBackup();
+          startKeepalive();
+          
+          return data.session;
         } else {
-          console.warn("⚠️ Cookie session expired");
+          console.warn("❌ v37.2 - Session restoration from cookie failed:", error?.message);
           deleteCookie(COOKIE_NAME);
         }
       }
@@ -304,22 +297,16 @@ export async function restoreSessionFromBackup() {
 
 /* ----------------------- Force Save Session ----------------------- */
 export function forceSessionBackup(session: any) {
-  if (session?.access_token) {
-    // Validate session isn't expired
-    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
-    const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-    
-    if (!isExpired) {
-      const sessionStr = JSON.stringify(session);
-      setCookie(COOKIE_NAME, sessionStr);
-      setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-      console.log("💾 Forced multi-layer session backup");
-      return true;
-    } else {
-      console.warn("⚠️ Session expired, not backing up");
-      return false;
-    }
+  if (session?.access_token && session?.refresh_token) {
+    // v37.2: Always backup as long as we have both tokens
+    // Don't check expiry - the refresh_token is what matters
+    const sessionStr = JSON.stringify(session);
+    setCookie(COOKIE_NAME, sessionStr);
+    setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+    console.log("💾 v37.2 - Forced multi-layer session backup");
+    return true;
   }
+  console.warn("⚠️ v37.2 - No valid tokens to backup");
   return false;
 }
 

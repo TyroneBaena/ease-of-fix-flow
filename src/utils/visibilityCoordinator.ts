@@ -1,5 +1,5 @@
 /**
- * Tab Visibility Coordinator v37.1
+ * Tab Visibility Coordinator v37.2
  *
  * Handles safe data refresh when user revisits the tab.
  * - No forced reload (prevents logout or data loss)
@@ -7,6 +7,7 @@
  * - Executes refreshes immediately without blocking
  * - v37.0: Proactive session monitoring and restoration
  * - v37.1: Fixed timeout mismatches for reliable user conversion
+ * - v37.2: Always attempt restore with refresh_token (30+ day lifetime)
  */
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
