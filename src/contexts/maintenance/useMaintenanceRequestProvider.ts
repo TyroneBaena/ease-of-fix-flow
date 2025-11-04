@@ -66,13 +66,11 @@ export const useMaintenanceRequestProvider = () => {
         
         setRequests(formattedRequests);
         lastFetchTimeRef.current = Date.now();
-        visibilityCoordinator.updateLastFetchTime('maintenance');
         return formattedRequests;
       } else {
         console.log('🔍 LOADING REQUESTS v3.0 - No requests found');
         setRequests([]);
         lastFetchTimeRef.current = Date.now();
-        visibilityCoordinator.updateLastFetchTime('maintenance');
         return [];
       }
     } catch (error) {
@@ -204,18 +202,12 @@ export const useMaintenanceRequestProvider = () => {
     const refreshMaintenance = async () => {
       console.log('🔄 MaintenanceRequestProvider - Coordinator-triggered refresh');
       await loadRequests();
-      visibilityCoordinator.updateLastFetchTime('maintenance');
     };
 
-    visibilityCoordinator.register({
-      id: 'maintenance',
-      refresh: refreshMaintenance,
-      staleThreshold: 30000, // 30 seconds
-      priority: 3 // After auth and properties
-    });
+    visibilityCoordinator.onRefresh(refreshMaintenance);
 
     return () => {
-      visibilityCoordinator.unregister('maintenance');
+      // No cleanup needed for new coordinator
     };
   }, [currentUser?.id, loadRequests]);
 

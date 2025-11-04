@@ -690,15 +690,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     };
 
-    visibilityCoordinator.register({
-      id: 'auth',
-      refresh: refreshAuth,
-      staleThreshold: 90000, // 90 seconds - increased to reduce frequency
-      priority: 1 // Highest priority - auth first
-    });
+    visibilityCoordinator.onRefresh(refreshAuth);
 
     return () => {
-      visibilityCoordinator.unregister('auth');
+      // No cleanup needed for new coordinator
     };
   }, []);
 
@@ -718,8 +713,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setSession(session);
         console.log('🚀 UnifiedAuth v17.0 - Session set, starting user conversion...');
         
-        // Update coordinator fetch time
-        visibilityCoordinator.updateLastFetchTime('auth');
+        // Coordinator will handle refresh timing
         
         // CRITICAL FIX: Use setTimeout to defer async Supabase calls to prevent deadlocks
         // This is the official Supabase recommendation to avoid auth callback deadlocks

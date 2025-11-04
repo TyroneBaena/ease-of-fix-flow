@@ -30,7 +30,6 @@ export const useContractorsState = () => {
       setContractors(contractorsList);
       setError(null);
       lastFetchTimeRef.current = Date.now();
-      visibilityCoordinator.updateLastFetchTime('contractors');
     } catch (err) {
       console.error("useContractorsState - Error loading contractors:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -54,18 +53,12 @@ export const useContractorsState = () => {
     const refreshContractors = async () => {
       console.log('🔄 ContractorProvider - Coordinator-triggered refresh');
       await loadContractors();
-      visibilityCoordinator.updateLastFetchTime('contractors');
     };
 
-    visibilityCoordinator.register({
-      id: 'contractors',
-      refresh: refreshContractors,
-      staleThreshold: 30000, // 30 seconds
-      priority: 4 // After auth, properties, and maintenance
-    });
+    visibilityCoordinator.onRefresh(refreshContractors);
 
     return () => {
-      visibilityCoordinator.unregister('contractors');
+      // No cleanup needed for new coordinator
     };
   }, [loadContractors]);
 

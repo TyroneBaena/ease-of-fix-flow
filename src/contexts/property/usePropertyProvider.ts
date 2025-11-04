@@ -56,7 +56,6 @@ export const usePropertyProvider = (): PropertyContextType => {
       console.log('PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
       lastFetchTimeRef.current = Date.now();
-      visibilityCoordinator.updateLastFetchTime('properties');
     } catch (err) {
       clearTimeout(timeoutId);
       
@@ -131,18 +130,12 @@ export const usePropertyProvider = (): PropertyContextType => {
     const refreshProperties = async () => {
       console.log('🔄 PropertyProvider - Coordinator-triggered refresh');
       await fetchAndSetProperties();
-      visibilityCoordinator.updateLastFetchTime('properties');
     };
 
-    visibilityCoordinator.register({
-      id: 'properties',
-      refresh: refreshProperties,
-      staleThreshold: 30000, // 30 seconds
-      priority: 2 // After auth
-    });
+    visibilityCoordinator.onRefresh(refreshProperties);
 
     return () => {
-      visibilityCoordinator.unregister('properties');
+      // No cleanup needed for new coordinator
     };
   }, [currentUser?.id, fetchAndSetProperties]);
 
