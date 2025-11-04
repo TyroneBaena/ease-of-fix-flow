@@ -18,21 +18,17 @@
 // });
 
 // integrations/supabase/client.ts
-// ✅ Cookie-based Supabase authentication for persistent sessions
-
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-// --- Supabase credentials ---
 const SUPABASE_URL = "https://ltjlswzrdgtoddyqmydo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0amxzd3pyZGd0b2RkeXFteWRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NDA5OTIsImV4cCI6MjA2MDExNjk5Mn0.YXg-x4oflJUdoRdQQQGI2NisUqUVHAXkhgyrr-4CoE0";
 
-// --- Cookie helpers ---
 const COOKIE_NAME = "sb-auth-token";
 
 function getCookie(name: string) {
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   return match ? decodeURIComponent(match[2]) : null;
 }
 
@@ -45,42 +41,37 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
-// --- Create Supabase client ---
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storageKey: COOKIE_NAME,
   },
 });
 
-// --- Sync Supabase session to cookie ---
-supabase.auth.onAuthStateChange((event, session) => {
+// 🔄 Keep cookie updated when session changes
+supabase.auth.onAuthStateChange((_, session) => {
   if (session?.access_token) {
-    setCookie(COOKIE_NAME, JSON.stringify(session), 7);
+    setCookie(COOKIE_NAME, JSON.stringify(session));
   } else {
     deleteCookie(COOKIE_NAME);
   }
 });
 
-// --- Restore session from cookie ---
-export function restoreSessionFromCookie() {
-  try {
-    const cookieValue = getCookie(COOKIE_NAME);
-    if (cookieValue) {
+// 🔁 Restore session from cookie (used in App.tsx)
+export async function restoreSessionFromCookie() {
+  const cookieValue = getCookie(COOKIE_NAME);
+  if (cookieValue) {
+    try {
       const session = JSON.parse(cookieValue);
       if (session?.access_token) {
-        console.log("🔄 Restoring Supabase session from cookie...");
-        supabase.auth.setSession(session);
+        await supabase.auth.setSession(session);
+        console.log("✅ Restored session from cookie");
         return session;
       }
+    } catch (e) {
+      console.error("Failed to parse cookie session:", e);
     }
-  } catch (err) {
-    console.error("❌ Failed to restore session from cookie:", err);
   }
   return null;
 }
-
-// ✅ Immediately restore on first load
-restoreSessionFromCookie();
