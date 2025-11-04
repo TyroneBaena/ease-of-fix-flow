@@ -654,39 +654,45 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // CRITICAL: Only refresh session validity, NOT full profile re-fetch
   useEffect(() => {
     const refreshAuth = async () => {
-      console.log('🔄 UnifiedAuth v20.0 - Coordinator-triggered session check');
+      console.log('🔄 UnifiedAuth v21.0 - Coordinator-triggered session check');
       try {
-        // CRITICAL FIX: Background refresh should VERIFY session, not clear it
-        // Only the main auth listener should clear user state on logout
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // CRITICAL FIX: Try to restore session from cookie if not found in memory
+        const { restoreSessionFromCookie } = await import('@/integrations/supabase/client');
+        
+        // First check current session
+        let { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('🔄 UnifiedAuth v20.0 - Session check error:', error);
-          // Don't clear user on error during background refresh
+          console.error('🔄 UnifiedAuth v21.0 - Session check error:', error);
           return;
         }
         
+        // If no session found, try to restore from cookie
         if (!session) {
-          console.log('🔄 UnifiedAuth v20.0 - No session found in background check');
-          // CRITICAL: Don't clear user during background refresh
-          // The main auth listener will handle SIGNED_OUT event properly
-          // This prevents false logouts when session check is slow
-          return;
+          console.log('🔄 UnifiedAuth v21.0 - No session in memory, attempting cookie restoration');
+          const restoredSession = await restoreSessionFromCookie();
+          
+          if (restoredSession) {
+            console.log('🔄 UnifiedAuth v21.0 - Session restored from cookie');
+            session = restoredSession;
+          } else {
+            console.log('🔄 UnifiedAuth v21.0 - No session in cookie either, user may need to re-login');
+            return;
+          }
         }
         
         // Session is valid - update if token changed
         setSession(prevSession => {
-          if (prevSession?.access_token !== session.access_token) {
-            console.log('🔄 UnifiedAuth v20.0 - Session token updated');
+          if (!prevSession || prevSession.access_token !== session.access_token) {
+            console.log('🔄 UnifiedAuth v21.0 - Session token updated');
             return session;
           }
           return prevSession;
         });
         
-        console.log('🔄 UnifiedAuth v20.0 - Session valid, no changes needed');
+        console.log('🔄 UnifiedAuth v21.0 - Session valid and current');
       } catch (error) {
-        console.error('🔄 UnifiedAuth v20.0 - Coordinator session check error:', error);
-        // Don't clear user on error during background refresh
+        console.error('🔄 UnifiedAuth v21.0 - Coordinator session check error:', error);
       }
     };
 
