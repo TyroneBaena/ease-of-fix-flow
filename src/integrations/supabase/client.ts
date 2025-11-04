@@ -93,8 +93,9 @@ const SUPABASE_PUBLISHABLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0amxzd3pyZGd0b2RkeXFteWRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NDA5OTIsImV4cCI6MjA2MDExNjk5Mn0.YXg-x4oflJUdoRdQQQGI2NisUqUVHAXkhgyrr-4CoE0";
 
 const COOKIE_NAME = "sb-auth-token";
+const SESSION_STORAGE_KEY = "sb-session-backup"; // CRITICAL: sessionStorage works better in iframes
 
-/* ----------------------- Cookie Helpers ----------------------- */
+/* ----------------------- Multi-Layer Storage Helpers ----------------------- */
 function getCookie(name: string) {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   return match ? decodeURIComponent(match[2]) : null;
@@ -107,6 +108,34 @@ function setCookie(name: string, value: string, days = 7) {
 
 function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+}
+
+function getSessionStorage(key: string) {
+  try {
+    const value = sessionStorage.getItem(key);
+    return value;
+  } catch (e) {
+    console.warn('sessionStorage not available:', e);
+    return null;
+  }
+}
+
+function setSessionStorage(key: string, value: string) {
+  try {
+    sessionStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    console.warn('Failed to set sessionStorage:', e);
+    return false;
+  }
+}
+
+function deleteSessionStorage(key: string) {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (e) {
+    console.warn('Failed to delete sessionStorage:', e);
+  }
 }
 
 /* ----------------------- Supabase Client ----------------------- */
@@ -127,27 +156,33 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 supabase.auth.onAuthStateChange(async (event, session) => {
   console.log(`🔐 Auth state changed: ${event}`, session ? 'has session' : 'no session');
   
-  // CRITICAL FIX: Only delete cookie on explicit SIGN_OUT
-  // Don't delete on every null session (could be temporary state)
+  // CRITICAL FIX: Only delete storage on explicit SIGN_OUT
   if (event === "SIGNED_OUT") {
-    console.log("🔐 User signed out - clearing cookie");
+    console.log("🔐 User signed out - clearing all session storage");
     deleteCookie(COOKIE_NAME);
-    stopPeriodicBackup(); // Stop the periodic backup
+    deleteSessionStorage(SESSION_STORAGE_KEY);
+    stopPeriodicBackup();
+    stopKeepalive();
   } else if (session?.access_token) {
     // Validate session hasn't expired before saving
     const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
     const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
     
     if (!isExpired) {
-      setCookie(COOKIE_NAME, JSON.stringify(session));
-      console.log("💾 Session saved to cookie backup");
+      const sessionStr = JSON.stringify(session);
       
-      // Start periodic backup if not already running
+      // MULTI-LAYER BACKUP: Save to both cookie AND sessionStorage
+      setCookie(COOKIE_NAME, sessionStr);
+      setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+      console.log("💾 Session saved to multi-layer backup (cookie + sessionStorage)");
+      
+      // Start both periodic backup and keepalive
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         startPeriodicBackup();
+        startKeepalive();
       }
     } else {
-      console.warn("⚠️ Session expired, not saving to cookie");
+      console.warn("⚠️ Session expired, not saving");
     }
   }
 
@@ -157,69 +192,100 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 });
 
 /* ----------------------- Restore Session ----------------------- */
-export async function restoreSessionFromCookie() {
-  console.log("🍪 Attempting to restore session from cookie...");
+export async function restoreSessionFromBackup() {
+  console.log("🔄 Attempting multi-layer session restoration...");
+  
+  // LAYER 1: Try sessionStorage first (most reliable in iframes)
+  console.log("📦 Trying sessionStorage...");
+  const sessionStorageValue = getSessionStorage(SESSION_STORAGE_KEY);
+  
+  if (sessionStorageValue) {
+    try {
+      const session = JSON.parse(sessionStorageValue);
+      
+      if (session?.access_token) {
+        // Validate session hasn't expired
+        const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+        const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+        
+        if (!isExpired) {
+          console.log("✅ Valid session found in sessionStorage, restoring...");
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          });
+          
+          if (!error && data.session) {
+            console.log("✅ Successfully restored session from sessionStorage");
+            
+            // Re-save to all layers
+            const sessionStr = JSON.stringify(data.session);
+            setCookie(COOKIE_NAME, sessionStr);
+            setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+            
+            startPeriodicBackup();
+            startKeepalive();
+            
+            return data.session;
+          }
+        } else {
+          console.warn("⚠️ sessionStorage session expired");
+          deleteSessionStorage(SESSION_STORAGE_KEY);
+        }
+      }
+    } catch (e) {
+      console.warn("❌ Failed to restore from sessionStorage:", e);
+      deleteSessionStorage(SESSION_STORAGE_KEY);
+    }
+  }
+  
+  // LAYER 2: Try cookie as fallback
+  console.log("🍪 Trying cookie backup...");
   const cookieValue = getCookie(COOKIE_NAME);
   
-  if (!cookieValue) {
-    console.warn("🍪 No session cookie found");
-    return null;
+  if (cookieValue) {
+    try {
+      const session = JSON.parse(cookieValue);
+      
+      if (session?.access_token) {
+        const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+        const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+        
+        if (!isExpired) {
+          console.log("✅ Valid session found in cookie, restoring...");
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          });
+          
+          if (!error && data.session) {
+            console.log("✅ Successfully restored session from cookie");
+            
+            // Re-save to all layers
+            const sessionStr = JSON.stringify(data.session);
+            setCookie(COOKIE_NAME, sessionStr);
+            setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+            
+            startPeriodicBackup();
+            startKeepalive();
+            
+            return data.session;
+          }
+        } else {
+          console.warn("⚠️ Cookie session expired");
+          deleteCookie(COOKIE_NAME);
+        }
+      }
+    } catch (e) {
+      console.warn("❌ Failed to restore from cookie:", e);
+      deleteCookie(COOKIE_NAME);
+    }
   }
   
-  console.log("🍪 Cookie found, parsing...");
-  
-  try {
-    const session = JSON.parse(cookieValue);
-    
-    if (!session?.access_token) {
-      console.warn("🍪 Cookie exists but no access_token found");
-      deleteCookie(COOKIE_NAME);
-      return null;
-    }
-    
-    // Validate session hasn't expired
-    const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-    const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-    
-    if (isExpired) {
-      console.warn("🍪 Cookie session expired, clearing");
-      deleteCookie(COOKIE_NAME);
-      return null;
-    }
-    
-    console.log("🍪 Cookie session valid, restoring to Supabase...");
-    
-    // CRITICAL: Set session in Supabase client (updates localStorage)
-    const { data, error } = await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token
-    });
-    
-    if (error) {
-      console.error("🍪 Failed to set session:", error);
-      deleteCookie(COOKIE_NAME);
-      return null;
-    }
-    
-    if (!data.session) {
-      console.warn("🍪 setSession succeeded but returned no session");
-      return null;
-    }
-    
-    console.log("✅ Successfully restored session from cookie");
-    
-    // Re-save to cookie with updated expiry
-    setCookie(COOKIE_NAME, JSON.stringify(data.session));
-    
-    // Start periodic backup
-    startPeriodicBackup();
-    
-    return data.session;
-  } catch (e) {
-    console.error("❌ Failed to parse or restore cookie session:", e);
-    deleteCookie(COOKIE_NAME);
-    return null;
-  }
+  console.warn("❌ No valid session found in any backup layer");
+  return null;
 }
 
 /* ----------------------- Force Save Session ----------------------- */
@@ -230,8 +296,10 @@ export function forceSessionBackup(session: any) {
     const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
     
     if (!isExpired) {
-      setCookie(COOKIE_NAME, JSON.stringify(session));
-      console.log("💾 Forced session backup to cookie");
+      const sessionStr = JSON.stringify(session);
+      setCookie(COOKIE_NAME, sessionStr);
+      setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+      console.log("💾 Forced multi-layer session backup");
       return true;
     } else {
       console.warn("⚠️ Session expired, not backing up");
@@ -245,13 +313,12 @@ export function forceSessionBackup(session: any) {
 let periodicBackupInterval: NodeJS.Timeout | null = null;
 
 function startPeriodicBackup() {
-  // Don't start if already running
   if (periodicBackupInterval) {
     console.log("⏰ Periodic backup already running");
     return;
   }
   
-  console.log("⏰ Starting periodic session backup (every 30s)");
+  console.log("⏰ Starting periodic session backup (every 15s)");
   
   periodicBackupInterval = setInterval(async () => {
     try {
@@ -268,7 +335,7 @@ function startPeriodicBackup() {
     } catch (error) {
       console.error("⏰ Periodic backup error:", error);
     }
-  }, 30000); // Every 30 seconds
+  }, 15000); // CRITICAL: Every 15 seconds for more frequent backups
 }
 
 function stopPeriodicBackup() {
@@ -276,6 +343,50 @@ function stopPeriodicBackup() {
     clearInterval(periodicBackupInterval);
     periodicBackupInterval = null;
     console.log("⏰ Stopped periodic session backup");
+  }
+}
+
+/* ----------------------- Session Keepalive ----------------------- */
+let keepaliveInterval: NodeJS.Timeout | null = null;
+
+function startKeepalive() {
+  if (keepaliveInterval) {
+    console.log("💓 Keepalive already running");
+    return;
+  }
+  
+  console.log("💓 Starting session keepalive (every 4 minutes)");
+  
+  keepaliveInterval = setInterval(async () => {
+    try {
+      // CRITICAL: Actively refresh the session to keep it alive
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.warn("💓 Keepalive refresh failed:", error.message);
+        // If refresh fails, stop keepalive
+        stopKeepalive();
+        return;
+      }
+      
+      if (session) {
+        console.log("💓 Session keepalive refresh successful");
+        forceSessionBackup(session);
+      } else {
+        console.warn("💓 No session to keep alive");
+        stopKeepalive();
+      }
+    } catch (error) {
+      console.error("💓 Keepalive error:", error);
+    }
+  }, 4 * 60 * 1000); // Every 4 minutes (tokens expire after 1 hour)
+}
+
+function stopKeepalive() {
+  if (keepaliveInterval) {
+    clearInterval(keepaliveInterval);
+    keepaliveInterval = null;
+    console.log("💓 Stopped session keepalive");
   }
 }
 
@@ -323,12 +434,13 @@ setInterval(
   10 * 60 * 1000,
 ); // every 10 minutes
 
-// Auto-start periodic backup if user is already logged in
+// Auto-start backup and keepalive if user is already logged in
 (async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) {
-    console.log("🚀 Auto-starting periodic backup for existing session");
+    console.log("🚀 Auto-starting backup and keepalive for existing session");
     forceSessionBackup(session);
     startPeriodicBackup();
+    startKeepalive();
   }
 })();

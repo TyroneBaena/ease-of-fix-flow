@@ -744,10 +744,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             console.warn('📦 UnifiedAuth v28.0 - No session in localStorage');
           }
           
-          // LAYER 2: Try cookie backup
-          console.log('🍪 UnifiedAuth v28.0 - Trying cookie backup...');
-          const { restoreSessionFromCookie } = await import('@/integrations/supabase/client');
-          const cookieSession = await restoreSessionFromCookie();
+          // LAYER 2: Try multi-layer backup (sessionStorage + cookie)
+          console.log('🔄 UnifiedAuth v29.0 - Trying multi-layer backup...');
+          const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+          const cookieSession = await restoreSessionFromBackup();
           
           if (cookieSession?.access_token) {
             // Validate session isn't expired
@@ -755,16 +755,16 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
             
             if (!isExpired) {
-              console.log('✅ UnifiedAuth v28.0 - Session restored from cookie!');
+              console.log('✅ UnifiedAuth v29.0 - Session restored from backup!');
               const user = await convertSupabaseUser(cookieSession.user);
               setCurrentUser(user);
               setSession(cookieSession);
               return true;
             } else {
-              console.warn('⚠️ UnifiedAuth v28.0 - Cookie session expired');
+              console.warn('⚠️ UnifiedAuth v29.0 - Backup session expired');
             }
           } else {
-            console.warn('🍪 UnifiedAuth v28.0 - No valid cookie session');
+            console.warn('🔄 UnifiedAuth v29.0 - No valid backup session found');
           }
           
           // If we're not on last attempt, retry
@@ -1025,9 +1025,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               await new Promise(resolve => setTimeout(resolve, delayMs));
             }
             
-            // Try cookie restoration
-            const { restoreSessionFromCookie } = await import('@/integrations/supabase/client');
-            const restoredSession = await restoreSessionFromCookie();
+            // Try multi-layer restoration
+            const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+            const restoredSession = await restoreSessionFromBackup();
             
             if (restoredSession?.access_token) {
               console.log(`✅ UnifiedAuth v29.0 - Session restored successfully on attempt ${attempt}`);
