@@ -88,14 +88,420 @@ import type { Database } from "./types";
  * - Fixes query timeout issues after long idle periods
  */
 
+// const SUPABASE_URL = "https://ltjlswzrdgtoddyqmydo.supabase.co";
+// const SUPABASE_PUBLISHABLE_KEY =
+//   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0amxzd3pyZGd0b2RkeXFteWRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NDA5OTIsImV4cCI6MjA2MDExNjk5Mn0.YXg-x4oflJUdoRdQQQGI2NisUqUVHAXkhgyrr-4CoE0";
+
+// const COOKIE_NAME = "sb-auth-token";
+// const SESSION_STORAGE_KEY = "sb-session-backup"; // CRITICAL: sessionStorage works better in iframes
+
+// /* ----------------------- Multi-Layer Storage Helpers ----------------------- */
+// function getCookie(name: string) {
+//   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+//   return match ? decodeURIComponent(match[2]) : null;
+// }
+
+// function setCookie(name: string, value: string, days = 7) {
+//   const expires = new Date(Date.now() + days * 864e5).toUTCString();
+//   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+// }
+
+// function deleteCookie(name: string) {
+//   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+// }
+
+// function getSessionStorage(key: string) {
+//   try {
+//     const value = sessionStorage.getItem(key);
+//     return value;
+//   } catch (e) {
+//     console.warn('sessionStorage not available:', e);
+//     return null;
+//   }
+// }
+
+// function setSessionStorage(key: string, value: string) {
+//   try {
+//     sessionStorage.setItem(key, value);
+//     return true;
+//   } catch (e) {
+//     console.warn('Failed to set sessionStorage:', e);
+//     return false;
+//   }
+// }
+
+// function deleteSessionStorage(key: string) {
+//   try {
+//     sessionStorage.removeItem(key);
+//   } catch (e) {
+//     console.warn('Failed to delete sessionStorage:', e);
+//   }
+// }
+
+// /* ----------------------- Supabase Client ----------------------- */
+// export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+//   auth: {
+//     autoRefreshToken: true,
+//     persistSession: true,
+//     detectSessionInUrl: true,
+//   },
+//   realtime: {
+//     params: {
+//       eventsPerSecond: 5,
+//     },
+//   },
+// });
+
+// /* ----------------------- Auth State Sync ----------------------- */
+// let isExplicitSignOut = false;
+
+// supabase.auth.onAuthStateChange(async (event, session) => {
+//   console.log(`🔐 Auth state changed: ${event}`, session ? 'has session' : 'no session');
+  
+//   // CRITICAL FIX: Only clear storage on explicit SIGN_OUT that we initiated
+//   if (event === "SIGNED_OUT" && isExplicitSignOut) {
+//     console.log("🔐 User signed out - clearing all session storage");
+//     deleteCookie(COOKIE_NAME);
+//     deleteSessionStorage(SESSION_STORAGE_KEY);
+//     stopPeriodicBackup();
+//     stopKeepalive();
+//     isExplicitSignOut = false;
+//   } else if (event === "SIGNED_OUT" && !isExplicitSignOut) {
+//     // Session expired or failed, but DON'T clear backups - allow retry
+//     console.warn("⚠️ Session lost (not explicit signout) - backups preserved for retry");
+//     stopPeriodicBackup();
+//     stopKeepalive();
+//   } else if (session?.access_token) {
+//     // Validate session hasn't expired before saving
+//     const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+//     const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+    
+//     if (!isExpired) {
+//       const sessionStr = JSON.stringify(session);
+      
+//       // MULTI-LAYER BACKUP: Save to both cookie AND sessionStorage
+//       setCookie(COOKIE_NAME, sessionStr);
+//       setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+//       console.log("💾 Session saved to multi-layer backup (cookie + sessionStorage)");
+      
+//       // Start both periodic backup and keepalive
+//       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+//         startPeriodicBackup();
+//         startKeepalive();
+//       }
+//     } else {
+//       console.warn("⚠️ Session expired, not saving");
+//     }
+//   }
+
+//   if (event === "TOKEN_REFRESHED") {
+//     console.log("🔁 Token refreshed successfully");
+//   }
+// });
+
+// // Export function for explicit signout
+// export async function signOut() {
+//   isExplicitSignOut = true;
+//   await supabase.auth.signOut();
+// }
+
+// /* ----------------------- Restore Session ----------------------- */
+// export async function restoreSessionFromBackup() {
+//   console.log("🔄 Attempting multi-layer session restoration...");
+  
+//   // LAYER 1: Try sessionStorage first (most reliable in iframes)
+//   console.log("📦 Trying sessionStorage...");
+//   const sessionStorageValue = getSessionStorage(SESSION_STORAGE_KEY);
+  
+//   if (sessionStorageValue) {
+//     try {
+//       const session = JSON.parse(sessionStorageValue);
+      
+//       if (session?.access_token && session?.refresh_token) {
+//         console.log("✅ Session found in sessionStorage, attempting restore...");
+        
+//         // CRITICAL v37.2: Always try to restore, even if access_token expired
+//         // The refresh_token lasts 30+ days, so it might still be valid
+//         const { data, error } = await supabase.auth.setSession({
+//           access_token: session.access_token,
+//           refresh_token: session.refresh_token
+//         });
+        
+//         if (!error && data.session) {
+//           console.log("✅ Successfully restored session from sessionStorage");
+          
+//           // Re-save the fresh session to all layers
+//           const sessionStr = JSON.stringify(data.session);
+//           setCookie(COOKIE_NAME, sessionStr);
+//           setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+          
+//           startPeriodicBackup();
+//           startKeepalive();
+          
+//           return data.session;
+//         } else {
+//           console.warn("❌ v37.2 - Session restoration from sessionStorage failed:", error?.message);
+//           deleteSessionStorage(SESSION_STORAGE_KEY);
+//         }
+//       }
+//     } catch (e) {
+//       console.warn("❌ Failed to restore from sessionStorage:", e);
+//       deleteSessionStorage(SESSION_STORAGE_KEY);
+//     }
+//   }
+  
+//   // LAYER 2: Try cookie as fallback
+//   console.log("🍪 Trying cookie backup...");
+//   const cookieValue = getCookie(COOKIE_NAME);
+  
+//   if (cookieValue) {
+//     try {
+//       const session = JSON.parse(cookieValue);
+      
+//       if (session?.access_token && session?.refresh_token) {
+//         console.log("✅ Session found in cookie, attempting restore...");
+        
+//         // CRITICAL v37.2: Always try to restore, even if access_token expired
+//         // The refresh_token lasts 30+ days, so it might still be valid
+//         const { data, error } = await supabase.auth.setSession({
+//           access_token: session.access_token,
+//           refresh_token: session.refresh_token
+//         });
+        
+//         if (!error && data.session) {
+//           console.log("✅ Successfully restored session from cookie");
+          
+//           // Re-save the fresh session to all layers
+//           const sessionStr = JSON.stringify(data.session);
+//           setCookie(COOKIE_NAME, sessionStr);
+//           setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+          
+//           startPeriodicBackup();
+//           startKeepalive();
+          
+//           return data.session;
+//         } else {
+//           console.warn("❌ v37.2 - Session restoration from cookie failed:", error?.message);
+//           deleteCookie(COOKIE_NAME);
+//         }
+//       }
+//     } catch (e) {
+//       console.warn("❌ Failed to restore from cookie:", e);
+//       deleteCookie(COOKIE_NAME);
+//     }
+//   }
+  
+//   console.warn("❌ No valid session found in any backup layer");
+//   return null;
+// }
+
+// /* ----------------------- Force Save Session ----------------------- */
+// export function forceSessionBackup(session: any) {
+//   if (session?.access_token && session?.refresh_token) {
+//     // v37.2: Always backup as long as we have both tokens
+//     // Don't check expiry - the refresh_token is what matters
+//     const sessionStr = JSON.stringify(session);
+//     setCookie(COOKIE_NAME, sessionStr);
+//     setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
+//     console.log("💾 v37.2 - Forced multi-layer session backup");
+//     return true;
+//   }
+//   console.warn("⚠️ v37.2 - No valid tokens to backup");
+//   return false;
+// }
+
+// /* ----------------------- Periodic Session Backup ----------------------- */
+// let periodicBackupInterval: NodeJS.Timeout | null = null;
+
+// function startPeriodicBackup() {
+//   if (periodicBackupInterval) {
+//     console.log("⏰ Periodic backup already running");
+//     return;
+//   }
+  
+//   console.log("⏰ Starting periodic session backup (every 15s)");
+  
+//   periodicBackupInterval = setInterval(async () => {
+//     try {
+//       const { data: { session } } = await supabase.auth.getSession();
+//       if (session?.access_token) {
+//         const saved = forceSessionBackup(session);
+//         if (saved) {
+//           console.log("⏰ Periodic session backup successful");
+//         }
+//       } else {
+//         // v37.0: If Supabase client has no session, try to restore from backup
+//         console.warn("⏰ v37.0 - No session in client, attempting restoration...");
+//         const restored = await restoreSessionFromBackup();
+//         if (restored?.access_token) {
+//           console.log("✅ v37.0 - Session restored proactively by periodic backup");
+//         } else {
+//           console.log("⏰ No active session to backup and no backup to restore");
+//           stopPeriodicBackup();
+//         }
+//       }
+//     } catch (error) {
+//       console.error("⏰ Periodic backup error:", error);
+//     }
+//   }, 15000); // CRITICAL: Every 15 seconds for more frequent backups
+// }
+
+// function stopPeriodicBackup() {
+//   if (periodicBackupInterval) {
+//     clearInterval(periodicBackupInterval);
+//     periodicBackupInterval = null;
+//     console.log("⏰ Stopped periodic session backup");
+//   }
+// }
+
+// /* ----------------------- Session Keepalive ----------------------- */
+// let keepaliveInterval: NodeJS.Timeout | null = null;
+
+// function startKeepalive() {
+//   if (keepaliveInterval) {
+//     console.log("💓 Keepalive already running");
+//     return;
+//   }
+  
+//   console.log("💓 Starting session keepalive (every 2 minutes)");
+  
+//   keepaliveInterval = setInterval(async () => {
+//     try {
+//       // CRITICAL v37.0: Check if Supabase client has lost its session
+//       const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+//       if (!currentSession?.access_token) {
+//         console.warn("💓 v37.0 - Supabase client lost session! Attempting restoration...");
+        
+//         // Try to restore from our backups
+//         const restored = await restoreSessionFromBackup();
+//         if (restored?.access_token) {
+//           console.log("✅ v37.0 - Session restored proactively by keepalive");
+//           forceSessionBackup(restored);
+//           return;
+//         } else {
+//           console.error("❌ v37.0 - Keepalive restoration failed, stopping keepalive");
+//           stopKeepalive();
+//           stopPeriodicBackup();
+//           return;
+//         }
+//       }
+      
+//       // CRITICAL: Actively refresh the session to keep it alive
+//       const { data: { session }, error } = await supabase.auth.refreshSession();
+      
+//       if (error) {
+//         console.warn("💓 Keepalive refresh failed:", error.message);
+//         // Don't stop keepalive on transient errors
+//         return;
+//       }
+      
+//       if (session) {
+//         console.log("💓 Session keepalive refresh successful");
+//         forceSessionBackup(session);
+//       } else {
+//         console.warn("💓 No session to keep alive");
+//         stopKeepalive();
+//       }
+//     } catch (error) {
+//       console.error("💓 Keepalive error:", error);
+//     }
+//   }, 2 * 60 * 1000); // Every 2 minutes for more aggressive keepalive
+// }
+
+// function stopKeepalive() {
+//   if (keepaliveInterval) {
+//     clearInterval(keepaliveInterval);
+//     keepaliveInterval = null;
+//     console.log("💓 Stopped session keepalive");
+//   }
+// }
+
+// /* ----------------------- Realtime Reconnect Logic ----------------------- */
+// export async function reconnectRealtime() {
+//   try {
+//     console.log("🔌 Reconnecting Supabase Realtime...");
+//     const { data: { session } } = await supabase.auth.getSession();
+//     if (session) {
+//       await supabase.realtime.connect();
+//       console.log("🟢 Realtime reconnected with active session");
+//     } else {
+//       console.warn("⚠️ No session for Realtime reconnection");
+//     }
+//   } catch (error) {
+//     console.error("❌ Realtime reconnection failed:", error);
+//   }
+// }
+
+// /* ----------------------- Visibility Event Handling ----------------------- */
+// // Add beforeunload backup as safety net
+// window.addEventListener('beforeunload', () => {
+//   const session = supabase.auth.getSession();
+//   session.then(({ data: { session } }) => {
+//     if (session) {
+//       forceSessionBackup(session);
+//       console.log("💾 Pre-unload session backup");
+//     }
+//   });
+// });
+
+// /* ----------------------- Health Ping & Auto-Start ----------------------- */
+// // Keeps connection warm in long-running sessions
+// setInterval(
+//   async () => {
+//     const { data } = await supabase.auth.getSession();
+//     if (data?.session?.access_token) {
+//       console.log("💓 Supabase session still active");
+//       // Ensure backup is running for active sessions
+//       if (!periodicBackupInterval) {
+//         startPeriodicBackup();
+//       }
+//     }
+//   },
+//   10 * 60 * 1000,
+// ); // every 10 minutes
+
+// // Auto-start backup and keepalive if user is already logged in
+// (async () => {
+//   const { data: { session } } = await supabase.auth.getSession();
+//   if (session?.access_token) {
+//     console.log("🚀 Auto-starting backup and keepalive for existing session");
+//     forceSessionBackup(session);
+//     startPeriodicBackup();
+//     startKeepalive();
+//   }
+// })();
+
+
+
+
+
+
+
+// src/integrations/supabase/client.ts
+import { createClient, Session } from "@supabase/supabase-js";
+import type { Database } from "./types";
+
 const SUPABASE_URL = "https://ltjlswzrdgtoddyqmydo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0amxzd3pyZGd0b2RkeXFteWRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NDA5OTIsImV4cCI6MjA2MDExNjk5Mn0.YXg-x4oflJUdoRdQQQGI2NisUqUVHAXkhgyrr-4CoE0";
 
 const COOKIE_NAME = "sb-auth-token";
-const SESSION_STORAGE_KEY = "sb-session-backup"; // CRITICAL: sessionStorage works better in iframes
+const BACKUP_KEY = "sb-session-backup";
 
-/* ----------------------- Multi-Layer Storage Helpers ----------------------- */
+// Create supabase client
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+  realtime: { params: { eventsPerSecond: 3 } },
+});
+
+// ------------------------
+// Cookie helpers
+// ------------------------
 function getCookie(name: string) {
   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   return match ? decodeURIComponent(match[2]) : null;
@@ -110,364 +516,109 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
-function getSessionStorage(key: string) {
+// ------------------------
+// Session backup helpers
+// ------------------------
+function backupSession(session: Session | null) {
+  if (!session) return;
+  const serialized = JSON.stringify(session);
+  localStorage.setItem(BACKUP_KEY, serialized);
+  setCookie(COOKIE_NAME, serialized);
+}
+
+function restoreSessionFromBackup(): Session | null {
+  const local = localStorage.getItem(BACKUP_KEY);
+  const cookie = getCookie(COOKIE_NAME);
+  const source = local || cookie;
+  if (!source) return null;
   try {
-    const value = sessionStorage.getItem(key);
-    return value;
-  } catch (e) {
-    console.warn('sessionStorage not available:', e);
+    return JSON.parse(source);
+  } catch {
     return null;
   }
 }
 
-function setSessionStorage(key: string, value: string) {
-  try {
-    sessionStorage.setItem(key, value);
-    return true;
-  } catch (e) {
-    console.warn('Failed to set sessionStorage:', e);
-    return false;
-  }
-}
-
-function deleteSessionStorage(key: string) {
-  try {
-    sessionStorage.removeItem(key);
-  } catch (e) {
-    console.warn('Failed to delete sessionStorage:', e);
-  }
-}
-
-/* ----------------------- Supabase Client ----------------------- */
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 5,
-    },
-  },
-});
-
-/* ----------------------- Auth State Sync ----------------------- */
-let isExplicitSignOut = false;
-
-supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log(`🔐 Auth state changed: ${event}`, session ? 'has session' : 'no session');
-  
-  // CRITICAL FIX: Only clear storage on explicit SIGN_OUT that we initiated
-  if (event === "SIGNED_OUT" && isExplicitSignOut) {
-    console.log("🔐 User signed out - clearing all session storage");
+// ------------------------
+// Auto session backup listener
+// ------------------------
+supabase.auth.onAuthStateChange((_, session) => {
+  if (session?.access_token) {
+    backupSession(session);
+  } else {
     deleteCookie(COOKIE_NAME);
-    deleteSessionStorage(SESSION_STORAGE_KEY);
-    stopPeriodicBackup();
-    stopKeepalive();
-    isExplicitSignOut = false;
-  } else if (event === "SIGNED_OUT" && !isExplicitSignOut) {
-    // Session expired or failed, but DON'T clear backups - allow retry
-    console.warn("⚠️ Session lost (not explicit signout) - backups preserved for retry");
-    stopPeriodicBackup();
-    stopKeepalive();
-  } else if (session?.access_token) {
-    // Validate session hasn't expired before saving
-    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
-    const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-    
-    if (!isExpired) {
-      const sessionStr = JSON.stringify(session);
-      
-      // MULTI-LAYER BACKUP: Save to both cookie AND sessionStorage
-      setCookie(COOKIE_NAME, sessionStr);
-      setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-      console.log("💾 Session saved to multi-layer backup (cookie + sessionStorage)");
-      
-      // Start both periodic backup and keepalive
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        startPeriodicBackup();
-        startKeepalive();
-      }
-    } else {
-      console.warn("⚠️ Session expired, not saving");
-    }
-  }
-
-  if (event === "TOKEN_REFRESHED") {
-    console.log("🔁 Token refreshed successfully");
+    localStorage.removeItem(BACKUP_KEY);
   }
 });
 
-// Export function for explicit signout
-export async function signOut() {
-  isExplicitSignOut = true;
-  await supabase.auth.signOut();
-}
-
-/* ----------------------- Restore Session ----------------------- */
-export async function restoreSessionFromBackup() {
-  console.log("🔄 Attempting multi-layer session restoration...");
-  
-  // LAYER 1: Try sessionStorage first (most reliable in iframes)
-  console.log("📦 Trying sessionStorage...");
-  const sessionStorageValue = getSessionStorage(SESSION_STORAGE_KEY);
-  
-  if (sessionStorageValue) {
-    try {
-      const session = JSON.parse(sessionStorageValue);
-      
-      if (session?.access_token && session?.refresh_token) {
-        console.log("✅ Session found in sessionStorage, attempting restore...");
-        
-        // CRITICAL v37.2: Always try to restore, even if access_token expired
-        // The refresh_token lasts 30+ days, so it might still be valid
-        const { data, error } = await supabase.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token
-        });
-        
-        if (!error && data.session) {
-          console.log("✅ Successfully restored session from sessionStorage");
-          
-          // Re-save the fresh session to all layers
-          const sessionStr = JSON.stringify(data.session);
-          setCookie(COOKIE_NAME, sessionStr);
-          setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-          
-          startPeriodicBackup();
-          startKeepalive();
-          
-          return data.session;
-        } else {
-          console.warn("❌ v37.2 - Session restoration from sessionStorage failed:", error?.message);
-          deleteSessionStorage(SESSION_STORAGE_KEY);
-        }
-      }
-    } catch (e) {
-      console.warn("❌ Failed to restore from sessionStorage:", e);
-      deleteSessionStorage(SESSION_STORAGE_KEY);
-    }
-  }
-  
-  // LAYER 2: Try cookie as fallback
-  console.log("🍪 Trying cookie backup...");
-  const cookieValue = getCookie(COOKIE_NAME);
-  
-  if (cookieValue) {
-    try {
-      const session = JSON.parse(cookieValue);
-      
-      if (session?.access_token && session?.refresh_token) {
-        console.log("✅ Session found in cookie, attempting restore...");
-        
-        // CRITICAL v37.2: Always try to restore, even if access_token expired
-        // The refresh_token lasts 30+ days, so it might still be valid
-        const { data, error } = await supabase.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token
-        });
-        
-        if (!error && data.session) {
-          console.log("✅ Successfully restored session from cookie");
-          
-          // Re-save the fresh session to all layers
-          const sessionStr = JSON.stringify(data.session);
-          setCookie(COOKIE_NAME, sessionStr);
-          setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-          
-          startPeriodicBackup();
-          startKeepalive();
-          
-          return data.session;
-        } else {
-          console.warn("❌ v37.2 - Session restoration from cookie failed:", error?.message);
-          deleteCookie(COOKIE_NAME);
-        }
-      }
-    } catch (e) {
-      console.warn("❌ Failed to restore from cookie:", e);
-      deleteCookie(COOKIE_NAME);
-    }
-  }
-  
-  console.warn("❌ No valid session found in any backup layer");
-  return null;
-}
-
-/* ----------------------- Force Save Session ----------------------- */
-export function forceSessionBackup(session: any) {
-  if (session?.access_token && session?.refresh_token) {
-    // v37.2: Always backup as long as we have both tokens
-    // Don't check expiry - the refresh_token is what matters
-    const sessionStr = JSON.stringify(session);
-    setCookie(COOKIE_NAME, sessionStr);
-    setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-    console.log("💾 v37.2 - Forced multi-layer session backup");
-    return true;
-  }
-  console.warn("⚠️ v37.2 - No valid tokens to backup");
-  return false;
-}
-
-/* ----------------------- Periodic Session Backup ----------------------- */
-let periodicBackupInterval: NodeJS.Timeout | null = null;
-
-function startPeriodicBackup() {
-  if (periodicBackupInterval) {
-    console.log("⏰ Periodic backup already running");
-    return;
-  }
-  
-  console.log("⏰ Starting periodic session backup (every 15s)");
-  
-  periodicBackupInterval = setInterval(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const saved = forceSessionBackup(session);
-        if (saved) {
-          console.log("⏰ Periodic session backup successful");
-        }
-      } else {
-        // v37.0: If Supabase client has no session, try to restore from backup
-        console.warn("⏰ v37.0 - No session in client, attempting restoration...");
-        const restored = await restoreSessionFromBackup();
-        if (restored?.access_token) {
-          console.log("✅ v37.0 - Session restored proactively by periodic backup");
-        } else {
-          console.log("⏰ No active session to backup and no backup to restore");
-          stopPeriodicBackup();
-        }
-      }
-    } catch (error) {
-      console.error("⏰ Periodic backup error:", error);
-    }
-  }, 15000); // CRITICAL: Every 15 seconds for more frequent backups
-}
-
-function stopPeriodicBackup() {
-  if (periodicBackupInterval) {
-    clearInterval(periodicBackupInterval);
-    periodicBackupInterval = null;
-    console.log("⏰ Stopped periodic session backup");
-  }
-}
-
-/* ----------------------- Session Keepalive ----------------------- */
-let keepaliveInterval: NodeJS.Timeout | null = null;
-
-function startKeepalive() {
-  if (keepaliveInterval) {
-    console.log("💓 Keepalive already running");
-    return;
-  }
-  
-  console.log("💓 Starting session keepalive (every 2 minutes)");
-  
-  keepaliveInterval = setInterval(async () => {
-    try {
-      // CRITICAL v37.0: Check if Supabase client has lost its session
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession?.access_token) {
-        console.warn("💓 v37.0 - Supabase client lost session! Attempting restoration...");
-        
-        // Try to restore from our backups
-        const restored = await restoreSessionFromBackup();
-        if (restored?.access_token) {
-          console.log("✅ v37.0 - Session restored proactively by keepalive");
-          forceSessionBackup(restored);
-          return;
-        } else {
-          console.error("❌ v37.0 - Keepalive restoration failed, stopping keepalive");
-          stopKeepalive();
-          stopPeriodicBackup();
-          return;
-        }
-      }
-      
-      // CRITICAL: Actively refresh the session to keep it alive
-      const { data: { session }, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.warn("💓 Keepalive refresh failed:", error.message);
-        // Don't stop keepalive on transient errors
-        return;
-      }
-      
-      if (session) {
-        console.log("💓 Session keepalive refresh successful");
-        forceSessionBackup(session);
-      } else {
-        console.warn("💓 No session to keep alive");
-        stopKeepalive();
-      }
-    } catch (error) {
-      console.error("💓 Keepalive error:", error);
-    }
-  }, 2 * 60 * 1000); // Every 2 minutes for more aggressive keepalive
-}
-
-function stopKeepalive() {
-  if (keepaliveInterval) {
-    clearInterval(keepaliveInterval);
-    keepaliveInterval = null;
-    console.log("💓 Stopped session keepalive");
-  }
-}
-
-/* ----------------------- Realtime Reconnect Logic ----------------------- */
+// ------------------------
+// Force reconnect Realtime safely
+// ------------------------
 export async function reconnectRealtime() {
   try {
-    console.log("🔌 Reconnecting Supabase Realtime...");
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.realtime.connect();
-      console.log("🟢 Realtime reconnected with active session");
-    } else {
-      console.warn("⚠️ No session for Realtime reconnection");
-    }
-  } catch (error) {
-    console.error("❌ Realtime reconnection failed:", error);
+    await supabase.realtime.disconnect();
+    await new Promise((r) => setTimeout(r, 200));
+    await supabase.realtime.connect();
+    console.log("🟢 Supabase Realtime reconnected");
+  } catch (e) {
+    console.warn("Realtime reconnect failed:", e);
   }
 }
 
-/* ----------------------- Visibility Event Handling ----------------------- */
-// Add beforeunload backup as safety net
-window.addEventListener('beforeunload', () => {
-  const session = supabase.auth.getSession();
-  session.then(({ data: { session } }) => {
-    if (session) {
-      forceSessionBackup(session);
-      console.log("💾 Pre-unload session backup");
-    }
-  });
-});
+// ------------------------
+// Keep session alive automatically
+// ------------------------
+async function ensureSessionAlive() {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) throw new Error("Missing session");
 
-/* ----------------------- Health Ping & Auto-Start ----------------------- */
-// Keeps connection warm in long-running sessions
-setInterval(
-  async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session?.access_token) {
-      console.log("💓 Supabase session still active");
-      // Ensure backup is running for active sessions
-      if (!periodicBackupInterval) {
-        startPeriodicBackup();
-      }
+    // Access token expired?
+    const expiresAt = data.session?.expires_at;
+    const now = Math.floor(Date.now() / 1000);
+    if (expiresAt && expiresAt < now + 60) {
+      console.log("🔄 Access token expired — refreshing...");
+      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+      if (refreshErr) throw refreshErr;
+      if (refreshed?.session) backupSession(refreshed.session);
     }
-  },
-  10 * 60 * 1000,
-); // every 10 minutes
-
-// Auto-start backup and keepalive if user is already logged in
-(async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    console.log("🚀 Auto-starting backup and keepalive for existing session");
-    forceSessionBackup(session);
-    startPeriodicBackup();
-    startKeepalive();
+  } catch {
+    console.log("⚠️ Session invalid, attempting restore via refresh_token...");
+    const backup = restoreSessionFromBackup();
+    if (backup?.refresh_token) {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: backup.access_token,
+        refresh_token: backup.refresh_token,
+      });
+      if (error) console.error("Restore failed:", error);
+      else if (data?.session) backupSession(data.session);
+    }
   }
+}
+
+// ------------------------
+// Keepalive & visibility listeners
+// ------------------------
+function setupKeepAlive() {
+  // Refresh every 5 minutes
+  setInterval(ensureSessionAlive, 5 * 60_000);
+
+  // Also on tab revisit or focus
+  const onVisible = async () => {
+    if (document.visibilityState === "visible") {
+      console.log("👁️ Tab became visible, verifying session...");
+      await ensureSessionAlive();
+      await reconnectRealtime();
+    }
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  window.addEventListener("focus", onVisible);
+  window.addEventListener("online", ensureSessionAlive);
+}
+
+// Initialize once
+(async () => {
+  console.log("🚀 Initial Supabase session init");
+  await ensureSessionAlive();
+  setupKeepAlive();
 })();
+
