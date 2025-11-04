@@ -460,6 +460,9 @@ import Login from "@/pages/Login";
 import SetupPassword from "@/pages/SetupPassword";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
+import Properties from "@/pages/Properties";
+import AllRequests from "@/pages/AllRequests";
+import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -509,6 +512,33 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/properties"
+        element={
+          <ProtectedRoute>
+            <Properties />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/requests"
+        element={
+          <ProtectedRoute>
+            <AllRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <Reports />
           </ProtectedRoute>
         }
       />

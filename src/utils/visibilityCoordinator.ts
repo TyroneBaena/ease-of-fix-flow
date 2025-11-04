@@ -77,17 +77,18 @@ class VisibilityCoordinator {
     this.visibilityListener = () => {
       if (!document.hidden) {
         const timeSinceLastChange = Date.now() - this.lastVisibilityChange;
-        console.log("👁️ VisibilityCoordinator v4.0 - Tab visible after", Math.round(timeSinceLastChange / 1000), "s");
+        console.log("👁️ VisibilityCoordinator v5.0 - Tab visible after", Math.round(timeSinceLastChange / 1000), "s");
 
-        // USER REQUESTED: Force page refresh on EVERY tab revisit
-        // This is a pragmatic solution to handle timeout issues
-        // Trade-off: Loses form data, scroll position, cached state
-        console.log("🔄 VisibilityCoordinator v4.0 - Tab revisited, forcing page refresh");
-        console.log("⚠️ This will reset all unsaved data, scroll positions, and cached state");
-        this.showRefreshOverlay();
-        setTimeout(() => window.location.reload(), 300); // Small delay to show the overlay
+        // Only refresh if tab was hidden for at least minimum time
+        if (timeSinceLastChange >= this.minHiddenTime) {
+          console.log("🔄 VisibilityCoordinator v5.0 - Initiating smart background refresh");
+          // Trigger coordinated background refresh - NO PAGE RELOAD
+          this.coordinateRefresh();
+        } else {
+          console.log("🔄 VisibilityCoordinator v5.0 - Quick tab switch, skipping refresh (< 5s)");
+        }
       } else {
-        console.log("👁️ VisibilityCoordinator v4.0 - Tab hidden");
+        console.log("👁️ VisibilityCoordinator v5.0 - Tab hidden");
         this.lastVisibilityChange = Date.now();
       }
     };
@@ -104,58 +105,6 @@ class VisibilityCoordinator {
       document.removeEventListener("visibilitychange", this.visibilityListener);
       this.visibilityListener = null;
     }
-  }
-
-  /**
-   * Show refresh overlay before page reload
-   */
-  private showRefreshOverlay() {
-    const overlay = document.createElement("div");
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: hsl(var(--background) / 0.98);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      backdrop-filter: blur(8px);
-    `;
-
-    const spinner = document.createElement("div");
-    spinner.style.cssText = `
-      width: 48px;
-      height: 48px;
-      border: 4px solid hsl(var(--primary) / 0.2);
-      border-top-color: hsl(var(--primary));
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 16px;
-    `;
-
-    const message = document.createElement("div");
-    message.textContent = "Refreshing data...";
-    message.style.cssText = `
-      color: hsl(var(--foreground));
-      font-size: 16px;
-      font-weight: 500;
-    `;
-
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `;
-
-    overlay.appendChild(spinner);
-    overlay.appendChild(message);
-    document.head.appendChild(style);
-    document.body.appendChild(overlay);
   }
 
   /**
