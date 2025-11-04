@@ -306,6 +306,19 @@ if (typeof document !== "undefined") {
     if (document.hidden) {
       console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
       supabase.realtime.disconnect();
+      
+      // CRITICAL FIX: Force immediate backup before tab becomes hidden
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const backed = forceSessionBackup(session);
+          if (backed) {
+            console.log("💾 Pre-hide session backup successful");
+          }
+        }
+      } catch (error) {
+        console.error("❌ Pre-hide backup failed:", error);
+      }
     } else {
       console.log("👀 Tab visible again — reconnecting Realtime...");
       // Session restoration happens in UnifiedAuthContext via coordinator
