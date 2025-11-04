@@ -95,14 +95,19 @@ class VisibilityCoordinator {
 
     try {
       // CRITICAL: Execute auth handler first (it's always registered first)
-      // This ensures session is restored before other queries run
+      // This ensures session AND user are fully restored before other queries run
       if (this.refreshHandlers.length > 0) {
         const authHandler = this.refreshHandlers[0];
         await authHandler();
-        console.log("✅ Auth handler completed, session restored");
+        console.log("✅ Auth handler completed, session and user restored");
         
-        // Small delay to ensure session propagates
-        await new Promise(resolve => setTimeout(resolve, 150));
+        // CRITICAL: Longer delay (800ms) to ensure:
+        // 1. Session is set in Supabase client
+        // 2. User conversion completes  
+        // 3. React context state updates propagate
+        // 4. Queries have authenticated user context
+        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log("✅ Auth propagation complete, ready for data queries");
       }
       
       // Execute remaining handlers in parallel

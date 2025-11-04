@@ -654,47 +654,54 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // CRITICAL: Only refresh session validity, NOT full profile re-fetch
   useEffect(() => {
     const refreshAuth = async () => {
-      console.log('🔄 UnifiedAuth v22.0 - Coordinator-triggered session check');
+      console.log('🔄 UnifiedAuth v23.0 - Coordinator-triggered session check');
       try {
         // First check if we already have a valid session in memory
         const { data: { session: currentSession }, error: currentError } = await supabase.auth.getSession();
         
         if (currentError) {
-          console.error('🔄 UnifiedAuth v22.0 - Session check error:', currentError);
+          console.error('🔄 UnifiedAuth v23.0 - Session check error:', currentError);
           return;
         }
         
-        // If session exists and is valid, update state and return
+        // If session exists and is valid, ensure user is also set
         if (currentSession?.access_token) {
-          console.log('🔄 UnifiedAuth v22.0 - Valid session found in memory');
-          setSession(prevSession => {
-            if (!prevSession || prevSession.access_token !== currentSession.access_token) {
-              console.log('🔄 UnifiedAuth v22.0 - Session token updated in state');
-              return currentSession;
-            }
-            return prevSession;
-          });
+          console.log('🔄 UnifiedAuth v23.0 - Valid session found in memory');
+          
+          // CRITICAL: Verify user is also set, not just session
+          if (currentUser?.id === currentSession.user.id) {
+            console.log('🔄 UnifiedAuth v23.0 - User already set, session valid');
+            return;
+          }
+          
+          // Session exists but user not set - convert user
+          console.log('🔄 UnifiedAuth v23.0 - Session found but user not set, converting user');
+          const user = await convertSupabaseUser(currentSession.user);
+          setCurrentUser(user);
+          setSession(currentSession);
+          console.log('🔄 UnifiedAuth v23.0 - User and session restored from memory');
           return;
         }
         
         // No session in memory - try to restore from cookie
-        console.log('🔄 UnifiedAuth v22.0 - No session in memory, attempting cookie restoration');
+        console.log('🔄 UnifiedAuth v23.0 - No session in memory, attempting cookie restoration');
         const { restoreSessionFromCookie } = await import('@/integrations/supabase/client');
         const restoredSession = await restoreSessionFromCookie();
         
-        if (restoredSession?.access_token) {
-          console.log('🔄 UnifiedAuth v22.0 - Session restored from cookie, updating state');
-          // CRITICAL: Update state immediately after restoration
+        if (restoredSession?.access_token && restoredSession.user) {
+          console.log('🔄 UnifiedAuth v23.0 - Session restored from cookie, converting user');
+          
+          // CRITICAL: Convert user immediately so queries have authenticated context
+          const user = await convertSupabaseUser(restoredSession.user);
+          setCurrentUser(user);
           setSession(restoredSession);
           
-          // Give the session time to fully propagate through Supabase client
-          await new Promise(resolve => setTimeout(resolve, 100));
-          console.log('🔄 UnifiedAuth v22.0 - Session fully restored and ready');
+          console.log('🔄 UnifiedAuth v23.0 - User and session fully restored, ready for queries');
         } else {
-          console.log('🔄 UnifiedAuth v22.0 - No session in cookie, user may need to re-login');
+          console.log('🔄 UnifiedAuth v23.0 - No session in cookie, user may need to re-login');
         }
       } catch (error) {
-        console.error('🔄 UnifiedAuth v22.0 - Coordinator session check error:', error);
+        console.error('🔄 UnifiedAuth v23.0 - Coordinator session check error:', error);
       }
     };
 
