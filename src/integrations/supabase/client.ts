@@ -125,10 +125,22 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 /* ----------------------- Auth State Sync ----------------------- */
 supabase.auth.onAuthStateChange(async (event, session) => {
-  if (session?.access_token) {
-    setCookie(COOKIE_NAME, JSON.stringify(session));
-  } else {
+  // CRITICAL FIX: Only delete cookie on explicit SIGN_OUT
+  // Don't delete on every null session (could be temporary state)
+  if (event === "SIGNED_OUT") {
+    console.log("🔐 User signed out - clearing cookie");
     deleteCookie(COOKIE_NAME);
+  } else if (session?.access_token) {
+    // Validate session hasn't expired before saving
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+    const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+    
+    if (!isExpired) {
+      setCookie(COOKIE_NAME, JSON.stringify(session));
+      console.log("💾 Session saved to cookie backup");
+    } else {
+      console.warn("⚠️ Session expired, not saving to cookie");
+    }
   }
 
   if (event === "TOKEN_REFRESHED") {
@@ -142,16 +154,38 @@ export async function restoreSessionFromCookie() {
   if (cookieValue) {
     try {
       const session = JSON.parse(cookieValue);
+      
+      // Validate session hasn't expired
+      const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+      const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+      
+      if (isExpired) {
+        console.warn("⚠️ Cookie session expired, clearing");
+        deleteCookie(COOKIE_NAME);
+        return null;
+      }
+      
       if (session?.access_token) {
         await supabase.auth.setSession(session);
         console.log("✅ Restored Supabase session from cookie");
+        // Re-save to update expiry
+        setCookie(COOKIE_NAME, JSON.stringify(session));
         return session;
       }
     } catch (e) {
       console.error("❌ Failed to parse cookie session:", e);
+      deleteCookie(COOKIE_NAME);
     }
   }
   return null;
+}
+
+/* ----------------------- Force Save Session ----------------------- */
+export function forceSessionBackup(session: any) {
+  if (session?.access_token) {
+    setCookie(COOKIE_NAME, JSON.stringify(session));
+    console.log("💾 Forced session backup to cookie");
+  }
 }
 
 /* ----------------------- Realtime Reconnect Logic ----------------------- */
