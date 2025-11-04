@@ -106,13 +106,12 @@ class VisibilityCoordinator {
   /**
    * Coordinate data refresh across all tabs when tab becomes visible again
    * Executes auth first, then other handlers in parallel
-   * v33.0: Added timeout protection to prevent hung state
+   * v35.0: Optimized timeout and propagation for bulletproof restoration
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
       console.warn("⚙️ Refresh already in progress — forcing reset after 30s");
       
-      // CRITICAL FIX: Reset stuck flag after 30 seconds
       setTimeout(() => {
         if (this.isRefreshing) {
           console.error("❌ Coordinator was stuck! Force-resetting isRefreshing flag");
@@ -123,44 +122,40 @@ class VisibilityCoordinator {
     }
 
     this.isRefreshing = true;
+    const coordinatorStartTime = Date.now();
     console.log(`🔁 Coordinating refresh (${this.refreshHandlers.length} handlers registered)...`);
     
-    // CRITICAL FIX: Add timeout protection to prevent hung state
+    // v35.0: Increased to 22s to match new auth handler structure
     const refreshTimeout = setTimeout(() => {
-      console.error("❌ Coordinator timeout after 25s - force resetting");
+      console.error("❌ Coordinator timeout after 22s - force resetting");
       this.isRefreshing = false;
-    }, 25000);
+    }, 22000);
 
     try {
       // CRITICAL: Execute auth handler first (it's always registered first)
-      // This ensures session AND user are fully restored before other queries run
       if (this.refreshHandlers.length > 0) {
         const authHandler = this.refreshHandlers[0];
         
-        // CRITICAL FIX v33.0: Wrap auth handler with timeout protection
+        // v35.0: Increased to 18s for multi-step restoration process
         const authSuccess = await Promise.race([
           authHandler(),
           new Promise<boolean>((resolve) => {
             setTimeout(() => {
-              console.error("❌ Auth handler timeout after 20s");
+              console.error("❌ Auth handler timeout after 18s");
               resolve(false);
-            }, 20000);
+            }, 18000);
           })
         ]);
         
-        // CRITICAL FIX: Only proceed if auth actually succeeded
         if (authSuccess === true) {
-          console.log("✅ Auth handler completed, session and user restored");
+          const authDuration = Date.now() - coordinatorStartTime;
+          console.log(`✅ Auth handler completed in ${authDuration}ms, session and user restored`);
           
-          // CRITICAL: Extended delay (1500ms) to ensure:
-          // 1. Session is set in Supabase client
-          // 2. User conversion completes  
-          // 3. React context state updates propagate
-          // 4. Queries have authenticated user context
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          console.log("✅ Auth propagation complete, ready for data queries");
+          // v35.0: Reduced to 1000ms since auth handler now includes propagation wait
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log("✅ Final propagation complete, ready for data queries");
           
-          // Reconnect Realtime after session restoration - only ONCE
+          // Reconnect Realtime after session restoration
           try {
             const { reconnectRealtime } = await import('@/integrations/supabase/client');
             await reconnectRealtime();
@@ -168,10 +163,10 @@ class VisibilityCoordinator {
             console.error("❌ Realtime reconnection failed:", realtimeError);
           }
         } else {
-          console.error("❌ Auth handler failed - session restoration unsuccessful");
+          const authDuration = Date.now() - coordinatorStartTime;
+          console.error(`❌ Auth handler failed after ${authDuration}ms - session restoration unsuccessful`);
           console.warn("⚠️ Skipping data refresh - user needs to re-login");
-          // Don't reset flag here - let finally block handle it
-          return; // Don't proceed with data handlers if auth failed
+          return;
         }
       }
       
@@ -184,10 +179,10 @@ class VisibilityCoordinator {
     } catch (error) {
       console.error("❌ Error during coordinated refresh", error);
     } finally {
-      // CRITICAL: Always clear timeout and reset flag
       clearTimeout(refreshTimeout);
       this.isRefreshing = false;
-      console.log("✅ Coordinator refresh cycle complete");
+      const totalDuration = Date.now() - coordinatorStartTime;
+      console.log(`✅ Coordinator refresh cycle complete in ${totalDuration}ms`);
     }
   }
 }
