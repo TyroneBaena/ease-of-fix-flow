@@ -458,6 +458,8 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 
 // Your route components
 import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import SignupStatus from "@/pages/SignupStatus";
 import SetupPassword from "@/pages/SetupPassword";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
@@ -506,6 +508,10 @@ const AppRoutes = () => {
         <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
 
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+        
+        <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        
+        <Route path="/signup-status" element={<SignupStatus />} />
 
         <Route
           path="/setup-password"
