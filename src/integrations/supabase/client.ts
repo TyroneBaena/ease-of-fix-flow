@@ -153,14 +153,22 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 });
 
 /* ----------------------- Auth State Sync ----------------------- */
+let isExplicitSignOut = false;
+
 supabase.auth.onAuthStateChange(async (event, session) => {
   console.log(`🔐 Auth state changed: ${event}`, session ? 'has session' : 'no session');
   
-  // CRITICAL FIX: Only delete storage on explicit SIGN_OUT
-  if (event === "SIGNED_OUT") {
+  // CRITICAL FIX: Only clear storage on explicit SIGN_OUT that we initiated
+  if (event === "SIGNED_OUT" && isExplicitSignOut) {
     console.log("🔐 User signed out - clearing all session storage");
     deleteCookie(COOKIE_NAME);
     deleteSessionStorage(SESSION_STORAGE_KEY);
+    stopPeriodicBackup();
+    stopKeepalive();
+    isExplicitSignOut = false;
+  } else if (event === "SIGNED_OUT" && !isExplicitSignOut) {
+    // Session expired or failed, but DON'T clear backups - allow retry
+    console.warn("⚠️ Session lost (not explicit signout) - backups preserved for retry");
     stopPeriodicBackup();
     stopKeepalive();
   } else if (session?.access_token) {
@@ -190,6 +198,12 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     console.log("🔁 Token refreshed successfully");
   }
 });
+
+// Export function for explicit signout
+export async function signOut() {
+  isExplicitSignOut = true;
+  await supabase.auth.signOut();
+}
 
 /* ----------------------- Restore Session ----------------------- */
 export async function restoreSessionFromBackup() {
@@ -355,7 +369,7 @@ function startKeepalive() {
     return;
   }
   
-  console.log("💓 Starting session keepalive (every 4 minutes)");
+  console.log("💓 Starting session keepalive (every 2 minutes)");
   
   keepaliveInterval = setInterval(async () => {
     try {
@@ -364,8 +378,7 @@ function startKeepalive() {
       
       if (error) {
         console.warn("💓 Keepalive refresh failed:", error.message);
-        // If refresh fails, stop keepalive
-        stopKeepalive();
+        // Don't stop keepalive on transient errors
         return;
       }
       
@@ -379,7 +392,7 @@ function startKeepalive() {
     } catch (error) {
       console.error("💓 Keepalive error:", error);
     }
-  }, 4 * 60 * 1000); // Every 4 minutes (tokens expire after 1 hour)
+  }, 2 * 60 * 1000); // Every 2 minutes for more aggressive keepalive
 }
 
 function stopKeepalive() {
@@ -391,32 +404,32 @@ function stopKeepalive() {
 }
 
 /* ----------------------- Realtime Reconnect Logic ----------------------- */
-let reconnectTimeout: NodeJS.Timeout | null = null;
-
-function reconnectRealtime() {
-  if (reconnectTimeout) clearTimeout(reconnectTimeout);
-  reconnectTimeout = setTimeout(async () => {
-    try {
-      console.log("🔌 Reconnecting Supabase Realtime...");
-      // CRITICAL FIX: Don't check for session here - it creates a race condition
-      // The visibilityCoordinator will restore the session separately (takes ~800ms)
-      // Just reconnect - Supabase will use the restored session automatically
+export async function reconnectRealtime() {
+  try {
+    console.log("🔌 Reconnecting Supabase Realtime...");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
       await supabase.realtime.connect();
-      console.log("🟢 Realtime reconnection initiated");
-    } catch (error) {
-      console.error("❌ Realtime reconnection failed:", error);
+      console.log("🟢 Realtime reconnected with active session");
+    } else {
+      console.warn("⚠️ No session for Realtime reconnection");
     }
-  }, 1500); // Increased delay to allow session restoration to complete first
+  } catch (error) {
+    console.error("❌ Realtime reconnection failed:", error);
+  }
 }
 
-/* ----------------------- Handle Visibility Events ----------------------- */
-// REMOVED: Duplicate visibility listener - now handled by visibilityCoordinator
-// The visibilityCoordinator in UnifiedAuthContext handles:
-// 1. Session restoration (via refreshAuth handler)
-// 2. Pre-hide session backup
-// 3. Realtime reconnection coordination
-//
-// This prevents race conditions from multiple visibility listeners
+/* ----------------------- Visibility Event Handling ----------------------- */
+// Add beforeunload backup as safety net
+window.addEventListener('beforeunload', () => {
+  const session = supabase.auth.getSession();
+  session.then(({ data: { session } }) => {
+    if (session) {
+      forceSessionBackup(session);
+      console.log("💾 Pre-unload session backup");
+    }
+  });
+});
 
 /* ----------------------- Health Ping & Auto-Start ----------------------- */
 // Keeps connection warm in long-running sessions

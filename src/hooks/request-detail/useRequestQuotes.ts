@@ -16,12 +16,12 @@ export function useRequestQuotes(requestId: string | undefined, forceRefresh: nu
     if (!requestId) return;
     
     const fetchQuotes = async () => {
-      // CRITICAL FIX: Add timeout protection
+      // CRITICAL FIX: Add timeout protection with longer window for session restoration
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.warn('Quotes fetch timeout after 10s');
-      }, 10000);
+        console.warn('Quotes fetch timeout after 30s');
+      }, 30000); // 30 second timeout to allow for session restoration
 
       try {
         // Wrap with retry logic

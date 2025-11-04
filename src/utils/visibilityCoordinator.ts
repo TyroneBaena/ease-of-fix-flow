@@ -66,23 +66,28 @@ class VisibilityCoordinator {
       this.lastHiddenTime = Date.now();
       console.log("🔒 Tab hidden at", new Date(this.lastHiddenTime).toISOString());
       
-      // CRITICAL: Disconnect Realtime and backup session before tab hides
+      // CRITICAL: Backup session FIRST (synchronously), then disconnect Realtime
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
-        supabase.realtime.disconnect();
+        const { supabase, forceSessionBackup } = await import('@/integrations/supabase/client');
         
-        // Force immediate session backup
-        const { forceSessionBackup } = await import('@/integrations/supabase/client');
+        // Get and backup session immediately
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
           const backed = forceSessionBackup(session);
           if (backed) {
             console.log("💾 Pre-hide session backup successful");
+          } else {
+            console.warn("⚠️ Pre-hide session backup failed");
           }
+        } else {
+          console.warn("⚠️ No session to backup on hide");
         }
+        
+        // Then disconnect Realtime
+        console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
+        await supabase.realtime.disconnect();
       } catch (error) {
-        console.error("❌ Pre-hide backup failed:", error);
+        console.error("❌ Pre-hide operations failed:", error);
       }
     } else {
       const now = Date.now();
@@ -122,21 +127,18 @@ class VisibilityCoordinator {
         if (authSuccess === true) {
           console.log("✅ Auth handler completed, session and user restored");
           
-          // CRITICAL: Longer delay (1200ms) to ensure:
+          // CRITICAL: Extended delay (1500ms) to ensure:
           // 1. Session is set in Supabase client
           // 2. User conversion completes  
           // 3. React context state updates propagate
           // 4. Queries have authenticated user context
-          // 5. Realtime connection is re-established
-          await new Promise(resolve => setTimeout(resolve, 1200));
+          await new Promise(resolve => setTimeout(resolve, 1500));
           console.log("✅ Auth propagation complete, ready for data queries");
           
-          // Reconnect Realtime after session restoration
+          // Reconnect Realtime after session restoration - only ONCE
           try {
-            const { supabase } = await import('@/integrations/supabase/client');
-            console.log("🔌 Reconnecting Supabase Realtime...");
-            await supabase.realtime.connect();
-            console.log("🟢 Realtime reconnection successful");
+            const { reconnectRealtime } = await import('@/integrations/supabase/client');
+            await reconnectRealtime();
           } catch (realtimeError) {
             console.error("❌ Realtime reconnection failed:", realtimeError);
           }

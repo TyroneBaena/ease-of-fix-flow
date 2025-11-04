@@ -746,7 +746,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           // LAYER 2: Try multi-layer backup (sessionStorage + cookie)
           console.log('🔄 UnifiedAuth v29.0 - Trying multi-layer backup...');
-          const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+          const { restoreSessionFromBackup, forceSessionBackup } = await import('@/integrations/supabase/client');
           const cookieSession = await restoreSessionFromBackup();
           
           if (cookieSession?.access_token) {
@@ -756,6 +756,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             
             if (!isExpired) {
               console.log('✅ UnifiedAuth v29.0 - Session restored from backup!');
+              
+              // CRITICAL: Force immediate re-backup after successful restore
+              forceSessionBackup(cookieSession);
+              
               const user = await convertSupabaseUser(cookieSession.user);
               setCurrentUser(user);
               setSession(cookieSession);
