@@ -661,68 +661,54 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
-  // CRITICAL: Only refresh session validity, NOT full profile re-fetch
+  // CRITICAL: Supabase ALREADY persists sessions to localStorage via persistSession: true
+  // We just need to call getSession() to restore it - NO custom cookies needed!
   useEffect(() => {
     const refreshAuth = async () => {
-      console.log('🔄 UnifiedAuth v23.0 - Coordinator-triggered session check');
+      console.log('🔄 UnifiedAuth v24.0 - Coordinator-triggered session check');
       try {
-        // First check if we already have a valid session in memory
+        // Supabase's getSession() automatically reads from localStorage
+        // This is the ONLY place we need to check - built-in persistence works!
         const { data: { session: currentSession }, error: currentError } = await supabase.auth.getSession();
         
         if (currentError) {
-          console.error('🔄 UnifiedAuth v23.0 - Session check error:', currentError);
+          console.error('🔄 UnifiedAuth v24.0 - Session check error:', currentError);
           return;
         }
         
         // If session exists and is valid, ensure user is also set
         if (currentSession?.access_token) {
-          console.log('🔄 UnifiedAuth v23.0 - Valid session found in memory');
+          console.log('🔄 UnifiedAuth v24.0 - Valid session found (from localStorage)');
           
           // CRITICAL: Verify user is also set, not just session
           if (currentUser?.id === currentSession.user.id) {
-            console.log('🔄 UnifiedAuth v23.0 - User already set, session valid');
+            console.log('🔄 UnifiedAuth v24.0 - User already set, session valid');
             return;
           }
           
           // Session exists but user not set - convert user
-          console.log('🔄 UnifiedAuth v23.0 - Session found but user not set, converting user');
+          console.log('🔄 UnifiedAuth v24.0 - Session found but user not set, converting user');
           const user = await convertSupabaseUser(currentSession.user);
           setCurrentUser(user);
           setSession(currentSession);
-          console.log('🔄 UnifiedAuth v23.0 - User and session restored from memory');
-          return;
-        }
-        
-        // No session in memory - try to restore from cookie
-        console.log('🔄 UnifiedAuth v23.0 - No session in memory, attempting cookie restoration');
-        const { restoreSessionFromCookie } = await import('@/integrations/supabase/client');
-        const restoredSession = await restoreSessionFromCookie();
-        
-        if (restoredSession?.access_token && restoredSession.user) {
-          console.log('🔄 UnifiedAuth v23.0 - Session restored from cookie, converting user');
-          
-          // CRITICAL: Convert user immediately so queries have authenticated context
-          const user = await convertSupabaseUser(restoredSession.user);
-          setCurrentUser(user);
-          setSession(restoredSession);
-          
-          console.log('🔄 UnifiedAuth v23.0 - User and session fully restored, ready for queries');
+          console.log('🔄 UnifiedAuth v24.0 - User and session restored from localStorage');
         } else {
-          console.log('🔄 UnifiedAuth v23.0 - No session in cookie, user may need to re-login');
+          console.log('🔄 UnifiedAuth v24.0 - No valid session in localStorage, user needs to login');
+          // Don't clear currentUser here - let the auth state change handler do it
         }
       } catch (error) {
-        console.error('🔄 UnifiedAuth v23.0 - Coordinator session check error:', error);
+        console.error('🔄 UnifiedAuth v24.0 - Coordinator session check error:', error);
       }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log('🔄 UnifiedAuth v22.0 - Registered with visibility coordinator');
+    console.log('🔄 UnifiedAuth v24.0 - Registered with visibility coordinator');
 
     return () => {
       unregister();
-      console.log('🔄 UnifiedAuth v22.0 - Cleanup: Unregistered from visibility coordinator');
+      console.log('🔄 UnifiedAuth v24.0 - Cleanup: Unregistered from visibility coordinator');
     };
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     console.log('🚀 UnifiedAuth v17.0 - Starting auth initialization at:', new Date().toISOString());

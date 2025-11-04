@@ -177,14 +177,16 @@ function reconnectRealtime() {
 }
 
 /* ----------------------- Handle Visibility Events ----------------------- */
+// NOTE: Session restoration is handled by visibilityCoordinator in UnifiedAuthContext
+// This listener ONLY manages Realtime connection state
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", async () => {
     if (document.hidden) {
       console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
       supabase.realtime.disconnect();
     } else {
-      console.log("👀 Tab visible again — restoring session & reconnecting...");
-      await restoreSessionFromCookie();
+      console.log("👀 Tab visible again — reconnecting Realtime...");
+      // Session restoration happens in UnifiedAuthContext via coordinator
       reconnectRealtime();
     }
   });
