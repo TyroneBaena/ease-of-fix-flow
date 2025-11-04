@@ -170,7 +170,7 @@ class VisibilityCoordinator {
         } else {
           console.error("❌ Auth handler failed - session restoration unsuccessful");
           console.warn("⚠️ Skipping data refresh - user needs to re-login");
-          this.isRefreshing = false;
+          // Don't reset flag here - let finally block handle it
           return; // Don't proceed with data handlers if auth failed
         }
       }

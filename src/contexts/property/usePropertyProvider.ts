@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Property } from '@/types/property';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-import { useUserContext } from '../UnifiedAuthContext';
+import { useUnifiedAuth } from '../UnifiedAuthContext';
 import { PropertyContextType } from './PropertyContextTypes';
 import { fetchProperties } from './propertyOperations';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
@@ -12,7 +12,7 @@ export const usePropertyProvider = (): PropertyContextType => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
-  const { currentUser } = useUserContext();
+  const { currentUser, isSessionReady } = useUnifiedAuth();
   const lastFetchedUserIdRef = useRef<string | null>(null);
   // CRITICAL: Track if we've completed initial load to prevent loading flashes
   const hasCompletedInitialLoadRef = useRef(false);
@@ -24,7 +24,13 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   // Fetch properties from database
   const fetchAndSetProperties = useCallback(async () => {
-    console.log('PropertyProvider: fetchAndSetProperties called');
+    console.log('PropertyProvider: fetchAndSetProperties called, SessionReady:', isSessionReady);
+    
+    // CRITICAL: Wait for session to be ready before making queries
+    if (!isSessionReady) {
+      console.log('PropertyProvider: Waiting for session ready...');
+      return;
+    }
     
     // CRITICAL: Prevent concurrent fetches
     if (isFetchingRef.current) {
@@ -76,18 +82,25 @@ export const usePropertyProvider = (): PropertyContextType => {
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, []); // CRITICAL: Empty dependencies
+  }, [isSessionReady]); // CRITICAL: Add isSessionReady to dependencies
 
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
       currentUser: currentUser ? `User: ${currentUser.email}` : 'No user',
       userId: currentUser?.id,
-      lastFetchedUserId: lastFetchedUserIdRef.current
+      lastFetchedUserId: lastFetchedUserIdRef.current,
+      isSessionReady
     });
     
     // Clear any pending debounce timers
     if (fetchDebounceTimerRef.current) {
       clearTimeout(fetchDebounceTimerRef.current);
+    }
+    
+    // CRITICAL: Wait for session to be ready
+    if (!isSessionReady) {
+      console.log('PropertyProvider: Waiting for session ready...');
+      return;
     }
     
     // If no user, clear everything
@@ -121,18 +134,22 @@ export const usePropertyProvider = (): PropertyContextType => {
         clearTimeout(fetchDebounceTimerRef.current);
       }
     };
-  }, [currentUser?.id, fetchAndSetProperties]);
+  }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
   // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    if (!currentUser?.id) {
-      console.log('🔄 PropertyProvider - No user, skipping registration');
+    if (!currentUser?.id || !isSessionReady) {
+      console.log('🔄 PropertyProvider - No user or session not ready, skipping registration');
       return;
     }
 
     const refreshProperties = async () => {
       console.log('🔄 PropertyProvider - Coordinator-triggered refresh');
-      await fetchAndSetProperties();
+      if (isSessionReady) {
+        await fetchAndSetProperties();
+      } else {
+        console.log('🔄 PropertyProvider - Session not ready, skipping refresh');
+      }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshProperties);
@@ -142,7 +159,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       unregister();
       console.log('🔄 PropertyProvider - Cleanup: Unregistered from visibility coordinator');
     };
-  }, [currentUser?.id, fetchAndSetProperties]);
+  }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
