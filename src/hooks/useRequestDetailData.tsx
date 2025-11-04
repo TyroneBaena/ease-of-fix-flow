@@ -20,7 +20,8 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   // Use specialized hooks with the refresh counter and session ready flag
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(
     requestId, 
-    refreshCounter
+    refreshCounter,
+    isSessionReady
   );
   
   const quotes = useRequestQuotes(requestId, refreshCounter, isSessionReady);

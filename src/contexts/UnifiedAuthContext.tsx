@@ -667,6 +667,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
   // REACT STATE-BASED SESSION RESTORATION: Use React state as source of truth
   useEffect(() => {
+    // Create stable reference to current session/user state
+    const sessionRef = { current: session };
+    const userRef = { current: currentUser };
+    
     const refreshAuth = async (): Promise<boolean> => {
       console.log('🔄 UnifiedAuth v31.0 - Coordinator-triggered session restoration');
       
@@ -674,11 +678,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // React state persists in memory even when tab is hidden (unlike browser storage in iframes)
       
       // Step 1: Check if we have a valid session in React state
-      if (session?.access_token && currentUser?.id) {
+      const currentSession = sessionRef.current;
+      const currentUserData = userRef.current;
+      
+      if (currentSession?.access_token && currentUserData?.id) {
         console.log('✅ UnifiedAuth v31.0 - Session found in React state');
         
         // Validate session isn't expired
-        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+        const expiresAt = currentSession.expires_at ? currentSession.expires_at * 1000 : 0;
         const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
         
         if (!isExpired) {
@@ -688,12 +695,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             // CRITICAL: Re-inject session into Supabase client
             // This ensures Supabase client has the session for authenticated queries
             const { error: setError } = await supabase.auth.setSession({
-              access_token: session.access_token,
-              refresh_token: session.refresh_token
+              access_token: currentSession.access_token,
+              refresh_token: currentSession.refresh_token
             });
             
             if (setError) {
               console.error('❌ UnifiedAuth v31.0 - Failed to set session in Supabase client:', setError);
+              setIsSessionReady(false);
               return false;
             }
             
@@ -722,6 +730,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             
           } catch (error) {
             console.error('❌ UnifiedAuth v31.0 - Error re-injecting session:', error);
+            setIsSessionReady(false);
             return false;
           }
         } else {
@@ -790,6 +799,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return false;
     };
 
+    // Update refs when state changes
+    sessionRef.current = session;
+    userRef.current = currentUser;
+
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
     console.log('🔄 UnifiedAuth v31.0 - Registered with visibility coordinator');
 
@@ -797,7 +810,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       unregister();
       console.log('🔄 UnifiedAuth v31.0 - Cleanup: Unregistered from visibility coordinator');
     };
-  }, [session, currentUser]); // Track session and user changes
+  }, []); // CRITICAL: Empty deps to register only once, use refs for state access
 
   useEffect(() => {
     console.log('🚀 UnifiedAuth v17.0 - Starting auth initialization at:', new Date().toISOString());

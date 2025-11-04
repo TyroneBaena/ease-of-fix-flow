@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestOperations } from './useMaintenanceRequestOperations';
 import { formatRequestData } from '@/hooks/request-detail/formatRequestData';
 import { toast } from '@/lib/toast';
@@ -11,7 +11,7 @@ import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 export const useMaintenanceRequestProvider = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const { currentUser } = useUserContext();
+  const { currentUser, isSessionReady } = useUnifiedAuth();
   const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
   
   // Track the last user ID to prevent unnecessary refetches
@@ -25,10 +25,16 @@ export const useMaintenanceRequestProvider = () => {
   const lastFetchTimeRef = useRef<number>(0);
 
   const loadRequests = useCallback(async () => {
-    console.log('🔍 LOADING REQUESTS v4.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id);
+    console.log('🔍 LOADING REQUESTS v5.0 - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id, 'SessionReady:', isSessionReady);
+    
+    // CRITICAL: Wait for session to be ready before making queries
+    if (!isSessionReady) {
+      console.log('🔍 LOADING REQUESTS v5.0 - Waiting for session ready...');
+      return [];
+    }
     
     if (!currentUser?.id) {
-      console.log('🔍 LOADING REQUESTS v4.0 - No user, skipping');
+      console.log('🔍 LOADING REQUESTS v5.0 - No user, skipping');
       setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       return [];
@@ -91,21 +97,28 @@ export const useMaintenanceRequestProvider = () => {
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]);
+  }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, isSessionReady, fetchRequests]);
 
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v5.0 - useEffect triggered');
-    console.log('🔍 MAINTENANCE PROVIDER v5.0 - Current user ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v5.0 - Last fetched ID:', lastFetchedUserIdRef.current);
+    console.log('🔍 MAINTENANCE PROVIDER v6.0 - useEffect triggered');
+    console.log('🔍 MAINTENANCE PROVIDER v6.0 - Current user ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v6.0 - Session ready:', isSessionReady);
+    console.log('🔍 MAINTENANCE PROVIDER v6.0 - Last fetched ID:', lastFetchedUserIdRef.current);
     
     // Clear any pending debounce timers
     if (fetchDebounceTimerRef.current) {
       clearTimeout(fetchDebounceTimerRef.current);
     }
     
+    // CRITICAL: Wait for session to be ready
+    if (!isSessionReady) {
+      console.log('🔍 MAINTENANCE PROVIDER v6.0 - Waiting for session ready...');
+      return;
+    }
+    
     // If no user, clear data
     if (!currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v5.0 - No current user, clearing requests');
+      console.log('🔍 MAINTENANCE PROVIDER v6.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
       lastFetchedUserIdRef.current = null;
@@ -116,11 +129,11 @@ export const useMaintenanceRequestProvider = () => {
     
     // Only load if user ID actually changed
     if (lastFetchedUserIdRef.current === currentUser.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v5.0 - User ID unchanged, skipping refetch');
+      console.log('🔍 MAINTENANCE PROVIDER v6.0 - User ID unchanged, skipping refetch');
       return;
     }
     
-    console.log('🔍 MAINTENANCE PROVIDER v5.0 - User ID changed, debouncing load');
+    console.log('🔍 MAINTENANCE PROVIDER v6.0 - User ID changed, debouncing load');
     lastFetchedUserIdRef.current = currentUser.id;
     
     // CRITICAL: Debounce rapid tab switches (300ms delay)
@@ -193,18 +206,23 @@ export const useMaintenanceRequestProvider = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id]);
+  }, [currentUser?.id, isSessionReady]);
 
   // Register with visibility coordinator for coordinated refresh
   useEffect(() => {
-    if (!currentUser?.id) {
-      console.log('🔄 MaintenanceRequestProvider - No user, skipping registration');
+    if (!currentUser?.id || !isSessionReady) {
+      console.log('🔄 MaintenanceRequestProvider - No user or session not ready, skipping registration');
       return;
     }
 
     const refreshMaintenance = async () => {
       console.log('🔄 MaintenanceRequestProvider - Coordinator-triggered refresh');
-      await loadRequests();
+      // Only refresh if session is ready
+      if (isSessionReady) {
+        await loadRequests();
+      } else {
+        console.log('🔄 MaintenanceRequestProvider - Session not ready, skipping refresh');
+      }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshMaintenance);
@@ -214,7 +232,7 @@ export const useMaintenanceRequestProvider = () => {
       unregister();
       console.log('🔄 MaintenanceRequestProvider - Cleanup: Unregistered from visibility coordinator');
     };
-  }, [currentUser?.id, loadRequests]);
+  }, [currentUser?.id, isSessionReady, loadRequests]);
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {

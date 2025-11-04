@@ -10,7 +10,7 @@ import { useUserContext } from '@/contexts/UnifiedAuthContext';
 /**
  * Hook to fetch and manage maintenance request data
  */
-export function useMaintenanceRequestData(requestId: string | undefined, forceRefresh: number = 0) {
+export function useMaintenanceRequestData(requestId: string | undefined, forceRefresh: number = 0, isSessionReady?: boolean) {
   const { requests } = useMaintenanceRequestContext();
   const [request, setRequest] = useState<MaintenanceRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,6 +18,12 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const hasLoadedOnceRef = useRef(false); // CRITICAL: Track if we've loaded once to prevent loading on tab revisit
 
   useEffect(() => {
+    // CRITICAL: Wait for session to be ready before making queries
+    if (!isSessionReady) {
+      console.log('useMaintenanceRequestData - Waiting for session ready...');
+      return;
+    }
+    
     if (!requestId || !currentUser) {
       // CRITICAL: Only set loading false if we haven't loaded before
       if (!hasLoadedOnceRef.current) {
@@ -104,7 +110,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     };
     
     loadRequestData();
-  }, [requestId, currentUser?.id, forceRefresh]); // Removed requests and fetchRequests dependencies to prevent duplicate calls
+  }, [requestId, currentUser?.id, forceRefresh, isSessionReady]); // Add isSessionReady to deps
 
   // Function to refresh the request data directly from the database
   const refreshRequestData = async () => {
