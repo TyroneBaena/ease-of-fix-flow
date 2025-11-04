@@ -1,11 +1,12 @@
 /**
- * Tab Visibility Coordinator v37.0
+ * Tab Visibility Coordinator v37.1
  *
  * Handles safe data refresh when user revisits the tab.
  * - No forced reload (prevents logout or data loss)
  * - Coordinates refresh across registered data providers
  * - Executes refreshes immediately without blocking
  * - v37.0: Proactive session monitoring and restoration
+ * - v37.1: Fixed timeout mismatches for reliable user conversion
  */
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
@@ -133,7 +134,7 @@ class VisibilityCoordinator {
   /**
    * Coordinate data refresh across all tabs when tab becomes visible again
    * Executes auth first, then other handlers in parallel
-   * v35.0: Optimized timeout and propagation for bulletproof restoration
+   * v37.1: Rebalanced timeouts for reliable restoration
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
@@ -152,25 +153,25 @@ class VisibilityCoordinator {
     const coordinatorStartTime = Date.now();
     console.log(`🔁 Coordinating refresh (${this.refreshHandlers.length} handlers registered)...`);
     
-    // v35.0: Increased to 22s to match new auth handler structure
+    // v37.1: Increased to 28s to match new auth handler structure (25s auth + 3s buffer)
     const refreshTimeout = setTimeout(() => {
-      console.error("❌ Coordinator timeout after 22s - force resetting");
+      console.error("❌ Coordinator timeout after 28s - force resetting");
       this.isRefreshing = false;
-    }, 22000);
+    }, 28000);
 
     try {
       // CRITICAL: Execute auth handler first (it's always registered first)
       if (this.refreshHandlers.length > 0) {
         const authHandler = this.refreshHandlers[0];
         
-        // v35.0: Increased to 18s for multi-step restoration process
+        // v37.1: Increased to 25s for multi-step restoration (getSession 4s + backup 6s + refresh 6s + conversion 8s = 24s worst case)
         const authSuccess = await Promise.race([
           authHandler(),
           new Promise<boolean>((resolve) => {
             setTimeout(() => {
-              console.error("❌ Auth handler timeout after 18s");
+              console.error("❌ Auth handler timeout after 25s");
               resolve(false);
-            }, 18000);
+            }, 25000);
           })
         ]);
         
@@ -178,7 +179,7 @@ class VisibilityCoordinator {
           const authDuration = Date.now() - coordinatorStartTime;
           console.log(`✅ Auth handler completed in ${authDuration}ms, session and user restored`);
           
-          // v35.0: Reduced to 1000ms since auth handler now includes propagation wait
+          // v37.1: Reduced to 1000ms since auth handler now includes propagation wait
           await new Promise(resolve => setTimeout(resolve, 1000));
           console.log("✅ Final propagation complete, ready for data queries");
           
