@@ -451,11 +451,9 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { Loader2 } from "lucide-react";
-
-// ✅ import the cookie restore helper
 import { restoreSessionFromCookie } from "@/integrations/supabase/client";
 
-// Import all pages
+// Pages
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -479,8 +477,6 @@ import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/NotFound";
-
-// Contractor pages
 import ContractorDashboard from "@/pages/ContractorDashboard";
 import ContractorJobs from "@/pages/contractor/ContractorJobs";
 import ContractorJobDetail from "@/pages/ContractorJobDetail";
@@ -493,8 +489,14 @@ import PropertyDetailWrapper from "@/components/PropertyDetailWrapper";
 import NewRequestWrapper from "@/components/NewRequestWrapper";
 import PaymentMethodSetup from "@/pages/PaymentMethodSetup";
 import TestDataFetching from "@/pages/TestDataFetching";
+import Pricing from "@/pages/Pricing";
+import AdminSettings from "@/pages/AdminSettings";
+import { AdminRouteGuard } from "@/components/AdminRouteGuard";
+import { EnhancedSignupFlow } from "@/components/auth/EnhancedSignupFlow";
+import { TeamManagement } from "@/pages/TeamManagement";
+import { TabRevisitDiagnostic } from "@/components/testing/TabRevisitDiagnostic";
 
-// Context providers
+// Context Providers
 import { SubscriptionProvider } from "./contexts/subscription/SubscriptionContext";
 import { MaintenanceRequestProvider } from "./contexts/maintenance";
 import { PropertyProvider } from "./contexts/property/PropertyContext";
@@ -503,16 +505,9 @@ import { ContractorAuthProvider } from "./contexts/contractor/ContractorAuthCont
 import { ContractorRouteGuard } from "./components/contractor/ContractorRouteGuard";
 import { TabVisibilityProvider } from "./contexts/TabVisibilityContext";
 
-// New pages
-import Pricing from "@/pages/Pricing";
-import AdminSettings from "@/pages/AdminSettings";
-import { AdminRouteGuard } from "@/components/AdminRouteGuard";
-import { TeamManagement } from "@/pages/TeamManagement";
-import { TabRevisitDiagnostic } from "@/components/testing/TabRevisitDiagnostic";
-
-// -----------------------------------------------------------------------------
-// React Query Client setup
-// -----------------------------------------------------------------------------
+// -------------------------------
+// Query Client Configuration
+// -------------------------------
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -524,10 +519,15 @@ const queryClient = new QueryClient({
       retry: false,
       refetchInterval: false,
     },
-    mutations: { retry: false },
+    mutations: {
+      retry: false,
+    },
   },
 });
 
+// -------------------------------
+// App Routes
+// -------------------------------
 function AppRoutes() {
   const { loading } = useSimpleAuth();
   const [forceReady, setForceReady] = React.useState(false);
@@ -535,7 +535,7 @@ function AppRoutes() {
   React.useEffect(() => {
     const failsafeTimer = setTimeout(() => {
       if (loading && !forceReady) {
-        console.error("⚠️ AppRoutes - Loading timeout exceeded! Forcing render.");
+        console.error("⚠️ AppRoutes - Loading timeout exceeded! Forcing app to render.");
         setForceReady(true);
       }
     }, 8000);
@@ -552,7 +552,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* --- Public routes --- */}
+      {/* Public routes */}
       <Route path="/" element={<Index />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/login" element={<Login />} />
@@ -562,7 +562,7 @@ function AppRoutes() {
       <Route path="/setup-password" element={<SetupPassword />} />
       <Route path="/email-confirm" element={<EmailConfirm />} />
 
-      {/* --- Protected routes --- */}
+      {/* Protected routes */}
       <Route
         path="/dashboard"
         element={
@@ -660,7 +660,7 @@ function AppRoutes() {
         }
       />
 
-      {/* --- Contractor routes --- */}
+      {/* Contractor routes */}
       <Route
         path="/contractor-dashboard"
         element={
@@ -673,6 +673,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor-jobs"
         element={
@@ -685,6 +686,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor-jobs/:id"
         element={
@@ -697,6 +699,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor-profile"
         element={
@@ -709,6 +712,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor-schedule"
         element={
@@ -721,6 +725,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor-settings"
         element={
@@ -733,6 +738,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor-notifications"
         element={
@@ -745,6 +751,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/contractor/quote-submission/:id"
         element={
@@ -754,7 +761,7 @@ function AppRoutes() {
         }
       />
 
-      {/* --- Admin & Billing --- */}
+      {/* Billing & Security */}
       <Route
         path="/billing-security"
         element={
@@ -765,6 +772,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/billing/payment-method"
         element={
@@ -775,6 +783,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Team Management - Admin Only */}
       <Route
         path="/team-management"
         element={
@@ -787,66 +797,5 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/test-data-fetching"
-        element={
-          <ProtectedRoute>
-            <TestDataFetching />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/test-tab-revisit"
-        element={
-          <ProtectedRoute>
-            <div className="min-h-screen bg-background p-8">
-              <TabRevisitDiagnostic />
-            </div>
-          </ProtectedRoute>
-        }
-      />
 
-      {/* 404 */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Root App Component
-// -----------------------------------------------------------------------------
-function App() {
-  // ✅ Restore session *before* contexts mount
-  React.useEffect(() => {
-    restoreSessionFromCookie();
-  }, []);
-
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TabVisibilityProvider>
-          <UnifiedAuthProvider>
-            <UserProvider>
-              <SubscriptionProvider>
-                <MaintenanceRequestProvider>
-                  <PropertyProvider>
-                    <ContractorProvider>
-                      <Router>
-                        <div className="App">
-                          <AppRoutes />
-                        </div>
-                        <Toaster />
-                      </Router>
-                    </ContractorProvider>
-                  </PropertyProvider>
-                </MaintenanceRequestProvider>
-              </SubscriptionProvider>
-            </UserProvider>
-          </UnifiedAuthProvider>
-        </TabVisibilityProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
-}
-
-export default App;
+      {/* Testin*
