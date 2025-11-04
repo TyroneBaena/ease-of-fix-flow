@@ -162,18 +162,15 @@ function reconnectRealtime() {
   reconnectTimeout = setTimeout(async () => {
     try {
       console.log("🔌 Reconnecting Supabase Realtime...");
-      // Refresh session if needed
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.access_token) {
-        await supabase.realtime.connect();
-        console.log("🟢 Realtime reconnected successfully");
-      } else {
-        console.warn("⚠️ No active session while reconnecting Realtime");
-      }
+      // CRITICAL FIX: Don't check for session here - it creates a race condition
+      // The visibilityCoordinator will restore the session separately (takes ~800ms)
+      // Just reconnect - Supabase will use the restored session automatically
+      await supabase.realtime.connect();
+      console.log("🟢 Realtime reconnection initiated");
     } catch (error) {
       console.error("❌ Realtime reconnection failed:", error);
     }
-  }, 1000);
+  }, 1500); // Increased delay to allow session restoration to complete first
 }
 
 /* ----------------------- Handle Visibility Events ----------------------- */
