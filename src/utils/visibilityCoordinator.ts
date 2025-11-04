@@ -106,22 +106,47 @@ class VisibilityCoordinator {
   /**
    * Coordinate data refresh across all tabs when tab becomes visible again
    * Executes auth first, then other handlers in parallel
+   * v33.0: Added timeout protection to prevent hung state
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.log("⚙️ Refresh already in progress — skipping duplicate refresh");
+      console.warn("⚙️ Refresh already in progress — forcing reset after 30s");
+      
+      // CRITICAL FIX: Reset stuck flag after 30 seconds
+      setTimeout(() => {
+        if (this.isRefreshing) {
+          console.error("❌ Coordinator was stuck! Force-resetting isRefreshing flag");
+          this.isRefreshing = false;
+        }
+      }, 30000);
       return;
     }
 
     this.isRefreshing = true;
     console.log(`🔁 Coordinating refresh (${this.refreshHandlers.length} handlers registered)...`);
+    
+    // CRITICAL FIX: Add timeout protection to prevent hung state
+    const refreshTimeout = setTimeout(() => {
+      console.error("❌ Coordinator timeout after 25s - force resetting");
+      this.isRefreshing = false;
+    }, 25000);
 
     try {
       // CRITICAL: Execute auth handler first (it's always registered first)
       // This ensures session AND user are fully restored before other queries run
       if (this.refreshHandlers.length > 0) {
         const authHandler = this.refreshHandlers[0];
-        const authSuccess = await authHandler();
+        
+        // CRITICAL FIX v33.0: Wrap auth handler with timeout protection
+        const authSuccess = await Promise.race([
+          authHandler(),
+          new Promise<boolean>((resolve) => {
+            setTimeout(() => {
+              console.error("❌ Auth handler timeout after 20s");
+              resolve(false);
+            }, 20000);
+          })
+        ]);
         
         // CRITICAL FIX: Only proceed if auth actually succeeded
         if (authSuccess === true) {
@@ -159,7 +184,10 @@ class VisibilityCoordinator {
     } catch (error) {
       console.error("❌ Error during coordinated refresh", error);
     } finally {
+      // CRITICAL: Always clear timeout and reset flag
+      clearTimeout(refreshTimeout);
       this.isRefreshing = false;
+      console.log("✅ Coordinator refresh cycle complete");
     }
   }
 }
