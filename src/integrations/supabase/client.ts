@@ -125,11 +125,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 /* ----------------------- Auth State Sync ----------------------- */
 supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log(`🔐 Auth state changed: ${event}`, session ? 'has session' : 'no session');
+  
   // CRITICAL FIX: Only delete cookie on explicit SIGN_OUT
   // Don't delete on every null session (could be temporary state)
   if (event === "SIGNED_OUT") {
     console.log("🔐 User signed out - clearing cookie");
     deleteCookie(COOKIE_NAME);
+    stopPeriodicBackup(); // Stop the periodic backup
   } else if (session?.access_token) {
     // Validate session hasn't expired before saving
     const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
@@ -138,6 +141,11 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     if (!isExpired) {
       setCookie(COOKIE_NAME, JSON.stringify(session));
       console.log("💾 Session saved to cookie backup");
+      
+      // Start periodic backup if not already running
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        startPeriodicBackup();
+      }
     } else {
       console.warn("⚠️ Session expired, not saving to cookie");
     }
@@ -150,41 +158,124 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
 /* ----------------------- Restore Session ----------------------- */
 export async function restoreSessionFromCookie() {
+  console.log("🍪 Attempting to restore session from cookie...");
   const cookieValue = getCookie(COOKIE_NAME);
-  if (cookieValue) {
-    try {
-      const session = JSON.parse(cookieValue);
-      
-      // Validate session hasn't expired
-      const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-      const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-      
-      if (isExpired) {
-        console.warn("⚠️ Cookie session expired, clearing");
-        deleteCookie(COOKIE_NAME);
-        return null;
-      }
-      
-      if (session?.access_token) {
-        await supabase.auth.setSession(session);
-        console.log("✅ Restored Supabase session from cookie");
-        // Re-save to update expiry
-        setCookie(COOKIE_NAME, JSON.stringify(session));
-        return session;
-      }
-    } catch (e) {
-      console.error("❌ Failed to parse cookie session:", e);
-      deleteCookie(COOKIE_NAME);
-    }
+  
+  if (!cookieValue) {
+    console.warn("🍪 No session cookie found");
+    return null;
   }
-  return null;
+  
+  console.log("🍪 Cookie found, parsing...");
+  
+  try {
+    const session = JSON.parse(cookieValue);
+    
+    if (!session?.access_token) {
+      console.warn("🍪 Cookie exists but no access_token found");
+      deleteCookie(COOKIE_NAME);
+      return null;
+    }
+    
+    // Validate session hasn't expired
+    const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+    const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+    
+    if (isExpired) {
+      console.warn("🍪 Cookie session expired, clearing");
+      deleteCookie(COOKIE_NAME);
+      return null;
+    }
+    
+    console.log("🍪 Cookie session valid, restoring to Supabase...");
+    
+    // CRITICAL: Set session in Supabase client (updates localStorage)
+    const { data, error } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    });
+    
+    if (error) {
+      console.error("🍪 Failed to set session:", error);
+      deleteCookie(COOKIE_NAME);
+      return null;
+    }
+    
+    if (!data.session) {
+      console.warn("🍪 setSession succeeded but returned no session");
+      return null;
+    }
+    
+    console.log("✅ Successfully restored session from cookie");
+    
+    // Re-save to cookie with updated expiry
+    setCookie(COOKIE_NAME, JSON.stringify(data.session));
+    
+    // Start periodic backup
+    startPeriodicBackup();
+    
+    return data.session;
+  } catch (e) {
+    console.error("❌ Failed to parse or restore cookie session:", e);
+    deleteCookie(COOKIE_NAME);
+    return null;
+  }
 }
 
 /* ----------------------- Force Save Session ----------------------- */
 export function forceSessionBackup(session: any) {
   if (session?.access_token) {
-    setCookie(COOKIE_NAME, JSON.stringify(session));
-    console.log("💾 Forced session backup to cookie");
+    // Validate session isn't expired
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+    const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
+    
+    if (!isExpired) {
+      setCookie(COOKIE_NAME, JSON.stringify(session));
+      console.log("💾 Forced session backup to cookie");
+      return true;
+    } else {
+      console.warn("⚠️ Session expired, not backing up");
+      return false;
+    }
+  }
+  return false;
+}
+
+/* ----------------------- Periodic Session Backup ----------------------- */
+let periodicBackupInterval: NodeJS.Timeout | null = null;
+
+function startPeriodicBackup() {
+  // Don't start if already running
+  if (periodicBackupInterval) {
+    console.log("⏰ Periodic backup already running");
+    return;
+  }
+  
+  console.log("⏰ Starting periodic session backup (every 30s)");
+  
+  periodicBackupInterval = setInterval(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const saved = forceSessionBackup(session);
+        if (saved) {
+          console.log("⏰ Periodic session backup successful");
+        }
+      } else {
+        console.log("⏰ No active session to backup");
+        stopPeriodicBackup();
+      }
+    } catch (error) {
+      console.error("⏰ Periodic backup error:", error);
+    }
+  }, 30000); // Every 30 seconds
+}
+
+function stopPeriodicBackup() {
+  if (periodicBackupInterval) {
+    clearInterval(periodicBackupInterval);
+    periodicBackupInterval = null;
+    console.log("⏰ Stopped periodic session backup");
   }
 }
 
@@ -223,14 +314,28 @@ if (typeof document !== "undefined") {
   });
 }
 
-/* ----------------------- Health Ping (Optional) ----------------------- */
+/* ----------------------- Health Ping & Auto-Start ----------------------- */
 // Keeps connection warm in long-running sessions
 setInterval(
   async () => {
     const { data } = await supabase.auth.getSession();
     if (data?.session?.access_token) {
       console.log("💓 Supabase session still active");
+      // Ensure backup is running for active sessions
+      if (!periodicBackupInterval) {
+        startPeriodicBackup();
+      }
     }
   },
   10 * 60 * 1000,
 ); // every 10 minutes
+
+// Auto-start periodic backup if user is already logged in
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    console.log("🚀 Auto-starting periodic backup for existing session");
+    forceSessionBackup(session);
+    startPeriodicBackup();
+  }
+})();
