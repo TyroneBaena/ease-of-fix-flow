@@ -441,7 +441,191 @@
 
 // export default App;
 
-import React from "react";
+// import React from "react";
+// import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// import { Toaster } from "@/components/ui/sonner";
+// import { TabVisibilityProvider } from "@/contexts/TabVisibilityContext";
+// import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContext";
+// import { UserProvider } from "@/contexts/UserContext";
+// import { SubscriptionProvider } from "@/contexts/subscription/SubscriptionContext";
+// import { MaintenanceRequestProvider } from "@/contexts/maintenance";
+// import { PropertyProvider } from "@/contexts/property/PropertyContext";
+// import { ContractorProvider } from "@/contexts/contractor";
+// import ProtectedRoute from "@/components/ProtectedRoute";
+// import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
+// import ErrorBoundary from "@/components/ui/error-boundary";
+
+// // Your route components
+// import Login from "@/pages/Login";
+// import Signup from "@/pages/Signup";
+// import SignupStatus from "@/pages/SignupStatus";
+// import SetupPassword from "@/pages/SetupPassword";
+// import Dashboard from "@/pages/Dashboard";
+// import Settings from "@/pages/Settings";
+// import Properties from "@/pages/Properties";
+// import PropertyDetail from "@/pages/PropertyDetail";
+// import AllRequests from "@/pages/AllRequests";
+// import NewRequest from "@/pages/NewRequest";
+// import RequestDetail from "@/pages/RequestDetail";
+// import Reports from "@/pages/Reports";
+// import NotFound from "@/pages/NotFound";
+// import { Loader2 } from "lucide-react";
+
+// // Configure QueryClient to work with visibility coordinator
+// const queryClient = new QueryClient({
+//   defaultOptions: {
+//     queries: {
+//       refetchOnWindowFocus: false,
+//       refetchOnMount: false,
+//       refetchOnReconnect: false,
+//       staleTime: 5 * 60 * 1000, // 5 minutes
+//       gcTime: 10 * 60 * 1000,
+//       retry: false,
+//       refetchInterval: false,
+//     },
+//     mutations: {
+//       retry: false,
+//     },
+//   },
+// });
+
+// const AppRoutes = () => {
+//   const { currentUser, loading, isInitialized } = useSimpleAuth();
+
+//   // Show a loader until the first auth check is done
+//   if (loading && !isInitialized) {
+//     return (
+//       <div className="flex h-screen w-full items-center justify-center bg-background">
+//         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <OrganizationGuard>
+//       <Routes>
+//         <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+
+//         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+
+//         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+
+//         <Route path="/signup-status" element={<SignupStatus />} />
+
+//         <Route
+//           path="/setup-password"
+//           element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
+//         />
+
+//         <Route
+//           path="/dashboard"
+//           element={
+//             <ProtectedRoute>
+//               <Dashboard />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/properties"
+//           element={
+//             <ProtectedRoute>
+//               <Properties />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/properties/:id"
+//           element={
+//             <ProtectedRoute>
+//               <PropertyDetail />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/requests"
+//           element={
+//             <ProtectedRoute>
+//               <AllRequests />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/new-request"
+//           element={
+//             <ProtectedRoute>
+//               <NewRequest />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/requests/:id"
+//           element={
+//             <ProtectedRoute>
+//               <RequestDetail />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/reports"
+//           element={
+//             <ProtectedRoute>
+//               <Reports />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route
+//           path="/settings"
+//           element={
+//             <ProtectedRoute>
+//               <Settings />
+//             </ProtectedRoute>
+//           }
+//         />
+
+//         <Route path="*" element={<NotFound />} />
+//       </Routes>
+//     </OrganizationGuard>
+//   );
+// };
+
+// const App: React.FC = () => {
+//   return (
+//     <ErrorBoundary>
+//       <QueryClientProvider client={queryClient}>
+//         <BrowserRouter>
+//           <TabVisibilityProvider>
+//             <UnifiedAuthProvider>
+//               <UserProvider>
+//                 <SubscriptionProvider>
+//                   <MaintenanceRequestProvider>
+//                     <PropertyProvider>
+//                       <ContractorProvider>
+//                         <AppRoutes />
+//                         <Toaster />
+//                       </ContractorProvider>
+//                     </PropertyProvider>
+//                   </MaintenanceRequestProvider>
+//                 </SubscriptionProvider>
+//               </UserProvider>
+//             </UnifiedAuthProvider>
+//           </TabVisibilityProvider>
+//         </BrowserRouter>
+//       </QueryClientProvider>
+//     </ErrorBoundary>
+//   );
+// };
+
+// export default App;
+
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
@@ -455,8 +639,9 @@ import { ContractorProvider } from "@/contexts/contractor";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
 import ErrorBoundary from "@/components/ui/error-boundary";
+import { Loader2 } from "lucide-react";
 
-// Your route components
+// Pages
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import SignupStatus from "@/pages/SignupStatus";
@@ -470,30 +655,78 @@ import NewRequest from "@/pages/NewRequest";
 import RequestDetail from "@/pages/RequestDetail";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
-import { Loader2 } from "lucide-react";
 
-// Configure QueryClient to work with visibility coordinator
+// Supabase client imports
+import { createNewSupabaseClient, getSupabaseClient } from "@/supabase/client";
+
+// --- REHYDRATE LOGIC INLINE ---
+async function rehydrateSessionFromServer(): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient() || createNewSupabaseClient();
+
+    const SESSION_FN = import.meta.env.VITE_SESSION_FN_URL || "https://<YOUR_PROJECT_ID>.functions.supabase.co/session"; // <-- replace YOUR_PROJECT_ID with actual Supabase project ref
+
+    const res = await fetch(SESSION_FN, {
+      method: "GET",
+      credentials: "include", // include HttpOnly cookies
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      console.warn("Session function returned", res.status);
+      return false;
+    }
+
+    const payload = await res.json().catch(() => null);
+    const session = payload?.session || payload?.data?.session || payload?.data || null;
+
+    if (!session || !session.access_token || !session.refresh_token) {
+      console.log("No session returned by session function");
+      return false;
+    }
+
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+
+    // Optional short wait before continuing
+    await new Promise((r) => setTimeout(r, 500));
+
+    // Optional realtime reconnect
+    try {
+      await supabase.realtime.connect();
+    } catch (e) {
+      console.warn("Realtime connection failed", e);
+    }
+
+    console.log("✅ Session successfully rehydrated");
+    return true;
+  } catch (err) {
+    console.error("Rehydrate error:", err);
+    return false;
+  }
+}
+// --- END REHYDRATE LOGIC ---
+
+// Query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
       retry: false,
-      refetchInterval: false,
     },
-    mutations: {
-      retry: false,
-    },
+    mutations: { retry: false },
   },
 });
 
 const AppRoutes = () => {
   const { currentUser, loading, isInitialized } = useSimpleAuth();
 
-  // Show a loader until the first auth check is done
   if (loading && !isInitialized) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -505,19 +738,17 @@ const AppRoutes = () => {
   return (
     <OrganizationGuard>
       <Routes>
-        <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
-
+        <Route
+          path="/"
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
+        />
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
-        
         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
-        
         <Route path="/signup-status" element={<SignupStatus />} />
-
         <Route
           path="/setup-password"
           element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
         />
-
         <Route
           path="/dashboard"
           element={
@@ -526,7 +757,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/properties"
           element={
@@ -535,7 +765,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/properties/:id"
           element={
@@ -544,7 +773,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/requests"
           element={
@@ -553,7 +781,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/new-request"
           element={
@@ -562,7 +789,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/requests/:id"
           element={
@@ -571,7 +797,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/reports"
           element={
@@ -580,7 +805,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/settings"
           element={
@@ -589,7 +813,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
         <Route path="*" element={<NotFound />} />
       </Routes>
     </OrganizationGuard>
@@ -597,6 +820,25 @@ const AppRoutes = () => {
 };
 
 const App: React.FC = () => {
+  const [rehydrated, setRehydrated] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      createNewSupabaseClient(); // ensure client is initialized
+      await rehydrateSessionFromServer(); // try to restore cookies -> session
+      setRehydrated(true);
+    };
+    init();
+  }, []);
+
+  if (!rehydrated) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
