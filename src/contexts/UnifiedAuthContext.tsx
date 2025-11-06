@@ -725,50 +725,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           console.warn("⚠️ UnifiedAuth v37.1 - getSession timed out, proceeding to backup");
         }
 
-        // Step 2: If no session or expired, try backup restoration IMMEDIATELY
+        // Step 2: If no session, let App.tsx rehydration handle it
         if (!clientSession?.access_token) {
-          console.log("📦 Step 2: No client session, attempting backup restoration...");
-
-          try {
-            // const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
-
-            const restoredSession = await withTimeout(
-              restoreSessionFromBackup(),
-              6000, // 6s for backup restoration
-              "Backup restoration timeout",
-            );
-
-            if (restoredSession?.access_token) {
-              console.log("✅ UnifiedAuth v37.2 - Session restored from backup (refresh_token used)");
-
-              // CRITICAL: Wait for Supabase client to fully propagate the restored session
-              await new Promise((resolve) => setTimeout(resolve, 800));
-
-              // Verify it's actually in the client now
-              const {
-                data: { session: verifiedSession },
-              } = await supabase.auth.getSession();
-              if (verifiedSession?.access_token) {
-                clientSession = verifiedSession;
-                console.log("✅ UnifiedAuth v37.2 - Restored session verified in client");
-              } else {
-                console.error("❌ UnifiedAuth v37.2 - Restored session not in client!");
-                setIsSessionReady(false);
-                return false;
-              }
-            } else {
-              console.error("❌ UnifiedAuth v37.2 - Backup restoration failed (refresh_token likely expired)");
-              setIsSessionReady(false);
-              return false;
-            }
-          } catch (backupError) {
-            console.error(
-              "❌ UnifiedAuth v37.1 - Backup restoration failed:",
-              backupError instanceof Error ? backupError.message : backupError,
-            );
-            setIsSessionReady(false);
-            return false;
-          }
+          console.log("📦 Step 2: No client session - relying on App.tsx HttpOnly rehydration");
+          setIsSessionReady(false);
+          return false;
         }
 
         // Step 3: Validate session is not expired
@@ -1066,78 +1027,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }
           }, 0);
         } else {
-          // v36.0: CRITICAL FIX - Attempt backup restoration when no session found
-          console.log("🚀 UnifiedAuth v36.0 - No session in client, attempting backup restoration...");
-
-          setTimeout(async () => {
-            try {
-              // const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
-
-              const restoredSession = await Promise.race([
-                restoreSessionFromBackup(),
-                new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
-              ]);
-
-              if (restoredSession?.access_token && restoredSession.user) {
-                console.log("✅ UnifiedAuth v36.0 - Initial session restored from backup");
-
-                // Wait for propagation
-                await new Promise((resolve) => setTimeout(resolve, 800));
-
-                // Verify in client
-                const {
-                  data: { session: verifiedSession },
-                } = await supabase.auth.getSession();
-                if (verifiedSession?.access_token) {
-                  console.log("✅ UnifiedAuth v36.0 - Restored session verified");
-
-                  // Convert user
-                  const user = await convertSupabaseUser(verifiedSession.user);
-
-                  setCurrentUser(user);
-                  setSession(verifiedSession);
-                  setLoading(false);
-                  initialCheckDone.current = true;
-                  hasCompletedInitialSetup.current = true;
-
-                  // Wait for session propagation
-                  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-                  const {
-                    data: { session: readySession },
-                  } = await supabase.auth.getSession();
-                  if (readySession?.access_token) {
-                    setIsSessionReady(true);
-                    console.log("✅ UnifiedAuth v36.0 - Initial auth complete via backup restoration");
-                  }
-
-                  // Fetch organizations
-                  fetchUserOrganizations(user).catch((orgError) => {
-                    console.error("🚀 UnifiedAuth v36.0 - Non-critical org error:", orgError);
-                  });
-
-                  return;
-                }
-              }
-
-              // If we get here, backup restoration failed
-              console.log("🚀 UnifiedAuth v36.0 - No backup session found, user needs to login");
-              setCurrentUser(null);
-              setSession(null);
-              setIsSessionReady(false);
-              setLoading(false);
-              initialCheckDone.current = true;
-              hasCompletedInitialSetup.current = true;
-            } catch (error) {
-              console.error("🚀 UnifiedAuth v36.0 - Backup restoration error:", error);
-              setCurrentUser(null);
-              setSession(null);
-              setIsSessionReady(false);
-              setLoading(false);
-              initialCheckDone.current = true;
-              hasCompletedInitialSetup.current = true;
-            }
-          }, 0);
+          // No session - App.tsx will handle HttpOnly rehydration
+          console.log("🚀 UnifiedAuth - No session in client, App.tsx will handle rehydration");
+          setLoading(false);
+          initialCheckDone.current = true;
         }
       })
       .catch((error) => {
