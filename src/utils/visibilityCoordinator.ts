@@ -69,6 +69,57 @@ class VisibilityCoordinator {
     if (document.hidden) {
       this.lastHiddenTime = Date.now();
       console.log("🔒 Tab hidden at", new Date(this.lastHiddenTime).toISOString());
+
+      // CRITICAL v37.0: Try multiple times to get and backup session
+      try {
+        // const { supabase, forceSessionBackup, restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+
+        // Get session with retries
+        let session = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (!session?.access_token && attempts < maxAttempts) {
+          attempts++;
+          const {
+            data: { session: currentSession },
+          } = await supabase.auth.getSession();
+
+          if (currentSession?.access_token) {
+            session = currentSession;
+            break;
+          } else if (attempts < maxAttempts) {
+            console.warn(`⚠️ v37.0 - No session found (attempt ${attempts}/${maxAttempts}), trying backup...`);
+            // Try to restore from backup if client lost it
+            // const restored = await restoreSessionFromBackup();
+            if (restored?.access_token) {
+              session = restored;
+              console.log("✅ v37.0 - Session restored before hiding tab");
+              break;
+            }
+            // Wait a bit before retry
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
+        }
+
+        // Backup whatever we have
+        if (session?.access_token) {
+          // const backed = forceSessionBackup(session);
+          if (backed) {
+            console.log("💾 v37.0 - Pre-hide session backup successful");
+          } else {
+            console.warn("⚠️ v37.0 - Pre-hide session backup failed");
+          }
+        } else {
+          console.error("❌ v37.0 - No session to backup after all attempts!");
+        }
+
+        // Then disconnect Realtime
+        console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
+        await supabase.realtime.disconnect();
+      } catch (error) {
+        console.error("❌ Pre-hide operations failed:", error);
+      }
     } else {
       const now = Date.now();
       const hiddenDuration = this.lastHiddenTime ? now - this.lastHiddenTime : 0;
@@ -135,8 +186,13 @@ class VisibilityCoordinator {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           console.log("✅ Final propagation complete, ready for data queries");
 
-          // Session restoration handled by App.tsx HttpOnly rehydration
-          console.log("✅ Session ready for data queries");
+          // Reconnect Realtime after session restoration
+          try {
+            const { reconnectRealtime } = await import("@/integrations/supabase/client");
+            await reconnectRealtime();
+          } catch (realtimeError) {
+            console.error("❌ Realtime reconnection failed:", realtimeError);
+          }
         } else {
           const authDuration = Date.now() - coordinatorStartTime;
           console.error(`❌ Auth handler failed after ${authDuration}ms - session restoration unsuccessful`);

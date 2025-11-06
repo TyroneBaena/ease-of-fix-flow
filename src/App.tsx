@@ -892,7 +892,6 @@ import { Loader2 } from "lucide-react";
 
 // Supabase
 import { createNewSupabaseClient, getSupabaseClient } from "@/integrations/supabase/client";
-import { cleanupOldAuthStorage } from "@/utils/cleanupOldAuthStorage";
 
 // Pages
 import Login from "@/pages/Login";
@@ -1072,9 +1071,6 @@ const App: React.FC = () => {
 
   // 1. Initial load rehydration
   useEffect(() => {
-    // Clean up old v37 storage first
-    cleanupOldAuthStorage();
-    // Then rehydrate from HttpOnly cookies
     rehydrateSessionFromServer().then(() => setRehydrated(true));
   }, []);
 

@@ -522,8 +522,7 @@ export function getSupabaseClient() {
 }
 
 /**
- * ✅ Export ready-to-use instances
- * (used for convenience imports - both names for compatibility)
+ * ✅ Optional: export a default ready-to-use instance
+ * (used for convenience imports)
  */
 export const supabaseClient = getSupabaseClient();
-export const supabase = supabaseClient; // Alias for backward compatibility
