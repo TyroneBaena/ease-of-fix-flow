@@ -486,15 +486,65 @@
 //   }
 // })();
 
+// // src/integrations/supabase/client.ts
+// import { createClient, SupabaseClient } from "@supabase/supabase-js";
+// import type { Database } from "./types"; // remove if not using typed supabase
+
+// const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL!;
+// const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+// // 👇 internal instance (not exported directly)
+// let _supabase: SupabaseClient | null = null;
+
+// /**
+//  * Create a FRESH client.
+//  * Used after tab becomes visible OR on session restore.
+//  */
+// export function createNewSupabaseClient() {
+//   _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+//     auth: {
+//       persistSession: false, // ✅ no localStorage/sessionStorage
+//       autoRefreshToken: false, // ✅ backend handles refresh
+//     },
+//   });
+
+//   console.log("%c✅ Supabase client initialized", "color: #4ade80;");
+//   return _supabase;
+// }
+
+// /**
+//  * Always use this to get the client.
+//  * If client was garbage-collected or page was inactive, it re-creates cleanly.
+//  */
+// export function getSupabaseClient() {
+//   if (!_supabase) return createNewSupabaseClient();
+//   return _supabase;
+// }
+
+// /**
+//  * ✅ Export ready-to-use instances
+//  * (used for convenience imports - both names for compatibility)
+//  */
+// export const supabaseClient = getSupabaseClient();
+// export const supabase = supabaseClient; // Alias for backward compatibility
+
 // src/integrations/supabase/client.ts
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types"; // remove if not using typed supabase
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+// ✅ Environment variables from .env
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY; // matches your .env
+
+// ❌ Safety check
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    "Supabase environment variables are missing! Please check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+  );
+}
 
 // 👇 internal instance (not exported directly)
-let _supabase: SupabaseClient | null = null;
+let _supabase: SupabaseClient<Database> | null = null;
 
 /**
  * Create a FRESH client.
@@ -503,8 +553,13 @@ let _supabase: SupabaseClient | null = null;
 export function createNewSupabaseClient() {
   _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: false, // ✅ no localStorage/sessionStorage
-      autoRefreshToken: false, // ✅ backend handles refresh
+      persistSession: false, // ✅ disables localStorage/sessionStorage
+      autoRefreshToken: false, // ✅ backend handles refresh via cookies
+      storage: {
+        getItem: async () => null,
+        setItem: async () => {},
+        removeItem: async () => {},
+      },
     },
   });
 
