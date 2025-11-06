@@ -486,7 +486,7 @@
 //   }
 // })();
 
-// src/supabase/client.ts
+// src/integrations/supabase/client.ts
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types"; // remove if not using typed supabase
 
@@ -519,3 +519,6 @@ export function getSupabaseClient() {
   if (!supabase) return createNewSupabaseClient();
   return supabase;
 }
+
+// ✅ optional default instance export
+export const supabase = getSupabaseClient();
