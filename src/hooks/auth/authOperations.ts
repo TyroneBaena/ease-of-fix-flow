@@ -177,6 +177,9 @@
 //   }
 // };
 
+
+
+
 import { toast } from "@/lib/toast";
 import { UserRole } from "@/types/user";
 import { getSupabaseClient } from "@/integrations/supabase/client";
@@ -187,37 +190,41 @@ const LOGOUT_FN = import.meta.env.VITE_LOGOUT_FN_URL!;
 const SESSION_FN = import.meta.env.VITE_SESSION_FN_URL!;
 
 /**
- * Sign in with email and password (via Edge Function)
+ * 🔐 Sign in with email and password (via Supabase Edge Function)
  */
 export const signInWithEmailPassword = async (email: string, password: string) => {
   try {
     console.log("🔐 Attempting sign in for:", email);
 
+    // 🔹 Validation
     if (!email || !password) {
-      const errorMsg = "Email and password are required";
-      toast.error(errorMsg);
-      return { user: null, error: { message: errorMsg } };
+      toast.error("Email and password are required");
+      return { user: null, error: { message: "Missing credentials" } };
     }
 
-    // 🔹 1. Call login Edge Function
+    // 🔹 1. Call Edge Function `/login`
     const response = await fetch(LOGIN_FN, {
       method: "POST",
-      credentials: "include", // crucial for cookies
+      credentials: "include", // includes cookies
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+      }),
     });
 
     const result = await response.json();
 
     if (!response.ok) {
-      const message = result.error || "Invalid login credentials";
+      const message = result?.error || "Invalid login credentials";
+      console.error("❌ Login failed:", message);
       toast.error(message);
       return { user: null, error: { message } };
     }
 
-    console.log("✅ Login success, rehydrating session...");
+    console.log("✅ Login successful, rehydrating session...");
 
-    // 🔹 2. Immediately fetch the session (rehydration)
+    // 🔹 2. Fetch session from Edge Function `/session`
     const sessionResponse = await fetch(SESSION_FN, {
       method: "GET",
       credentials: "include",
@@ -236,28 +243,29 @@ export const signInWithEmailPassword = async (email: string, password: string) =
       return { user: null, error: { message: "No user returned from session" } };
     }
 
-    console.log("✅ Rehydrated session for:", user.email);
-    toast.success("Signed in successfully!");
+    // 🔹 3. Force Supabase client to reload session
+    const supabase = getSupabaseClient();
+    await supabase.auth.getSession();
 
-    // Optionally reset the client instance
-    getSupabaseClient();
+    console.log("✅ Session rehydrated for:", user.email);
+    toast.success("Signed in successfully!");
 
     return { user, error: null };
   } catch (error: any) {
-    console.error("❌ Login failed:", error);
+    console.error("❌ Login exception:", error);
     toast.error("Login failed. Please check your network and try again.");
     return { user: null, error: { message: error.message } };
   }
 };
 
 /**
- * Sign out current user (via Edge Function)
+ * 🔓 Sign out current user (via Supabase Edge Function)
  */
 export const signOutUser = async () => {
   try {
     console.log("🔐 Signing out...");
 
-    // 🔹 1. Call logout Edge Function
+    // 🔹 1. Call Edge Function `/logout`
     const response = await fetch(LOGOUT_FN, {
       method: "POST",
       credentials: "include",
@@ -269,17 +277,21 @@ export const signOutUser = async () => {
       return { error: result };
     }
 
+    // 🔹 2. Clear Supabase client session
+    const supabase = getSupabaseClient();
+    await supabase.auth.signOut();
+
     console.log("✅ Logged out successfully");
     toast.success("Signed out successfully");
 
-    // 🔹 2. Clear state and redirect
+    // 🔹 3. Redirect to login page
     setTimeout(() => {
       window.location.href = "/login";
     }, 300);
 
     return { error: null };
   } catch (error: any) {
-    console.error("❌ Sign out failed:", error);
+    console.error("❌ Sign out exception:", error);
     toast.error("An error occurred during sign out");
     setTimeout(() => (window.location.href = "/login"), 500);
     return { error };
@@ -287,15 +299,14 @@ export const signOutUser = async () => {
 };
 
 /**
- * Update user role (this stays mostly same)
+ * 👤 Update user role (directly in Supabase)
  */
 export const updateUserRole = async (userId: string, role: UserRole) => {
   try {
-    console.log(`🔐 Updating user role: ${userId} -> ${role}`);
+    console.log(`🔐 Updating user role: ${userId} → ${role}`);
 
     const supabase = getSupabaseClient();
 
-    // Update role in profiles table
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .update({ role })
