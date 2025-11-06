@@ -115,7 +115,7 @@ function getSessionStorage(key: string) {
     const value = sessionStorage.getItem(key);
     return value;
   } catch (e) {
-    console.warn('sessionStorage not available:', e);
+    console.warn("sessionStorage not available:", e);
     return null;
   }
 }
@@ -125,7 +125,7 @@ function setSessionStorage(key: string, value: string) {
     sessionStorage.setItem(key, value);
     return true;
   } catch (e) {
-    console.warn('Failed to set sessionStorage:', e);
+    console.warn("Failed to set sessionStorage:", e);
     return false;
   }
 }
@@ -134,7 +134,7 @@ function deleteSessionStorage(key: string) {
   try {
     sessionStorage.removeItem(key);
   } catch (e) {
-    console.warn('Failed to delete sessionStorage:', e);
+    console.warn("Failed to delete sessionStorage:", e);
   }
 }
 
@@ -156,8 +156,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 let isExplicitSignOut = false;
 
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log(`🔐 Auth state changed: ${event}`, session ? 'has session' : 'no session');
-  
+  console.log(`🔐 Auth state changed: ${event}`, session ? "has session" : "no session");
+
   // CRITICAL FIX: Only clear storage on explicit SIGN_OUT that we initiated
   if (event === "SIGNED_OUT" && isExplicitSignOut) {
     console.log("🔐 User signed out - clearing all session storage");
@@ -175,15 +175,15 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     // Validate session hasn't expired before saving
     const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
     const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-    
+
     if (!isExpired) {
       const sessionStr = JSON.stringify(session);
-      
+
       // MULTI-LAYER BACKUP: Save to both cookie AND sessionStorage
       setCookie(COOKIE_NAME, sessionStr);
       setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
       console.log("💾 Session saved to multi-layer backup (cookie + sessionStorage)");
-      
+
       // Start both periodic backup and keepalive
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         startPeriodicBackup();
@@ -208,36 +208,36 @@ export async function signOut() {
 /* ----------------------- Restore Session ----------------------- */
 export async function restoreSessionFromBackup() {
   console.log("🔄 Attempting multi-layer session restoration...");
-  
+
   // LAYER 1: Try sessionStorage first (most reliable in iframes)
   console.log("📦 Trying sessionStorage...");
   const sessionStorageValue = getSessionStorage(SESSION_STORAGE_KEY);
-  
+
   if (sessionStorageValue) {
     try {
       const session = JSON.parse(sessionStorageValue);
-      
+
       if (session?.access_token && session?.refresh_token) {
         console.log("✅ Session found in sessionStorage, attempting restore...");
-        
+
         // CRITICAL v37.2: Always try to restore, even if access_token expired
         // The refresh_token lasts 30+ days, so it might still be valid
         const { data, error } = await supabase.auth.setSession({
           access_token: session.access_token,
-          refresh_token: session.refresh_token
+          refresh_token: session.refresh_token,
         });
-        
+
         if (!error && data.session) {
           console.log("✅ Successfully restored session from sessionStorage");
-          
+
           // Re-save the fresh session to all layers
           const sessionStr = JSON.stringify(data.session);
           setCookie(COOKIE_NAME, sessionStr);
           setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-          
+
           startPeriodicBackup();
           startKeepalive();
-          
+
           return data.session;
         } else {
           console.warn("❌ v37.2 - Session restoration from sessionStorage failed:", error?.message);
@@ -249,36 +249,36 @@ export async function restoreSessionFromBackup() {
       deleteSessionStorage(SESSION_STORAGE_KEY);
     }
   }
-  
+
   // LAYER 2: Try cookie as fallback
   console.log("🍪 Trying cookie backup...");
   const cookieValue = getCookie(COOKIE_NAME);
-  
+
   if (cookieValue) {
     try {
       const session = JSON.parse(cookieValue);
-      
+
       if (session?.access_token && session?.refresh_token) {
         console.log("✅ Session found in cookie, attempting restore...");
-        
+
         // CRITICAL v37.2: Always try to restore, even if access_token expired
         // The refresh_token lasts 30+ days, so it might still be valid
         const { data, error } = await supabase.auth.setSession({
           access_token: session.access_token,
-          refresh_token: session.refresh_token
+          refresh_token: session.refresh_token,
         });
-        
+
         if (!error && data.session) {
           console.log("✅ Successfully restored session from cookie");
-          
+
           // Re-save the fresh session to all layers
           const sessionStr = JSON.stringify(data.session);
           setCookie(COOKIE_NAME, sessionStr);
           setSessionStorage(SESSION_STORAGE_KEY, sessionStr);
-          
+
           startPeriodicBackup();
           startKeepalive();
-          
+
           return data.session;
         } else {
           console.warn("❌ v37.2 - Session restoration from cookie failed:", error?.message);
@@ -290,7 +290,7 @@ export async function restoreSessionFromBackup() {
       deleteCookie(COOKIE_NAME);
     }
   }
-  
+
   console.warn("❌ No valid session found in any backup layer");
   return null;
 }
@@ -318,12 +318,14 @@ function startPeriodicBackup() {
     console.log("⏰ Periodic backup already running");
     return;
   }
-  
+
   console.log("⏰ Starting periodic session backup (every 15s)");
-  
+
   periodicBackupInterval = setInterval(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.access_token) {
         const saved = forceSessionBackup(session);
         if (saved) {
@@ -362,51 +364,59 @@ function startKeepalive() {
     console.log("💓 Keepalive already running");
     return;
   }
-  
+
   console.log("💓 Starting session keepalive (every 2 minutes)");
-  
-  keepaliveInterval = setInterval(async () => {
-    try {
-      // CRITICAL v37.0: Check if Supabase client has lost its session
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession?.access_token) {
-        console.warn("💓 v37.0 - Supabase client lost session! Attempting restoration...");
-        
-        // Try to restore from our backups
-        const restored = await restoreSessionFromBackup();
-        if (restored?.access_token) {
-          console.log("✅ v37.0 - Session restored proactively by keepalive");
-          forceSessionBackup(restored);
-          return;
-        } else {
-          console.error("❌ v37.0 - Keepalive restoration failed, stopping keepalive");
-          stopKeepalive();
-          stopPeriodicBackup();
+
+  keepaliveInterval = setInterval(
+    async () => {
+      try {
+        // CRITICAL v37.0: Check if Supabase client has lost its session
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+
+        if (!currentSession?.access_token) {
+          console.warn("💓 v37.0 - Supabase client lost session! Attempting restoration...");
+
+          // Try to restore from our backups
+          const restored = await restoreSessionFromBackup();
+          if (restored?.access_token) {
+            console.log("✅ v37.0 - Session restored proactively by keepalive");
+            forceSessionBackup(restored);
+            return;
+          } else {
+            console.error("❌ v37.0 - Keepalive restoration failed, stopping keepalive");
+            stopKeepalive();
+            stopPeriodicBackup();
+            return;
+          }
+        }
+
+        // CRITICAL: Actively refresh the session to keep it alive
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.refreshSession();
+
+        if (error) {
+          console.warn("💓 Keepalive refresh failed:", error.message);
+          // Don't stop keepalive on transient errors
           return;
         }
+
+        if (session) {
+          console.log("💓 Session keepalive refresh successful");
+          forceSessionBackup(session);
+        } else {
+          console.warn("💓 No session to keep alive");
+          stopKeepalive();
+        }
+      } catch (error) {
+        console.error("💓 Keepalive error:", error);
       }
-      
-      // CRITICAL: Actively refresh the session to keep it alive
-      const { data: { session }, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.warn("💓 Keepalive refresh failed:", error.message);
-        // Don't stop keepalive on transient errors
-        return;
-      }
-      
-      if (session) {
-        console.log("💓 Session keepalive refresh successful");
-        forceSessionBackup(session);
-      } else {
-        console.warn("💓 No session to keep alive");
-        stopKeepalive();
-      }
-    } catch (error) {
-      console.error("💓 Keepalive error:", error);
-    }
-  }, 2 * 60 * 1000); // Every 2 minutes for more aggressive keepalive
+    },
+    2 * 60 * 1000,
+  ); // Every 2 minutes for more aggressive keepalive
 }
 
 function stopKeepalive() {
@@ -421,7 +431,9 @@ function stopKeepalive() {
 export async function reconnectRealtime() {
   try {
     console.log("🔌 Reconnecting Supabase Realtime...");
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (session) {
       await supabase.realtime.connect();
       console.log("🟢 Realtime reconnected with active session");
@@ -435,7 +447,7 @@ export async function reconnectRealtime() {
 
 /* ----------------------- Visibility Event Handling ----------------------- */
 // Add beforeunload backup as safety net
-window.addEventListener('beforeunload', () => {
+window.addEventListener("beforeunload", () => {
   const session = supabase.auth.getSession();
   session.then(({ data: { session } }) => {
     if (session) {
@@ -463,7 +475,9 @@ setInterval(
 
 // Auto-start backup and keepalive if user is already logged in
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (session?.access_token) {
     console.log("🚀 Auto-starting backup and keepalive for existing session");
     forceSessionBackup(session);
@@ -472,4 +486,43 @@ setInterval(
   }
 })();
 
+// Visibility change handler for tab focus
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible") {
+    console.log("🟢 Tab visible - restoring session and reconnecting");
+    const restored = await restoreSessionFromBackup();
+    if (restored) {
+      await reconnectRealtime();
+      startPeriodicBackup();
+      startKeepalive();
+    }
+  } else {
+    console.log("🔴 Tab hidden - preserving session");
+  }
+});
 
+// Optional: Add window focus as backup trigger
+window.addEventListener("focus", async () => {
+  console.log("🟢 Window focused - restoring session");
+  await restoreSessionFromBackup();
+});
+
+// Enhanced auto-start with restoration fallback
+(async () => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    console.log("🚀 Auto-starting for existing session");
+    forceSessionBackup(session);
+    startPeriodicBackup();
+    startKeepalive();
+  } else {
+    console.log("🚀 No session found - attempting auto-restore");
+    const restored = await restoreSessionFromBackup();
+    if (restored) {
+      startPeriodicBackup();
+      startKeepalive();
+    }
+  }
+})();
