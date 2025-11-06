@@ -28,7 +28,7 @@ class VisibilityCoordinator {
       this.refreshHandlers.push(handler);
       console.log(`📝 Registered refresh handler (total: ${this.refreshHandlers.length})`);
     }
-    
+
     // Return cleanup function
     return () => {
       const index = this.refreshHandlers.indexOf(handler);
@@ -69,40 +69,42 @@ class VisibilityCoordinator {
     if (document.hidden) {
       this.lastHiddenTime = Date.now();
       console.log("🔒 Tab hidden at", new Date(this.lastHiddenTime).toISOString());
-      
+
       // CRITICAL v37.0: Try multiple times to get and backup session
       try {
-        const { supabase, forceSessionBackup, restoreSessionFromBackup } = await import('@/integrations/supabase/client');
-        
+        // const { supabase, forceSessionBackup, restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+
         // Get session with retries
         let session = null;
         let attempts = 0;
         const maxAttempts = 3;
-        
+
         while (!session?.access_token && attempts < maxAttempts) {
           attempts++;
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          
+          const {
+            data: { session: currentSession },
+          } = await supabase.auth.getSession();
+
           if (currentSession?.access_token) {
             session = currentSession;
             break;
           } else if (attempts < maxAttempts) {
             console.warn(`⚠️ v37.0 - No session found (attempt ${attempts}/${maxAttempts}), trying backup...`);
             // Try to restore from backup if client lost it
-            const restored = await restoreSessionFromBackup();
+            // const restored = await restoreSessionFromBackup();
             if (restored?.access_token) {
               session = restored;
               console.log("✅ v37.0 - Session restored before hiding tab");
               break;
             }
             // Wait a bit before retry
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise((resolve) => setTimeout(resolve, 200));
           }
         }
-        
+
         // Backup whatever we have
         if (session?.access_token) {
-          const backed = forceSessionBackup(session);
+          // const backed = forceSessionBackup(session);
           if (backed) {
             console.log("💾 v37.0 - Pre-hide session backup successful");
           } else {
@@ -111,7 +113,7 @@ class VisibilityCoordinator {
         } else {
           console.error("❌ v37.0 - No session to backup after all attempts!");
         }
-        
+
         // Then disconnect Realtime
         console.log("👀 Tab hidden — disconnecting Realtime temporarily...");
         await supabase.realtime.disconnect();
@@ -140,7 +142,7 @@ class VisibilityCoordinator {
   private async coordinateRefresh() {
     if (this.isRefreshing) {
       console.warn("⚙️ Refresh already in progress — forcing reset after 30s");
-      
+
       setTimeout(() => {
         if (this.isRefreshing) {
           console.error("❌ Coordinator was stuck! Force-resetting isRefreshing flag");
@@ -153,7 +155,7 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     const coordinatorStartTime = Date.now();
     console.log(`🔁 Coordinating refresh (${this.refreshHandlers.length} handlers registered)...`);
-    
+
     // v37.1: Increased to 28s to match new auth handler structure (25s auth + 3s buffer)
     const refreshTimeout = setTimeout(() => {
       console.error("❌ Coordinator timeout after 28s - force resetting");
@@ -164,7 +166,7 @@ class VisibilityCoordinator {
       // CRITICAL: Execute auth handler first (it's always registered first)
       if (this.refreshHandlers.length > 0) {
         const authHandler = this.refreshHandlers[0];
-        
+
         // v37.1: Increased to 25s for multi-step restoration (getSession 4s + backup 6s + refresh 6s + conversion 8s = 24s worst case)
         const authSuccess = await Promise.race([
           authHandler(),
@@ -173,20 +175,20 @@ class VisibilityCoordinator {
               console.error("❌ Auth handler timeout after 25s");
               resolve(false);
             }, 25000);
-          })
+          }),
         ]);
-        
+
         if (authSuccess === true) {
           const authDuration = Date.now() - coordinatorStartTime;
           console.log(`✅ Auth handler completed in ${authDuration}ms, session and user restored`);
-          
+
           // v37.1: Reduced to 1000ms since auth handler now includes propagation wait
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           console.log("✅ Final propagation complete, ready for data queries");
-          
+
           // Reconnect Realtime after session restoration
           try {
-            const { reconnectRealtime } = await import('@/integrations/supabase/client');
+            const { reconnectRealtime } = await import("@/integrations/supabase/client");
             await reconnectRealtime();
           } catch (realtimeError) {
             console.error("❌ Realtime reconnection failed:", realtimeError);
@@ -198,11 +200,11 @@ class VisibilityCoordinator {
           return;
         }
       }
-      
+
       // Execute remaining handlers in parallel
       if (this.refreshHandlers.length > 1) {
         const dataHandlers = this.refreshHandlers.slice(1);
-        await Promise.all(dataHandlers.map(handler => handler()));
+        await Promise.all(dataHandlers.map((handler) => handler()));
         console.log("✅ All data handlers completed successfully");
       }
     } catch (error) {
