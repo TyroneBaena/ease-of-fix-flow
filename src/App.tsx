@@ -641,7 +641,10 @@ import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { Loader2 } from "lucide-react";
 
-// Pages
+// ✅ import your Supabase client helpers
+import { createNewSupabaseClient, getSupabaseClient } from "@/integrations/supabase/client";
+
+// Your route components
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import SignupStatus from "@/pages/SignupStatus";
@@ -656,19 +659,15 @@ import RequestDetail from "@/pages/RequestDetail";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 
-// Supabase client imports
-import { createNewSupabaseClient, getSupabaseClient } from "@/supabase/client";
-
-// --- REHYDRATE LOGIC INLINE ---
+// ✅ Inline "rehydrateSessionFromServer" helper
 async function rehydrateSessionFromServer(): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient() || createNewSupabaseClient();
-
-    const SESSION_FN = import.meta.env.VITE_SESSION_FN_URL || "https://<YOUR_PROJECT_ID>.functions.supabase.co/session"; // <-- replace YOUR_PROJECT_ID with actual Supabase project ref
+    const SESSION_FN = import.meta.env.VITE_SESSION_FN_URL || "/functions/session"; // update if deployed differently
+    const supabase = getSupabaseClient();
 
     const res = await fetch(SESSION_FN, {
       method: "GET",
-      credentials: "include", // include HttpOnly cookies
+      credentials: "include",
       headers: { Accept: "application/json" },
     });
 
@@ -680,8 +679,8 @@ async function rehydrateSessionFromServer(): Promise<boolean> {
     const payload = await res.json().catch(() => null);
     const session = payload?.session || payload?.data?.session || payload?.data || null;
 
-    if (!session || !session.access_token || !session.refresh_token) {
-      console.log("No session returned by session function");
+    if (!session?.access_token || !session?.refresh_token) {
+      console.log("No valid session returned by server");
       return false;
     }
 
@@ -690,26 +689,21 @@ async function rehydrateSessionFromServer(): Promise<boolean> {
       refresh_token: session.refresh_token,
     });
 
-    // Optional short wait before continuing
-    await new Promise((r) => setTimeout(r, 500));
-
-    // Optional realtime reconnect
     try {
       await supabase.realtime.connect();
     } catch (e) {
-      console.warn("Realtime connection failed", e);
+      console.warn("Realtime connect failed", e);
     }
 
-    console.log("✅ Session successfully rehydrated");
+    console.log("✅ Session rehydrated from server");
     return true;
   } catch (err) {
-    console.error("Rehydrate error:", err);
+    console.error("Rehydrate error", err);
     return false;
   }
 }
-// --- END REHYDRATE LOGIC ---
 
-// Query client
+// Query Client setup
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -719,6 +713,7 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
       retry: false,
+      refetchInterval: false,
     },
     mutations: { retry: false },
   },
@@ -742,6 +737,7 @@ const AppRoutes = () => {
           path="/"
           element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
         />
+
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route path="/signup-status" element={<SignupStatus />} />
@@ -749,6 +745,7 @@ const AppRoutes = () => {
           path="/setup-password"
           element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
         />
+
         <Route
           path="/dashboard"
           element={
@@ -757,6 +754,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/properties"
           element={
@@ -765,6 +763,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/properties/:id"
           element={
@@ -773,6 +772,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/requests"
           element={
@@ -781,6 +781,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/new-request"
           element={
@@ -789,6 +790,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/requests/:id"
           element={
@@ -797,6 +799,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/reports"
           element={
@@ -805,6 +808,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/settings"
           element={
@@ -813,6 +817,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </OrganizationGuard>
@@ -823,18 +828,19 @@ const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      createNewSupabaseClient(); // ensure client is initialized
-      await rehydrateSessionFromServer(); // try to restore cookies -> session
+    // 👇 Run rehydration once on mount
+    const doRehydrate = async () => {
+      await rehydrateSessionFromServer();
       setRehydrated(true);
     };
-    init();
+    doRehydrate();
   }, []);
 
   if (!rehydrated) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="ml-2 text-gray-600">Restoring session...</p>
       </div>
     );
   }
