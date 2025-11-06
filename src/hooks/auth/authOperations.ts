@@ -177,9 +177,6 @@
 //   }
 // };
 
-
-
-
 import { toast } from "@/lib/toast";
 import { UserRole } from "@/types/user";
 import { getSupabaseClient } from "@/integrations/supabase/client";
