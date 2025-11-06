@@ -491,8 +491,8 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types"; // remove if not using typed supabase
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
-
+// const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 // 👇 internal instance (not exported directly)
 let _supabase: SupabaseClient | null = null;
 
