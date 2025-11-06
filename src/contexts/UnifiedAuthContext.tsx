@@ -1,14 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { User, UserRole } from '@/types/user';
-import { toast } from '@/lib/toast';
-import { authDebugMarker } from '@/auth-debug';
-import '@/auth-debug'; // Force import to trigger debug logs
-import { setSentryUser } from '@/lib/sentry';
-import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+import { User as SupabaseUser, Session } from "@supabase/supabase-js";
+import { User, UserRole } from "@/types/user";
+import { toast } from "@/lib/toast";
+import { authDebugMarker } from "@/auth-debug";
+import "@/auth-debug"; // Force import to trigger debug logs
+import { setSentryUser } from "@/lib/sentry";
+import { visibilityCoordinator } from "@/utils/visibilityCoordinator";
 
-console.log('🚀 UnifiedAuth Context loading with debug marker:', authDebugMarker);
+console.log("🚀 UnifiedAuth Context loading with debug marker:", authDebugMarker);
 
 // Import the full AddUserResult interface
 export interface AddUserResult {
@@ -56,26 +56,26 @@ interface UnifiedAuthContextType {
   isSessionReady: boolean; // CRITICAL: Track if Supabase client session is fully propagated and ready for queries
   isSigningOut: boolean; // Track sign out process to prevent UI flashing
   signOut: () => Promise<void>;
-  
+
   // Multi-organization properties
   currentOrganization: Organization | null;
   userOrganizations: UserOrganization[];
   switchOrganization: (organizationId: string) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
   getCurrentUserRole: () => string;
-  
+
   // Admin helper
   isAdmin: boolean;
   canAccessProperty: (propertyId: string) => boolean;
-  
+
   // User management
   users: User[];
   fetchUsers: () => Promise<void>;
   addUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<AddUserResult>;
   updateUser: (user: User) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
-  resetPassword: (userId: string, email: string) => Promise<{success: boolean; message: string}>;
-  adminResetPassword: (userId: string, email: string) => Promise<{success: boolean; message: string}>;
+  resetPassword: (userId: string, email: string) => Promise<{ success: boolean; message: string }>;
+  adminResetPassword: (userId: string, email: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(undefined);
@@ -83,7 +83,7 @@ const UnifiedAuthContext = createContext<UnifiedAuthContextType | undefined>(und
 export const useUnifiedAuth = () => {
   const context = useContext(UnifiedAuthContext);
   if (!context) {
-    throw new Error('useUnifiedAuth must be used within a UnifiedAuthProvider');
+    throw new Error("useUnifiedAuth must be used within a UnifiedAuthProvider");
   }
   return context;
 };
@@ -102,7 +102,7 @@ export const useSimpleAuth = () => {
     isAdmin: context.isAdmin,
     switchOrganization: context.switchOrganization,
     refreshUser: context.refreshOrganizations, // Map to available method
-    currentOrganization: context.currentOrganization
+    currentOrganization: context.currentOrganization,
   };
 };
 
@@ -116,7 +116,7 @@ export const useMultiOrganizationContext = () => {
     switchOrganization: context.switchOrganization,
     refreshOrganizations: context.refreshOrganizations,
     getCurrentUserRole: context.getCurrentUserRole,
-    currentUser: context.currentUser
+    currentUser: context.currentUser,
   };
 };
 
@@ -135,98 +135,98 @@ export const useUserContext = () => {
     adminResetPassword: context.adminResetPassword,
     isAdmin: context.isAdmin,
     canAccessProperty: context.canAccessProperty,
-    signOut: context.signOut
+    signOut: context.signOut,
   };
 };
 
 // Simple user conversion with timeout and better error handling
 const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
   try {
-    console.log('🔄 UnifiedAuth v12.0 - convertSupabaseUser called for:', supabaseUser.email);
-    
+    console.log("🔄 UnifiedAuth v12.0 - convertSupabaseUser called for:", supabaseUser.email);
+
     // CRITICAL FIX: Add AbortSignal with aggressive timeout to prevent hanging
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), 8000); // 8 second timeout
-    
+
     try {
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
+        .from("profiles")
+        .select("*")
+        .eq("id", supabaseUser.id)
         .abortSignal(abortController.signal)
         .maybeSingle();
-      
+
       clearTimeout(timeoutId);
-      
+
       if (profileError) {
-        console.warn('🔄 UnifiedAuth v12.0 - Profile query error:', profileError.message);
+        console.warn("🔄 UnifiedAuth v12.0 - Profile query error:", profileError.message);
       }
-      
-      console.log('🔄 UnifiedAuth v12.0 - Profile query completed:', { 
-        hasProfile: !!profile, 
+
+      console.log("🔄 UnifiedAuth v12.0 - Profile query completed:", {
+        hasProfile: !!profile,
         hasOrganization: !!profile?.organization_id,
-        error: profileError?.message 
+        error: profileError?.message,
       });
 
       // Create user object with fallbacks - always succeed
       const user: User = {
         id: supabaseUser.id,
-        email: supabaseUser.email || '',
-        name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-        role: (profile?.role as UserRole) || 'manager',
+        email: supabaseUser.email || "",
+        name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0] || "User",
+        role: (profile?.role as UserRole) || "manager",
         assignedProperties: profile?.assigned_properties || [],
         createdAt: profile?.created_at || supabaseUser.created_at,
         organization_id: profile?.organization_id || null,
-        session_organization_id: profile?.session_organization_id || null
+        session_organization_id: profile?.session_organization_id || null,
       };
 
-      console.log('🔄 UnifiedAuth v12.0 - User converted successfully:', {
+      console.log("🔄 UnifiedAuth v12.0 - User converted successfully:", {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
         organization_id: user.organization_id,
         session_organization_id: user.session_organization_id,
-        needsOnboarding: !user.organization_id
+        needsOnboarding: !user.organization_id,
       });
 
       return user;
     } catch (queryError: any) {
       clearTimeout(timeoutId);
-      
-      if (queryError.name === 'AbortError') {
-        console.warn('🔄 UnifiedAuth v12.0 - Profile query timed out, using fallback');
+
+      if (queryError.name === "AbortError") {
+        console.warn("🔄 UnifiedAuth v12.0 - Profile query timed out, using fallback");
       } else {
-        console.error('🔄 UnifiedAuth v12.0 - Profile query failed:', queryError);
+        console.error("🔄 UnifiedAuth v12.0 - Profile query failed:", queryError);
       }
-      
+
       // Return basic user on timeout/error
       return {
         id: supabaseUser.id,
-        email: supabaseUser.email || '',
-        name: supabaseUser.email?.split('@')[0] || 'User',
-        role: 'manager' as UserRole,
+        email: supabaseUser.email || "",
+        name: supabaseUser.email?.split("@")[0] || "User",
+        role: "manager" as UserRole,
         assignedProperties: [],
         createdAt: supabaseUser.created_at,
         organization_id: null,
-        session_organization_id: null
+        session_organization_id: null,
       };
     }
   } catch (error) {
-    console.error('🔄 UnifiedAuth v12.0 - Error converting user:', error);
+    console.error("🔄 UnifiedAuth v12.0 - Error converting user:", error);
     // Return basic user on error
     const fallbackUser = {
       id: supabaseUser.id,
-      email: supabaseUser.email || '',
-      name: supabaseUser.email?.split('@')[0] || 'User',
-      role: 'manager' as UserRole,
+      email: supabaseUser.email || "",
+      name: supabaseUser.email?.split("@")[0] || "User",
+      role: "manager" as UserRole,
       assignedProperties: [],
       createdAt: supabaseUser.created_at,
       organization_id: null,
-      session_organization_id: null
+      session_organization_id: null,
     };
-    
-    console.log('🔄 UnifiedAuth v12.0 - Returning fallback user:', fallbackUser);
+
+    console.log("🔄 UnifiedAuth v12.0 - Returning fallback user:", fallbackUser);
     return fallbackUser;
   }
 };
@@ -239,17 +239,17 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const initialCheckDone = useRef(false); // CRITICAL: Use ref to prevent reset on remount
   const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
   const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
-  
+
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<UserOrganization[]>([]);
-  
+
   // User management state
   const [users, setUsers] = useState<User[]>([]);
-  
+
   // CRITICAL FIX: Track if this is a background refresh to prevent loading cascades
   const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false);
-  
+
   // CRITICAL: Create refs to hold current session/user for visibility coordinator
   // These refs are updated whenever session/user changes to prevent stale closures
   const sessionRef = useRef<Session | null>(null);
@@ -257,60 +257,61 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const signOut = useCallback(async () => {
     try {
-      console.log('🔐 UnifiedAuth - Starting sign out process');
-      
+      console.log("🔐 UnifiedAuth - Starting sign out process");
+
       // Set signing out flag FIRST to prevent UI flashing during cleanup
       setIsSigningOut(true);
-      
+
       // Clear Sentry user context immediately
       setSentryUser(null);
-      
+
       // Import auth cleanup utilities
-      const { performRobustSignOut } = await import('@/utils/authCleanup');
-      
+      const { performRobustSignOut } = await import("@/utils/authCleanup");
+
       // Perform robust sign out with timeout
       const signOutPromise = performRobustSignOut(supabase);
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => {
-          console.warn('🔐 UnifiedAuth - Sign out timeout, forcing cleanup');
-          resolve(true);
-        }, 5000) // 5 second timeout
+      const timeoutPromise = new Promise(
+        (resolve) =>
+          setTimeout(() => {
+            console.warn("🔐 UnifiedAuth - Sign out timeout, forcing cleanup");
+            resolve(true);
+          }, 5000), // 5 second timeout
       );
-      
+
       await Promise.race([signOutPromise, timeoutPromise]);
-      
+
       // Clear local state immediately
       setCurrentUser(null);
       setSession(null);
       setIsSessionReady(false); // Clear session ready flag
       setUserOrganizations([]);
       setCurrentOrganization(null);
-      
-      console.log('🔐 UnifiedAuth - Sign out completed successfully');
-      toast.success('Signed out successfully');
+
+      console.log("🔐 UnifiedAuth - Sign out completed successfully");
+      toast.success("Signed out successfully");
     } catch (error) {
-      console.error('🔐 UnifiedAuth - Error signing out:', error);
-      
+      console.error("🔐 UnifiedAuth - Error signing out:", error);
+
       // Even on error, clear local state
       setCurrentUser(null);
       setSession(null);
       setUserOrganizations([]);
       setCurrentOrganization(null);
-      
-      toast.error('Error signing out');
+
+      toast.error("Error signing out");
     }
   }, []);
 
   const fetchUserOrganizations = async (user: User) => {
     if (!user?.id) {
-      console.log('UnifiedAuth - No user ID, clearing organizations');
+      console.log("UnifiedAuth - No user ID, clearing organizations");
       setUserOrganizations([]);
       setCurrentOrganization(null);
       return null;
     }
 
     try {
-      console.log('UnifiedAuth - Fetching organizations for user:', user.id);
+      console.log("UnifiedAuth - Fetching organizations for user:", user.id);
 
       // CRITICAL FIX: 60-second timeout to prevent blocking on tab switches
       const controller = new AbortController();
@@ -319,26 +320,28 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       try {
         // Fetch user organizations
         const { data: userOrgs, error: userOrgsError } = await supabase
-          .from('user_organizations')
-          .select(`
+          .from("user_organizations")
+          .select(
+            `
             *,
             organization_id,
             role,
             is_active,
             is_default
-          `)
-          .eq('user_id', user.id)
-          .eq('is_active', true);
+          `,
+          )
+          .eq("user_id", user.id)
+          .eq("is_active", true);
 
         clearTimeout(timeoutId);
 
         if (userOrgsError) {
-          console.warn('UnifiedAuth - Error fetching user organizations:', userOrgsError);
+          console.warn("UnifiedAuth - Error fetching user organizations:", userOrgsError);
           throw userOrgsError;
         }
 
         if (!userOrgs || userOrgs.length === 0) {
-          console.log('UnifiedAuth - No organizations found, using profile organization_id');
+          console.log("UnifiedAuth - No organizations found, using profile organization_id");
           setUserOrganizations([]);
           setCurrentOrganization(null);
           return user.organization_id || null;
@@ -347,26 +350,28 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Fetch organization details with timeout - 60 seconds
         const orgTimeoutId = setTimeout(() => controller.abort(), 60000);
         const orgIds = userOrgs.map((uo: any) => uo.organization_id);
-        
+
         const { data: organizations, error: orgsError } = await supabase
-          .from('organizations')
-          .select('*')
-          .in('id', orgIds);
+          .from("organizations")
+          .select("*")
+          .in("id", orgIds);
 
         clearTimeout(orgTimeoutId);
 
         if (orgsError) {
-          console.warn('UnifiedAuth - Error fetching organizations:', orgsError);
+          console.warn("UnifiedAuth - Error fetching organizations:", orgsError);
           throw orgsError;
         }
 
-        const mappedUserOrganizations = userOrgs.map((uo: any) => {
-          const organization = organizations?.find(org => org.id === uo.organization_id);
-          return {
-            ...uo,
-            organization: organization as Organization
-          };
-        }).filter((uo: any) => uo.organization);
+        const mappedUserOrganizations = userOrgs
+          .map((uo: any) => {
+            const organization = organizations?.find((org) => org.id === uo.organization_id);
+            return {
+              ...uo,
+              organization: organization as Organization,
+            };
+          })
+          .filter((uo: any) => uo.organization);
 
         setUserOrganizations(mappedUserOrganizations);
 
@@ -377,7 +382,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           // Try session organization first
           if (user.session_organization_id) {
             const sessionOrg = mappedUserOrganizations.find(
-              (uo: any) => uo.organization_id === user.session_organization_id
+              (uo: any) => uo.organization_id === user.session_organization_id,
             );
             if (sessionOrg) {
               targetOrg = sessionOrg.organization;
@@ -398,23 +403,23 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
 
           setCurrentOrganization(targetOrg);
-          console.log('UnifiedAuth - Set current organization:', targetOrg?.name);
+          console.log("UnifiedAuth - Set current organization:", targetOrg?.name);
           return targetOrg?.id || null;
         }
-        
+
         return user.organization_id || null;
       } catch (fetchError) {
         clearTimeout(timeoutId);
         if (controller.signal.aborted) {
-          console.warn('UnifiedAuth - Organization fetch timeout after 3s');
-          throw new Error('Organization fetch timeout');
+          console.warn("UnifiedAuth - Organization fetch timeout after 3s");
+          throw new Error("Organization fetch timeout");
         }
         throw fetchError;
       }
     } catch (error) {
-      console.error('UnifiedAuth - Error in fetchUserOrganizations:', error);
+      console.error("UnifiedAuth - Error in fetchUserOrganizations:", error);
       // Only clear if it's not a timeout - preserve existing data on timeout
-      if (!(error instanceof Error && error.message === 'Organization fetch timeout')) {
+      if (!(error instanceof Error && error.message === "Organization fetch timeout")) {
         setUserOrganizations([]);
         setCurrentOrganization(null);
       }
@@ -422,43 +427,46 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const switchOrganization = useCallback(async (organizationId: string) => {
-    try {
-      const targetOrgData = userOrganizations.find(
-        uo => uo.organization_id === organizationId
-      );
+  const switchOrganization = useCallback(
+    async (organizationId: string) => {
+      try {
+        const targetOrgData = userOrganizations.find((uo) => uo.organization_id === organizationId);
 
-      if (!targetOrgData) {
-        throw new Error('Organization not found');
+        if (!targetOrgData) {
+          throw new Error("Organization not found");
+        }
+
+        // Call the database function to switch organization
+        const { error } = await supabase.rpc("switch_user_organization", {
+          new_org_id: organizationId,
+        });
+
+        if (error) {
+          throw new Error(`Failed to switch organization: ${error.message}`);
+        }
+
+        setCurrentOrganization(targetOrgData.organization);
+        toast.success(`Switched to ${targetOrgData.organization.name}`);
+      } catch (error) {
+        console.error("Error switching organization:", error);
+        toast.error("Failed to switch organization");
       }
-
-      // Call the database function to switch organization
-      const { error } = await supabase.rpc('switch_user_organization', {
-        new_org_id: organizationId
-      });
-
-      if (error) {
-        throw new Error(`Failed to switch organization: ${error.message}`);
-      }
-
-      setCurrentOrganization(targetOrgData.organization);
-      toast.success(`Switched to ${targetOrgData.organization.name}`);
-    } catch (error) {
-      console.error('Error switching organization:', error);
-      toast.error('Failed to switch organization');
-    }
-  }, [userOrganizations]);
+    },
+    [userOrganizations],
+  );
 
   const refreshOrganizations = useCallback(async () => {
     if (!currentUser?.id) return;
-    
+
     try {
-      console.log('🔄 Refreshing user data and organizations...');
-      
+      console.log("🔄 Refreshing user data and organizations...");
+
       // Refetch user profile to get updated role
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (!authUser) return;
-      
+
       // Convert to User type with fresh data
       const freshUser = await convertSupabaseUser(authUser);
       if (freshUser) {
@@ -466,205 +474,214 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         // Fetch organizations with the fresh user data
         await fetchUserOrganizations(freshUser);
       }
-      
-      console.log('✅ User data and organizations refreshed');
+
+      console.log("✅ User data and organizations refreshed");
     } catch (error) {
-      console.error('Error refreshing user data:', error);
+      console.error("Error refreshing user data:", error);
     }
   }, [currentUser?.id]);
 
   const getCurrentUserRole = useCallback((): string => {
     if (!currentOrganization || !currentUser?.id) {
-      return currentUser?.role || 'manager';
+      return currentUser?.role || "manager";
     }
 
-    const userOrg = userOrganizations.find(
-      uo => uo.organization_id === currentOrganization.id
-    );
+    const userOrg = userOrganizations.find((uo) => uo.organization_id === currentOrganization.id);
 
-    return userOrg?.role || currentUser?.role || 'manager';
+    return userOrg?.role || currentUser?.role || "manager";
   }, [currentOrganization?.id, currentUser?.id, currentUser?.role, userOrganizations]);
 
   // Use organization role when available, fallback to profile role
   // CRITICAL: Memoize effectiveRole to prevent infinite re-renders
   const effectiveRole = useMemo(() => {
-    if (!currentUser) return 'manager';
-    
+    if (!currentUser) return "manager";
+
     // If user has organizations, use the organization role
     if (currentOrganization && userOrganizations.length > 0) {
-      const userOrg = userOrganizations.find(
-        uo => uo.organization_id === currentOrganization.id
-      );
+      const userOrg = userOrganizations.find((uo) => uo.organization_id === currentOrganization.id);
       if (userOrg) {
         return userOrg.role;
       }
     }
-    
+
     // Fallback to profile role
-    return currentUser.role || 'manager';
+    return currentUser.role || "manager";
   }, [currentUser?.id, currentUser?.role, currentOrganization?.id, userOrganizations]);
 
-  const isAdmin = useMemo(() => effectiveRole === 'admin', [effectiveRole]);
+  const isAdmin = useMemo(() => effectiveRole === "admin", [effectiveRole]);
 
-  const canAccessProperty = useCallback((propertyId: string): boolean => {
-    if (!currentUser) return false;
-    if (effectiveRole === 'admin') return true;
-    return currentUser.assignedProperties?.includes(propertyId) || false;
-  }, [currentUser?.id, currentUser?.assignedProperties, effectiveRole]);
+  const canAccessProperty = useCallback(
+    (propertyId: string): boolean => {
+      if (!currentUser) return false;
+      if (effectiveRole === "admin") return true;
+      return currentUser.assignedProperties?.includes(propertyId) || false;
+    },
+    [currentUser?.id, currentUser?.assignedProperties, effectiveRole],
+  );
 
   // Create enhanced currentUser with effective role
   // CRITICAL: Only create new object if actual values changed
   const enhancedCurrentUser = useMemo(() => {
     if (!currentUser) return null;
-    
+
     // If role matches, return the same object to prevent unnecessary re-renders
     if (currentUser.role === effectiveRole) {
       return currentUser;
     }
-    
+
     // Only create new object if role actually changed
     return {
       ...currentUser,
-      role: effectiveRole as UserRole
+      role: effectiveRole as UserRole,
     };
   }, [currentUser, effectiveRole]); // Simplified deps - only recompute if currentUser or role changes
 
   // User management functions
   const fetchUsers = useCallback(async () => {
-    console.log('UnifiedAuth - fetchUsers called, effectiveRole:', effectiveRole, 'currentOrganization:', !!currentOrganization);
-    
-    const isAdminRole = effectiveRole === 'admin';
-    
+    console.log(
+      "UnifiedAuth - fetchUsers called, effectiveRole:",
+      effectiveRole,
+      "currentOrganization:",
+      !!currentOrganization,
+    );
+
+    const isAdminRole = effectiveRole === "admin";
+
     if (!isAdminRole) {
-      console.log('UnifiedAuth - Not fetching users (not admin)');
+      console.log("UnifiedAuth - Not fetching users (not admin)");
       return;
     }
 
     try {
-      console.log('UnifiedAuth - Fetching users for practice leader dropdown');
-      const { fetchAllUsers } = await import('@/services/user/userQueries');
-      
+      console.log("UnifiedAuth - Fetching users for practice leader dropdown");
+      const { fetchAllUsers } = await import("@/services/user/userQueries");
+
       // CRITICAL FIX: 60-second timeout for user queries with RLS
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.warn('⏱️ User fetch timeout after 60s');
+        console.warn("⏱️ User fetch timeout after 60s");
       }, 60000);
-      
+
       try {
         const userData = await fetchAllUsers(controller.signal);
         clearTimeout(timeoutId);
-        
-        console.log('UnifiedAuth - Raw user data received:', userData.length, 'users');
-        
+
+        console.log("UnifiedAuth - Raw user data received:", userData.length, "users");
+
         // Convert to User type format
-        const convertedUsers = userData.map(user => ({
+        const convertedUsers = userData.map((user) => ({
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
           assignedProperties: user.assignedProperties || [],
           createdAt: user.createdAt,
-          organization_id: user.organization_id
+          organization_id: user.organization_id,
         }));
-        
-        console.log('UnifiedAuth - Converted users:', convertedUsers);
+
+        console.log("UnifiedAuth - Converted users:", convertedUsers);
         setUsers(convertedUsers);
-        console.log('UnifiedAuth - Users set for practice leaders:', convertedUsers.length);
+        console.log("UnifiedAuth - Users set for practice leaders:", convertedUsers.length);
       } catch (fetchError) {
         clearTimeout(timeoutId);
         throw fetchError;
       }
     } catch (error) {
-      console.error('UnifiedAuth - Error fetching users:', error);
-      if (error instanceof Error && (error.message.includes('aborted') || error.message.includes('timeout'))) {
-        console.warn('⏱️ User fetch aborted due to timeout');
+      console.error("UnifiedAuth - Error fetching users:", error);
+      if (error instanceof Error && (error.message.includes("aborted") || error.message.includes("timeout"))) {
+        console.warn("⏱️ User fetch aborted due to timeout");
       }
     }
   }, [effectiveRole]);
 
-  const addUser = useCallback(async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
-    // Basic implementation - would be replaced with actual service call
-    console.log('addUser called:', { email, name, role, assignedProperties });
-    return {
-      success: false,
-      message: 'User management not fully implemented yet',
-      email
-    };
-  }, []);
+  const addUser = useCallback(
+    async (email: string, name: string, role: UserRole, assignedProperties?: string[]): Promise<AddUserResult> => {
+      // Basic implementation - would be replaced with actual service call
+      console.log("addUser called:", { email, name, role, assignedProperties });
+      return {
+        success: false,
+        message: "User management not fully implemented yet",
+        email,
+      };
+    },
+    [],
+  );
 
   const updateUser = useCallback(async (user: User) => {
-    console.log('updateUser called:', user);
+    console.log("updateUser called:", user);
   }, []);
 
   const removeUser = useCallback(async (userId: string) => {
-    console.log('removeUser called:', userId);
+    console.log("removeUser called:", userId);
   }, []);
 
   const resetPassword = useCallback(async (userId: string, email: string) => {
-    console.log('resetPassword called:', { userId, email });
+    console.log("resetPassword called:", { userId, email });
     try {
       // Use production URL if on production, otherwise use current origin
-      const isProduction = window.location.hostname === 'housinghub.app' || window.location.hostname === 'www.housinghub.app';
-      const redirectUrl = isProduction 
+      const isProduction =
+        window.location.hostname === "housinghub.app" || window.location.hostname === "www.housinghub.app";
+      const redirectUrl = isProduction
         ? `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`
         : `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`;
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
-      
+
       if (error) {
-        console.error('Error requesting password reset:', error);
+        console.error("Error requesting password reset:", error);
         return {
           success: false,
-          message: error.message || 'Password reset failed'
+          message: error.message || "Password reset failed",
         };
       }
-      
+
       return {
         success: true,
-        message: `Password reset email sent to ${email}`
+        message: `Password reset email sent to ${email}`,
       };
     } catch (error: any) {
-      console.error('Error in resetPassword:', error);
+      console.error("Error in resetPassword:", error);
       return {
         success: false,
-        message: error.message || 'Unknown error occurred'
+        message: error.message || "Unknown error occurred",
       };
     }
   }, []);
 
   const adminResetPassword = useCallback(async (userId: string, email: string) => {
-    console.log('adminResetPassword called:', { userId, email });
+    console.log("adminResetPassword called:", { userId, email });
     try {
       // Use production URL if on production, otherwise use current origin
-      const isProduction = window.location.hostname === 'housinghub.app' || window.location.hostname === 'www.housinghub.app';
-      const redirectUrl = isProduction 
+      const isProduction =
+        window.location.hostname === "housinghub.app" || window.location.hostname === "www.housinghub.app";
+      const redirectUrl = isProduction
         ? `https://housinghub.app/setup-password?email=${encodeURIComponent(email)}`
         : `${window.location.origin}/setup-password?email=${encodeURIComponent(email)}`;
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
-      
+
       if (error) {
-        console.error('Error requesting admin password reset:', error);
+        console.error("Error requesting admin password reset:", error);
         return {
           success: false,
-          message: error.message || 'Password reset failed'
+          message: error.message || "Password reset failed",
         };
       }
-      
+
       return {
         success: true,
-        message: `Password reset email sent to ${email}`
+        message: `Password reset email sent to ${email}`,
       };
     } catch (error: any) {
-      console.error('Error in adminResetPassword:', error);
+      console.error("Error in adminResetPassword:", error);
       return {
         success: false,
-        message: error.message || 'Unknown error occurred'
+        message: error.message || "Unknown error occurred",
       };
     }
   }, []);
@@ -674,14 +691,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     sessionRef.current = session;
     currentUserRef.current = currentUser;
   }, [session, currentUser]);
-  
+
   // Helper: Wrap async operations with timeout protection
   const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> => {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) => {
         setTimeout(() => reject(new Error(errorMsg)), timeoutMs);
-      })
+      }),
     ]);
   };
 
@@ -689,113 +706,121 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // v37.2: Use refresh_token for recovery (30+ day lifetime vs 1hr access_token)
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log('🔄 UnifiedAuth v37.2 - Coordinator-triggered session restoration START');
+      console.log("🔄 UnifiedAuth v37.2 - Coordinator-triggered session restoration START");
       const startTime = Date.now();
-      
+
       try {
         // Step 1: Check Supabase client session with aggressive timeout
-        console.log('📡 Step 1: Checking Supabase client session...');
-        
+        console.log("📡 Step 1: Checking Supabase client session...");
+
         let clientSession = null;
         try {
           const result = await withTimeout(
             supabase.auth.getSession(),
             4000, // Reduced to 4s
-            'getSession timeout'
+            "getSession timeout",
           );
           clientSession = result.data?.session;
         } catch (timeoutError) {
-          console.warn('⚠️ UnifiedAuth v37.1 - getSession timed out, proceeding to backup');
+          console.warn("⚠️ UnifiedAuth v37.1 - getSession timed out, proceeding to backup");
         }
-        
+
         // Step 2: If no session or expired, try backup restoration IMMEDIATELY
         if (!clientSession?.access_token) {
-          console.log('📦 Step 2: No client session, attempting backup restoration...');
-          
+          console.log("📦 Step 2: No client session, attempting backup restoration...");
+
           try {
-            const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
-            
+            // const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+
             const restoredSession = await withTimeout(
               restoreSessionFromBackup(),
               6000, // 6s for backup restoration
-              'Backup restoration timeout'
+              "Backup restoration timeout",
             );
-            
+
             if (restoredSession?.access_token) {
-              console.log('✅ UnifiedAuth v37.2 - Session restored from backup (refresh_token used)');
-              
+              console.log("✅ UnifiedAuth v37.2 - Session restored from backup (refresh_token used)");
+
               // CRITICAL: Wait for Supabase client to fully propagate the restored session
-              await new Promise(resolve => setTimeout(resolve, 800));
-              
+              await new Promise((resolve) => setTimeout(resolve, 800));
+
               // Verify it's actually in the client now
-              const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+              const {
+                data: { session: verifiedSession },
+              } = await supabase.auth.getSession();
               if (verifiedSession?.access_token) {
                 clientSession = verifiedSession;
-                console.log('✅ UnifiedAuth v37.2 - Restored session verified in client');
+                console.log("✅ UnifiedAuth v37.2 - Restored session verified in client");
               } else {
-                console.error('❌ UnifiedAuth v37.2 - Restored session not in client!');
+                console.error("❌ UnifiedAuth v37.2 - Restored session not in client!");
                 setIsSessionReady(false);
                 return false;
               }
             } else {
-              console.error('❌ UnifiedAuth v37.2 - Backup restoration failed (refresh_token likely expired)');
+              console.error("❌ UnifiedAuth v37.2 - Backup restoration failed (refresh_token likely expired)");
               setIsSessionReady(false);
               return false;
             }
           } catch (backupError) {
-            console.error('❌ UnifiedAuth v37.1 - Backup restoration failed:', backupError instanceof Error ? backupError.message : backupError);
+            console.error(
+              "❌ UnifiedAuth v37.1 - Backup restoration failed:",
+              backupError instanceof Error ? backupError.message : backupError,
+            );
             setIsSessionReady(false);
             return false;
           }
         }
-        
+
         // Step 3: Validate session is not expired
         if (clientSession?.access_token) {
           const expiresAt = clientSession.expires_at ? clientSession.expires_at * 1000 : 0;
           const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-          
+
           if (isExpired) {
-            console.warn('⚠️ UnifiedAuth v37.1 - Session expired, attempting refresh...');
-            
+            console.warn("⚠️ UnifiedAuth v37.1 - Session expired, attempting refresh...");
+
             try {
-              const { data: { session: refreshedSession }, error: refreshError } = await withTimeout(
+              const {
+                data: { session: refreshedSession },
+                error: refreshError,
+              } = await withTimeout(
                 supabase.auth.refreshSession(),
                 6000, // 6s for refresh
-                'refreshSession timeout'
+                "refreshSession timeout",
               );
-              
+
               if (!refreshError && refreshedSession?.access_token) {
-                console.log('✅ UnifiedAuth v37.1 - Token refreshed successfully');
+                console.log("✅ UnifiedAuth v37.1 - Token refreshed successfully");
                 clientSession = refreshedSession;
-                
+
                 // Backup the refreshed session
-                import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
-                  forceSessionBackup(refreshedSession);
-                });
+                // import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
+                //   forceSessionBackup(refreshedSession);
+                // });
               } else {
-                console.error('❌ UnifiedAuth v37.1 - Token refresh failed');
+                console.error("❌ UnifiedAuth v37.1 - Token refresh failed");
                 setIsSessionReady(false);
                 return false;
               }
             } catch (refreshError) {
-              console.error('❌ UnifiedAuth v37.1 - Refresh error:', refreshError);
+              console.error("❌ UnifiedAuth v37.1 - Refresh error:", refreshError);
               setIsSessionReady(false);
               return false;
             }
           }
         }
-        
+
         // Step 4: Convert user and update state
         if (clientSession?.access_token && clientSession.user) {
-          console.log('✅ UnifiedAuth v37.1 - Valid session confirmed, converting user...');
-          
+          console.log("✅ UnifiedAuth v37.1 - Valid session confirmed, converting user...");
+
           try {
             const convertedUser = await withTimeout(
               convertSupabaseUser(clientSession.user),
               8000, // Increased to 8s (profile query has 5s timeout + buffer)
-              'User conversion timeout'
+              "User conversion timeout",
             );
-            
+
             if (convertedUser) {
               // Update refs and state
               sessionRef.current = clientSession;
@@ -803,118 +828,122 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               setSession(clientSession);
               setCurrentUser(convertedUser);
               setIsSessionReady(true);
-              
+
               // Backup session asynchronously
-              import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
-                forceSessionBackup(clientSession);
-              });
-              
+              // import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
+              //   forceSessionBackup(clientSession);
+              // });
+
               const duration = Date.now() - startTime;
               console.log(`✅ UnifiedAuth v37.1 - Restoration complete in ${duration}ms`);
               return true;
             }
           } catch (conversionError) {
-            console.error('❌ UnifiedAuth v37.1 - User conversion failed:', conversionError);
+            console.error("❌ UnifiedAuth v37.1 - User conversion failed:", conversionError);
             setIsSessionReady(false);
             return false;
           }
         }
-        
-        console.error('❌ UnifiedAuth v37.1 - All restoration paths exhausted');
+
+        console.error("❌ UnifiedAuth v37.1 - All restoration paths exhausted");
         setIsSessionReady(false);
         return false;
-        
       } catch (error) {
         const duration = Date.now() - startTime;
-        console.error(`❌ UnifiedAuth v37.1 - Critical error after ${duration}ms:`, error instanceof Error ? error.message : error);
+        console.error(
+          `❌ UnifiedAuth v37.1 - Critical error after ${duration}ms:`,
+          error instanceof Error ? error.message : error,
+        );
         setIsSessionReady(false);
         return false;
       }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log('🔄 UnifiedAuth v37.1 - Registered with visibility coordinator');
+    console.log("🔄 UnifiedAuth v37.1 - Registered with visibility coordinator");
 
     return () => {
       unregister();
-      console.log('🔄 UnifiedAuth v37.1 - Cleanup: Unregistered from visibility coordinator');
+      console.log("🔄 UnifiedAuth v37.1 - Cleanup: Unregistered from visibility coordinator");
     };
   }, []); // CRITICAL: Empty deps to register only once, use refs for state access
 
   useEffect(() => {
-    console.log('🚀 UnifiedAuth v17.0 - Starting auth initialization at:', new Date().toISOString());
+    console.log("🚀 UnifiedAuth v17.0 - Starting auth initialization at:", new Date().toISOString());
     const startTime = performance.now();
-    console.log('🚀 UnifiedAuth v17.0 - Setting up SINGLE auth listener with coordinator', { authDebugMarker });
-    
+    console.log("🚀 UnifiedAuth v17.0 - Setting up SINGLE auth listener with coordinator", { authDebugMarker });
+
     // Set up ONE auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🚀 UnifiedAuth v17.0 - Auth state changed:', event, 'Session exists:', !!session);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🚀 UnifiedAuth v17.0 - SIGNED_IN event, user email:', session.user.email);
-        
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🚀 UnifiedAuth v17.0 - Auth state changed:", event, "Session exists:", !!session);
+
+      if (event === "SIGNED_IN" && session?.user) {
+        console.log("🚀 UnifiedAuth v17.0 - SIGNED_IN event, user email:", session.user.email);
+
         // Set session immediately (non-async)
         setSession(session);
-        console.log('🚀 UnifiedAuth v17.0 - Session set, starting user conversion...');
-        
+        console.log("🚀 UnifiedAuth v17.0 - Session set, starting user conversion...");
+
         // Coordinator will handle refresh timing
-        
+
         // CRITICAL FIX: Use setTimeout to defer async Supabase calls to prevent deadlocks
         // This is the official Supabase recommendation to avoid auth callback deadlocks
         setTimeout(async () => {
           try {
-            console.log('🚀 UnifiedAuth v30.0 - Starting deferred user conversion...');
+            console.log("🚀 UnifiedAuth v30.0 - Starting deferred user conversion...");
             const user = await convertSupabaseUser(session.user);
-            console.log('🚀 UnifiedAuth v30.0 - User converted:', user.email, 'org_id:', user.organization_id);
-            
+            console.log("🚀 UnifiedAuth v30.0 - User converted:", user.email, "org_id:", user.organization_id);
+
             // CRITICAL: Set user first so components can start rendering
             setCurrentUser(user);
-            console.log('🚀 UnifiedAuth v30.0 - User set, marking auth as loaded');
-            
+            console.log("🚀 UnifiedAuth v30.0 - User set, marking auth as loaded");
+
             // Mark loading as false FIRST so UI can start rendering
             setLoading(false);
-            
+
             // CRITICAL FIX: Wait for Supabase client session propagation before allowing queries
-            console.log('🚀 UnifiedAuth v30.0 - Waiting for Supabase client session propagation...');
-            await new Promise(resolve => setTimeout(resolve, 1200)); // 1.2s delay for propagation
-            
+            console.log("🚀 UnifiedAuth v30.0 - Waiting for Supabase client session propagation...");
+            await new Promise((resolve) => setTimeout(resolve, 1200)); // 1.2s delay for propagation
+
             // Verify session is available in Supabase client
-            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+            const {
+              data: { session: verifiedSession },
+            } = await supabase.auth.getSession();
             if (verifiedSession?.access_token) {
               setIsSessionReady(true);
-              console.log('✅ UnifiedAuth v30.0 - Session verified ready in Supabase client');
+              console.log("✅ UnifiedAuth v30.0 - Session verified ready in Supabase client");
             } else {
-              console.warn('⚠️ UnifiedAuth v30.0 - Session not found in Supabase client after wait');
+              console.warn("⚠️ UnifiedAuth v30.0 - Session not found in Supabase client after wait");
               setIsSessionReady(false);
             }
-            
+
             // Set Sentry user context
             setSentryUser({
               id: user.id,
               email: user.email,
               name: user.name,
-              role: user.role
+              role: user.role,
             });
-            
+
             // Fetch organizations in background WITHOUT blocking UI
             fetchUserOrganizations(user).catch((orgError) => {
-              console.warn('🚀 UnifiedAuth v30.0 - Non-critical org fetch error:', orgError);
+              console.warn("🚀 UnifiedAuth v30.0 - Non-critical org fetch error:", orgError);
             });
-            
           } catch (error) {
-            console.error('🚀 UnifiedAuth v30.0 - Error in deferred user conversion:', error);
+            console.error("🚀 UnifiedAuth v30.0 - Error in deferred user conversion:", error);
             setCurrentUser(null);
             setSession(null);
             setIsSessionReady(false);
             setLoading(false);
-            
+
             // Clear Sentry user context on error
             setSentryUser(null);
           }
         }, 0);
-        
-      } else if (event === 'SIGNED_OUT') {
-        console.log('🚀 UnifiedAuth v30.0 - SIGNED_OUT event');
+      } else if (event === "SIGNED_OUT") {
+        console.log("🚀 UnifiedAuth v30.0 - SIGNED_OUT event");
         setLoading(false);
         setCurrentUser(null);
         setSession(null);
@@ -922,42 +951,44 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setUserOrganizations([]);
         setCurrentOrganization(null);
         setIsSigningOut(false); // Clear signing out flag
-        
+
         // Clear Sentry user context
         setSentryUser(null);
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🚀 UnifiedAuth v13.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally');
+      } else if (event === "TOKEN_REFRESHED" && session) {
+        console.log(
+          "🚀 UnifiedAuth v13.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally",
+        );
         // CRITICAL FIX: Do NOT update session state on TOKEN_REFRESHED
         // Supabase client handles token refresh internally and maintains the real session
         // Updating our state snapshot here causes unnecessary re-renders and loading flashes
         // Our session state is just a reference - Supabase keeps it valid automatically
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        console.log('🚀 UnifiedAuth v12.0 - USER_UPDATED event');
+      } else if (event === "USER_UPDATED" && session?.user) {
+        console.log("🚀 UnifiedAuth v12.0 - USER_UPDATED event");
         // Use setTimeout for USER_UPDATED as well
         setTimeout(async () => {
           try {
             const user = await convertSupabaseUser(session.user);
             setCurrentUser(user);
             setSession(session);
-            
+
             // Update Sentry user context
             setSentryUser({
               id: user.id,
               email: user.email,
               name: user.name,
-              role: user.role
+              role: user.role,
             });
-            
+
             await fetchUserOrganizations(user);
           } catch (error) {
-            console.error('🚀 UnifiedAuth v12.0 - Error converting updated user:', error);
+            console.error("🚀 UnifiedAuth v12.0 - Error converting updated user:", error);
           }
         }, 0);
-      } else if (event === 'INITIAL_SESSION') {
+      } else if (event === "INITIAL_SESSION") {
         // Don't set loading to false on INITIAL_SESSION - let getSession() handle it
-        console.log('🚀 UnifiedAuth v17.0 - INITIAL_SESSION event - waiting for getSession()');
+        console.log("🚀 UnifiedAuth v17.0 - INITIAL_SESSION event - waiting for getSession()");
       } else {
-        console.log('🚀 UnifiedAuth v17.0 - Other auth event:', event);
+        console.log("🚀 UnifiedAuth v17.0 - Other auth event:", event);
         setLoading(false);
       }
     });
@@ -968,55 +999,65 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error(`🚀 UnifiedAuth v16.0 - getSession() timeout after ${timeElapsed}s! Forcing loading to false`);
       setLoading(false);
       initialCheckDone.current = true;
-      toast.error('Authentication initialization timed out. Please refresh the page.');
+      toast.error("Authentication initialization timed out. Please refresh the page.");
     }, 8000); // 8 second max for getSession
-    
-    supabase.auth.getSession()
+
+    supabase.auth
+      .getSession()
       .then(({ data: { session } }) => {
         clearTimeout(sessionTimeout); // Clear timeout if successful
         const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-        console.log(`🚀 UnifiedAuth v16.0 - Initial session check completed in ${timeElapsed}s:`, session ? 'Found session for ' + session.user?.email : 'No session');
-        
+        console.log(
+          `🚀 UnifiedAuth v16.0 - Initial session check completed in ${timeElapsed}s:`,
+          session ? "Found session for " + session.user?.email : "No session",
+        );
+
         if (session?.user) {
           // Set session immediately (non-async)
           setSession(session);
-          console.log('🚀 UnifiedAuth v16.0 - Initial session set, starting user data load');
-          
+          console.log("🚀 UnifiedAuth v16.0 - Initial session set, starting user data load");
+
           // Use setTimeout to defer async calls for initial session too
           setTimeout(async () => {
             try {
-              console.log('🚀 UnifiedAuth v30.0 - Processing initial session for:', session.user.email);
+              console.log("🚀 UnifiedAuth v30.0 - Processing initial session for:", session.user.email);
               const user = await convertSupabaseUser(session.user);
-              console.log('🚀 UnifiedAuth v30.0 - Initial user converted:', user.email, 'org_id:', user.organization_id);
-              
+              console.log(
+                "🚀 UnifiedAuth v30.0 - Initial user converted:",
+                user.email,
+                "org_id:",
+                user.organization_id,
+              );
+
               // CRITICAL: Set user and mark as ready FIRST
               setCurrentUser(user);
               setLoading(false);
               initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true; // Mark that we've successfully initialized
-              console.log('🚀 UnifiedAuth v30.0 - Initial auth complete, waiting for session propagation...');
-              
+              console.log("🚀 UnifiedAuth v30.0 - Initial auth complete, waiting for session propagation...");
+
               // CRITICAL FIX: Wait for Supabase client session propagation before allowing queries
-              console.log('🚀 UnifiedAuth v30.0 - Waiting for Supabase client session propagation...');
-              await new Promise(resolve => setTimeout(resolve, 1200)); // 1.2s delay for propagation
-              
+              console.log("🚀 UnifiedAuth v30.0 - Waiting for Supabase client session propagation...");
+              await new Promise((resolve) => setTimeout(resolve, 1200)); // 1.2s delay for propagation
+
               // Verify session is available in Supabase client
-              const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+              const {
+                data: { session: verifiedSession },
+              } = await supabase.auth.getSession();
               if (verifiedSession?.access_token) {
                 setIsSessionReady(true);
-                console.log('✅ UnifiedAuth v30.0 - Session verified ready in Supabase client');
+                console.log("✅ UnifiedAuth v30.0 - Session verified ready in Supabase client");
               } else {
-                console.warn('⚠️ UnifiedAuth v30.0 - Session not found in Supabase client after wait');
+                console.warn("⚠️ UnifiedAuth v30.0 - Session not found in Supabase client after wait");
                 setIsSessionReady(false);
               }
-              
+
               // Fetch organizations in background WITHOUT blocking UI
               fetchUserOrganizations(user).catch((orgError) => {
-                console.error('🚀 UnifiedAuth v30.0 - Non-critical org error on initial load:', orgError);
+                console.error("🚀 UnifiedAuth v30.0 - Non-critical org error on initial load:", orgError);
               });
-              
             } catch (error) {
-              console.error('🚀 UnifiedAuth v30.0 - Error converting initial user:', error);
+              console.error("🚀 UnifiedAuth v30.0 - Error converting initial user:", error);
               setCurrentUser(null);
               setSession(null);
               setIsSessionReady(false);
@@ -1026,66 +1067,69 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }, 0);
         } else {
           // v36.0: CRITICAL FIX - Attempt backup restoration when no session found
-          console.log('🚀 UnifiedAuth v36.0 - No session in client, attempting backup restoration...');
-          
+          console.log("🚀 UnifiedAuth v36.0 - No session in client, attempting backup restoration...");
+
           setTimeout(async () => {
             try {
-              const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
-              
+              // const { restoreSessionFromBackup } = await import('@/integrations/supabase/client');
+
               const restoredSession = await Promise.race([
                 restoreSessionFromBackup(),
-                new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
               ]);
-              
+
               if (restoredSession?.access_token && restoredSession.user) {
-                console.log('✅ UnifiedAuth v36.0 - Initial session restored from backup');
-                
+                console.log("✅ UnifiedAuth v36.0 - Initial session restored from backup");
+
                 // Wait for propagation
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
+                await new Promise((resolve) => setTimeout(resolve, 800));
+
                 // Verify in client
-                const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+                const {
+                  data: { session: verifiedSession },
+                } = await supabase.auth.getSession();
                 if (verifiedSession?.access_token) {
-                  console.log('✅ UnifiedAuth v36.0 - Restored session verified');
-                  
+                  console.log("✅ UnifiedAuth v36.0 - Restored session verified");
+
                   // Convert user
                   const user = await convertSupabaseUser(verifiedSession.user);
-                  
+
                   setCurrentUser(user);
                   setSession(verifiedSession);
                   setLoading(false);
                   initialCheckDone.current = true;
                   hasCompletedInitialSetup.current = true;
-                  
+
                   // Wait for session propagation
-                  await new Promise(resolve => setTimeout(resolve, 1200));
-                  
-                  const { data: { session: readySession } } = await supabase.auth.getSession();
+                  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+                  const {
+                    data: { session: readySession },
+                  } = await supabase.auth.getSession();
                   if (readySession?.access_token) {
                     setIsSessionReady(true);
-                    console.log('✅ UnifiedAuth v36.0 - Initial auth complete via backup restoration');
+                    console.log("✅ UnifiedAuth v36.0 - Initial auth complete via backup restoration");
                   }
-                  
+
                   // Fetch organizations
                   fetchUserOrganizations(user).catch((orgError) => {
-                    console.error('🚀 UnifiedAuth v36.0 - Non-critical org error:', orgError);
+                    console.error("🚀 UnifiedAuth v36.0 - Non-critical org error:", orgError);
                   });
-                  
+
                   return;
                 }
               }
-              
+
               // If we get here, backup restoration failed
-              console.log('🚀 UnifiedAuth v36.0 - No backup session found, user needs to login');
+              console.log("🚀 UnifiedAuth v36.0 - No backup session found, user needs to login");
               setCurrentUser(null);
               setSession(null);
               setIsSessionReady(false);
               setLoading(false);
               initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true;
-              
             } catch (error) {
-              console.error('🚀 UnifiedAuth v36.0 - Backup restoration error:', error);
+              console.error("🚀 UnifiedAuth v36.0 - Backup restoration error:", error);
               setCurrentUser(null);
               setSession(null);
               setIsSessionReady(false);
@@ -1105,77 +1149,83 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setIsSessionReady(false);
         setLoading(false);
         initialCheckDone.current = true;
-        toast.error('Error initializing authentication. Please refresh the page.');
+        toast.error("Error initializing authentication. Please refresh the page.");
       });
 
     return () => {
-      console.log('🚀 UnifiedAuth v7.0 - Cleaning up auth listener');
+      console.log("🚀 UnifiedAuth v7.0 - Cleaning up auth listener");
       subscription.unsubscribe();
     };
   }, []); // Empty deps - let Supabase handle session refresh internally
 
   // Fetch users when user becomes admin - ONCE per session
   useEffect(() => {
-    console.log('UnifiedAuth - useEffect triggered:', { isAdmin, loading, hasCurrentOrganization: !!currentOrganization });
-    
+    console.log("UnifiedAuth - useEffect triggered:", {
+      isAdmin,
+      loading,
+      hasCurrentOrganization: !!currentOrganization,
+    });
+
     // CRITICAL FIX: Only fetch users ONCE when admin becomes available
     // Don't refetch on every currentOrganization change
     if (isAdmin && !loading && currentOrganization && users.length === 0) {
-      console.log('UnifiedAuth - Initial admin fetch, calling fetchUsers');
+      console.log("UnifiedAuth - Initial admin fetch, calling fetchUsers");
       fetchUsers();
     }
   }, [isAdmin, loading]); // REMOVED currentOrganization?.id to prevent constant refetches
 
+  const value: UnifiedAuthContextType = useMemo(
+    () => ({
+      currentUser: enhancedCurrentUser,
+      session, // Include in value but not in deps - prevents cascade re-renders on token refresh
+      // CRITICAL: Override loading to false if we've completed setup once
+      // This prevents loading flashes on tab switches even if state updates occur
+      loading: hasCompletedInitialSetup.current ? false : loading,
+      isInitialized: initialCheckDone.current,
+      isSessionReady, // CRITICAL: Expose session ready flag for query hooks
+      isSigningOut,
+      signOut,
+      currentOrganization,
+      userOrganizations,
+      switchOrganization,
+      refreshOrganizations,
+      getCurrentUserRole,
+      isAdmin,
+      canAccessProperty,
+      users,
+      fetchUsers,
+      addUser,
+      updateUser,
+      removeUser,
+      resetPassword,
+      adminResetPassword,
+    }),
+    [
+      enhancedCurrentUser,
+      // session removed from deps - token refreshes shouldn't trigger context recompute
+      loading,
+      isSessionReady, // Include in deps to trigger updates when ready
+      isSigningOut,
+      signOut,
+      currentOrganization,
+      userOrganizations,
+      switchOrganization,
+      refreshOrganizations,
+      getCurrentUserRole,
+      isAdmin,
+      canAccessProperty,
+      users,
+      fetchUsers,
+      addUser,
+      updateUser,
+      removeUser,
+      resetPassword,
+      adminResetPassword,
+    ],
+  );
 
-  const value: UnifiedAuthContextType = useMemo(() => ({
-    currentUser: enhancedCurrentUser,
-    session, // Include in value but not in deps - prevents cascade re-renders on token refresh
-    // CRITICAL: Override loading to false if we've completed setup once
-    // This prevents loading flashes on tab switches even if state updates occur
-    loading: hasCompletedInitialSetup.current ? false : loading,
-    isInitialized: initialCheckDone.current,
-    isSessionReady, // CRITICAL: Expose session ready flag for query hooks
-    isSigningOut,
-    signOut,
-    currentOrganization,
-    userOrganizations,
-    switchOrganization,
-    refreshOrganizations,
-    getCurrentUserRole,
-    isAdmin,
-    canAccessProperty,
-    users,
-    fetchUsers,
-    addUser,
-    updateUser,
-    removeUser,
-    resetPassword,
-    adminResetPassword
-  }), [
-    enhancedCurrentUser,
-    // session removed from deps - token refreshes shouldn't trigger context recompute
-    loading,
-    isSessionReady, // Include in deps to trigger updates when ready
-    isSigningOut,
-    signOut,
-    currentOrganization,
-    userOrganizations,
-    switchOrganization,
-    refreshOrganizations,
-    getCurrentUserRole,
-    isAdmin,
-    canAccessProperty,
-    users,
-    fetchUsers,
-    addUser,
-    updateUser,
-    removeUser,
-    resetPassword,
-    adminResetPassword
-  ]);
-
-  console.log('🚀 UnifiedAuth v36.0 - Provider render:', { 
-    hasCurrentUser: !!enhancedCurrentUser, 
+  console.log("🚀 UnifiedAuth v36.0 - Provider render:", {
+    hasCurrentUser: !!enhancedCurrentUser,
     currentUserEmail: enhancedCurrentUser?.email,
     currentUserRole: enhancedCurrentUser?.role,
     effectiveRole: effectiveRole,
@@ -1183,7 +1233,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     loading,
     hasOrganization: !!currentOrganization,
     organizationName: currentOrganization?.name,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
   return (
