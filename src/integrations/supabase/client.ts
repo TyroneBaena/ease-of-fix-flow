@@ -493,22 +493,23 @@ import type { Database } from "./types"; // remove if not using typed supabase
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 
-let supabase: SupabaseClient | null = null;
+// 👇 internal instance (not exported directly)
+let _supabase: SupabaseClient | null = null;
 
 /**
  * Create a FRESH client.
  * Used after tab becomes visible OR on session restore.
  */
 export function createNewSupabaseClient() {
-  supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: false, // ✅ No localStorage, no sessionStorage
-      autoRefreshToken: false, // ✅ Backend handles refresh
+      persistSession: false, // ✅ no localStorage/sessionStorage
+      autoRefreshToken: false, // ✅ backend handles refresh
     },
   });
 
   console.log("%c✅ Supabase client initialized", "color: #4ade80;");
-  return supabase;
+  return _supabase;
 }
 
 /**
@@ -516,9 +517,12 @@ export function createNewSupabaseClient() {
  * If client was garbage-collected or page was inactive, it re-creates cleanly.
  */
 export function getSupabaseClient() {
-  if (!supabase) return createNewSupabaseClient();
-  return supabase;
+  if (!_supabase) return createNewSupabaseClient();
+  return _supabase;
 }
 
-// ✅ optional default instance export
-export const supabase = getSupabaseClient();
+/**
+ * ✅ Optional: export a default ready-to-use instance
+ * (used for convenience imports)
+ */
+export const supabaseClient = getSupabaseClient();
