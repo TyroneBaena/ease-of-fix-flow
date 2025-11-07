@@ -268,6 +268,7 @@ class VisibilityCoordinator {
 
   /**
    * v68.0 - Start watchdog timer to detect stuck loading states
+   * CRITICAL: Watchdog must fire BEFORE overall timeout (45s < 60s)
    */
   private startWatchdog() {
     if (!ENABLE_AUTO_RECOVERY) return;
@@ -277,46 +278,31 @@ class VisibilityCoordinator {
       clearTimeout(this.watchdogTimer);
     }
 
+    const watchdogStart = Date.now();
     console.log(`🐕 Watchdog - Started (${WATCHDOG_TIMEOUT_MS}ms timeout)`);
 
     this.watchdogTimer = setTimeout(() => {
-      console.error("🚨 Watchdog - TIMEOUT! Loading state stuck for > 45s");
-      this.softRecovery();
+      const elapsed = Date.now() - watchdogStart;
+      
+      // Check if coordinator is STILL in refreshing state
+      if (this.isRefreshing || this.isCoordinating) {
+        console.error(`🚨 Watchdog - STUCK DETECTED! Coordinator still refreshing after ${elapsed}ms`);
+        console.error(`   - isRefreshing: ${this.isRefreshing}`);
+        console.error(`   - isCoordinating: ${this.isCoordinating}`);
+        this.softRecovery();
+      } else {
+        console.log(`🐕 Watchdog - False alarm, coordinator completed before timeout (${elapsed}ms)`);
+      }
     }, WATCHDOG_TIMEOUT_MS);
   }
 
   /**
-   * v68.0 - Stop watchdog timer (normal completion)
-   * BUT: Keep monitoring for 15s more to catch stuck queries
+   * v68.0 - Stop watchdog timer
+   * DON'T clear immediately - let it run to catch coordinator state issues
    */
   private stopWatchdog() {
-    if (this.watchdogTimer) {
-      clearTimeout(this.watchdogTimer);
-      this.watchdogTimer = null;
-    }
-
-    if (!ENABLE_AUTO_RECOVERY || !this.queryClient) return;
-
-    // Extended monitoring: Check if queries are STILL loading 15s after coordination
-    console.log("🐕 Watchdog - Coordination complete, monitoring queries for 15s...");
-    
-    setTimeout(() => {
-      if (!this.queryClient) return;
-
-      const isFetching = this.queryClient.isFetching();
-      const queries = this.queryClient.getQueryCache().getAll();
-      const stuckQueries = queries.filter(q => q.state.fetchStatus === 'fetching');
-
-      if (isFetching > 0 || stuckQueries.length > 0) {
-        console.error(`🚨 Watchdog - DETECTED ${stuckQueries.length} stuck queries after coordination!`);
-        stuckQueries.forEach(q => {
-          console.error(`   - Stuck: ${JSON.stringify(q.queryKey)}`);
-        });
-        this.softRecovery();
-      } else {
-        console.log("🐕 Watchdog - All clear, no stuck queries detected");
-      }
-    }, 15000); // 15 second grace period after coordination
+    // Don't clear watchdog immediately - it will self-check coordinator state
+    console.log("🐕 Watchdog - Coordination ended, watchdog continues monitoring coordinator state...");
   }
 
   /**
@@ -364,9 +350,6 @@ class VisibilityCoordinator {
       // v68.0: Don't assume it's a session error - let handlers decide
       toast.error("Some data may not have loaded. Please refresh if needed.");
     } finally {
-      // v68.0: Stop watchdog on normal completion
-      this.stopWatchdog();
-
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
         console.log(`📋 v68.0 - Processing ${this.pendingHandlers.length} pending handlers`);
@@ -380,10 +363,23 @@ class VisibilityCoordinator {
         });
       }
       
+      // CRITICAL: Reset state first, THEN stop watchdog
       this.isCoordinating = false;
       this.isRefreshing = false;
       this.abortController = null;
       this.notifyTabRefreshChange(false);
+      
+      // v68.0: Stop watchdog AFTER state reset (so it can detect if still stuck)
+      this.stopWatchdog();
+      
+      // Clear watchdog timer after a delay to ensure it checked final state
+      setTimeout(() => {
+        if (this.watchdogTimer) {
+          clearTimeout(this.watchdogTimer);
+          this.watchdogTimer = null;
+          console.log("🐕 Watchdog - Timer cleared after state verification");
+        }
+      }, 1000);
     }
   }
 
