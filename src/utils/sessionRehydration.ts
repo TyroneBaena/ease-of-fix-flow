@@ -28,42 +28,63 @@ const SESSION_ENDPOINT = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/ses
 export async function rehydrateSessionFromServer(): Promise<boolean> {
   const startTime = Date.now();
   console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
-  console.log("%c🔄 v56.0 - Starting session restoration", "color: cyan; font-weight: bold");
+  console.log("%c🔄 v57.0 - Starting session restoration with enhanced cookie handling", "color: cyan; font-weight: bold");
   console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
 
   try {
-    // STEP 1: Fetch session from backend
-    console.log("📡 v56.0 - Fetching session from backend endpoint...");
-    console.log("📡 v56.0 - Endpoint:", SESSION_ENDPOINT);
+    // STEP 1: Check if we have any cookies at all
+    console.log("🍪 v57.0 - Checking for auth cookies...");
+    const allCookies = document.cookie;
+    const hasAuthCookie = allCookies.includes('sb-auth-session');
+    console.log("🍪 v57.0 - Has sb-auth-session cookie:", hasAuthCookie);
+    console.log("🍪 v57.0 - Total cookies length:", allCookies.length);
+    
+    if (!hasAuthCookie && allCookies.length < 10) {
+      console.warn("⚠️ v57.0 - No auth cookie found, session likely expired");
+      return false;
+    }
+    
+    // STEP 2: Fetch session from backend with retry
+    console.log("📡 v57.0 - Fetching session from backend endpoint...");
+    console.log("📡 v57.0 - Endpoint:", SESSION_ENDPOINT);
     
     const fetchStart = Date.now();
     const response = await fetch(SESSION_ENDPOINT, {
       method: "GET",
-      credentials: "include", // Send HttpOnly cookies
-      headers: { "Accept": "application/json" },
+      credentials: "include", // CRITICAL: Send HttpOnly cookies
+      headers: { 
+        "Accept": "application/json",
+        "Cache-Control": "no-cache", // Prevent cached responses
+      },
     });
     const fetchDuration = Date.now() - fetchStart;
 
-    console.log(`📡 v56.0 - Backend response received in ${fetchDuration}ms`);
-    console.log(`📡 v56.0 - Status: ${response.status} ${response.statusText}`);
+    console.log(`📡 v57.0 - Backend response received in ${fetchDuration}ms`);
+    console.log(`📡 v57.0 - Status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
-      console.error(`❌ v56.0 - Session endpoint returned error ${response.status}`);
+      console.error(`❌ v57.0 - Session endpoint returned error ${response.status}`);
       return false;
     }
 
     const data = await response.json();
-    console.log("📡 v56.0 - Response data keys:", Object.keys(data));
+    console.log("📡 v57.0 - Response data keys:", Object.keys(data));
     
     const session = data?.session || data?.data?.session || data?.data;
 
-    // STEP 2: Validate session
-    console.log("🔍 v56.0 - Validating session data...");
+    // STEP 3: Validate session - CRITICAL early exit if null
+    console.log("🔍 v57.0 - Validating session data...");
+    
+    if (!session || session === null) {
+      console.error("❌ v57.0 - Session is explicitly NULL - cookies not sent or expired");
+      console.error("❌ v57.0 - This means authentication has completely failed");
+      return false;
+    }
     
     if (!session?.access_token || !session?.refresh_token) {
-      console.warn("⚠️ v56.0 - No valid session (cookie expired or missing)");
-      console.warn("⚠️ v56.0 - Has access_token:", !!session?.access_token);
-      console.warn("⚠️ v56.0 - Has refresh_token:", !!session?.refresh_token);
+      console.warn("⚠️ v57.0 - Invalid session structure (missing tokens)");
+      console.warn("⚠️ v57.0 - Has access_token:", !!session?.access_token);
+      console.warn("⚠️ v57.0 - Has refresh_token:", !!session?.refresh_token);
       return false;
     }
 

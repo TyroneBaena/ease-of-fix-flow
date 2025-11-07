@@ -1,5 +1,5 @@
 /**
- * Tab Visibility Coordinator v56.0 - CRITICAL FIX: Timeout Alignment & Abort Controllers
+ * Tab Visibility Coordinator v57.0 - CRITICAL FIX: Null Session Detection & Fast Failure
  *
  * BUGS FIXED IN v56.0:
  * 1. ✅ Increased overall timeout to 70s (was 20s) to match 60s query timeouts
@@ -261,113 +261,126 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v56.0 - Execute the refresh flow steps with session validation and abort support
+   * v57.0 - Execute the refresh flow with null session detection and fast failure
    */
   private async executeRefreshFlow() {
     console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 v56.0 - STEP 1: Restoring session from backend...");
+    console.log("🚀 v57.0 - STEP 1: Restoring session from backend...");
     console.log("═══════════════════════════════════════════════════");
     
     const restored = await rehydrateSessionFromServer();
     
     if (!restored) {
       this.consecutiveFailures++;
-      console.error(`❌ v56.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
+      console.error(`❌ v57.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
       
-      if (this.consecutiveFailures >= 2) {
-        console.error("🚨 v56.0 - Session expired after multiple failures");
-        toast.error("Your session has expired. Please log in again.", {
-          duration: 5000,
+      // v57.0: Fail fast on first failure - don't retry if session is null
+      if (this.consecutiveFailures >= 1) {
+        console.error("🚨 v57.0 - Session expired or null - immediate redirect to login");
+        toast.error("Your session has expired. Redirecting to login...", {
+          duration: 3000,
           position: 'top-center'
         });
         this.notifyError('SESSION_EXPIRED');
-      } else {
-        toast.warning("Session restoration failed. Retrying on next visit.", {
-          duration: 4000
-        });
-        this.notifyError('SESSION_FAILED');
+        
+        // v57.0: Redirect immediately
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
       }
       throw new Error('Session restoration failed');
     }
     
     this.consecutiveFailures = 0;
-    console.log("✅ v56.0 - STEP 1 COMPLETE - Session restored successfully");
+    console.log("✅ v57.0 - STEP 1 COMPLETE - Session restored successfully");
     
-    // v56.0: STEP 1.5: Validate session is actually set on client
+    // v57.0: STEP 1.5: Validate session is actually set on client
     console.log("═══════════════════════════════════════════════════");
-    console.log("🔍 v56.0 - STEP 1.5: Validating session on Supabase client...");
+    console.log("🔍 v57.0 - STEP 1.5: Validating session on Supabase client...");
     console.log("═══════════════════════════════════════════════════");
     
     const { data: { session: currentSession }, error: sessionError } = await supabaseClient.auth.getSession();
     
     if (sessionError || !currentSession) {
-      console.error("❌ v56.0 - STEP 1.5 FAILED - Session not set on client:", sessionError?.message);
+      console.error("❌ v57.0 - STEP 1.5 FAILED - Session not set on client:", sessionError?.message);
+      console.error("❌ v57.0 - This means setSession() failed or was cancelled");
+      
+      // v57.0: Treat as session expired
+      this.notifyError('SESSION_EXPIRED');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+      
       throw new Error('Session validation failed');
     }
     
-    console.log("✅ v56.0 - STEP 1.5 COMPLETE - Session validated:", {
+    console.log("✅ v57.0 - STEP 1.5 COMPLETE - Session validated:", {
       user: currentSession.user?.email,
       expiresAt: currentSession.expires_at
     });
     
-    // STEP 2: Wait for session ready in React context
+    // STEP 2: Wait for session ready in React context with reduced timeout
     console.log("═══════════════════════════════════════════════════");
-    console.log("⏳ v56.0 - STEP 2: Waiting for auth listener to complete...");
+    console.log("⏳ v57.0 - STEP 2: Waiting for auth listener to complete...");
     console.log("═══════════════════════════════════════════════════");
     
     let attempts = 0;
-    const maxAttempts = 100; // 10 seconds max for auth listener
+    const maxAttempts = 50; // v57.0: Reduced to 5 seconds (was 10s)
     
     while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
       if (attempts % 10 === 0) {
-        console.log(`⏳ v56.0 - STEP 2: Still waiting... (${attempts * 100}ms elapsed)`);
+        console.log(`⏳ v57.0 - STEP 2: Still waiting... (${attempts * 100}ms elapsed)`);
       }
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
     
     if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-      console.log(`✅ v56.0 - STEP 2 COMPLETE - Auth listener ready after ${attempts * 100}ms`);
+      console.log(`✅ v57.0 - STEP 2 COMPLETE - Auth listener ready after ${attempts * 100}ms`);
     } else {
-      console.error("❌ v56.0 - STEP 2 FAILED - Auth listener timeout after 10s");
+      console.error("❌ v57.0 - STEP 2 FAILED - Auth listener timeout after 5s");
+      console.error("❌ v57.0 - This suggests React context not receiving session update");
+      
+      // v57.0: Don't wait forever - redirect to login
+      this.notifyError('SESSION_FAILED');
       throw new Error('Auth listener timeout');
     }
     
     // STEP 3: Trigger data refresh handlers with abort support
     console.log("═══════════════════════════════════════════════════");
-    console.log(`🔁 v56.0 - STEP 3: Running ${this.refreshHandlers.length} refresh handlers...`);
+    console.log(`🔁 v57.0 - STEP 3: Running ${this.refreshHandlers.length} refresh handlers...`);
     console.log("═══════════════════════════════════════════════════");
     
     if (this.refreshHandlers.length === 0) {
-      console.warn("⚠️ v56.0 - STEP 3: No handlers registered!");
+      console.warn("⚠️ v57.0 - STEP 3: No handlers registered!");
       return;
     }
     
     const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
       const handlerStart = Date.now();
-      console.log(`▶️ v56.0 - Handler ${index + 1}/${this.refreshHandlers.length} starting...`);
+      console.log(`▶️ v57.0 - Handler ${index + 1}/${this.refreshHandlers.length} starting...`);
       
       try {
         // Check if aborted before starting
         if (this.abortController?.signal.aborted) {
-          console.warn(`⚠️ v56.0 - Handler ${index + 1} aborted before execution`);
+          console.warn(`⚠️ v57.0 - Handler ${index + 1} aborted before execution`);
           return;
         }
         
         await handler();
         
         const handlerDuration = Date.now() - handlerStart;
-        console.log(`✅ v56.0 - Handler ${index + 1} completed in ${handlerDuration}ms`);
+        console.log(`✅ v57.0 - Handler ${index + 1} completed in ${handlerDuration}ms`);
       } catch (err) {
         const handlerDuration = Date.now() - handlerStart;
-        console.error(`❌ v56.0 - Handler ${index + 1} error after ${handlerDuration}ms:`, err);
+        console.error(`❌ v57.0 - Handler ${index + 1} error after ${handlerDuration}ms:`, err);
       }
     });
     
     await Promise.all(handlerPromises);
     
     console.log("═══════════════════════════════════════════════════");
-    console.log("✅ v56.0 - STEP 3 COMPLETE - All refresh handlers finished");
+    console.log("✅ v57.0 - STEP 3 COMPLETE - All refresh handlers finished");
     console.log("═══════════════════════════════════════════════════");
   }
 }
