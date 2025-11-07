@@ -937,10 +937,16 @@ async function rehydrateSessionFromServer(): Promise<boolean> {
       return false;
     }
 
-    await supabase.auth.setSession({
+    // CRITICAL: Set session with proper error handling
+    const { error: setError } = await supabase.auth.setSession({
       access_token: session.access_token,
       refresh_token: session.refresh_token,
     });
+
+    if (setError) {
+      console.error("Failed to set session:", setError);
+      return false;
+    }
 
     // Force realtime reconnect
     try {
@@ -948,6 +954,9 @@ async function rehydrateSessionFromServer(): Promise<boolean> {
     } catch (e) {
       console.warn("Realtime reconnect failed", e);
     }
+
+    // Wait for auth state change to propagate
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     console.log("%cSESSION RESTORED SUCCESSFULLY", "color: lime; font-size: 16px; font-weight: bold;");
     return true;

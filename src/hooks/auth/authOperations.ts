@@ -234,27 +234,42 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     // CRITICAL: Use the SAME supabase instance that UnifiedAuthContext is listening to
     if (session.access_token && session.refresh_token) {
       console.log("🔄 Setting session on Supabase client...");
-      await supabase.auth.setSession({
+      const { error: setError } = await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
+      
+      if (setError) {
+        console.error("❌ Failed to set session in client:", setError);
+        toast.error("Session setup failed");
+        return { user: null, error: setError };
+      }
+      
       console.log("✅ Supabase client session set");
       
-      // CRITICAL: Wait for onAuthStateChange to fire and update UnifiedAuthContext
-      // The event fires async, so we need to wait for it to propagate
-      console.log("⏳ Waiting for auth state change to propagate...");
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log("✅ Auth context should be updated now");
+      // CRITICAL: Verify the session is properly set with retry
+      let sessionVerified = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`⏳ Verifying session (attempt ${attempt}/3)...`);
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        const { data: { session: checkSession } } = await supabase.auth.getSession();
+        if (checkSession?.access_token) {
+          sessionVerified = true;
+          console.log("✅ Session verified in Supabase client");
+          break;
+        }
+      }
+      
+      if (!sessionVerified) {
+        console.error("❌ Session verification failed after 3 attempts");
+        toast.error("Session setup incomplete");
+        return { user: null, error: { message: "Session verification failed" } };
+      }
     }
 
-    console.log("✅ Session rehydrated for:", user.email);
+    console.log("✅ Login complete for:", user.email);
     toast.success("Signed in successfully!");
-    
-    // CRITICAL: Wait longer for auth context to update before returning
-    // This ensures currentUser is set when Login.tsx navigates
-    console.log("⏳ Waiting for auth context to update...");
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log("✅ Auth context should be updated now");
 
     return { user, error: null };
   } catch (error: any) {

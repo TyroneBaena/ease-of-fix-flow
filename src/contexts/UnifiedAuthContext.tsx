@@ -946,8 +946,45 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }, 0);
       } else if (event === "INITIAL_SESSION") {
-        // Don't set loading to false on INITIAL_SESSION - let getSession() handle it
-        console.log("🚀 UnifiedAuth v17.0 - INITIAL_SESSION event - waiting for getSession()");
+        // CRITICAL FIX: Process session if it exists (e.g., from App.tsx rehydration)
+        console.log("🚀 UnifiedAuth v17.0 - INITIAL_SESSION event, session exists:", !!session);
+        
+        if (session?.user) {
+          console.log("🚀 UnifiedAuth - INITIAL_SESSION has session, processing user...");
+          setSession(session);
+          
+          setTimeout(async () => {
+            try {
+              const user = await convertSupabaseUser(session.user);
+              setCurrentUser(user);
+              setLoading(false);
+              initialCheckDone.current = true;
+              hasCompletedInitialSetup.current = true;
+              
+              // Wait for propagation then set session ready
+              await new Promise(resolve => setTimeout(resolve, 800));
+              
+              const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+              if (verifiedSession?.access_token) {
+                setIsSessionReady(true);
+                console.log("✅ UnifiedAuth - INITIAL_SESSION processed, session ready");
+              } else {
+                setIsSessionReady(false);
+              }
+              
+              fetchUserOrganizations(user).catch(console.warn);
+            } catch (error) {
+              console.error("❌ UnifiedAuth - Error processing INITIAL_SESSION:", error);
+              setCurrentUser(null);
+              setSession(null);
+              setIsSessionReady(false);
+              setLoading(false);
+            }
+          }, 0);
+        } else {
+          // No session yet - wait for getSession()
+          console.log("🚀 UnifiedAuth - INITIAL_SESSION without session, waiting for getSession()");
+        }
       } else {
         console.log("🚀 UnifiedAuth v17.0 - Other auth event:", event);
         setLoading(false);
