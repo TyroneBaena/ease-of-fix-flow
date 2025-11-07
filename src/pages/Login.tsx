@@ -114,52 +114,44 @@ const Login = () => {
         sessionStorage.removeItem('password_reset_pending');
         sessionStorage.removeItem('password_reset_email');
 
-        // Log successful login attempt with redirect info if available
+        // CRITICAL: Navigate IMMEDIATELY without waiting for logging
+        const state = location.state as any;
+        const invitationCode = state?.invitationCode;
         const urlParams = new URLSearchParams(location.search);
         const redirectTo = urlParams.get("redirectTo");
         const propertyId = urlParams.get("propertyId");
 
-        console.log("🔐 [Login] About to log SUCCESSFUL login attempt for:", email);
-        await logSecurityEvent("login_success", email, {
-          timestamp: new Date().toISOString(),
-          browser: navigator.userAgent.split(" ").pop(),
-          action: "user_login",
-          redirect_to: redirectTo,
-          property_id: propertyId,
-          from_qr_code: !!(redirectTo && propertyId),
-        });
-        console.log("🔐 [Login] Finished logging SUCCESSFUL login attempt");
-
-        // CRITICAL FIX: signInWithEmailPassword now waits for auth context to update
-        // So we can safely redirect - currentUser will be set when ProtectedRoute checks
-        const state = location.state as any;
-        const invitationCode = state?.invitationCode;
-
         let redirectPath;
         if (invitationCode) {
           redirectPath = "/signup";
-          console.log(`🚀 Login - Auth ready, redirecting to signup with invitation code`);
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
           navigate(redirectPath, {
             replace: true,
             state: { invitationCode, returnFromLogin: true },
           });
         } else if (redirectTo && propertyId) {
           redirectPath = `${redirectTo}?propertyId=${propertyId}`;
-          console.log(`🚀 Login - Auth ready, redirecting to QR code flow: ${redirectPath}`);
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
           navigate(redirectPath, { replace: true });
         } else if (redirectTo) {
           redirectPath = redirectTo;
-          console.log(`🚀 Login - Auth ready, redirecting to: ${redirectPath}`);
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
           navigate(redirectPath, { replace: true });
         } else {
-          // Default to /dashboard
           redirectPath = "/dashboard";
-          console.log(`🚀 Login - Auth ready, redirecting to: ${redirectPath}`);
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
           navigate(redirectPath, { replace: true });
         }
         
-        // Keep loading state active during redirect
-        // Don't call setIsLoading(false) - let the redirect happen
+        // Log security event AFTER navigation (fire and forget)
+        logSecurityEvent("login_success", email, {
+          timestamp: new Date().toISOString(),
+          browser: navigator.userAgent.split(" ").pop(),
+          action: "user_login",
+          redirect_to: redirectTo,
+          property_id: propertyId,
+          from_qr_code: !!(redirectTo && propertyId),
+        }).catch(err => console.error("Failed to log security event:", err));
       } else {
         setError("Login failed - no user returned");
         setIsLoading(false);
