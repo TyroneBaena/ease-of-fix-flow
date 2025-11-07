@@ -117,10 +117,14 @@ export const useMaintenanceRequestProvider = () => {
   }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
 
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v61.0 - useEffect triggered');
-    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Current user ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Session ready:', isSessionReady);
-    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Last fetched ID:', lastFetchedUserIdRef.current);
+    console.log('🚨 v62.0 - MAINTENANCE PROVIDER useEffect TRIGGERED');
+    console.log('🚨 v62.0 - isSessionReady:', isSessionReady);
+    console.log('🚨 v62.0 - currentUser:', currentUser);
+    console.log('🚨 v62.0 - currentUser?.id:', currentUser?.id);
+    console.log('🚨 v62.0 - currentUser?.role:', currentUser?.role);
+    console.log('🚨 v62.0 - currentUser?.organization_id:', currentUser?.organization_id);
+    console.log('🚨 v62.0 - hasCompletedInitialLoadRef:', hasCompletedInitialLoadRef.current);
+    console.log('🚨 v62.0 - isFetchingRef:', isFetchingRef.current);
     
     // Clear any pending debounce timers
     if (fetchDebounceTimerRef.current) {
@@ -129,13 +133,13 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Wait for session to be ready
     if (!isSessionReady) {
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - Waiting for session ready...');
+      console.log('🚨 v62.0 - Waiting for session ready...');
       return;
     }
     
     // If no user, clear data
     if (!currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - No current user, clearing requests');
+      console.log('🚨 v62.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
       lastFetchedUserIdRef.current = null;
@@ -144,21 +148,16 @@ export const useMaintenanceRequestProvider = () => {
       return;
     }
     
-    // CRITICAL v61.0: ALWAYS load on session ready, even if user ID hasn't changed
-    // This fixes the 0 requests issue on initial login
-    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Session ready + user present, loading immediately');
-    lastFetchedUserIdRef.current = currentUser.id;
+    // CRITICAL v62.0: Force load EVERY time this effect runs with valid user
+    console.log('🚨 v62.0 - ✅ Valid session + user, FORCING LOAD NOW!');
+    console.log('🚨 v62.0 - About to call loadRequests()...');
     
-    // No debounce on initial load - execute immediately
-    if (!hasCompletedInitialLoadRef.current) {
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - First load, executing immediately');
-      loadRequests();
-    } else {
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - Subsequent load, debouncing');
-      fetchDebounceTimerRef.current = setTimeout(() => {
-        loadRequests();
-      }, 300);
-    }
+    // Force immediate execution without debounce
+    loadRequests().then(() => {
+      console.log('🚨 v62.0 - loadRequests() completed!');
+    }).catch(error => {
+      console.error('🚨 v62.0 - loadRequests() ERROR:', error);
+    });
     
     // Set up real-time subscription for maintenance requests
     console.log('🔌 REAL-TIME: Setting up maintenance_requests subscription');
