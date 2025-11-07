@@ -24,31 +24,30 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
     previousSessionReadyRef.current = isSessionReady;
     
-    // CRITICAL v43.0: If session not ready, wait with timeout fallback
+    // CRITICAL v43.1: Aggressive failsafe - if not ready after 5s on FIRST load, proceed anyway
     if (!isSessionReady && !hasLoadedOnceRef.current) {
-      console.log('useMaintenanceRequestData v43.0 - Waiting for session ready...');
+      console.log('useMaintenanceRequestData v43.1 - Waiting for session ready...');
       
-      // Set timeout to show cached data after 10s if session never becomes ready
-      if (sessionWaitTimeoutRef.current) {
-        clearTimeout(sessionWaitTimeoutRef.current);
+      // ONLY set timeout once - don't clear it on re-renders
+      if (!sessionWaitTimeoutRef.current) {
+        sessionWaitTimeoutRef.current = setTimeout(() => {
+          console.warn('⚠️ useMaintenanceRequestData v43.1 - 5s session timeout, proceeding with cached data');
+          hasLoadedOnceRef.current = true;
+          setLoading(false);
+        }, 5000); // Reduced to 5s for faster recovery
       }
-      sessionWaitTimeoutRef.current = setTimeout(() => {
-        console.warn('⚠️ useMaintenanceRequestData v43.0 - Session ready timeout, proceeding with cached data');
-        hasLoadedOnceRef.current = true;
-        setLoading(false);
-      }, 10000); // 10 second failsafe
       
       return;
     }
     
-    // Clear timeout if session becomes ready
-    if (sessionWaitTimeoutRef.current) {
+    // Clear timeout ONLY if session becomes ready
+    if (isSessionReady && sessionWaitTimeoutRef.current) {
       clearTimeout(sessionWaitTimeoutRef.current);
       sessionWaitTimeoutRef.current = null;
     }
     
     if (sessionJustBecameReady) {
-      console.log('✅ useMaintenanceRequestData v43.0 - Session became ready, triggering fetch');
+      console.log('✅ useMaintenanceRequestData v43.1 - Session became ready, triggering fetch');
     }
     
     if (!requestId || !currentUser) {
