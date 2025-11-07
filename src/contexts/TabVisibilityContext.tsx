@@ -24,14 +24,14 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
   const { isSessionReady } = useSimpleAuth();
   
   useEffect(() => {
-    console.log('🔄 TabVisibilityProvider - Starting coordinator');
+    console.log('🔄 TabVisibilityProvider v41.0 - Starting coordinator');
     
     // Provide session ready callback to coordinator
     visibilityCoordinator.setSessionReadyCallback(() => isSessionReady);
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 TabVisibilityProvider - Stopping coordinator');
+      console.log('🔄 TabVisibilityProvider v41.0 - Stopping coordinator');
       visibilityCoordinator.stopListening();
     };
   }, [isSessionReady]);

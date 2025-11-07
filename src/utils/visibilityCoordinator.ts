@@ -1,12 +1,15 @@
 /**
- * Tab Visibility Coordinator v40.0 - Consolidated Session Management
+ * Tab Visibility Coordinator v41.0 - Enhanced Session Management
  *
  * CRITICAL: Now handles BOTH session restoration AND data refresh
  * - Calls App.tsx rehydrateSessionFromServer() on tab revisit
  * - Then triggers data provider refreshes
  * - Single source of truth for tab revisit workflow
  * - Eliminates race conditions from multiple event listeners
+ * - v41.0: Static import + timeout protection + retry logic
  */
+
+import { rehydrateSessionFromServer } from '@/App';
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
 
@@ -93,29 +96,48 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate session restoration + data refresh when tab becomes visible
-   * v40.0: Consolidated - handles BOTH session restore AND data refresh
+   * v41.0: Enhanced with timeout protection and retry logic
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ Refresh already in progress, skipping");
+      console.warn("⚙️ v41.0 - Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
     const coordinatorStartTime = Date.now();
-    console.log(`🔁 v40.0 - Starting coordinated tab revisit workflow...`);
+    console.log(`🔁 v41.0 - Starting coordinated tab revisit workflow...`);
 
     try {
-      // STEP 1: Restore session from HttpOnly cookie
-      console.log("📡 v40.0 - Step 1: Restoring session from server...");
-      const { rehydrateSessionFromServer } = await import('@/App');
-      const restored = await rehydrateSessionFromServer();
+      // STEP 1: Restore session from HttpOnly cookie with timeout protection
+      console.log("📡 v41.0 - Step 1: Restoring session from server (with 10s timeout)...");
+      
+      const restoreWithTimeout = async (): Promise<boolean> => {
+        return Promise.race([
+          rehydrateSessionFromServer(),
+          new Promise<boolean>((resolve) => {
+            setTimeout(() => {
+              console.error("⏱️ v41.0 - Session restoration timeout after 10s!");
+              resolve(false);
+            }, 10000);
+          })
+        ]);
+      };
+      
+      let restored = await restoreWithTimeout();
+      
+      // RETRY LOGIC: If first attempt fails, try once more
+      if (!restored) {
+        console.warn("⚠️ v41.0 - First restoration attempt failed, retrying once...");
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+        restored = await restoreWithTimeout();
+      }
       
       if (restored) {
-        console.log("✅ v40.0 - Session restored successfully");
+        console.log("✅ v41.0 - Session restored successfully");
         
         // STEP 2: Wait for session to propagate to context
-        console.log("⏳ v40.0 - Step 2: Waiting for session ready...");
+        console.log("⏳ v41.0 - Step 2: Waiting for session ready...");
         let attempts = 0;
         const maxAttempts = 20; // 2 seconds max wait (20 * 100ms)
         
@@ -125,35 +147,37 @@ class VisibilityCoordinator {
         }
         
         if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-          console.log(`✅ v40.0 - Session ready after ${attempts * 100}ms`);
+          console.log(`✅ v41.0 - Session ready after ${attempts * 100}ms`);
         } else {
-          console.warn("⚠️ v40.0 - Session ready timeout, proceeding anyway");
+          console.warn("⚠️ v41.0 - Session ready timeout, proceeding anyway");
         }
       } else {
-        console.warn("⚠️ v40.0 - Session restore failed, skipping data refresh");
+        console.error("❌ v41.0 - Session restore failed after retry, skipping data refresh");
+        console.error("💡 v41.0 - Check network tab for session endpoint errors");
         return;
       }
 
       // STEP 3: Execute all data refresh handlers in parallel
-      console.log(`🔁 v40.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
+      console.log(`🔁 v41.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
       if (this.refreshHandlers.length > 0) {
         await Promise.all(
           this.refreshHandlers.map(async (handler) => {
             try {
               await handler();
             } catch (error) {
-              console.error("Handler error:", error);
+              console.error("❌ v41.0 - Handler error:", error);
             }
           })
         );
-        console.log("✅ v40.0 - All data handlers completed");
+        console.log("✅ v41.0 - All data handlers completed");
       }
     } catch (error) {
-      console.error("❌ v40.0 - Error during coordinated refresh:", error);
+      console.error("❌ v41.0 - Fatal error during coordinated refresh:", error);
+      console.error("💡 v41.0 - This might indicate a network issue or edge function problem");
     } finally {
       this.isRefreshing = false;
       const totalDuration = Date.now() - coordinatorStartTime;
-      console.log(`✅ v40.0 - Coordinator complete in ${totalDuration}ms`);
+      console.log(`✅ v41.0 - Coordinator complete in ${totalDuration}ms`);
     }
   }
 }
