@@ -1,9 +1,9 @@
 /**
- * Tab Visibility Coordinator v48.0 - Clean & Simple
+ * Tab Visibility Coordinator v49.0 - Fixed Client Instance
  *
  * CORE FLOW:
  * 1. Tab visible → Show loader
- * 2. Restore session from backend
+ * 2. Restore session on app's singleton client
  * 3. Wait for session ready in React context
  * 4. Trigger data refresh handlers
  * 5. Hide loader
@@ -95,7 +95,7 @@ class VisibilityCoordinator {
     if (this.isListening) return;
     this.isListening = true;
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v48.0 - Started listening for tab visibility changes");
+    console.log("👀 v49.0 - Started listening for tab visibility changes");
   }
 
   /**
@@ -105,7 +105,7 @@ class VisibilityCoordinator {
     if (!this.isListening) return;
     this.isListening = false;
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v48.0 - Stopped listening");
+    console.log("👀 v49.0 - Stopped listening");
   }
 
   /**
@@ -113,11 +113,11 @@ class VisibilityCoordinator {
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v48.0 - Tab hidden");
+      console.log("🔒 v49.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v48.0 - Tab visible, triggering refresh");
+    console.log("🔓 v49.0 - Tab visible, triggering refresh");
     this.coordinateRefresh();
   };
 
@@ -127,26 +127,26 @@ class VisibilityCoordinator {
   private async coordinateRefresh() {
     // Prevent overlapping restores
     if (this.isRefreshing) {
-      console.warn("⚙️ v48.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v49.0 - Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true); // Show loader
     const startTime = Date.now();
-    console.log("🔁 v48.0 - Starting tab revisit workflow");
+    console.log("🔁 v49.0 - Starting tab revisit workflow");
 
     try {
-      // STEP 1: Restore session
-      console.log("📡 v48.0 - Step 1: Restoring session...");
+      // STEP 1: Restore session on singleton client
+      console.log("📡 v49.0 - Step 1: Restoring session on singleton client...");
       const restored = await rehydrateSessionFromServer();
       
       if (!restored) {
         this.consecutiveFailures++;
-        console.error(`❌ v48.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
+        console.error(`❌ v49.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
         
         if (this.consecutiveFailures >= 2) {
-          console.error("🚨 v48.0 - Session expired");
+          console.error("🚨 v49.0 - Session expired");
           toast.error("Your session has expired. Please log in again.", {
             duration: 5000,
             position: 'top-center'
@@ -162,10 +162,10 @@ class VisibilityCoordinator {
       }
       
       this.consecutiveFailures = 0;
-      console.log("✅ v48.0 - Session restored");
+      console.log("✅ v49.0 - Session restored on singleton client");
       
       // STEP 2: Wait for session ready in React context
-      console.log("⏳ v48.0 - Step 2: Waiting for session ready...");
+      console.log("⏳ v49.0 - Step 2: Waiting for session ready in context...");
       let attempts = 0;
       const maxAttempts = 30; // 3 seconds max
       
@@ -175,33 +175,33 @@ class VisibilityCoordinator {
       }
       
       if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-        console.log(`✅ v48.0 - Session ready after ${attempts * 100}ms`);
+        console.log(`✅ v49.0 - Session ready after ${attempts * 100}ms`);
       } else {
-        console.error("❌ v48.0 - Session ready timeout");
+        console.error("❌ v49.0 - Session ready timeout");
         toast.error("Session propagation timeout. Please refresh.");
         return;
       }
       
       // STEP 3: Trigger data refresh
-      console.log(`🔁 v48.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)`);
+      console.log(`🔁 v49.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)`);
       if (this.refreshHandlers.length > 0) {
         await Promise.all(
           this.refreshHandlers.map(async (handler) => {
             try {
               await handler();
             } catch (err) {
-              console.error("❌ v48.0 - Handler error:", err);
+              console.error("❌ v49.0 - Handler error:", err);
             }
           })
         );
       }
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v48.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v49.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       toast.success("Data refreshed", { duration: 2000 });
       
     } catch (error) {
-      console.error("❌ v48.0 - Fatal error:", error);
+      console.error("❌ v49.0 - Fatal error:", error);
       toast.error("Failed to restore session. Please refresh the page.");
       this.notifyError('SESSION_FAILED');
     } finally {
