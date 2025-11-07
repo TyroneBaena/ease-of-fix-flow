@@ -1,8 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
+  // CRITICAL: When using credentials, MUST return specific origin, NOT wildcard
+  // Browsers reject Access-Control-Allow-Origin: * with credentials: true
+  const allowedOrigin = origin || 'https://preview--housinghub.lovable.app';
+  
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
