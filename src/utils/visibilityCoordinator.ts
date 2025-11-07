@@ -1,10 +1,11 @@
 /**
- * Tab Visibility Coordinator v52.0 - Stabilized Handler Registration
+ * Tab Visibility Coordinator v53.0 - Handler Queueing During Coordination
  *
  * CRITICAL FIXES:
- * 1. Added coordination lock to prevent re-registration during active coordination
- * 2. Data providers register handlers once on mount with stable callbacks
- * 3. Session readiness checked internally, not via useEffect dependencies
+ * 1. Handlers queue during coordination instead of being blocked
+ * 2. Queued handlers are registered after coordination completes
+ * 3. Prevents handler loss from unmount/remount cycles during session restoration
+ * 4. Data fetch callbacks now check for currentUser to prevent errors
  *
  * CORE FLOW:
  * 1. Tab visible → Show loader
@@ -32,8 +33,9 @@ type ErrorHandler = (error: 'SESSION_EXPIRED' | 'SESSION_FAILED') => void;
 
 class VisibilityCoordinator {
   private isRefreshing = false;
-  private isCoordinating = false; // v52.0: Lock to prevent re-registration during coordination
+  private isCoordinating = false;
   private refreshHandlers: RefreshHandler[] = [];
+  private pendingHandlers: RefreshHandler[] = []; // v53.0: Queue handlers during coordination
   private isListening = false;
   private sessionReadyCallback: (() => boolean) | null = null;
   private consecutiveFailures = 0;
@@ -81,26 +83,33 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v52.0 - Register data refresh handler with coordination lock protection
+   * v53.0 - Register data refresh handler with queueing during coordination
    */
   public onRefresh(handler: RefreshHandler): () => void {
-    // v52.0: Prevent registration during active coordination
+    // v53.0: Queue registration if coordination is active
     if (this.isCoordinating) {
-      console.warn(`⚠️ v52.0 - Blocked handler registration during active coordination`);
-      return () => {}; // Return no-op cleanup
+      console.log(`📋 v53.0 - Queueing handler registration during coordination`);
+      this.pendingHandlers.push(handler);
+      
+      // Return cleanup that removes from pending queue
+      return () => {
+        const pendingIndex = this.pendingHandlers.indexOf(handler);
+        if (pendingIndex > -1) {
+          this.pendingHandlers.splice(pendingIndex, 1);
+          console.log(`🗑️ v53.0 - Removed from pending queue`);
+        }
+      };
     }
     
     this.refreshHandlers.push(handler);
-    console.log(`📝 v52.0 - Registered refresh handler (total: ${this.refreshHandlers.length})`);
+    console.log(`📝 v53.0 - Registered refresh handler (total: ${this.refreshHandlers.length})`);
 
     // Return cleanup function that removes THIS specific handler
     return () => {
       const index = this.refreshHandlers.indexOf(handler);
       if (index > -1) {
         this.refreshHandlers.splice(index, 1);
-        console.log(`🗑️ v52.0 - Unregistered refresh handler (remaining: ${this.refreshHandlers.length})`);
-      } else {
-        console.warn(`⚠️ v52.0 - Handler not found during cleanup (total: ${this.refreshHandlers.length})`);
+        console.log(`🗑️ v53.0 - Unregistered refresh handler (remaining: ${this.refreshHandlers.length})`);
       }
     };
   }
@@ -139,21 +148,21 @@ class VisibilityCoordinator {
   };
 
   /**
-   * v52.0 - Main coordination logic with coordination lock
+   * v53.0 - Main coordination logic with handler queueing
    */
   private async coordinateRefresh() {
     // Prevent overlapping restores
     if (this.isRefreshing) {
-      console.warn("⚙️ v52.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v53.0 - Refresh already in progress, skipping");
       return;
     }
 
-    // v52.0: Set coordination lock to prevent handler re-registration
+    // v53.0: Set coordination lock and show loader
     this.isCoordinating = true;
     this.isRefreshing = true;
-    this.notifyTabRefreshChange(true); // Show loader
+    this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v52.0 - Starting tab revisit workflow with coordination lock");
+    console.log("🔁 v53.0 - Starting tab revisit workflow with handler queueing");
 
     // Overall timeout for entire flow (20 seconds)
     const overallTimeout = new Promise((_, reject) => 
@@ -167,15 +176,15 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v52.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v53.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       toast.success("Data refreshed", { duration: 2000 });
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v52.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v53.0 - Coordination failed after ${duration}ms:`, error);
       
       if (error.message === 'Overall coordination timeout') {
-        console.error("🚨 v52.0 - Overall timeout reached");
+        console.error("🚨 v53.0 - Overall timeout reached");
         toast.error("Session restoration timeout. Please refresh the page.");
       } else {
         toast.error("Failed to restore session. Please refresh the page.");
@@ -183,27 +192,37 @@ class VisibilityCoordinator {
       
       this.notifyError('SESSION_FAILED');
     } finally {
-      // v52.0: Release coordination lock
+      // v53.0: Process pending handlers BEFORE releasing lock
+      if (this.pendingHandlers.length > 0) {
+        console.log(`📋 v53.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        this.pendingHandlers.forEach(handler => {
+          this.refreshHandlers.push(handler);
+          console.log(`📝 v53.0 - Registered pending handler (total: ${this.refreshHandlers.length})`);
+        });
+        this.pendingHandlers = [];
+      }
+      
+      // v53.0: Release coordination lock
       this.isCoordinating = false;
       this.isRefreshing = false;
-      this.notifyTabRefreshChange(false); // Hide loader
+      this.notifyTabRefreshChange(false);
     }
   }
 
   /**
-   * v52.0 - Execute the refresh flow steps
+   * v53.0 - Execute the refresh flow steps
    */
   private async executeRefreshFlow() {
     // STEP 1: Restore session on singleton client
-    console.log("📡 v52.0 - Step 1: Restoring session...");
+    console.log("📡 v53.0 - Step 1: Restoring session...");
     const restored = await rehydrateSessionFromServer();
     
     if (!restored) {
       this.consecutiveFailures++;
-      console.error(`❌ v52.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
+      console.error(`❌ v53.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
       
       if (this.consecutiveFailures >= 2) {
-        console.error("🚨 v52.0 - Session expired after multiple failures");
+        console.error("🚨 v53.0 - Session expired after multiple failures");
         toast.error("Your session has expired. Please log in again.", {
           duration: 5000,
           position: 'top-center'
@@ -219,10 +238,10 @@ class VisibilityCoordinator {
     }
     
     this.consecutiveFailures = 0;
-    console.log("✅ v52.0 - Session restored successfully");
+    console.log("✅ v53.0 - Session restored successfully");
     
     // STEP 2: Wait for session ready in React context
-    console.log("⏳ v52.0 - Step 2: Waiting for auth listener to complete...");
+    console.log("⏳ v53.0 - Step 2: Waiting for auth listener to complete...");
     let attempts = 0;
     const maxAttempts = 100; // 10 seconds max for auth listener
     
@@ -232,28 +251,30 @@ class VisibilityCoordinator {
     }
     
     if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-      console.log(`✅ v52.0 - Auth listener completed after ${attempts * 100}ms`);
+      console.log(`✅ v53.0 - Auth listener completed after ${attempts * 100}ms`);
     } else {
-      console.error("❌ v52.0 - Auth listener timeout after 10s");
+      console.error("❌ v53.0 - Auth listener timeout after 10s");
       throw new Error('Auth listener timeout');
     }
     
     // STEP 3: Trigger data refresh handlers
-    console.log(`🔁 v52.0 - Step 3: Running refresh handlers (${this.refreshHandlers.length} registered)`);
+    console.log(`🔁 v53.0 - Step 3: Running refresh handlers (${this.refreshHandlers.length} registered)`);
     if (this.refreshHandlers.length > 0) {
       await Promise.all(
         this.refreshHandlers.map(async (handler, index) => {
           try {
-            console.log(`🔁 v52.0 - Running handler ${index + 1}/${this.refreshHandlers.length}`);
+            console.log(`🔁 v53.0 - Running handler ${index + 1}/${this.refreshHandlers.length}`);
             await handler();
           } catch (err) {
-            console.error(`❌ v52.0 - Handler ${index + 1} error:`, err);
+            console.error(`❌ v53.0 - Handler ${index + 1} error:`, err);
           }
         })
       );
+    } else {
+      console.warn("⚠️ v53.0 - No handlers registered to run!");
     }
     
-    console.log("✅ v52.0 - All refresh handlers completed");
+    console.log("✅ v53.0 - All refresh handlers completed");
   }
 }
 

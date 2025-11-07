@@ -24,19 +24,19 @@ export const useMaintenanceRequestProvider = () => {
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
 
-  // CRITICAL v52.0: Stabilize callback by checking isSessionReady inside, not in deps
+  // CRITICAL v53.0: Stabilize callback by checking isSessionReady inside, not in deps
   const loadRequests = useCallback(async () => {
     const sessionReady = isSessionReady; // Capture current value
-    console.log('🔍 v52.0 - LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id, 'SessionReady:', sessionReady);
+    console.log('🔍 v53.0 - LOADING REQUESTS - User:', currentUser?.email, 'Role:', currentUser?.role, 'Org:', currentUser?.organization_id, 'SessionReady:', sessionReady);
     
     // CRITICAL: Wait for session to be ready before making queries
     if (!sessionReady) {
-      console.log('🔍 v52.0 - LOADING REQUESTS - Waiting for session ready...');
+      console.log('🔍 v53.0 - LOADING REQUESTS - Waiting for session ready...');
       return [];
     }
     
     if (!currentUser?.id) {
-      console.log('🔍 v52.0 - LOADING REQUESTS - No user, skipping');
+      console.log('🔍 v53.0 - LOADING REQUESTS - No user, skipping');
       setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       return [];
@@ -44,7 +44,7 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Prevent concurrent fetches
     if (isFetchingRef.current) {
-      console.log('🔍 v52.0 - LOADING REQUESTS - Fetch already in progress, skipping');
+      console.log('🔍 v53.0 - LOADING REQUESTS - Fetch already in progress, skipping');
       return [];
     }
     
@@ -66,24 +66,24 @@ export const useMaintenanceRequestProvider = () => {
       const fetchedRequests = await fetchRequests(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('🔍 v52.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
+      console.log('🔍 v53.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
         const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-        console.log('🔍 v52.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
+        console.log('🔍 v53.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
         
         setRequests(formattedRequests);
         lastFetchTimeRef.current = Date.now();
         return formattedRequests;
       } else {
-        console.log('🔍 v52.0 - LOADING REQUESTS - No requests found');
+        console.log('🔍 v53.0 - LOADING REQUESTS - No requests found');
         setRequests([]);
         lastFetchTimeRef.current = Date.now();
         return [];
       }
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error('🔍 v52.0 - LOADING REQUESTS - Error:', error);
+      console.error('🔍 v53.0 - LOADING REQUESTS - Error:', error);
       
       if (controller.signal.aborted) {
         console.warn('⏱️ Request fetch aborted due to timeout');
@@ -210,23 +210,23 @@ export const useMaintenanceRequestProvider = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, isSessionReady]);
 
-  // CRITICAL v52.0: Register handler ONCE on mount, independent of session state
+  // CRITICAL v53.0: Register handler ONCE on mount, independent of session state
   useEffect(() => {
-    console.log('🔄 v52.0 - MaintenanceRequestProvider - Registering handler (once on mount)');
+    console.log('🔄 v53.0 - MaintenanceRequestProvider - Registering handler (once on mount)');
 
     const refreshMaintenance = async () => {
-      console.log('🔄 v52.0 - MaintenanceRequestProvider - Coordinator-triggered refresh');
+      console.log('🔄 v53.0 - MaintenanceRequestProvider - Coordinator-triggered refresh');
       await loadRequests();
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshMaintenance);
-    console.log('🔄 v52.0 - MaintenanceRequestProvider - Handler registered');
+    console.log('🔄 v53.0 - MaintenanceRequestProvider - Handler registered');
 
     return () => {
       unregister();
-      console.log('🔄 v52.0 - MaintenanceRequestProvider - Cleanup: Handler unregistered');
+      console.log('🔄 v53.0 - MaintenanceRequestProvider - Cleanup: Handler unregistered');
     };
-  }, [loadRequests]); // CRITICAL: Only loadRequests in deps, which is now stable
+  }, [loadRequests]);
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {

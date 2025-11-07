@@ -17,14 +17,14 @@ export const useContractorsState = () => {
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
 
-  // CRITICAL v52.0: Stabilize callback by checking isSessionReady inside
+  // CRITICAL v53.0: Stabilize callback by checking isSessionReady inside
   const loadContractors = useCallback(async () => {
     const sessionReady = isSessionReady; // Capture current value
-    console.log("v52.0 - useContractorsState - Loading contractors, SessionReady:", sessionReady);
+    console.log("v53.0 - useContractorsState - Loading contractors, SessionReady:", sessionReady);
     
     // CRITICAL: Wait for session to be ready before making queries
     if (!sessionReady) {
-      console.log("v52.0 - useContractorsState - Waiting for session ready...");
+      console.log("v53.0 - useContractorsState - Waiting for session ready...");
       return;
     }
     
@@ -35,12 +35,12 @@ export const useContractorsState = () => {
     
     try {
       const contractorsList = await fetchContractors();
-      console.log("v52.0 - useContractorsState - Contractors loaded successfully:", contractorsList);
+      console.log("v53.0 - useContractorsState - Contractors loaded successfully:", contractorsList);
       setContractors(contractorsList);
       setError(null);
       lastFetchTimeRef.current = Date.now();
     } catch (err) {
-      console.error("v52.0 - useContractorsState - Error loading contractors:", err);
+      console.error("v53.0 - useContractorsState - Error loading contractors:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // CRITICAL: Only reset loading on first load, keep it false after
@@ -61,23 +61,23 @@ export const useContractorsState = () => {
     loadContractors();
   }, [isSessionReady, loadContractors]);
 
-  // CRITICAL v52.0: Register handler ONCE on mount, independent of session state
+  // CRITICAL v53.0: Register handler ONCE on mount, independent of session state
   useEffect(() => {
-    console.log('🔄 v52.0 - ContractorProvider - Registering handler (once on mount)');
+    console.log('🔄 v53.0 - ContractorProvider - Registering handler (once on mount)');
 
     const refreshContractors = async () => {
-      console.log('🔄 v52.0 - ContractorProvider - Coordinator-triggered refresh');
+      console.log('🔄 v53.0 - ContractorProvider - Coordinator-triggered refresh');
       await loadContractors();
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshContractors);
-    console.log('🔄 v52.0 - ContractorProvider - Handler registered');
+    console.log('🔄 v53.0 - ContractorProvider - Handler registered');
 
     return () => {
       unregister();
-      console.log('🔄 v52.0 - ContractorProvider - Cleanup: Handler unregistered');
+      console.log('🔄 v53.0 - ContractorProvider - Cleanup: Handler unregistered');
     };
-  }, [loadContractors]); // CRITICAL: Only loadContractors in deps, which is now stable
+  }, [loadContractors]);
 
   return {
     contractors,
