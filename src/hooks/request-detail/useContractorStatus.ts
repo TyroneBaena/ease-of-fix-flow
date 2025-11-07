@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -8,12 +8,21 @@ import { supabase } from '@/lib/supabase';
  */
 export function useContractorStatus(userId: string | undefined, isSessionReady?: boolean): boolean {
   const [isContractor, setIsContractor] = useState(false);
+  const previousSessionReadyRef = useRef(isSessionReady);
 
   useEffect(() => {
+    // Smart Retry: Detect when isSessionReady transitions from false to true
+    const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
+    previousSessionReadyRef.current = isSessionReady;
+    
     // CRITICAL: Wait for session to be ready before querying
     if (!isSessionReady) {
       console.log('🔄 useContractorStatus - Waiting for session to be ready...');
       return;
+    }
+    
+    if (sessionJustBecameReady) {
+      console.log('✅ useContractorStatus - Session became ready, triggering check');
     }
     
     if (!userId) return;

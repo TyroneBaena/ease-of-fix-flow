@@ -1,10 +1,10 @@
 /**
- * Tab Visibility Coordinator v38.0 - HttpOnly Cookie Compatible
+ * Tab Visibility Coordinator v39.0 - Session-Aware Refresh
  *
- * Simplified coordinator for HttpOnly cookie-based authentication.
+ * Coordinates data refreshes on tab revisit while respecting session state.
+ * - Waits for session to be ready before triggering data refreshes
  * - Session restoration handled by App.tsx (HttpOnly rehydration)
- * - Only coordinates data provider refreshes on tab revisit
- * - No auth handling (delegated to secure backend)
+ * - Smart coordination between auth context and data providers
  */
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
@@ -14,6 +14,16 @@ class VisibilityCoordinator {
   private refreshHandlers: RefreshHandler[] = [];
   private isListening = false;
   private lastHiddenTime: number | null = null;
+  private sessionReadyCallback: (() => boolean) | null = null;
+
+  /**
+   * Set a callback to check if session is ready
+   * This allows the coordinator to wait for session before triggering refreshes
+   */
+  public setSessionReadyCallback(callback: () => boolean) {
+    this.sessionReadyCallback = callback;
+    console.log('📝 Set session ready callback for coordinator');
+  }
 
   /**
    * Register a handler to run when refreshing data on tab visibility change
@@ -82,7 +92,7 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate data refresh when tab becomes visible again
-   * v38.0: Simplified - auth handled by App.tsx HttpOnly system
+   * v39.0: Session-aware - waits for session ready before triggering refreshes
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
@@ -90,9 +100,15 @@ class VisibilityCoordinator {
       return;
     }
 
+    // CRITICAL: Check if session is ready before proceeding
+    if (this.sessionReadyCallback && !this.sessionReadyCallback()) {
+      console.log('⏳ v39.0 - Session not ready yet, deferring refresh. Data providers will auto-fetch when ready.');
+      return;
+    }
+
     this.isRefreshing = true;
     const coordinatorStartTime = Date.now();
-    console.log(`🔁 v38.0 - Coordinating data refresh (${this.refreshHandlers.length} handlers)...`);
+    console.log(`🔁 v39.0 - Coordinating data refresh (${this.refreshHandlers.length} handlers)...`);
 
     try {
       // Execute all data handlers in parallel
@@ -114,7 +130,7 @@ class VisibilityCoordinator {
     } finally {
       this.isRefreshing = false;
       const totalDuration = Date.now() - coordinatorStartTime;
-      console.log(`✅ v38.0 - Coordinator complete in ${totalDuration}ms`);
+      console.log(`✅ v39.0 - Coordinator complete in ${totalDuration}ms`);
     }
   }
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
+import { useSimpleAuth } from './UnifiedAuthContext';
 
 interface TabVisibilityContextType {
   coordinator: typeof visibilityCoordinator;
@@ -20,15 +21,20 @@ interface TabVisibilityProviderProps {
 }
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
+  const { isSessionReady } = useSimpleAuth();
+  
   useEffect(() => {
     console.log('🔄 TabVisibilityProvider - Starting coordinator');
+    
+    // Provide session ready callback to coordinator
+    visibilityCoordinator.setSessionReadyCallback(() => isSessionReady);
     visibilityCoordinator.startListening();
 
     return () => {
       console.log('🔄 TabVisibilityProvider - Stopping coordinator');
       visibilityCoordinator.stopListening();
     };
-  }, []);
+  }, [isSessionReady]);
 
   return (
     <TabVisibilityContext.Provider value={{ coordinator: visibilityCoordinator }}>

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -21,14 +21,23 @@ export const useActivityLogs = (
 ) => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const previousSessionReadyRef = useRef(isSessionReady);
 
   useEffect(() => {
+    // Smart Retry: Detect when isSessionReady transitions from false to true
+    const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
+    previousSessionReadyRef.current = isSessionReady;
+    
     const fetchActivityLogs = async () => {
       // CRITICAL: Wait for session to be ready before querying
       if (!isSessionReady) {
         console.log('🔄 useActivityLogs - Waiting for session to be ready...');
         setLoading(true);
         return;
+      }
+      
+      if (sessionJustBecameReady) {
+        console.log('✅ useActivityLogs - Session became ready, triggering fetch');
       }
       
       if (!requestId) {

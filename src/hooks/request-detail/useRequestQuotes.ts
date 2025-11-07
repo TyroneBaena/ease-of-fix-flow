@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Quote } from '@/types/contractor';
 import { toast } from 'sonner';
@@ -15,12 +15,21 @@ export function useRequestQuotes(
   isSessionReady?: boolean
 ) {
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const previousSessionReadyRef = useRef(isSessionReady);
 
   useEffect(() => {
+    // Smart Retry: Detect when isSessionReady transitions from false to true
+    const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
+    previousSessionReadyRef.current = isSessionReady;
+    
     // CRITICAL: Wait for session to be ready before querying
     if (!isSessionReady) {
       console.log('🔄 useRequestQuotes - Waiting for session to be ready...');
       return;
+    }
+    
+    if (sessionJustBecameReady) {
+      console.log('✅ useRequestQuotes - Session became ready, triggering fetch');
     }
     
     if (!requestId) return;

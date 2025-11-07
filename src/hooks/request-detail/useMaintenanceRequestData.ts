@@ -16,12 +16,21 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const [loading, setLoading] = useState(true);
   const { currentUser } = useUserContext();
   const hasLoadedOnceRef = useRef(false); // CRITICAL: Track if we've loaded once to prevent loading on tab revisit
+  const previousSessionReadyRef = useRef(isSessionReady);
 
   useEffect(() => {
+    // Smart Retry: Detect when isSessionReady transitions from false to true
+    const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
+    previousSessionReadyRef.current = isSessionReady;
+    
     // CRITICAL: Wait for session to be ready before making queries
     if (!isSessionReady) {
       console.log('useMaintenanceRequestData - Waiting for session ready...');
       return;
+    }
+    
+    if (sessionJustBecameReady) {
+      console.log('✅ useMaintenanceRequestData - Session became ready, triggering fetch');
     }
     
     if (!requestId || !currentUser) {
