@@ -32,16 +32,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🔍 Session validation called');
-    console.log('📋 Request headers:', req.headers.get('cookie') ? 'Cookie header present' : 'No cookie header');
-
-    // Extract cookie from request
+    console.log('🔍 v58.0 Session validation called');
+    console.log('🔍 v58.0 Origin:', origin);
+    console.log('🔍 v58.0 All headers:', Object.fromEntries(req.headers.entries()));
+    
+    // Extract session cookie
     const cookieHeader = req.headers.get('cookie');
+    console.log('🍪 v58.0 Raw cookie header:', cookieHeader?.substring(0, 100) + '...');
     
     if (!cookieHeader) {
-      console.log('No cookie found');
+      console.log('❌ v58.0 No cookie header found in request');
       return new Response(
-        JSON.stringify({ session: null }),
+        JSON.stringify({ session: null, reason: 'no_cookie_header' }),
         { 
           status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -49,15 +51,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('🍪 Cookie header found, parsing...');
+    // Parse cookie - handle both formats
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      if (key && value) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    console.log('🍪 v58.0 Parsed cookie keys:', Object.keys(cookies));
     
-    // Parse the session cookie
-    const match = cookieHeader.match(/sb-auth-session=([^;]+)/);
-    if (!match) {
-      console.log('Session cookie not found in cookie header');
-      console.log('Cookie header value:', cookieHeader.substring(0, 100));
+    const sessionCookie = cookies['sb-auth-session'];
+    
+    if (!sessionCookie) {
+      console.log('❌ v58.0 sb-auth-session cookie not found in:', Object.keys(cookies));
       return new Response(
-        JSON.stringify({ session: null }),
+        JSON.stringify({ session: null, reason: 'no_session_cookie' }),
         { 
           status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -65,18 +75,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('✅ Found sb-auth-session cookie, decoding...');
+    console.log('🍪 v58.0 Session cookie found, length:', sessionCookie.length);
+
+    // Decode session data with better error handling
     let sessionData;
     try {
-      sessionData = JSON.parse(atob(match[1]));
-      console.log('✅ Session data decoded, user:', sessionData.user?.email);
-    } catch (e) {
-      console.error('Failed to parse session cookie:', e);
+      sessionData = JSON.parse(atob(sessionCookie));
+      console.log('🔍 v58.0 Session data decoded successfully:', {
+        hasAccessToken: !!sessionData.access_token,
+        hasRefreshToken: !!sessionData.refresh_token,
+        userId: sessionData.user?.id,
+        tokenLength: sessionData.access_token?.length,
+        expiresAt: sessionData.expires_at
+      });
+    } catch (decodeError) {
+      console.error('❌ v58.0 Failed to decode session cookie:', decodeError);
       return new Response(
-        JSON.stringify({ session: null }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ session: null, reason: 'invalid_cookie_format' }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Set-Cookie': 'sb-auth-session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0',
+          },
+        }
+      );
+    }
+
+    if (!sessionData.access_token || !sessionData.refresh_token) {
+      console.error('❌ v58.0 Session data missing tokens');
+      return new Response(
+        JSON.stringify({ session: null, reason: 'missing_tokens' }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Set-Cookie': 'sb-auth-session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0',
+          },
         }
       );
     }
@@ -86,69 +123,90 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if tokens are still valid by attempting to refresh
-    const { data: refreshData, error: refreshError } = await supabase.auth.setSession({
+    console.log('🔍 v58.0 Validating session with Supabase...');
+    
+    // Validate and potentially refresh the session
+    const { data: { session }, error } = await supabase.auth.setSession({
       access_token: sessionData.access_token,
       refresh_token: sessionData.refresh_token,
     });
 
-    if (refreshError || !refreshData.session) {
-      console.log('Session invalid or expired:', refreshError?.message);
-      // Clear the invalid cookie
-      const clearCookieHeader = 'sb-auth-session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0';
+    if (error || !session) {
+      console.error('❌ v58.0 Session validation failed:', error?.message);
+      console.error('❌ v58.0 Error details:', error);
+      
+      // Clear invalid cookie
       return new Response(
-        JSON.stringify({ session: null }),
-        { 
-          status: 200, 
-          headers: { 
-            ...corsHeaders, 
+        JSON.stringify({ session: null, reason: 'validation_failed', error: error?.message }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
             'Content-Type': 'application/json',
-            'Set-Cookie': clearCookieHeader,
-          } 
+            'Set-Cookie': 'sb-auth-session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0',
+          },
         }
       );
     }
 
-    console.log('✅ Session valid for user:', refreshData.user.email);
+    console.log('✅ v58.0 Session validated successfully for user:', session.user.email);
+    console.log('✅ v58.0 Session expires at:', session.expires_at);
 
-    // If token was refreshed, update the cookie
-    let responseHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+    // Check if tokens were refreshed
+    const tokensRefreshed = session.access_token !== sessionData.access_token;
+    console.log('🔄 v58.0 Tokens refreshed:', tokensRefreshed);
     
-    if (refreshData.session.access_token !== sessionData.access_token) {
-      console.log('🔄 Token refreshed, updating cookie');
+    // If tokens were refreshed, update cookie
+    if (tokensRefreshed) {
+      console.log('🔄 v58.0 Updating cookie with refreshed tokens');
+      
       const newSessionData = {
-        access_token: refreshData.session.access_token,
-        refresh_token: refreshData.session.refresh_token,
-        expires_at: refreshData.session.expires_at,
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_at: session.expires_at,
         user: {
-          id: refreshData.user.id,
-          email: refreshData.user.email,
-          role: refreshData.user.role,
+          id: session.user.id,
+          email: session.user.email,
+          role: session.user.role,
         },
       };
+
       const cookieValue = btoa(JSON.stringify(newSessionData));
       const cookieHeader = `sb-auth-session=${cookieValue}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${60 * 60 * 24 * 30}`;
-      responseHeaders = { ...responseHeaders, 'Set-Cookie': cookieHeader };
+
+      return new Response(
+        JSON.stringify({ session }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Set-Cookie': cookieHeader,
+          },
+        }
+      );
     }
 
+    // Return existing valid session
     return new Response(
-      JSON.stringify({
-        session: {
-          access_token: refreshData.session.access_token,
-          refresh_token: refreshData.session.refresh_token,
-          expires_at: refreshData.session.expires_at,
-          user: refreshData.user,
-        },
-      }),
+      JSON.stringify({ session }),
       {
         status: 200,
-        headers: responseHeaders,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
       }
     );
   } catch (error) {
-    console.error('Session validation error:', error);
+    console.error('❌ v58.0 Session validation error:', error);
+    console.error('❌ v58.0 Error stack:', error instanceof Error ? error.stack : 'No stack');
     return new Response(
-      JSON.stringify({ session: null, error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        session: null,
+        reason: 'server_error',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
