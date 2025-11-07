@@ -3,16 +3,16 @@ import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 import { useUnifiedAuth } from './UnifiedAuthContext';
 
 /**
- * v56.0 - SINGLE session ready callback registration (removed from UnifiedAuthContext)
+ * v60.0 - SINGLE session ready callback registration (cookie-based session)
  * 
- * BUGS FIXED IN v56.0:
- * 1. Now the ONLY place that registers session ready callback (removed duplicate in UnifiedAuthContext)
- * 2. Prevents callback collision that caused unpredictable behavior
+ * ARCHITECTURE:
+ * 1. This is the ONLY place that registers session ready callback
+ * 2. Uses ref to access CURRENT auth state (not stale closure)
+ * 3. Cookie-based session restoration via /session endpoint
  * 
- * PREVIOUS FIXES (v55.0):
- * 1. Session ready callback uses ref to access CURRENT auth state (not stale closure)
- * 2. Properties now load on initial login
- * 3. Tab revisit coordination doesn't timeout waiting for stale session state
+ * PREVIOUS FIXES:
+ * v56.0 - Removed duplicate callback registration from UnifiedAuthContext
+ * v55.0 - Session ready callback uses ref for current values
  */
 
 interface TabVisibilityContextType {
@@ -49,14 +49,13 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
   }, [isSessionReady, currentUser]);
 
   useEffect(() => {
-    console.log('🔄 v56.0 - Starting visibility coordinator (SINGLE callback registration point)');
+    console.log('🔄 v60.0 - Starting visibility coordinator (cookie-based session)');
     
-    // CRITICAL v56.0: ONLY place that registers session ready callback
-    // Removed duplicate registration from UnifiedAuthContext to prevent collision
+    // CRITICAL v60.0: ONLY place that registers session ready callback
     visibilityCoordinator.setSessionReadyCallback(() => {
       const current = authStateRef.current;
       const ready = current.isSessionReady && !!current.currentUser?.id;
-      console.log('🔍 v56.0 - Session ready check:', { 
+      console.log('🔍 v60.0 - Session ready check:', { 
         isSessionReady: current.isSessionReady,
         hasUser: !!current.currentUser?.id,
         userEmail: current.currentUser?.email,
@@ -68,7 +67,7 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v56.0 - Stopping visibility coordinator');
+      console.log('🔄 v60.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

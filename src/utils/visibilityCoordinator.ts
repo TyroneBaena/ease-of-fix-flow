@@ -1,24 +1,24 @@
 /**
- * Tab Visibility Coordinator v59.0 - localStorage Persistence (Simplified)
+ * Tab Visibility Coordinator v60.0 - Cookie-Based Session Restoration
  *
- * BREAKING CHANGE IN v59.0:
- * ✅ Removed complex cookie-based session restoration (now uses localStorage)
- * ✅ Supabase client now handles persistence automatically
- * ✅ Dramatically simplified flow - just verify session exists
- * ✅ Reduced timeouts (15s overall, 5s session ready)
- * ✅ Zero network dependency for session restoration
+ * REVERTED TO COOKIE-BASED ARCHITECTURE:
+ * ✅ Uses secure HttpOnly cookies for session storage
+ * ✅ Calls /session endpoint to restore session on tab revisit
+ * ✅ Server validates cookies and returns session data
+ * ✅ Client calls setSession() to restore Supabase state
  *
- * CORE FLOW (v59.0):
- * 1. Tab visible → Check localStorage for session (instant)
- * 2. Verify session exists on client (~5ms)
- * 3. Wait for auth listener (max 5s)
- * 4. Run handlers with isolation
+ * CORE FLOW (v60.0):
+ * 1. Tab visible → Call /session endpoint with credentials
+ * 2. Server validates HttpOnly cookie
+ * 3. Server returns validated session data
+ * 4. Client calls setSession() to restore state
+ * 5. Wait for auth listener to propagate
+ * 6. Run refresh handlers
  * 
  * FEATURES:
- * - Domain-independent (localStorage works everywhere)
- * - Instant session restoration (<50ms)
- * - No server calls needed
- * - Auto token refresh (handled by Supabase client)
+ * - Secure HttpOnly cookie storage (no XSS exposure)
+ * - Server-side session validation
+ * - Works across domains with proper CORS
  * - Handler isolation with allSettled
  */
 
@@ -151,20 +151,20 @@ class VisibilityCoordinator {
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v59.0 - Tab hidden");
+      console.log("🔒 v60.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v59.0 - Tab visible, triggering refresh");
+    console.log("🔓 v60.0 - Tab visible, triggering cookie-based refresh");
     this.coordinateRefresh();
   };
 
   /**
-   * v59.0 - Simplified coordination with localStorage-based persistence
+   * v60.0 - Cookie-based coordination with session endpoint
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v59.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v60.0 - Refresh already in progress, skipping");
       return;
     }
 
@@ -172,17 +172,17 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v59.0 - Starting tab revisit (localStorage-based, 15s timeout)");
+    console.log("🔁 v60.0 - Starting tab revisit (cookie-based, 30s timeout)");
 
     this.abortController = new AbortController();
 
-    // v59.0: Reduced to 15s overall timeout (localStorage is instant)
+    // v60.0: 30s timeout (allows time for network call to /session endpoint)
     const overallTimeout = new Promise((_, reject) => 
       setTimeout(() => {
-        console.error("🚨 v59.0 - Overall timeout reached after 15s");
+        console.error("🚨 v60.0 - Overall timeout reached after 30s");
         this.abortController?.abort();
         reject(new Error('Overall coordination timeout'));
-      }, 15000)
+      }, 30000)
     );
 
     try {
@@ -192,11 +192,11 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v59.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v60.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v59.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v60.0 - Coordination failed after ${duration}ms:`, error);
       
       if (error.message === 'Session validation failed') {
         toast.error("Session expired. Please log in again.");
@@ -208,7 +208,7 @@ class VisibilityCoordinator {
     } finally {
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
-        console.log(`📋 v59.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        console.log(`📋 v60.0 - Processing ${this.pendingHandlers.length} pending handlers`);
         const handlersToProcess = [...this.pendingHandlers];
         this.pendingHandlers = [];
         
@@ -227,86 +227,91 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v59.0 - Simplified: Client now auto-persists, just verify session exists
+   * v60.0 - Cookie-based: Restore session from /session endpoint
    */
   private async executeRefreshFlow() {
     console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 v59.0 - STEP 1: Checking session (auto-persisted)...");
+    console.log("🚀 v60.0 - STEP 1: Restoring session from cookie...");
     console.log("═══════════════════════════════════════════════════");
     
-    // STEP 1: Verify session exists (should be auto-restored from localStorage)
+    // STEP 1: Call /session endpoint to restore from HttpOnly cookie
     const sessionStart = Date.now();
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    const sessionDuration = Date.now() - sessionStart;
-
-    console.log(`🔍 v59.0 - Session check completed in ${sessionDuration}ms:`, {
-      hasSession: !!session,
-      error: error?.message,
-      userId: session?.user?.id,
-      email: session?.user?.email
-    });
-
-    if (error || !session) {
-      this.consecutiveFailures++;
-      console.error(`❌ v59.0 - No valid session (failures: ${this.consecutiveFailures})`);
+    const { rehydrateSessionFromServer } = await import('./sessionRehydration');
+    
+    try {
+      const restored = await rehydrateSessionFromServer();
+      const sessionDuration = Date.now() - sessionStart;
       
-      if (this.consecutiveFailures >= 2) {
-        toast.error("Your session has expired. Please log in again.", {
-          duration: 5000,
-          position: 'top-center'
-        });
-        this.notifyError('SESSION_EXPIRED');
-      } else {
-        toast.warning("Session check failed. Retrying...", { duration: 3000 });
-        this.notifyError('SESSION_FAILED');
+      console.log(`🔍 v60.0 - Session restoration completed in ${sessionDuration}ms:`, {
+        restored
+      });
+
+      if (!restored) {
+        this.consecutiveFailures++;
+        console.error(`❌ v60.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
+        
+        if (this.consecutiveFailures >= 2) {
+          toast.error("Your session has expired. Please log in again.", {
+            duration: 5000,
+            position: 'top-center'
+          });
+          this.notifyError('SESSION_EXPIRED');
+        } else {
+          toast.warning("Session check failed. Retrying...", { duration: 3000 });
+          this.notifyError('SESSION_FAILED');
+        }
+        
+        throw new Error('Session validation failed');
       }
       
+      this.consecutiveFailures = 0;
+      console.log("✅ v60.0 - STEP 1 COMPLETE - Session restored from cookie");
+      
+    } catch (error) {
+      console.error("❌ v60.0 - STEP 1 FAILED - Could not restore session:", error);
       throw new Error('Session validation failed');
     }
     
-    this.consecutiveFailures = 0;
-    console.log("✅ v59.0 - STEP 1 COMPLETE - Session valid:", session.user.email);
-    
-    // STEP 2: Wait for auth listener (minimal wait with localStorage)
+    // STEP 2: Wait for auth listener to propagate
     console.log("═══════════════════════════════════════════════════");
-    console.log("⏳ v59.0 - STEP 2: Waiting for auth listener...");
+    console.log("⏳ v60.0 - STEP 2: Waiting for auth listener...");
     console.log("═══════════════════════════════════════════════════");
     
     let attempts = 0;
-    const maxAttempts = 50; // v59.0: Reduced to 5s (localStorage is instant)
+    const maxAttempts = 100; // v60.0: 10s max (network call takes time)
     
     while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
       if (attempts % 10 === 0) {
-        console.log(`⏳ v59.0 - STEP 2: Waiting... (${attempts * 100}ms)`);
+        console.log(`⏳ v60.0 - STEP 2: Waiting... (${attempts * 100}ms)`);
       }
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
     
     if (this.sessionReadyCallback?.()) {
-      console.log(`✅ v59.0 - STEP 2 COMPLETE - Ready in ${attempts * 100}ms`);
+      console.log(`✅ v60.0 - STEP 2 COMPLETE - Ready in ${attempts * 100}ms`);
     } else {
-      console.warn(`⚠️ v59.0 - STEP 2 TIMEOUT after ${attempts * 100}ms (continuing anyway)`);
+      console.warn(`⚠️ v60.0 - STEP 2 TIMEOUT after ${attempts * 100}ms (continuing anyway)`);
     }
     
     // STEP 3: Run refresh handlers with isolation
     console.log("═══════════════════════════════════════════════════");
-    console.log(`🔁 v59.0 - STEP 3: Running ${this.refreshHandlers.length} handlers...`);
+    console.log(`🔁 v60.0 - STEP 3: Running ${this.refreshHandlers.length} handlers...`);
     console.log("═══════════════════════════════════════════════════");
     
     if (this.refreshHandlers.length === 0) {
-      console.warn("⚠️ v59.0 - No handlers registered");
+      console.warn("⚠️ v60.0 - No handlers registered");
       return;
     }
     
     const handlerTimeout = 30000; // 30s per handler
     const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
       const handlerStart = Date.now();
-      console.log(`▶️ v59.0 - Handler ${index + 1} starting...`);
+      console.log(`▶️ v60.0 - Handler ${index + 1} starting...`);
       
       try {
         if (this.abortController?.signal.aborted) {
-          console.warn(`⚠️ v59.0 - Handler ${index + 1} aborted`);
+          console.warn(`⚠️ v60.0 - Handler ${index + 1} aborted`);
           return;
         }
         
@@ -318,10 +323,10 @@ class VisibilityCoordinator {
         ]);
         
         const duration = Date.now() - handlerStart;
-        console.log(`✅ v59.0 - Handler ${index + 1} done in ${duration}ms`);
+        console.log(`✅ v60.0 - Handler ${index + 1} done in ${duration}ms`);
       } catch (err) {
         const duration = Date.now() - handlerStart;
-        console.error(`❌ v59.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
+        console.error(`❌ v60.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
       }
     });
     
@@ -330,7 +335,7 @@ class VisibilityCoordinator {
     const failed = results.filter(r => r.status === 'rejected').length;
     
     console.log("═══════════════════════════════════════════════════");
-    console.log(`✅ v59.0 - STEP 3 COMPLETE - ${successful} ok, ${failed} failed`);
+    console.log(`✅ v60.0 - STEP 3 COMPLETE - ${successful} ok, ${failed} failed`);
     console.log("═══════════════════════════════════════════════════");
   }
 }

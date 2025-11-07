@@ -1,5 +1,5 @@
 // src/integrations/supabase/client.ts
-// v59.0 - HYBRID SESSION PERSISTENCE (localStorage + cookie backup)
+// v60.0 - COOKIE-BASED SESSION PERSISTENCE (HttpOnly cookies)
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
@@ -18,34 +18,37 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 let _supabase: SupabaseClient<Database> | null = null;
 
 /**
- * v59.0 - CRITICAL FIX: Enable client-side session persistence
+ * v60.0 - REVERTED TO COOKIE-BASED SESSION MANAGEMENT
  * 
- * PROBLEM: Disabled persistSession made app 100% dependent on HTTP-only cookies
- * which fail across Lovable's multiple domains (lovableproject.com, lovable.app, etc.)
+ * ARCHITECTURE:
+ * - persistSession: false → Disables localStorage/sessionStorage
+ * - Session stored in secure HttpOnly cookies via edge functions
+ * - Session restored from /session endpoint on tab revisit
+ * - Keeps Supabase client stateless for security
  * 
- * SOLUTION: Enable localStorage persistence (works across ALL domains) with cookie backup
- * - persistSession: true → Stores session in localStorage (survives tab switches/closes)
- * - autoRefreshToken: true → Automatically refreshes tokens before expiry
- * - Cookie backup remains as secondary mechanism
+ * FLOW:
+ * 1. Login → Edge function sets HttpOnly cookie
+ * 2. Tab revisit → Fetch from /session endpoint
+ * 3. Edge function validates cookie and returns session
+ * 4. Client calls setSession() to restore state
  * 
  * This provides:
- * ✅ Domain-independent session persistence
- * ✅ Automatic token refresh
- * ✅ Tab revisit works instantly
- * ✅ No dependency on cookie transmission
+ * ✅ Secure HttpOnly cookie storage
+ * ✅ Server-side session validation
+ * ✅ No client-side token exposure
+ * ✅ Works across all domains with proper CORS
  */
 export function getSupabaseClient(): SupabaseClient<Database> {
   if (!_supabase) {
-    console.log("🔧 v59.0 - Creating SINGLE Supabase client with localStorage persistence");
+    console.log("🔧 v60.0 - Creating SINGLE Supabase client with cookie-based persistence");
     _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        persistSession: true, // ✅ CRITICAL: Enable localStorage persistence
-        autoRefreshToken: true, // ✅ CRITICAL: Enable auto token refresh
+        persistSession: false, // ✅ CRITICAL: Disable localStorage - use cookies instead
+        autoRefreshToken: true, // ✅ Auto refresh tokens
         detectSessionInUrl: true, // ✅ Handle email confirmation links
-        storage: undefined, // ✅ Use default localStorage implementation
       },
     });
-    console.log("✅ v59.0 - Supabase client created with hybrid persistence");
+    console.log("✅ v60.0 - Supabase client created with cookie-based persistence");
   }
   return _supabase;
 }
