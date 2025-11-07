@@ -1,9 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
-  // CRITICAL: When using credentials, MUST return specific origin, NOT wildcard
-  // Browsers reject Access-Control-Allow-Origin: * with credentials: true
-  const allowedOrigin = origin || 'https://preview--housinghub.lovable.app';
+  // CRITICAL: Exact origin matching for credentials
+  const allowedOrigins = [
+    'https://56a1a977-22a1-4e1e-83f7-9571291dc8ad.lovableproject.com',
+    'https://preview--housinghub.lovable.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  
+  // Return specific origin if allowed, otherwise use fallback
+  const allowedOrigin = origin && allowedOrigins.includes(origin) 
+    ? origin 
+    : 'https://preview--housinghub.lovable.app';
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,

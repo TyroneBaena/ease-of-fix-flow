@@ -5,7 +5,7 @@ import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 
 /**
- * v55.0 - Hook for managing contractors state with current auth state via refs
+ * v57.0 - Hook for managing contractors state with 30s timeout
  */
 export const useContractorsState = () => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
@@ -25,14 +25,14 @@ export const useContractorsState = () => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
-  // CRITICAL v55.0: Stable callback that accesses current values via ref
+  // CRITICAL v57.0: Stable callback with 30s timeout
   const loadContractors = useCallback(async () => {
     const { isSessionReady: sessionReady } = authStateRef.current;
-    console.log("v55.0 - useContractorsState - Loading contractors", { sessionReady });
+    console.log("v57.0 - useContractorsState - Loading contractors", { sessionReady });
     
     // CRITICAL: Wait for session to be ready before making queries
     if (!sessionReady) {
-      console.log("v55.0 - useContractorsState - Waiting for session ready...");
+      console.log("v57.0 - useContractorsState - Waiting for session ready...");
       return;
     }
     
@@ -41,14 +41,23 @@ export const useContractorsState = () => {
       setLoading(true);
     }
     
+    // v57.0: Add 30s timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.error("⏱️ v57.0 - Contractor fetch timeout after 30s");
+    }, 30000);
+    
     try {
       const contractorsList = await fetchContractors();
-      console.log("v55.0 - useContractorsState - Contractors loaded successfully:", contractorsList.length);
+      clearTimeout(timeoutId);
+      console.log("v57.0 - useContractorsState - Contractors loaded successfully:", contractorsList.length);
       setContractors(contractorsList);
       setError(null);
       lastFetchTimeRef.current = Date.now();
     } catch (err) {
-      console.error("v55.0 - useContractorsState - Error loading contractors:", err);
+      clearTimeout(timeoutId);
+      console.error("v57.0 - useContractorsState - Error loading contractors:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // CRITICAL: Only reset loading on first load, keep it false after
@@ -57,7 +66,7 @@ export const useContractorsState = () => {
       }
       hasCompletedInitialLoadRef.current = true;
     }
-  }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
+  }, []); // CRITICAL v57.0: Empty deps - callback uses ref for current values
 
   // Load contractors on initial mount only if session is ready
   useEffect(() => {

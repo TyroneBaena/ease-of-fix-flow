@@ -42,21 +42,21 @@ export const useContractorManagement = () => {
     handlePageChange
   } = useContractorPagination(contractors.length);
 
-  // Define loadContractors with proper memoization
+  // v57.0: Updated timeout to 30s (was 5s)
   const loadContractors = useCallback(async () => {
-    console.log("🔄 loadContractors - Starting");
+    console.log("🔄 v57.0 - loadContractors - Starting");
     
     try {
       setLoading(true);
       console.log("Fetching contractors in useContractorManagement...");
       console.log("User is admin:", isAdmin);
       
-      // CRITICAL: 5-second timeout to prevent blocking
+      // v57.0: Increased timeout to 30s (was 5s) to match coordinator
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.error("⏱️ loadContractors - Timeout after 5s");
-      }, 5000);
+        console.error("⏱️ v57.0 - loadContractors - Timeout after 30s");
+      }, 30000);
       
       try {
         console.log("Attempting to fetch contractors directly from Supabase...");
