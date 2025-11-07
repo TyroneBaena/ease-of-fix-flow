@@ -748,47 +748,87 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Register auth refresh with visibility coordinator
-  // v60.0: Cookie-based session restoration on tab revisit
+  // v66.0: Dual-path session restoration - /session endpoint → supabase.auth.getSession() fallback
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log("🔄 UnifiedAuth v60.0 - Restoring session from cookie after tab revisit");
+      console.log("%c════════════════════════════════════════════════════════", "color: blue; font-weight: bold");
+      console.log("%c🔄 UnifiedAuth v66.0 - DUAL-PATH SESSION RESTORATION START", "color: blue; font-weight: bold");
+      console.log("%c════════════════════════════════════════════════════════", "color: blue; font-weight: bold");
       
       try {
-        // Import session restoration utility
+        // PATH 1: Try /session endpoint (cookie-based) with 15s timeout
+        console.log("📍 v66.0 - PATH 1: Attempting /session endpoint...");
         const { rehydrateSessionFromServer } = await import("@/utils/sessionRehydration");
         
-        // Restore session from /session endpoint (validates HttpOnly cookie)
-        const restored = await rehydrateSessionFromServer();
+        const result = await rehydrateSessionFromServer();
         
-        if (restored) {
-          console.log("✅ UnifiedAuth v60.0 - Session restored from cookie");
+        if (result.success) {
+          console.log("✅ v66.0 - PATH 1 SUCCESS: Session restored from /session endpoint");
           
           // Verify session was set in client
           const { data: { session: clientSession } } = await supabase.auth.getSession();
           
           if (clientSession?.access_token) {
-            console.log("✅ UnifiedAuth v60.0 - Session verified in client after restoration");
+            console.log("✅ v66.0 - Session verified in client after /session restoration");
             setIsSessionReady(true);
+            console.log("%c════════════════════════════════════════════════════════", "color: lime; font-weight: bold");
+            console.log("%c✅ v66.0 - DUAL-PATH SUCCESS via PATH 1 (/session)", "color: lime; font-weight: bold");
+            console.log("%c════════════════════════════════════════════════════════", "color: lime; font-weight: bold");
             return true;
           }
         }
         
-        console.warn("⚠️ UnifiedAuth v60.0 - Cookie restoration failed");
+        // PATH 1 FAILED - Log reason and try PATH 2
+        console.warn("⚠️ v66.0 - PATH 1 FAILED:", result.reason || 'unknown');
+        console.log("📍 v66.0 - PATH 2: Attempting supabase.auth.getSession() fallback...");
+        
+        // PATH 2: Fallback to supabase.auth.getSession()
+        const { data: { session: fallbackSession }, error: fallbackError } = await supabase.auth.getSession();
+        
+        if (fallbackError) {
+          console.error("❌ v66.0 - PATH 2 ERROR:", fallbackError.message);
+          console.log("%c════════════════════════════════════════════════════════", "color: red; font-weight: bold");
+          console.log("%c❌ v66.0 - DUAL-PATH FAILED: Both paths exhausted", "color: red; font-weight: bold");
+          console.log("%c════════════════════════════════════════════════════════", "color: red; font-weight: bold");
+          setIsSessionReady(false);
+          return false;
+        }
+        
+        if (fallbackSession?.access_token) {
+          console.log("✅ v66.0 - PATH 2 SUCCESS: Session found via getSession()");
+          console.log("✅ v66.0 - Session user:", fallbackSession.user?.email);
+          console.log("✅ v66.0 - Session expires:", new Date(fallbackSession.expires_at! * 1000).toISOString());
+          setIsSessionReady(true);
+          console.log("%c════════════════════════════════════════════════════════", "color: lime; font-weight: bold");
+          console.log("%c✅ v66.0 - DUAL-PATH SUCCESS via PATH 2 (getSession)", "color: lime; font-weight: bold");
+          console.log("%c════════════════════════════════════════════════════════", "color: lime; font-weight: bold");
+          return true;
+        }
+        
+        // Both paths failed - no session available
+        console.warn("⚠️ v66.0 - PATH 2: No session found in client");
+        console.log("%c════════════════════════════════════════════════════════", "color: red; font-weight: bold");
+        console.log("%c❌ v66.0 - DUAL-PATH FAILED: No valid session in either path", "color: red; font-weight: bold");
+        console.log("%c════════════════════════════════════════════════════════", "color: red; font-weight: bold");
         setIsSessionReady(false);
         return false;
+        
       } catch (error) {
-        console.error("❌ UnifiedAuth v60.0 - Session restoration error:", error);
+        console.error("❌ v66.0 - DUAL-PATH CRITICAL ERROR:", error);
+        console.log("%c════════════════════════════════════════════════════════", "color: red; font-weight: bold");
+        console.log("%c❌ v66.0 - DUAL-PATH FAILED: Exception thrown", "color: red; font-weight: bold");
+        console.log("%c════════════════════════════════════════════════════════", "color: red; font-weight: bold");
         setIsSessionReady(false);
         return false;
       }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log("🔄 UnifiedAuth v60.0 - Registered cookie-based session restorer with coordinator");
+    console.log("🔄 UnifiedAuth v66.0 - Registered DUAL-PATH session restorer with coordinator");
 
     return () => {
       unregister();
-      console.log("🔄 UnifiedAuth v60.0 - Cleanup: Unregistered from coordinator");
+      console.log("🔄 UnifiedAuth v66.0 - Cleanup: Unregistered from coordinator");
     };
   }, []);
 
