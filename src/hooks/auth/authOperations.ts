@@ -181,10 +181,10 @@ import { toast } from "@/lib/toast";
 import { UserRole } from "@/types/user";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
-// 🌐 Environment variables for Edge Functions
-const LOGIN_FN = import.meta.env.VITE_LOGIN_FN_URL!;
-const LOGOUT_FN = import.meta.env.VITE_LOGOUT_FN_URL!;
-const SESSION_FN = import.meta.env.VITE_SESSION_FN_URL!;
+// 🌐 Direct Supabase Edge Function URLs (NEVER use VITE_* variables in Lovable)
+const LOGIN_FN = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/login";
+const LOGOUT_FN = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/logout";
+const SESSION_FN = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/session";
 
 /**
  * 🔐 Sign in with email and password (via Supabase Edge Function)
