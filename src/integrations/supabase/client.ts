@@ -1,4 +1,5 @@
 // src/integrations/supabase/client.ts
+// v59.0 - HYBRID SESSION PERSISTENCE (localStorage + cookie backup)
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
@@ -17,24 +18,34 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 let _supabase: SupabaseClient<Database> | null = null;
 
 /**
- * CRITICAL: Get the singleton Supabase client.
- * Always returns the SAME instance to prevent multiple goTrueClient instances.
+ * v59.0 - CRITICAL FIX: Enable client-side session persistence
+ * 
+ * PROBLEM: Disabled persistSession made app 100% dependent on HTTP-only cookies
+ * which fail across Lovable's multiple domains (lovableproject.com, lovable.app, etc.)
+ * 
+ * SOLUTION: Enable localStorage persistence (works across ALL domains) with cookie backup
+ * - persistSession: true → Stores session in localStorage (survives tab switches/closes)
+ * - autoRefreshToken: true → Automatically refreshes tokens before expiry
+ * - Cookie backup remains as secondary mechanism
+ * 
+ * This provides:
+ * ✅ Domain-independent session persistence
+ * ✅ Automatic token refresh
+ * ✅ Tab revisit works instantly
+ * ✅ No dependency on cookie transmission
  */
 export function getSupabaseClient(): SupabaseClient<Database> {
   if (!_supabase) {
-    console.log("🔧 Creating SINGLE Supabase client instance");
+    console.log("🔧 v59.0 - Creating SINGLE Supabase client with localStorage persistence");
     _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        persistSession: false, // ✅ disables localStorage (we use cookies)
-        autoRefreshToken: false, // ✅ backend handles refresh
-        storage: {
-          getItem: async () => null,
-          setItem: async () => {},
-          removeItem: async () => {},
-        },
+        persistSession: true, // ✅ CRITICAL: Enable localStorage persistence
+        autoRefreshToken: true, // ✅ CRITICAL: Enable auto token refresh
+        detectSessionInUrl: true, // ✅ Handle email confirmation links
+        storage: undefined, // ✅ Use default localStorage implementation
       },
     });
-    console.log("✅ Supabase client created");
+    console.log("✅ v59.0 - Supabase client created with hybrid persistence");
   }
   return _supabase;
 }
