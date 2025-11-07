@@ -56,11 +56,11 @@ const Login = () => {
     }
   };
 
-  // CRITICAL FIX: Wait for BOTH currentUser AND isSessionReady before redirecting
-  // This ensures the auth context has fully updated after login
+  // CRITICAL FIX: Redirect immediately after justLoggedIn is set
+  // Don't wait for auth context - it will update in background
   useEffect(() => {
-    if (!authLoading && currentUser && isSessionReady && justLoggedIn) {
-      console.log(`✅ Login - Auth fully ready, redirecting for: ${currentUser.email}`);
+    if (justLoggedIn) {
+      console.log(`✅ Login - justLoggedIn=true, redirecting immediately...`);
       
       // Determine redirect path
       const urlParams = new URLSearchParams(location.search);
@@ -86,12 +86,13 @@ const Login = () => {
         console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
         navigate(redirectPath, { replace: true });
       } else {
-        redirectPath = getRedirectPathByRole(currentUser.role);
-        console.log(`🚀 Login - Redirecting to role-based path: ${redirectPath}`);
+        // Use admin role as default since we don't have user object yet
+        redirectPath = "/dashboard";
+        console.log(`🚀 Login - Redirecting to default: ${redirectPath}`);
         navigate(redirectPath, { replace: true });
       }
     }
-  }, [currentUser, authLoading, isSessionReady, justLoggedIn, location, navigate]);
+  }, [justLoggedIn, location, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
