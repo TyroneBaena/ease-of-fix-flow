@@ -56,6 +56,7 @@ class VisibilityCoordinator {
   private isListening = false;
   private sessionReadyCallback: (() => boolean) | null = null;
   private consecutiveFailures = 0;
+  private lastFailureTimestamp = 0; // v59.0: Track when last failure occurred
   private abortController: AbortController | null = null; // v56.0: Cancel in-flight handlers
   
   // UI feedback callbacks
@@ -147,13 +148,19 @@ class VisibilityCoordinator {
   }
 
   /**
-   * Start listening for visibility changes
+   * v59.0 - Start listening with failure counter reset on page load
    */
   public startListening() {
     if (this.isListening) return;
     this.isListening = true;
+    
+    // v59.0: Reset failure counter on page load (fresh start)
+    this.consecutiveFailures = 0;
+    this.lastFailureTimestamp = 0;
+    console.log("🔄 v59.0 - Failure counter reset on page load");
+    
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v50.0 - Started listening for tab visibility changes");
+    console.log("👀 v59.0 - Started listening for tab visibility changes");
   }
 
   /**
@@ -259,22 +266,32 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v58.0 - Execute the refresh flow with balanced retry logic (allow 2 failures)
+   * v59.0 - Execute the refresh flow with smart retry logic and failure reset
    */
   private async executeRefreshFlow() {
     console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 v58.0 - STEP 1: Restoring session from backend...");
+    console.log("🚀 v59.0 - STEP 1: Restoring session from backend...");
     console.log("═══════════════════════════════════════════════════");
+    
+    // v59.0: CRITICAL FIX - Reset failure counter after 24 hours
+    const now = Date.now();
+    const hoursSinceLastFailure = (now - this.lastFailureTimestamp) / (1000 * 60 * 60);
+    
+    if (hoursSinceLastFailure > 24) {
+      console.log(`🔄 v59.0 - Resetting failure counter (${hoursSinceLastFailure.toFixed(1)}h since last failure)`);
+      this.consecutiveFailures = 0;
+    }
     
     const restored = await rehydrateSessionFromServer();
     
     if (!restored) {
       this.consecutiveFailures++;
-      console.error(`❌ v58.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
+      this.lastFailureTimestamp = now;
+      console.error(`❌ v59.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
       
-      // v58.0: Allow 2 failures before redirecting (gives cookies time to propagate)
+      // v59.0: Allow 2 consecutive failures before redirecting
       if (this.consecutiveFailures >= 2) {
-        console.error("🚨 v58.0 - Session expired after 2 failures - redirecting to login");
+        console.error("🚨 v59.0 - Session expired after 2 consecutive failures - redirecting to login");
         toast.error("Your session has expired. Please log in again.", {
           duration: 5000,
           position: 'top-center'
@@ -285,7 +302,7 @@ class VisibilityCoordinator {
           window.location.href = '/login';
         }, 2000);
       } else {
-        console.warn(`⚠️ v58.0 - First failure, will retry on next visit (${this.consecutiveFailures}/2)`);
+        console.warn(`⚠️ v59.0 - First failure, will retry on next visit (${this.consecutiveFailures}/2)`);
         toast.warning("Session restoration failed. Please try refreshing.", {
           duration: 4000
         });
@@ -294,8 +311,10 @@ class VisibilityCoordinator {
       throw new Error('Session restoration failed');
     }
     
+    // v59.0: Reset both counter and timestamp on success
     this.consecutiveFailures = 0;
-    console.log("✅ v58.0 - STEP 1 COMPLETE - Session restored successfully");
+    this.lastFailureTimestamp = 0;
+    console.log("✅ v59.0 - STEP 1 COMPLETE - Session restored successfully");
     
     // v58.0: STEP 1.5: Validate session is actually set on client
     console.log("═══════════════════════════════════════════════════");

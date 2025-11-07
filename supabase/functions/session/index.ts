@@ -1,19 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
-  // CRITICAL: When credentials=true, origin CANNOT be '*'
-  // Must return the EXACT origin that made the request
+  // CRITICAL: When credentials=true, MUST return exact origin (not wildcard)
   const isAllowedOrigin = origin && (
     origin.includes('lovableproject.com') || 
     origin.includes('lovable.app') ||
     origin.includes('localhost')
   );
   
-  // Return the requesting origin if allowed, otherwise no CORS support
-  const allowedOrigin = isAllowedOrigin ? origin! : 'https://preview--housinghub.lovable.app';
+  if (!isAllowedOrigin) {
+    // Don't set CORS headers for disallowed origins - let browser handle it
+    return {};
+  }
   
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cookie',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',

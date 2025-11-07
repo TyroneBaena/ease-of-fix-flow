@@ -32,14 +32,15 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
   console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
 
   try {
-    // v58.0: Check cookies but don't fail immediately - let backend try
-    console.log("🍪 v58.0 - Checking for auth cookies...");
+    // v59.0: CRITICAL FIX - Check for cookie existence first
+    console.log("🍪 v59.0 - Checking for auth cookies...");
     const allCookies = document.cookie;
     const hasAuthCookie = allCookies.includes('sb-auth-session');
-    console.log("🍪 v58.0 - Has sb-auth-session cookie:", hasAuthCookie);
+    console.log("🍪 v59.0 - Has sb-auth-session cookie:", hasAuthCookie);
     
     if (!hasAuthCookie) {
-      console.warn("⚠️ v58.0 - No cookie found locally, will try backend anyway (might be HttpOnly)");
+      console.warn("⚠️ v59.0 - No cookie found, skipping backend call");
+      return false; // Don't waste time calling backend if no cookie exists
     }
     
     // STEP 1: Fetch session from backend
