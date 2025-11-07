@@ -22,20 +22,25 @@ export const usePropertyProvider = (): PropertyContextType => {
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
 
-  // CRITICAL v53.0: Stabilize callback by checking isSessionReady inside, not in deps
+  // CRITICAL v54.0: Stabilize callback with proper user and session checks
   const fetchAndSetProperties = useCallback(async () => {
     const sessionReady = isSessionReady; // Capture current value
-    console.log('v53.0 - PropertyProvider: fetchAndSetProperties called, SessionReady:', sessionReady);
+    const userId = currentUser?.id; // Capture current user ID
     
-    // CRITICAL: Wait for session to be ready before making queries
+    console.log('v54.0 - PropertyProvider: fetchAndSetProperties called', { 
+      sessionReady, 
+      hasUser: !!userId,
+      userId 
+    });
+    
+    // CRITICAL: Wait for BOTH session ready AND user available
     if (!sessionReady) {
-      console.log('v53.0 - PropertyProvider: Waiting for session ready...');
+      console.log('v54.0 - PropertyProvider: Waiting for session ready...');
       return;
     }
     
-    // CRITICAL v53.0: Also check if we have a current user
-    if (!currentUser?.id) {
-      console.log('v53.0 - PropertyProvider: No current user, skipping fetch');
+    if (!userId) {
+      console.log('v54.0 - PropertyProvider: No current user, skipping fetch');
       return;
     }
     
@@ -60,13 +65,13 @@ export const usePropertyProvider = (): PropertyContextType => {
       }
       setLoadingFailed(false);
       isFetchingRef.current = true;
-      console.log('v53.0 - PropertyContext: Fetching properties for user:', currentUser?.id);
+      console.log('v54.0 - PropertyContext: Fetching properties for user:', userId);
       
       const formattedProperties = await fetchProperties(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('✅ v53.0 - PropertyContext: Properties fetched successfully');
-      console.log('v53.0 - PropertyContext: Number of properties:', formattedProperties.length);
+      console.log('✅ v54.0 - PropertyContext: Properties fetched successfully');
+      console.log('v54.0 - PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
       lastFetchTimeRef.current = Date.now();
     } catch (err) {
@@ -76,12 +81,12 @@ export const usePropertyProvider = (): PropertyContextType => {
         console.warn('❌ Properties fetch aborted due to timeout');
         toast.error('Loading properties timed out. Please refresh.');
       } else {
-        console.error('❌ v53.0 - PropertyContext: Error fetching properties:', err);
+        console.error('❌ v54.0 - PropertyContext: Error fetching properties:', err);
         toast.error('Failed to load properties');
       }
       setLoadingFailed(true);
     } finally {
-      console.log('🏁 v53.0 - PropertyProvider - Resetting loading state');
+      console.log('🏁 v54.0 - PropertyProvider - Resetting loading state');
       // CRITICAL: Only reset loading on first load, keep it false after
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(false);
@@ -143,21 +148,22 @@ export const usePropertyProvider = (): PropertyContextType => {
     };
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
-  // CRITICAL v53.0: Register handler ONCE on mount, independent of session state
+  // CRITICAL v54.0: Register handler ONCE on mount with proper cleanup
   useEffect(() => {
-    console.log('🔄 v53.0 - PropertyProvider - Registering handler (once on mount)');
+    console.log('🔄 v54.0 - PropertyProvider - Registering handler (once on mount)');
 
     const refreshProperties = async () => {
-      console.log('🔄 v53.0 - PropertyProvider - Coordinator-triggered refresh');
+      console.log('🔄 v54.0 - PropertyProvider - Coordinator-triggered refresh');
       await fetchAndSetProperties();
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshProperties);
-    console.log('🔄 v53.0 - PropertyProvider - Handler registered');
+    console.log('🔄 v54.0 - PropertyProvider - Handler registered');
 
     return () => {
+      console.log('🔄 v54.0 - PropertyProvider - Cleanup: Unregistering handler');
       unregister();
-      console.log('🔄 v53.0 - PropertyProvider - Cleanup: Handler unregistered');
+      console.log('🔄 v54.0 - PropertyProvider - Cleanup complete');
     };
   }, [fetchAndSetProperties]);
 
