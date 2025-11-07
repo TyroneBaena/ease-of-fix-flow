@@ -281,7 +281,7 @@ class VisibilityCoordinator {
     }
 
     const watchdogStart = Date.now();
-    console.log(`🐕 Watchdog - Started (${WATCHDOG_TIMEOUT_MS}ms timeout)`);
+    console.log(`🐕 Watchdog - Started (${WATCHDOG_TIMEOUT_MS}ms = ${WATCHDOG_TIMEOUT_MS/1000}s timeout)`);
 
     this.watchdogTimer = setTimeout(() => {
       const elapsed = Date.now() - watchdogStart;
@@ -289,37 +289,74 @@ class VisibilityCoordinator {
       // Check 1: Is coordinator stuck?
       const coordinatorStuck = this.isRefreshing || this.isCoordinating;
       
-      // Check 2: Are React Query queries stuck?
+      // Check 2: Are React Query queries stuck IN ANY NON-IDLE STATE?
       let queriesStuck = false;
       let stuckQueries: any[] = [];
+      let queryDetails: any[] = [];
       
       if (this.queryClient) {
-        const fetchingCount = this.queryClient.isFetching();
         const allQueries = this.queryClient.getQueryCache().getAll();
-        stuckQueries = allQueries.filter(q => q.state.fetchStatus === 'fetching');
-        queriesStuck = fetchingCount > 0 || stuckQueries.length > 0;
+        
+        // Check for queries in ANY non-idle state (fetching, paused, error with ongoing fetch)
+        stuckQueries = allQueries.filter(q => {
+          const isFetching = q.state.fetchStatus === 'fetching';
+          const isPaused = q.state.fetchStatus === 'paused';
+          const isStale = q.isStale();
+          const hasError = !!q.state.error;
+          const dataUpdatedAt = q.state.dataUpdatedAt;
+          const errorUpdatedAt = q.state.errorUpdatedAt;
+          
+          // Stuck if: fetching, paused, or recently errored but stale
+          const stuck = isFetching || isPaused || (hasError && isStale && (Date.now() - errorUpdatedAt < 10000));
+          
+          if (stuck || isFetching || isPaused || hasError) {
+            queryDetails.push({
+              key: q.queryKey,
+              fetchStatus: q.state.fetchStatus,
+              isFetching,
+              isPaused,
+              isStale,
+              hasError,
+              error: q.state.error?.message,
+              dataUpdatedAt: dataUpdatedAt ? Date.now() - dataUpdatedAt : 'never',
+              errorUpdatedAt: errorUpdatedAt ? Date.now() - errorUpdatedAt : 'never'
+            });
+          }
+          
+          return stuck;
+        });
+        
+        queriesStuck = stuckQueries.length > 0;
+      }
+      
+      // ALWAYS log detailed query state at this point
+      console.log("═══════════════════════════════════════════════════");
+      console.log(`🐕 Watchdog - Firing after ${elapsed}ms (${(elapsed/1000).toFixed(1)}s)`);
+      console.log(`   - Coordinator stuck: ${coordinatorStuck}`);
+      console.log(`   - isRefreshing: ${this.isRefreshing}`);
+      console.log(`   - isCoordinating: ${this.isCoordinating}`);
+      console.log(`   - Queries stuck: ${queriesStuck}`);
+      console.log(`   - Total queries: ${this.queryClient?.getQueryCache().getAll().length ?? 0}`);
+      console.log(`   - Fetching count: ${this.queryClient?.isFetching() ?? 0}`);
+      console.log(`   - Stuck query count: ${stuckQueries.length}`);
+      
+      if (queryDetails.length > 0) {
+        console.log(`   - Query details (${queryDetails.length}):`);
+        queryDetails.forEach((q, i) => {
+          console.log(`     ${i + 1}. ${JSON.stringify(q.key)}`);
+          console.log(`        fetchStatus: ${q.fetchStatus}, stale: ${q.isStale}, error: ${q.hasError}`);
+          if (q.hasError) console.log(`        error: ${q.error}`);
+          console.log(`        dataAge: ${q.dataUpdatedAt}ms, errorAge: ${q.errorUpdatedAt}ms`);
+        });
       }
       
       if (coordinatorStuck || queriesStuck) {
+        console.error("🚨 STUCK STATE DETECTED - Triggering soft recovery!");
         console.error("═══════════════════════════════════════════════════");
-        console.error(`🚨 Watchdog - STUCK STATE DETECTED after ${elapsed}ms!`);
-        console.error(`   - Coordinator stuck: ${coordinatorStuck}`);
-        console.error(`   - isRefreshing: ${this.isRefreshing}`);
-        console.error(`   - isCoordinating: ${this.isCoordinating}`);
-        console.error(`   - Queries stuck: ${queriesStuck}`);
-        console.error(`   - Fetching count: ${this.queryClient?.isFetching() ?? 0}`);
-        
-        if (stuckQueries.length > 0) {
-          console.error(`   - Stuck queries (${stuckQueries.length}):`);
-          stuckQueries.forEach((q, i) => {
-            console.error(`     ${i + 1}. ${JSON.stringify(q.queryKey)}`);
-          });
-        }
-        console.error("═══════════════════════════════════════════════════");
-        
         this.softRecovery();
       } else {
-        console.log(`🐕 Watchdog - All clear after ${elapsed}ms (coordinator and queries both idle)`);
+        console.log(`✅ All clear - coordinator idle and no stuck queries`);
+        console.log("═══════════════════════════════════════════════════");
       }
       
       // Self-destruct: Clear timer after check
