@@ -116,11 +116,24 @@ export const useMaintenanceRequestProvider = () => {
     }
   }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
 
+  // CRITICAL v61.0: Direct trigger on isSessionReady change
   useEffect(() => {
-    console.log('🔍 MAINTENANCE PROVIDER v6.0 - useEffect triggered');
-    console.log('🔍 MAINTENANCE PROVIDER v6.0 - Current user ID:', currentUser?.id);
-    console.log('🔍 MAINTENANCE PROVIDER v6.0 - Session ready:', isSessionReady);
-    console.log('🔍 MAINTENANCE PROVIDER v6.0 - Last fetched ID:', lastFetchedUserIdRef.current);
+    if (isSessionReady && currentUser?.id && !isFetchingRef.current) {
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - Session ready trigger, forcing load immediately');
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User ID:', currentUser.id);
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User role:', currentUser.role);
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User org:', currentUser.organization_id);
+      
+      // Force immediate load when session becomes ready
+      loadRequests();
+    }
+  }, [isSessionReady]);
+  
+  useEffect(() => {
+    console.log('🔍 MAINTENANCE PROVIDER v61.0 - useEffect triggered');
+    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Current user ID:', currentUser?.id);
+    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Session ready:', isSessionReady);
+    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Last fetched ID:', lastFetchedUserIdRef.current);
     
     // Clear any pending debounce timers
     if (fetchDebounceTimerRef.current) {
@@ -129,13 +142,13 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Wait for session to be ready
     if (!isSessionReady) {
-      console.log('🔍 MAINTENANCE PROVIDER v6.0 - Waiting for session ready...');
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - Waiting for session ready...');
       return;
     }
     
     // If no user, clear data
     if (!currentUser?.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v6.0 - No current user, clearing requests');
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - No current user, clearing requests');
       setRequests([]);
       setLoading(false);
       lastFetchedUserIdRef.current = null;
@@ -146,11 +159,11 @@ export const useMaintenanceRequestProvider = () => {
     
     // Only load if user ID actually changed
     if (lastFetchedUserIdRef.current === currentUser.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v6.0 - User ID unchanged, skipping refetch');
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User ID unchanged, skipping refetch');
       return;
     }
     
-    console.log('🔍 MAINTENANCE PROVIDER v6.0 - User ID changed, debouncing load');
+    console.log('🔍 MAINTENANCE PROVIDER v61.0 - User ID changed, debouncing load');
     lastFetchedUserIdRef.current = currentUser.id;
     
     // CRITICAL: Debounce rapid tab switches (300ms delay)
