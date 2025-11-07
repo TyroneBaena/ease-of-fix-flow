@@ -898,6 +898,7 @@ import { cleanupOldAuthStorage } from "@/utils/cleanupOldAuthStorage";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import SignupStatus from "@/pages/SignupStatus";
+import ForgotPassword from "@/pages/ForgotPassword";
 import SetupPassword from "@/pages/SetupPassword";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
@@ -992,6 +993,10 @@ const AppRoutes = () => {
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route path="/signup-status" element={<SignupStatus />} />
+        <Route
+          path="/forgot-password"
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+        />
         <Route
           path="/setup-password"
           element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
