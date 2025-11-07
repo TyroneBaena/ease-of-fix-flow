@@ -139,14 +139,27 @@ export const useUserContext = () => {
   };
 };
 
-// Simple user conversion with timeout and better error handling
-const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
-  try {
-    console.log("🔄 UnifiedAuth v12.0 - convertSupabaseUser called for:", supabaseUser.email);
+// Deduplication flag to prevent multiple simultaneous conversions
+let isConverting = false;
+let conversionPromise: Promise<User> | null = null;
 
-    // CRITICAL FIX: Add AbortSignal with aggressive timeout to prevent hanging
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 8000); // 8 second timeout
+// Simple user conversion with timeout and deduplication
+const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
+  // CRITICAL: Prevent duplicate conversions
+  if (isConverting && conversionPromise) {
+    console.log("🔄 UnifiedAuth v50.0 - Deduplicating convertSupabaseUser call");
+    return conversionPromise;
+  }
+
+  isConverting = true;
+  
+  conversionPromise = (async () => {
+    try {
+      console.log("🔄 UnifiedAuth v50.0 - convertSupabaseUser called for:", supabaseUser.email);
+
+      // CRITICAL FIX: Add AbortSignal with aggressive timeout to prevent hanging
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 8000); // 8 second timeout
 
     try {
       const { data: profile, error: profileError } = await supabase
@@ -159,10 +172,10 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       clearTimeout(timeoutId);
 
       if (profileError) {
-        console.warn("🔄 UnifiedAuth v12.0 - Profile query error:", profileError.message);
+        console.warn("🔄 UnifiedAuth v50.0 - Profile query error:", profileError.message);
       }
 
-      console.log("🔄 UnifiedAuth v12.0 - Profile query completed:", {
+      console.log("🔄 UnifiedAuth v50.0 - Profile query completed:", {
         hasProfile: !!profile,
         hasOrganization: !!profile?.organization_id,
         error: profileError?.message,
@@ -180,7 +193,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
         session_organization_id: profile?.session_organization_id || null,
       };
 
-      console.log("🔄 UnifiedAuth v12.0 - User converted successfully:", {
+      console.log("🔄 UnifiedAuth v50.0 - User converted successfully:", {
         id: user.id,
         email: user.email,
         name: user.name,
@@ -195,9 +208,9 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       clearTimeout(timeoutId);
 
       if (queryError.name === "AbortError") {
-        console.warn("🔄 UnifiedAuth v12.0 - Profile query timed out, using fallback");
+        console.warn("🔄 UnifiedAuth v50.0 - Profile query timed out, using fallback");
       } else {
-        console.error("🔄 UnifiedAuth v12.0 - Profile query failed:", queryError);
+        console.error("🔄 UnifiedAuth v50.0 - Profile query failed:", queryError);
       }
 
       // Return basic user on timeout/error
@@ -213,7 +226,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       };
     }
   } catch (error) {
-    console.error("🔄 UnifiedAuth v12.0 - Error converting user:", error);
+    console.error("🔄 UnifiedAuth v50.0 - Error converting user:", error);
     // Return basic user on error
     const fallbackUser = {
       id: supabaseUser.id,
@@ -226,9 +239,15 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
       session_organization_id: null,
     };
 
-    console.log("🔄 UnifiedAuth v12.0 - Returning fallback user:", fallbackUser);
+    console.log("🔄 UnifiedAuth v50.0 - Returning fallback user:", fallbackUser);
     return fallbackUser;
+  } finally {
+    isConverting = false;
+    conversionPromise = null;
   }
+})();
+
+  return conversionPromise;
 };
 
 export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -734,172 +753,77 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     ]);
   };
 
-  // Register auth refresh with visibility coordinator - with cleanup to prevent duplicates
-  // v37.2: Use refresh_token for recovery (30+ day lifetime vs 1hr access_token)
+  // Register auth refresh with visibility coordinator
+  // v50.0: REMOVED duplicate convertSupabaseUser() call - let onAuthStateChange handle it
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log("🔄 UnifiedAuth v37.2 - Coordinator-triggered session restoration START");
-      const startTime = Date.now();
-
+      console.log("🔄 UnifiedAuth v50.0 - Verifying session after tab revisit");
+      
+      // Simply verify session exists - onAuthStateChange will handle user conversion
       try {
-        // Step 1: Check Supabase client session with aggressive timeout
-        console.log("📡 Step 1: Checking Supabase client session...");
-
-        let clientSession = null;
-        try {
-          const result = await withTimeout(
-            supabase.auth.getSession(),
-            4000, // Reduced to 4s
-            "getSession timeout",
-          );
-          clientSession = result.data?.session;
-        } catch (timeoutError) {
-          console.warn("⚠️ UnifiedAuth v37.1 - getSession timed out, proceeding to backup");
-        }
-
-        // Step 2: If no session, let App.tsx rehydration handle it
-        if (!clientSession?.access_token) {
-          console.log("📦 Step 2: No client session - relying on App.tsx HttpOnly rehydration");
+        const { data: { session: clientSession } } = await supabase.auth.getSession();
+        
+        if (clientSession?.access_token) {
+          console.log("✅ UnifiedAuth v50.0 - Session verified, waiting for auth state listener");
+          return true;
+        } else {
+          console.warn("⚠️ UnifiedAuth v50.0 - No session found");
           setIsSessionReady(false);
           return false;
         }
-
-        // Step 3: Validate session is not expired
-        if (clientSession?.access_token) {
-          const expiresAt = clientSession.expires_at ? clientSession.expires_at * 1000 : 0;
-          const isExpired = expiresAt > 0 && Date.now() >= expiresAt;
-
-          if (isExpired) {
-            console.warn("⚠️ UnifiedAuth v37.1 - Session expired, attempting refresh...");
-
-            try {
-              const {
-                data: { session: refreshedSession },
-                error: refreshError,
-              } = await withTimeout(
-                supabase.auth.refreshSession(),
-                6000, // 6s for refresh
-                "refreshSession timeout",
-              );
-
-              if (!refreshError && refreshedSession?.access_token) {
-                console.log("✅ UnifiedAuth v37.1 - Token refreshed successfully");
-                clientSession = refreshedSession;
-
-                // Backup the refreshed session
-                // import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
-                //   forceSessionBackup(refreshedSession);
-                // });
-              } else {
-                console.error("❌ UnifiedAuth v37.1 - Token refresh failed");
-                setIsSessionReady(false);
-                return false;
-              }
-            } catch (refreshError) {
-              console.error("❌ UnifiedAuth v37.1 - Refresh error:", refreshError);
-              setIsSessionReady(false);
-              return false;
-            }
-          }
-        }
-
-        // Step 4: Convert user and update state
-        if (clientSession?.access_token && clientSession.user) {
-          console.log("✅ UnifiedAuth v37.1 - Valid session confirmed, converting user...");
-
-          try {
-            const convertedUser = await withTimeout(
-              convertSupabaseUser(clientSession.user),
-              8000, // Increased to 8s (profile query has 5s timeout + buffer)
-              "User conversion timeout",
-            );
-
-            if (convertedUser) {
-              // Update refs and state
-              sessionRef.current = clientSession;
-              currentUserRef.current = convertedUser;
-              setSession(clientSession);
-              setCurrentUser(convertedUser);
-              setIsSessionReady(true);
-
-              // Backup session asynchronously
-              // import('@/integrations/supabase/client').then(({ forceSessionBackup }) => {
-              //   forceSessionBackup(clientSession);
-              // });
-
-              const duration = Date.now() - startTime;
-              console.log(`✅ UnifiedAuth v37.1 - Restoration complete in ${duration}ms`);
-              return true;
-            }
-          } catch (conversionError) {
-            console.error("❌ UnifiedAuth v37.1 - User conversion failed:", conversionError);
-            setIsSessionReady(false);
-            return false;
-          }
-        }
-
-        console.error("❌ UnifiedAuth v37.1 - All restoration paths exhausted");
-        setIsSessionReady(false);
-        return false;
       } catch (error) {
-        const duration = Date.now() - startTime;
-        console.error(
-          `❌ UnifiedAuth v37.1 - Critical error after ${duration}ms:`,
-          error instanceof Error ? error.message : error,
-        );
+        console.error("❌ UnifiedAuth v50.0 - Session verification failed:", error);
         setIsSessionReady(false);
         return false;
       }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log("🔄 UnifiedAuth v37.1 - Registered with visibility coordinator");
+    console.log("🔄 UnifiedAuth v50.0 - Registered session verifier with coordinator");
 
     return () => {
       unregister();
-      console.log("🔄 UnifiedAuth v37.1 - Cleanup: Unregistered from visibility coordinator");
+      console.log("🔄 UnifiedAuth v50.0 - Cleanup: Unregistered from coordinator");
     };
-  }, []); // CRITICAL: Empty deps to register only once, use refs for state access
+  }, []);
 
   useEffect(() => {
-    console.log("🚀 UnifiedAuth v17.0 - Starting auth initialization at:", new Date().toISOString());
+    console.log("🚀 UnifiedAuth v50.0 - Starting auth initialization at:", new Date().toISOString());
     const startTime = performance.now();
-    console.log("🚀 UnifiedAuth v17.0 - Setting up SINGLE auth listener with coordinator", { authDebugMarker });
+    console.log("🚀 UnifiedAuth v50.0 - Setting up SINGLE auth listener", { authDebugMarker });
 
-    // Set up ONE auth state listener
+    // Set up ONE auth state listener - this is the ONLY place that calls convertSupabaseUser
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🚀 UnifiedAuth v17.0 - Auth state changed:", event, "Session exists:", !!session);
+      console.log("🚀 UnifiedAuth v50.0 - Auth state changed:", event, "Session exists:", !!session);
 
       if (event === "SIGNED_IN" && session?.user) {
-        console.log("🚀 UnifiedAuth v17.0 - SIGNED_IN event, user email:", session.user.email);
+        console.log("🚀 UnifiedAuth v50.0 - SIGNED_IN event, user email:", session.user.email);
 
         // Set session immediately (non-async)
         setSession(session);
-        console.log("🚀 UnifiedAuth v17.0 - Session set, starting user conversion...");
-
-        // Coordinator will handle refresh timing
+        console.log("🚀 UnifiedAuth v50.0 - Session set, starting user conversion...");
 
         // CRITICAL FIX: Use setTimeout to defer async Supabase calls to prevent deadlocks
         // This is the official Supabase recommendation to avoid auth callback deadlocks
         setTimeout(async () => {
           try {
-            console.log("🚀 UnifiedAuth v30.0 - Starting deferred user conversion...");
+            console.log("🚀 UnifiedAuth v50.0 - Starting deferred user conversion...");
             const user = await convertSupabaseUser(session.user);
-            console.log("🚀 UnifiedAuth v30.0 - User converted:", user.email, "org_id:", user.organization_id);
+            console.log("🚀 UnifiedAuth v50.0 - User converted:", user.email, "org_id:", user.organization_id);
 
             // CRITICAL: Set user first so components can start rendering
             setCurrentUser(user);
-            console.log("🚀 UnifiedAuth v30.0 - User set, marking auth as loaded");
+            console.log("🚀 UnifiedAuth v50.0 - User set, marking auth as loaded");
 
             // Mark loading as false FIRST so UI can start rendering
             setLoading(false);
 
-            // CRITICAL FIX v40.0: Set session ready IMMEDIATELY after successful conversion
+            // CRITICAL FIX v50.0: Set session ready IMMEDIATELY after successful conversion
             // No delay needed - session is already in Supabase client from setSession() call
             setIsSessionReady(true);
-            console.log("✅ UnifiedAuth v40.0 - Session ready immediately after SIGNED_IN");
+            console.log("✅ UnifiedAuth v50.0 - Session ready immediately after SIGNED_IN");
 
             // Set Sentry user context
             setSentryUser({
@@ -911,10 +835,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
             // Fetch organizations in background WITHOUT blocking UI
             fetchUserOrganizations(user).catch((orgError) => {
-              console.warn("🚀 UnifiedAuth v30.0 - Non-critical org fetch error:", orgError);
+              console.warn("🚀 UnifiedAuth v50.0 - Non-critical org fetch error:", orgError);
             });
           } catch (error) {
-            console.error("🚀 UnifiedAuth v30.0 - Error in deferred user conversion:", error);
+            console.error("🚀 UnifiedAuth v50.0 - Error in deferred user conversion:", error);
             setCurrentUser(null);
             setSession(null);
             setIsSessionReady(false);
@@ -925,7 +849,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }, 0);
       } else if (event === "SIGNED_OUT") {
-        console.log("🚀 UnifiedAuth v30.0 - SIGNED_OUT event");
+        console.log("🚀 UnifiedAuth v50.0 - SIGNED_OUT event");
         setLoading(false);
         setCurrentUser(null);
         setSession(null);
@@ -938,14 +862,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setSentryUser(null);
       } else if (event === "TOKEN_REFRESHED" && session) {
         console.log(
-          "🚀 UnifiedAuth v13.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally",
+          "🚀 UnifiedAuth v50.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally",
         );
         // CRITICAL FIX: Do NOT update session state on TOKEN_REFRESHED
         // Supabase client handles token refresh internally and maintains the real session
         // Updating our state snapshot here causes unnecessary re-renders and loading flashes
         // Our session state is just a reference - Supabase keeps it valid automatically
       } else if (event === "USER_UPDATED" && session?.user) {
-        console.log("🚀 UnifiedAuth v12.0 - USER_UPDATED event");
+        console.log("🚀 UnifiedAuth v50.0 - USER_UPDATED event");
         // Use setTimeout for USER_UPDATED as well
         setTimeout(async () => {
           try {

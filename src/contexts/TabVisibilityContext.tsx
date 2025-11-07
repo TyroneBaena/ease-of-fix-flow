@@ -2,11 +2,11 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v49.0 - Fixed Client Instance Session Restoration
+ * v50.0 - Eliminated Duplicate Database Queries
  * 
  * Provides access to visibility coordinator singleton.
- * Now restores sessions on the app's singleton client.
- * Simple, reliable, race-free logic.
+ * Restores sessions on the app's singleton client without duplicate queries.
+ * Auth state listener handles user conversion, coordinator only verifies.
  */
 
 interface TabVisibilityContextType {
@@ -29,11 +29,11 @@ interface TabVisibilityProviderProps {
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
   useEffect(() => {
-    console.log('🔄 v49.0 - Starting visibility coordinator');
+    console.log('🔄 v50.0 - Starting visibility coordinator');
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v49.0 - Stopping visibility coordinator');
+      console.log('🔄 v50.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);
