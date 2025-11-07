@@ -1,20 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
-  // CRITICAL: When credentials=true, MUST return exact origin (not wildcard)
-  const isAllowedOrigin = origin && (
-    origin.includes('lovableproject.com') || 
-    origin.includes('lovable.app') ||
-    origin.includes('localhost')
-  );
-  
-  if (!isAllowedOrigin) {
-    // Don't set CORS headers for disallowed origins - let browser handle it
-    return {};
-  }
-  
   return {
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': origin || 'https://preview--housinghub.lovable.app',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
@@ -91,11 +79,9 @@ Deno.serve(async (req) => {
     };
 
     const cookieValue = btoa(JSON.stringify(sessionData));
-    // CRITICAL v58.0: Don't set Domain attribute - let browser use current domain
-    // This makes cookies work for both lovableproject.com and lovable.app
     const cookieHeader = `sb-auth-session=${cookieValue}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${COOKIE_OPTIONS.maxAge}`;
 
-    console.log('🍪 Setting HttpOnly cookie for current domain (no explicit Domain)');
+    console.log('🍪 Setting HttpOnly cookie');
 
     return new Response(
       JSON.stringify({

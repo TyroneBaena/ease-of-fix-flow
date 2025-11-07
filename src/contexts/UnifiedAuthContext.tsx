@@ -259,17 +259,23 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
   const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
   
-  // v56.0: REMOVED - TabVisibilityContext now handles session ready callback to avoid collision
-  // Only register error handler for session failures
+  // v46.0: Register isSessionReady callback with coordinator
+  const isSessionReadyRef = useRef(isSessionReady);
+  
   useEffect(() => {
-    console.log('🔧 v56.0 - Registering error handler (session ready callback handled by TabVisibilityContext)');
+    isSessionReadyRef.current = isSessionReady;
+  }, [isSessionReady]);
+  
+  useEffect(() => {
+    console.log('🔧 v48.0 - Registering session ready callback');
+    visibilityCoordinator.setSessionReadyCallback(() => isSessionReadyRef.current);
     
-    // v56.0: Register error handler for session failures
+    // v48.0: Register error handler for session failures
     const unsubscribe = visibilityCoordinator.onError((error) => {
-      console.error('🚨 v56.0 - Session error received:', error);
+      console.error('🚨 v48.0 - Session error received:', error);
       
       if (error === 'SESSION_EXPIRED') {
-        console.log('🔐 v56.0 - Clearing state and redirecting to login');
+        console.log('🔐 v48.0 - Clearing state and redirecting to login');
         setCurrentUser(null);
         setSession(null);
         setIsSessionReady(false);

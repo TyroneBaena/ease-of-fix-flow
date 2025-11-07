@@ -22,20 +22,12 @@ export const usePropertyProvider = (): PropertyContextType => {
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
 
-  // CRITICAL v55.0: Use refs to access CURRENT auth state (not stale closure)
-  const authStateRef = useRef({ isSessionReady, currentUser });
-  
-  // Update ref whenever auth state changes
-  useEffect(() => {
-    authStateRef.current = { isSessionReady, currentUser };
-  }, [isSessionReady, currentUser]);
-
-  // CRITICAL v55.0: Stable callback that accesses current values via ref
+  // CRITICAL v54.0: Stabilize callback with proper user and session checks
   const fetchAndSetProperties = useCallback(async () => {
-    const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
-    const userId = user?.id;
+    const sessionReady = isSessionReady; // Capture current value
+    const userId = currentUser?.id; // Capture current user ID
     
-    console.log('v55.0 - PropertyProvider: fetchAndSetProperties called', { 
+    console.log('v54.0 - PropertyProvider: fetchAndSetProperties called', { 
       sessionReady, 
       hasUser: !!userId,
       userId 
@@ -43,22 +35,23 @@ export const usePropertyProvider = (): PropertyContextType => {
     
     // CRITICAL: Wait for BOTH session ready AND user available
     if (!sessionReady) {
-      console.log('v55.0 - PropertyProvider: Waiting for session ready...');
+      console.log('v54.0 - PropertyProvider: Waiting for session ready...');
       return;
     }
     
     if (!userId) {
-      console.log('v55.0 - PropertyProvider: No current user, skipping fetch');
+      console.log('v54.0 - PropertyProvider: No current user, skipping fetch');
       return;
     }
     
     // CRITICAL: Prevent concurrent fetches
     if (isFetchingRef.current) {
-      console.log('v55.0 - PropertyProvider: Fetch already in progress, skipping');
+      console.log('v52.0 - PropertyProvider: Fetch already in progress, skipping');
       return;
     }
     
-    // CRITICAL FIX: 60-second timeout for RLS queries
+    // CRITICAL FIX: 60-second timeout for RLS queries that call get_current_user_organization_safe()
+    // This function does up to 3 DB queries (profiles table x2 + user_organizations)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -72,13 +65,13 @@ export const usePropertyProvider = (): PropertyContextType => {
       }
       setLoadingFailed(false);
       isFetchingRef.current = true;
-      console.log('v55.0 - PropertyContext: Fetching properties for user:', userId);
+      console.log('v54.0 - PropertyContext: Fetching properties for user:', userId);
       
       const formattedProperties = await fetchProperties(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('✅ v55.0 - PropertyContext: Properties fetched successfully');
-      console.log('v55.0 - PropertyContext: Number of properties:', formattedProperties.length);
+      console.log('✅ v54.0 - PropertyContext: Properties fetched successfully');
+      console.log('v54.0 - PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
       lastFetchTimeRef.current = Date.now();
     } catch (err) {
@@ -88,12 +81,12 @@ export const usePropertyProvider = (): PropertyContextType => {
         console.warn('❌ Properties fetch aborted due to timeout');
         toast.error('Loading properties timed out. Please refresh.');
       } else {
-        console.error('❌ v55.0 - PropertyContext: Error fetching properties:', err);
+        console.error('❌ v54.0 - PropertyContext: Error fetching properties:', err);
         toast.error('Failed to load properties');
       }
       setLoadingFailed(true);
     } finally {
-      console.log('🏁 v55.0 - PropertyProvider - Resetting loading state');
+      console.log('🏁 v54.0 - PropertyProvider - Resetting loading state');
       // CRITICAL: Only reset loading on first load, keep it false after
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(false);
@@ -101,7 +94,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
+  }, []); // CRITICAL: Removed isSessionReady from deps - now stable
 
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
@@ -155,22 +148,22 @@ export const usePropertyProvider = (): PropertyContextType => {
     };
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
-  // CRITICAL v55.0: Register handler ONCE on mount with proper cleanup
+  // CRITICAL v54.0: Register handler ONCE on mount with proper cleanup
   useEffect(() => {
-    console.log('🔄 v55.0 - PropertyProvider - Registering handler (once on mount)');
+    console.log('🔄 v54.0 - PropertyProvider - Registering handler (once on mount)');
 
     const refreshProperties = async () => {
-      console.log('🔄 v55.0 - PropertyProvider - Coordinator-triggered refresh');
+      console.log('🔄 v54.0 - PropertyProvider - Coordinator-triggered refresh');
       await fetchAndSetProperties();
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshProperties);
-    console.log('🔄 v55.0 - PropertyProvider - Handler registered');
+    console.log('🔄 v54.0 - PropertyProvider - Handler registered');
 
     return () => {
-      console.log('🔄 v55.0 - PropertyProvider - Cleanup: Unregistering handler');
+      console.log('🔄 v54.0 - PropertyProvider - Cleanup: Unregistering handler');
       unregister();
-      console.log('🔄 v55.0 - PropertyProvider - Cleanup complete');
+      console.log('🔄 v54.0 - PropertyProvider - Cleanup complete');
     };
   }, [fetchAndSetProperties]);
 
