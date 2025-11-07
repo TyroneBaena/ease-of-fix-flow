@@ -25,8 +25,14 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
 
       // Different filtering logic based on user role
       if (currentUser.role === 'admin') {
-        console.log('🔍 ADMIN DEBUG - Admin user detected! Fetching ALL requests without filtering');
-        // Admins see all requests in their organization (RLS handles organization filtering)
+        console.log('🔍 ADMIN DEBUG - Admin user detected! Filtering by organization_id:', currentUser.organization_id);
+        // Admins see all requests in their organization
+        if (currentUser.organization_id) {
+          query = query.eq('organization_id', currentUser.organization_id);
+        } else {
+          console.warn('🔍 ADMIN DEBUG - No organization_id found for admin, falling back to user_id filter');
+          query = query.eq('user_id', currentUser.id);
+        }
       } else if (currentUser.role === 'manager') {
         console.log('🔍 ADMIN DEBUG - Manager user detected! Filtering by assigned properties');
         // Managers see requests for properties they're assigned to
