@@ -116,19 +116,6 @@ export const useMaintenanceRequestProvider = () => {
     }
   }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
 
-  // CRITICAL v61.0: Direct trigger on isSessionReady change
-  useEffect(() => {
-    if (isSessionReady && currentUser?.id && !isFetchingRef.current) {
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - Session ready trigger, forcing load immediately');
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User ID:', currentUser.id);
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User role:', currentUser.role);
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User org:', currentUser.organization_id);
-      
-      // Force immediate load when session becomes ready
-      loadRequests();
-    }
-  }, [isSessionReady]);
-  
   useEffect(() => {
     console.log('🔍 MAINTENANCE PROVIDER v61.0 - useEffect triggered');
     console.log('🔍 MAINTENANCE PROVIDER v61.0 - Current user ID:', currentUser?.id);
@@ -157,19 +144,21 @@ export const useMaintenanceRequestProvider = () => {
       return;
     }
     
-    // Only load if user ID actually changed
-    if (lastFetchedUserIdRef.current === currentUser.id) {
-      console.log('🔍 MAINTENANCE PROVIDER v61.0 - User ID unchanged, skipping refetch');
-      return;
-    }
-    
-    console.log('🔍 MAINTENANCE PROVIDER v61.0 - User ID changed, debouncing load');
+    // CRITICAL v61.0: ALWAYS load on session ready, even if user ID hasn't changed
+    // This fixes the 0 requests issue on initial login
+    console.log('🔍 MAINTENANCE PROVIDER v61.0 - Session ready + user present, loading immediately');
     lastFetchedUserIdRef.current = currentUser.id;
     
-    // CRITICAL: Debounce rapid tab switches (300ms delay)
-    fetchDebounceTimerRef.current = setTimeout(() => {
+    // No debounce on initial load - execute immediately
+    if (!hasCompletedInitialLoadRef.current) {
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - First load, executing immediately');
       loadRequests();
-    }, 300);
+    } else {
+      console.log('🔍 MAINTENANCE PROVIDER v61.0 - Subsequent load, debouncing');
+      fetchDebounceTimerRef.current = setTimeout(() => {
+        loadRequests();
+      }, 300);
+    }
     
     // Set up real-time subscription for maintenance requests
     console.log('🔌 REAL-TIME: Setting up maintenance_requests subscription');
