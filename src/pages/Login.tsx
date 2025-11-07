@@ -149,7 +149,7 @@ const Login = () => {
       }
 
       if (user) {
-        console.log("🚀 Login - Sign in successful, waiting for auth context to handle redirection");
+        console.log("🚀 Login - Sign in successful, redirecting immediately");
 
         // Clear any password reset flags on successful login
         sessionStorage.removeItem('password_reset_pending');
@@ -171,7 +171,31 @@ const Login = () => {
         });
         console.log("🔐 [Login] Finished logging SUCCESSFUL login attempt");
 
-        // The useEffect above will handle redirection once currentUser is set
+        // Determine redirect path
+        const state = location.state as any;
+        const invitationCode = state?.invitationCode;
+
+        let redirectPath;
+        if (invitationCode) {
+          redirectPath = "/signup";
+          console.log(`🚀 Login - Redirecting to signup with invitation code`);
+          navigate(redirectPath, {
+            replace: true,
+            state: { invitationCode, returnFromLogin: true },
+          });
+        } else if (redirectTo && propertyId) {
+          redirectPath = `${redirectTo}?propertyId=${propertyId}`;
+          console.log(`🚀 Login - Redirecting to QR code flow: ${redirectPath}`);
+          navigate(redirectPath, { replace: true });
+        } else if (redirectTo) {
+          redirectPath = redirectTo;
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
+          navigate(redirectPath, { replace: true });
+        } else {
+          redirectPath = getRedirectPathByRole(user.role);
+          console.log(`🚀 Login - Redirecting to role-based path: ${redirectPath}`);
+          navigate(redirectPath, { replace: true });
+        }
       } else {
         setError("Login failed - no user returned");
         setIsLoading(false);
