@@ -1,12 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
-  // Allow all Lovable preview domains and lovable.app domains
-  const allowedOrigin = origin && (
+  // CRITICAL: When credentials=true, origin CANNOT be '*'
+  // Only allow specific Lovable domains
+  const isAllowedOrigin = origin && (
     origin.includes('lovableproject.com') || 
     origin.includes('lovable.app') ||
     origin.includes('localhost')
-  ) ? origin : '*';
+  );
+  
+  // If not allowed origin, return restrictive CORS (will fail, as intended)
+  const allowedOrigin = isAllowedOrigin ? origin : 'https://lovableproject.com';
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,

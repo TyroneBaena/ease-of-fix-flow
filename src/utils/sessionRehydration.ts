@@ -1,5 +1,5 @@
 /**
- * Session Rehydration Utility v56.0 - Enhanced Logging
+ * Session Rehydration Utility v58.0 - Cookie Domain Fix & Less Aggressive Detection
  * 
  * CHANGES IN v56.0:
  * - Added granular logging at each step for debugging
@@ -28,25 +28,23 @@ const SESSION_ENDPOINT = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/ses
 export async function rehydrateSessionFromServer(): Promise<boolean> {
   const startTime = Date.now();
   console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
-  console.log("%c🔄 v57.0 - Starting session restoration with enhanced cookie handling", "color: cyan; font-weight: bold");
+  console.log("%c🔄 v58.0 - Starting session restoration (less aggressive)", "color: cyan; font-weight: bold");
   console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
 
   try {
-    // STEP 1: Check if we have any cookies at all
-    console.log("🍪 v57.0 - Checking for auth cookies...");
+    // v58.0: Check cookies but don't fail immediately - let backend try
+    console.log("🍪 v58.0 - Checking for auth cookies...");
     const allCookies = document.cookie;
     const hasAuthCookie = allCookies.includes('sb-auth-session');
-    console.log("🍪 v57.0 - Has sb-auth-session cookie:", hasAuthCookie);
-    console.log("🍪 v57.0 - Total cookies length:", allCookies.length);
+    console.log("🍪 v58.0 - Has sb-auth-session cookie:", hasAuthCookie);
     
-    if (!hasAuthCookie && allCookies.length < 10) {
-      console.warn("⚠️ v57.0 - No auth cookie found, session likely expired");
-      return false;
+    if (!hasAuthCookie) {
+      console.warn("⚠️ v58.0 - No cookie found locally, will try backend anyway (might be HttpOnly)");
     }
     
-    // STEP 2: Fetch session from backend with retry
-    console.log("📡 v57.0 - Fetching session from backend endpoint...");
-    console.log("📡 v57.0 - Endpoint:", SESSION_ENDPOINT);
+    // STEP 1: Fetch session from backend
+    console.log("📡 v58.0 - Fetching session from backend endpoint...");
+    console.log("📡 v58.0 - Endpoint:", SESSION_ENDPOINT);
     
     const fetchStart = Date.now();
     const response = await fetch(SESSION_ENDPOINT, {
@@ -59,39 +57,36 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     });
     const fetchDuration = Date.now() - fetchStart;
 
-    console.log(`📡 v57.0 - Backend response received in ${fetchDuration}ms`);
-    console.log(`📡 v57.0 - Status: ${response.status} ${response.statusText}`);
+    console.log(`📡 v58.0 - Backend response received in ${fetchDuration}ms`);
+    console.log(`📡 v58.0 - Status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
-      console.error(`❌ v57.0 - Session endpoint returned error ${response.status}`);
+      console.error(`❌ v58.0 - Session endpoint returned error ${response.status}`);
       return false;
     }
 
     const data = await response.json();
-    console.log("📡 v57.0 - Response data keys:", Object.keys(data));
+    console.log("📡 v58.0 - Response data keys:", Object.keys(data));
     
     const session = data?.session || data?.data?.session || data?.data;
 
-    // STEP 3: Validate session - CRITICAL early exit if null
-    console.log("🔍 v57.0 - Validating session data...");
+    // STEP 2: Validate session
+    console.log("🔍 v58.0 - Validating session data...");
     
     if (!session || session === null) {
-      console.error("❌ v57.0 - Session is explicitly NULL - cookies not sent or expired");
-      console.error("❌ v57.0 - This means authentication has completely failed");
+      console.warn("⚠️ v58.0 - Session is NULL - will retry on next visit");
       return false;
     }
     
     if (!session?.access_token || !session?.refresh_token) {
-      console.warn("⚠️ v57.0 - Invalid session structure (missing tokens)");
-      console.warn("⚠️ v57.0 - Has access_token:", !!session?.access_token);
-      console.warn("⚠️ v57.0 - Has refresh_token:", !!session?.refresh_token);
+      console.warn("⚠️ v58.0 - Invalid session structure (missing tokens)");
       return false;
     }
 
-    console.log(`✅ v56.0 - Session validated for user: ${session.user?.email}`);
-    console.log(`✅ v56.0 - Session expires at: ${session.expires_at}`);
+    console.log(`✅ v58.0 - Session validated for user: ${session.user?.email}`);
+    console.log(`✅ v58.0 - Session expires at: ${session.expires_at}`);
 
-    // STEP 3: Set session on app's singleton client WITHOUT timeout
+    // STEP 3: Set session on app's singleton client
     console.log("🔐 v56.0 - Setting session on Supabase client...");
     
     const setSessionStart = Date.now();
@@ -101,27 +96,24 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     });
     const setSessionDuration = Date.now() - setSessionStart;
 
-    console.log(`🔐 v56.0 - setSession() completed in ${setSessionDuration}ms`);
+    console.log(`🔐 v58.0 - setSession() completed in ${setSessionDuration}ms`);
 
     if (result.error) {
-      console.error("❌ v56.0 - Failed to set session:", result.error.message);
-      console.error("❌ v56.0 - Error details:", result.error);
+      console.error("❌ v58.0 - Failed to set session:", result.error.message);
       return false;
     }
 
-    console.log("✅ v56.0 - Session set successfully");
-    console.log("✅ v56.0 - Auth listener will complete user conversion asynchronously");
+    console.log("✅ v58.0 - Session set successfully");
 
     const totalDuration = Date.now() - startTime;
     console.log("%c═══════════════════════════════════════════════════", "color: lime; font-weight: bold");
-    console.log(`%c✅ v56.0 - Session restored in ${totalDuration}ms`, "color: lime; font-weight: bold");
+    console.log(`%c✅ v58.0 - Session restored in ${totalDuration}ms`, "color: lime; font-weight: bold");
     console.log("%c═══════════════════════════════════════════════════", "color: lime; font-weight: bold");
     return true;
 
   } catch (error) {
     const totalDuration = Date.now() - startTime;
-    console.error(`❌ v56.0 - Session restoration failed after ${totalDuration}ms:`, error);
-    console.error("❌ v56.0 - Error details:", error);
+    console.error(`❌ v58.0 - Session restoration failed after ${totalDuration}ms:`, error);
     return false;
   }
 }
