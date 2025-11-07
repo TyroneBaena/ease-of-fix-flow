@@ -287,13 +287,36 @@ class VisibilityCoordinator {
 
   /**
    * v68.0 - Stop watchdog timer (normal completion)
+   * BUT: Keep monitoring for 15s more to catch stuck queries
    */
   private stopWatchdog() {
     if (this.watchdogTimer) {
       clearTimeout(this.watchdogTimer);
       this.watchdogTimer = null;
-      console.log("🐕 Watchdog - Stopped (normal completion)");
     }
+
+    if (!ENABLE_AUTO_RECOVERY || !this.queryClient) return;
+
+    // Extended monitoring: Check if queries are STILL loading 15s after coordination
+    console.log("🐕 Watchdog - Coordination complete, monitoring queries for 15s...");
+    
+    setTimeout(() => {
+      if (!this.queryClient) return;
+
+      const isFetching = this.queryClient.isFetching();
+      const queries = this.queryClient.getQueryCache().getAll();
+      const stuckQueries = queries.filter(q => q.state.fetchStatus === 'fetching');
+
+      if (isFetching > 0 || stuckQueries.length > 0) {
+        console.error(`🚨 Watchdog - DETECTED ${stuckQueries.length} stuck queries after coordination!`);
+        stuckQueries.forEach(q => {
+          console.error(`   - Stuck: ${JSON.stringify(q.queryKey)}`);
+        });
+        this.softRecovery();
+      } else {
+        console.log("🐕 Watchdog - All clear, no stuck queries detected");
+      }
+    }, 15000); // 15 second grace period after coordination
   }
 
   /**
