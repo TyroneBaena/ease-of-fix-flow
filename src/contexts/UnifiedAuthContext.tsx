@@ -10,6 +10,17 @@ import { visibilityCoordinator } from "@/utils/visibilityCoordinator";
 
 console.log("🚀 UnifiedAuth Context loading with debug marker:", authDebugMarker);
 
+// Helper: Wrap any promise with a timeout to prevent indefinite hangs
+// Used to protect PATH 2 (getSession fallback) from network hangs after multiple tab revisits
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
+    ),
+  ]);
+}
+
 // Import the full AddUserResult interface
 export interface AddUserResult {
   success: boolean;
@@ -782,8 +793,16 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.warn("⚠️ v66.0 - PATH 1 FAILED:", result.reason || 'unknown');
         console.log("📍 v66.0 - PATH 2: Attempting supabase.auth.getSession() fallback...");
         
-        // PATH 2: Fallback to supabase.auth.getSession()
-        const { data: { session: fallbackSession }, error: fallbackError } = await supabase.auth.getSession();
+        // PATH 2: Fallback to supabase.auth.getSession() with 10s timeout protection
+        // Critical: This internal network call can hang indefinitely after 2-3 tab revisits
+        const { data: { session: fallbackSession }, error: fallbackError } = await withTimeout(
+          supabase.auth.getSession(),
+          10000, // 10 second timeout (fits within 18s handler budget)
+          "PATH 2 (getSession) timed out after 10s"
+        ).catch((timeoutError) => {
+          console.error("❌ v66.0 - PATH 2 TIMEOUT:", timeoutError.message);
+          return { data: { session: null }, error: timeoutError };
+        });
         
         if (fallbackError) {
           console.error("❌ v66.0 - PATH 2 ERROR:", fallbackError.message);
