@@ -233,16 +233,23 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     }
 
     const sessionData = await sessionResponse.json();
-    const user = sessionData?.user || null;
+    const session = sessionData?.session;
+    const user = session?.user || null;
 
-    if (!user) {
+    if (!user || !session) {
       toast.error("Unable to fetch user from session");
       return { user: null, error: { message: "No user returned from session" } };
     }
 
-    // 🔹 3. Force Supabase client to reload session
+    // 🔹 3. Rehydrate Supabase client with session tokens
     const supabase = getSupabaseClient();
-    await supabase.auth.getSession();
+    if (session.access_token && session.refresh_token) {
+      await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+      console.log("✅ Supabase client session rehydrated");
+    }
 
     console.log("✅ Session rehydrated for:", user.email);
     toast.success("Signed in successfully!");
