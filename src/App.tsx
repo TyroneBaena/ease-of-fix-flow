@@ -1031,9 +1031,9 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
-  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v41.2
+  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v42.0
   useEffect(() => {
-    console.log("🔧 App.tsx v41.2 - Initial load rehydration");
+    console.log("🔧 App.tsx v42.0 - Initial load rehydration");
     // Clean up old v37 storage first
     cleanupOldAuthStorage();
     // Then rehydrate from HttpOnly cookies ONCE on initial load

@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
-import { useSimpleAuth } from './UnifiedAuthContext';
+
+/**
+ * v42.0 - Fixed Dependency Inversion
+ * 
+ * CRITICAL FIX: Removed dependency on UnifiedAuthContext
+ * - TabVisibilityProvider no longer calls useSimpleAuth()
+ * - UnifiedAuthProvider registers its isSessionReady callback directly
+ * - This prevents "useUnifiedAuth must be used within a UnifiedAuthProvider" errors
+ * - Eliminates race conditions during error recovery
+ */
 
 interface TabVisibilityContextType {
   coordinator: typeof visibilityCoordinator;
@@ -21,20 +30,17 @@ interface TabVisibilityProviderProps {
 }
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
-  const { isSessionReady } = useSimpleAuth();
-  
   useEffect(() => {
-    console.log('🔄 TabVisibilityProvider v41.2 - Starting coordinator');
+    console.log('🔄 TabVisibilityProvider v42.0 - Starting coordinator (no auth dependency)');
     
-    // Provide session ready callback to coordinator
-    visibilityCoordinator.setSessionReadyCallback(() => isSessionReady);
+    // Start listening for visibility changes
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 TabVisibilityProvider v41.2 - Stopping coordinator');
+      console.log('🔄 TabVisibilityProvider v42.0 - Stopping coordinator');
       visibilityCoordinator.stopListening();
     };
-  }, [isSessionReady]);
+  }, []); // No dependencies - runs once on mount
 
   return (
     <TabVisibilityContext.Provider value={{ coordinator: visibilityCoordinator }}>

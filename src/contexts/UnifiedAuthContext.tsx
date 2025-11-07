@@ -239,6 +239,12 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const initialCheckDone = useRef(false); // CRITICAL: Use ref to prevent reset on remount
   const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
   const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
+  
+  // v42.0: Register isSessionReady callback with coordinator on mount
+  useEffect(() => {
+    console.log('🔧 UnifiedAuth v42.0 - Registering session ready callback with coordinator');
+    visibilityCoordinator.setSessionReadyCallback(() => isSessionReady);
+  }, [isSessionReady]);
 
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
