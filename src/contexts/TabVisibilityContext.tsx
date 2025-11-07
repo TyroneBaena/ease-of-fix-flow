@@ -3,10 +3,14 @@ import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 import { useUnifiedAuth } from './UnifiedAuthContext';
 
 /**
- * v55.0 - CRITICAL FIX: Session ready callback with current values
+ * v56.0 - SINGLE session ready callback registration (removed from UnifiedAuthContext)
  * 
- * BUGS FIXED:
- * 1. Session ready callback now uses ref to access CURRENT auth state (not stale closure)
+ * BUGS FIXED IN v56.0:
+ * 1. Now the ONLY place that registers session ready callback (removed duplicate in UnifiedAuthContext)
+ * 2. Prevents callback collision that caused unpredictable behavior
+ * 
+ * PREVIOUS FIXES (v55.0):
+ * 1. Session ready callback uses ref to access CURRENT auth state (not stale closure)
  * 2. Properties now load on initial login
  * 3. Tab revisit coordination doesn't timeout waiting for stale session state
  */
@@ -45,15 +49,17 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
   }, [isSessionReady, currentUser]);
 
   useEffect(() => {
-    console.log('🔄 v55.0 - Starting visibility coordinator');
+    console.log('🔄 v56.0 - Starting visibility coordinator (SINGLE callback registration point)');
     
-    // CRITICAL v55.0: Set session ready callback that accesses CURRENT values via ref
+    // CRITICAL v56.0: ONLY place that registers session ready callback
+    // Removed duplicate registration from UnifiedAuthContext to prevent collision
     visibilityCoordinator.setSessionReadyCallback(() => {
       const current = authStateRef.current;
       const ready = current.isSessionReady && !!current.currentUser?.id;
-      console.log('🔍 v55.0 - Session ready check:', { 
+      console.log('🔍 v56.0 - Session ready check:', { 
         isSessionReady: current.isSessionReady,
         hasUser: !!current.currentUser?.id,
+        userEmail: current.currentUser?.email,
         result: ready
       });
       return ready;
@@ -62,7 +68,7 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v55.0 - Stopping visibility coordinator');
+      console.log('🔄 v56.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

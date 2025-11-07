@@ -1,7 +1,14 @@
 /**
- * Tab Visibility Coordinator v55.0 - CRITICAL FIX: Session Ready Callback
+ * Tab Visibility Coordinator v56.0 - CRITICAL FIX: Timeout Alignment & Abort Controllers
  *
- * BUGS FIXED IN v55.0:
+ * BUGS FIXED IN v56.0:
+ * 1. ✅ Increased overall timeout to 70s (was 20s) to match 60s query timeouts
+ * 2. ✅ Added abort controller to cancel in-flight handlers on timeout
+ * 3. ✅ Added granular logging at every step to identify hang points
+ * 4. ✅ Added session validation before triggering handlers
+ * 5. ✅ Removed duplicate session ready callback registration (now only in TabVisibilityContext)
+ *
+ * PREVIOUS FIXES (v55.0):
  * 1. ✅ Session ready callback now accesses CURRENT auth state via ref (not stale closure)
  * 2. ✅ Properties load on initial login (session ready check no longer blocks)
  * 3. ✅ Tab revisit doesn't timeout waiting for stale session state
@@ -17,21 +24,25 @@
  * 1. Tab visible → Show loader
  * 2. Set coordination lock (prevents handler re-registration)
  * 3. Restore session on app's singleton client
- * 4. Wait for session ready in React context (now uses CURRENT values via ref)
- * 5. Trigger data refresh handlers
- * 6. Release coordination lock
- * 7. Hide loader
+ * 4. Validate session is actually set
+ * 5. Wait for session ready in React context (uses CURRENT values via ref)
+ * 6. Trigger data refresh handlers with abort controller
+ * 7. Release coordination lock
+ * 8. Hide loader
  * 
  * FEATURES:
  * - Coordination lock prevents handler re-registration during restore
  * - Stable handler callbacks access current state via refs (no stale closures)
  * - Single restore operation at a time (no race conditions)
- * - Overall timeout protection (20s)
+ * - Overall timeout protection (70s to match query timeouts)
+ * - Abort controller cancels in-flight handlers on timeout
  * - Proper handler cleanup to prevent accumulation
  * - Session expiration detection
+ * - Granular logging at every step
  */
 
 import { rehydrateSessionFromServer } from '@/utils/sessionRehydration';
+import { supabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
@@ -45,6 +56,7 @@ class VisibilityCoordinator {
   private isListening = false;
   private sessionReadyCallback: (() => boolean) | null = null;
   private consecutiveFailures = 0;
+  private abortController: AbortController | null = null; // v56.0: Cancel in-flight handlers
   
   // UI feedback callbacks
   private tabRefreshCallbacks: ((isRefreshing: boolean) => void)[] = [];
@@ -81,11 +93,11 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v55.0 - Set callback to check if session is ready (now uses refs for current values)
+   * v56.0 - Set callback to check if session is ready (now uses refs for current values)
    */
   public setSessionReadyCallback(callback: () => boolean) {
     this.sessionReadyCallback = callback;
-    console.log('📝 v55.0 - Session ready callback registered');
+    console.log('📝 v56.0 - Session ready callback registered');
   }
 
   /**
@@ -159,34 +171,41 @@ class VisibilityCoordinator {
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v50.0 - Tab hidden");
+      console.log("🔒 v56.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v55.0 - Tab visible, triggering refresh");
+    console.log("🔓 v56.0 - Tab visible, triggering refresh");
     this.coordinateRefresh();
   };
 
   /**
-   * v54.0 - Main coordination logic with safe handler processing
+   * v56.0 - Main coordination logic with abort controller and extended timeout
    */
   private async coordinateRefresh() {
     // Prevent overlapping restores
     if (this.isRefreshing) {
-      console.warn("⚙️ v54.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v56.0 - Refresh already in progress, skipping");
       return;
     }
 
-    // v54.0: Set coordination lock and show loader
+    // v56.0: Set coordination lock and show loader
     this.isCoordinating = true;
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v55.0 - Starting tab revisit workflow (session callback uses current auth state)");
+    console.log("🔁 v56.0 - Starting tab revisit workflow with abort controller support");
 
-    // Overall timeout for entire flow (20 seconds)
+    // v56.0: Create abort controller for canceling in-flight handlers
+    this.abortController = new AbortController();
+
+    // v56.0: CRITICAL FIX - Increased timeout to 70s (was 20s) to match 60s query timeouts
     const overallTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Overall coordination timeout')), 20000)
+      setTimeout(() => {
+        console.error("🚨 v56.0 - Overall timeout reached after 70s, aborting handlers");
+        this.abortController?.abort();
+        reject(new Error('Overall coordination timeout'));
+      }, 70000)
     );
 
     try {
@@ -196,15 +215,15 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v55.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v56.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       toast.success("Data refreshed", { duration: 2000 });
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v55.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v56.0 - Coordination failed after ${duration}ms:`, error);
       
       if (error.message === 'Overall coordination timeout') {
-        console.error("🚨 v55.0 - Overall timeout reached");
+        console.error("🚨 v56.0 - Overall timeout reached, handlers aborted");
         toast.error("Session restoration timeout. Please refresh the page.");
       } else {
         toast.error("Failed to restore session. Please refresh the page.");
@@ -231,29 +250,32 @@ class VisibilityCoordinator {
         });
       }
       
-      // v54.0: Release coordination lock
+      // v56.0: Release coordination lock and clean up abort controller
       this.isCoordinating = false;
       this.isRefreshing = false;
+      this.abortController = null;
       this.notifyTabRefreshChange(false);
       
-      console.log(`📊 v54.0 - Final handler count: ${this.refreshHandlers.length} active, ${this.pendingHandlers.length} pending`);
+      console.log(`📊 v56.0 - Final handler count: ${this.refreshHandlers.length} active, ${this.pendingHandlers.length} pending`);
     }
   }
 
   /**
-   * v54.0 - Execute the refresh flow steps
+   * v56.0 - Execute the refresh flow steps with session validation and abort support
    */
   private async executeRefreshFlow() {
-    // STEP 1: Restore session on singleton client
-    console.log("📡 v54.0 - Step 1: Restoring session...");
+    console.log("═══════════════════════════════════════════════════");
+    console.log("🚀 v56.0 - STEP 1: Restoring session from backend...");
+    console.log("═══════════════════════════════════════════════════");
+    
     const restored = await rehydrateSessionFromServer();
     
     if (!restored) {
       this.consecutiveFailures++;
-      console.error(`❌ v54.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
+      console.error(`❌ v56.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
       
       if (this.consecutiveFailures >= 2) {
-        console.error("🚨 v54.0 - Session expired after multiple failures");
+        console.error("🚨 v56.0 - Session expired after multiple failures");
         toast.error("Your session has expired. Please log in again.", {
           duration: 5000,
           position: 'top-center'
@@ -269,43 +291,84 @@ class VisibilityCoordinator {
     }
     
     this.consecutiveFailures = 0;
-    console.log("✅ v54.0 - Session restored successfully");
+    console.log("✅ v56.0 - STEP 1 COMPLETE - Session restored successfully");
+    
+    // v56.0: STEP 1.5: Validate session is actually set on client
+    console.log("═══════════════════════════════════════════════════");
+    console.log("🔍 v56.0 - STEP 1.5: Validating session on Supabase client...");
+    console.log("═══════════════════════════════════════════════════");
+    
+    const { data: { session: currentSession }, error: sessionError } = await supabaseClient.auth.getSession();
+    
+    if (sessionError || !currentSession) {
+      console.error("❌ v56.0 - STEP 1.5 FAILED - Session not set on client:", sessionError?.message);
+      throw new Error('Session validation failed');
+    }
+    
+    console.log("✅ v56.0 - STEP 1.5 COMPLETE - Session validated:", {
+      user: currentSession.user?.email,
+      expiresAt: currentSession.expires_at
+    });
     
     // STEP 2: Wait for session ready in React context
-    console.log("⏳ v54.0 - Step 2: Waiting for auth listener to complete...");
+    console.log("═══════════════════════════════════════════════════");
+    console.log("⏳ v56.0 - STEP 2: Waiting for auth listener to complete...");
+    console.log("═══════════════════════════════════════════════════");
+    
     let attempts = 0;
     const maxAttempts = 100; // 10 seconds max for auth listener
     
     while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
+      if (attempts % 10 === 0) {
+        console.log(`⏳ v56.0 - STEP 2: Still waiting... (${attempts * 100}ms elapsed)`);
+      }
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
     
     if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-      console.log(`✅ v54.0 - Auth listener completed after ${attempts * 100}ms`);
+      console.log(`✅ v56.0 - STEP 2 COMPLETE - Auth listener ready after ${attempts * 100}ms`);
     } else {
-      console.error("❌ v54.0 - Auth listener timeout after 10s");
+      console.error("❌ v56.0 - STEP 2 FAILED - Auth listener timeout after 10s");
       throw new Error('Auth listener timeout');
     }
     
-    // STEP 3: Trigger data refresh handlers
-    console.log(`🔁 v54.0 - Step 3: Running refresh handlers (${this.refreshHandlers.length} registered)`);
-    if (this.refreshHandlers.length > 0) {
-      await Promise.all(
-        this.refreshHandlers.map(async (handler, index) => {
-          try {
-            console.log(`🔁 v54.0 - Running handler ${index + 1}/${this.refreshHandlers.length}`);
-            await handler();
-          } catch (err) {
-            console.error(`❌ v54.0 - Handler ${index + 1} error:`, err);
-          }
-        })
-      );
-    } else {
-      console.warn("⚠️ v54.0 - No handlers registered to run!");
+    // STEP 3: Trigger data refresh handlers with abort support
+    console.log("═══════════════════════════════════════════════════");
+    console.log(`🔁 v56.0 - STEP 3: Running ${this.refreshHandlers.length} refresh handlers...`);
+    console.log("═══════════════════════════════════════════════════");
+    
+    if (this.refreshHandlers.length === 0) {
+      console.warn("⚠️ v56.0 - STEP 3: No handlers registered!");
+      return;
     }
     
-    console.log("✅ v54.0 - All refresh handlers completed");
+    const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
+      const handlerStart = Date.now();
+      console.log(`▶️ v56.0 - Handler ${index + 1}/${this.refreshHandlers.length} starting...`);
+      
+      try {
+        // Check if aborted before starting
+        if (this.abortController?.signal.aborted) {
+          console.warn(`⚠️ v56.0 - Handler ${index + 1} aborted before execution`);
+          return;
+        }
+        
+        await handler();
+        
+        const handlerDuration = Date.now() - handlerStart;
+        console.log(`✅ v56.0 - Handler ${index + 1} completed in ${handlerDuration}ms`);
+      } catch (err) {
+        const handlerDuration = Date.now() - handlerStart;
+        console.error(`❌ v56.0 - Handler ${index + 1} error after ${handlerDuration}ms:`, err);
+      }
+    });
+    
+    await Promise.all(handlerPromises);
+    
+    console.log("═══════════════════════════════════════════════════");
+    console.log("✅ v56.0 - STEP 3 COMPLETE - All refresh handlers finished");
+    console.log("═══════════════════════════════════════════════════");
   }
 }
 

@@ -1,8 +1,13 @@
 /**
- * Session Rehydration Utility v51.0 - Removed Timeout Deadlock
+ * Session Rehydration Utility v56.0 - Enhanced Logging
  * 
- * CRITICAL FIX: Removed timeout from setSession() that was causing failures.
- * The timeout was forcing failures before auth state listener could complete.
+ * CHANGES IN v56.0:
+ * - Added granular logging at each step for debugging
+ * - Log session details to verify restoration
+ * 
+ * PREVIOUS FIXES (v51.0):
+ * - Removed timeout from setSession() that was causing failures
+ * - Let auth state listener complete asynchronously
  * 
  * APPROACH:
  * 1. Fetch session from backend (/session endpoint with cookies)
@@ -17,61 +22,85 @@ import { supabaseClient } from "@/integrations/supabase/client";
 const SESSION_ENDPOINT = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/session";
 
 /**
- * Restore session from backend cookie with timeout protection
+ * v56.0 - Restore session from backend cookie with enhanced logging
  * Uses the app's singleton client so session propagates everywhere
  */
 export async function rehydrateSessionFromServer(): Promise<boolean> {
   const startTime = Date.now();
-  console.log("%c🔄 v51.0 - Starting session restoration without timeout", "color: cyan; font-weight: bold");
+  console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
+  console.log("%c🔄 v56.0 - Starting session restoration", "color: cyan; font-weight: bold");
+  console.log("%c═══════════════════════════════════════════════════", "color: cyan; font-weight: bold");
 
   try {
     // STEP 1: Fetch session from backend
-    console.log("📡 v51.0 - Fetching session from backend...");
+    console.log("📡 v56.0 - Fetching session from backend endpoint...");
+    console.log("📡 v56.0 - Endpoint:", SESSION_ENDPOINT);
+    
+    const fetchStart = Date.now();
     const response = await fetch(SESSION_ENDPOINT, {
       method: "GET",
       credentials: "include", // Send HttpOnly cookies
       headers: { "Accept": "application/json" },
     });
+    const fetchDuration = Date.now() - fetchStart;
+
+    console.log(`📡 v56.0 - Backend response received in ${fetchDuration}ms`);
+    console.log(`📡 v56.0 - Status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
-      console.error(`❌ v51.0 - Session endpoint returned ${response.status}`);
+      console.error(`❌ v56.0 - Session endpoint returned error ${response.status}`);
       return false;
     }
 
     const data = await response.json();
+    console.log("📡 v56.0 - Response data keys:", Object.keys(data));
+    
     const session = data?.session || data?.data?.session || data?.data;
 
     // STEP 2: Validate session
+    console.log("🔍 v56.0 - Validating session data...");
+    
     if (!session?.access_token || !session?.refresh_token) {
-      console.warn("⚠️ v51.0 - No valid session (cookie expired or missing)");
+      console.warn("⚠️ v56.0 - No valid session (cookie expired or missing)");
+      console.warn("⚠️ v56.0 - Has access_token:", !!session?.access_token);
+      console.warn("⚠️ v56.0 - Has refresh_token:", !!session?.refresh_token);
       return false;
     }
 
-    console.log(`✅ v51.0 - Session received for user: ${session.user?.email}`);
+    console.log(`✅ v56.0 - Session validated for user: ${session.user?.email}`);
+    console.log(`✅ v56.0 - Session expires at: ${session.expires_at}`);
 
     // STEP 3: Set session on app's singleton client WITHOUT timeout
-    // The auth state listener will handle user conversion asynchronously
-    // We don't need to wait for it to complete - just verify setSession succeeds
-    console.log("🔐 v51.0 - Setting session on app's singleton client (no timeout)...");
+    console.log("🔐 v56.0 - Setting session on Supabase client...");
     
+    const setSessionStart = Date.now();
     const result = await supabaseClient.auth.setSession({
       access_token: session.access_token,
       refresh_token: session.refresh_token,
     });
+    const setSessionDuration = Date.now() - setSessionStart;
+
+    console.log(`🔐 v56.0 - setSession() completed in ${setSessionDuration}ms`);
 
     if (result.error) {
-      console.error("❌ v51.0 - Failed to set session:", result.error.message);
+      console.error("❌ v56.0 - Failed to set session:", result.error.message);
+      console.error("❌ v56.0 - Error details:", result.error);
       return false;
     }
 
-    console.log("✅ v51.0 - Session set successfully, auth listener will complete conversion");
+    console.log("✅ v56.0 - Session set successfully");
+    console.log("✅ v56.0 - Auth listener will complete user conversion asynchronously");
 
-    const duration = Date.now() - startTime;
-    console.log(`%c✅ v51.0 - Session restored in ${duration}ms`, "color: lime; font-weight: bold");
+    const totalDuration = Date.now() - startTime;
+    console.log("%c═══════════════════════════════════════════════════", "color: lime; font-weight: bold");
+    console.log(`%c✅ v56.0 - Session restored in ${totalDuration}ms`, "color: lime; font-weight: bold");
+    console.log("%c═══════════════════════════════════════════════════", "color: lime; font-weight: bold");
     return true;
 
   } catch (error) {
-    console.error("❌ v51.0 - Session restoration failed:", error);
+    const totalDuration = Date.now() - startTime;
+    console.error(`❌ v56.0 - Session restoration failed after ${totalDuration}ms:`, error);
+    console.error("❌ v56.0 - Error details:", error);
     return false;
   }
 }
