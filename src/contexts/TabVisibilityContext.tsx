@@ -2,12 +2,11 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v47.0 - Fixed hanging setSession with timeout wrapper
+ * v48.0 - Clean & Simple Session Restoration
  * 
  * Provides access to visibility coordinator singleton.
- * Shows loader during tab revisit session restoration.
- * Handles all edge cases: quick switches, long idle, expired sessions.
- * v47.0: Fixed infinite hang in setSession() on second tab revisit
+ * Manages clean session restoration on tab revisits.
+ * Simple, reliable, race-free logic.
  */
 
 interface TabVisibilityContextType {
@@ -30,11 +29,11 @@ interface TabVisibilityProviderProps {
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
   useEffect(() => {
-    console.log('🔄 v47.0 - Starting visibility coordinator with setSession timeout fix');
+    console.log('🔄 v48.0 - Starting visibility coordinator');
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v47.0 - Stopping visibility coordinator');
+      console.log('🔄 v48.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

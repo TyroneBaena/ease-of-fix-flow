@@ -248,23 +248,21 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [isSessionReady]);
   
   useEffect(() => {
-    console.log('🔧 v46.0 - Registering session ready callback');
+    console.log('🔧 v48.0 - Registering session ready callback');
     visibilityCoordinator.setSessionReadyCallback(() => isSessionReadyRef.current);
     
-    // v46.0: Register error handler for session failures
+    // v48.0: Register error handler for session failures
     const unsubscribe = visibilityCoordinator.onError((error) => {
-      console.error('🚨 v46.0 - Session error received:', error);
+      console.error('🚨 v48.0 - Session error received:', error);
       
       if (error === 'SESSION_EXPIRED') {
-        // Clear local state and redirect to login
-        console.log('🔐 v46.0 - Clearing state and redirecting to login');
+        console.log('🔐 v48.0 - Clearing state and redirecting to login');
         setCurrentUser(null);
         setSession(null);
         setIsSessionReady(false);
         setUserOrganizations([]);
         setCurrentOrganization(null);
         
-        // Redirect to login after a short delay
         setTimeout(() => {
           window.location.href = '/login';
         }, 2000);
