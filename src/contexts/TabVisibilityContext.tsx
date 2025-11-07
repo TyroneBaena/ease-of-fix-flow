@@ -2,11 +2,12 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v51.0 - Fixed Handler Cleanup & Timeout Protection
+ * v52.0 - Stabilized Handler Registration
  * 
  * Provides access to visibility coordinator singleton.
- * Coordinator now has proper handler cleanup and overall timeout protection.
- * Auth state listener handles user conversion without timeout conflicts.
+ * - Coordination lock prevents re-registration during active session restoration
+ * - Data providers register handlers once on mount with stable callbacks
+ * - Session readiness checked internally, not via dependencies
  */
 
 interface TabVisibilityContextType {
@@ -29,11 +30,11 @@ interface TabVisibilityProviderProps {
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
   useEffect(() => {
-    console.log('🔄 v51.0 - Starting visibility coordinator');
+    console.log('🔄 v52.0 - Starting visibility coordinator');
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v51.0 - Stopping visibility coordinator');
+      console.log('🔄 v52.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

@@ -22,19 +22,20 @@ export const usePropertyProvider = (): PropertyContextType => {
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
 
-  // Fetch properties from database
+  // CRITICAL v52.0: Stabilize callback by checking isSessionReady inside, not in deps
   const fetchAndSetProperties = useCallback(async () => {
-    console.log('PropertyProvider: fetchAndSetProperties called, SessionReady:', isSessionReady);
+    const sessionReady = isSessionReady; // Capture current value
+    console.log('v52.0 - PropertyProvider: fetchAndSetProperties called, SessionReady:', sessionReady);
     
     // CRITICAL: Wait for session to be ready before making queries
-    if (!isSessionReady) {
-      console.log('PropertyProvider: Waiting for session ready...');
+    if (!sessionReady) {
+      console.log('v52.0 - PropertyProvider: Waiting for session ready...');
       return;
     }
     
     // CRITICAL: Prevent concurrent fetches
     if (isFetchingRef.current) {
-      console.log('PropertyProvider: Fetch already in progress, skipping');
+      console.log('v52.0 - PropertyProvider: Fetch already in progress, skipping');
       return;
     }
     
@@ -53,13 +54,13 @@ export const usePropertyProvider = (): PropertyContextType => {
       }
       setLoadingFailed(false);
       isFetchingRef.current = true;
-      console.log('PropertyContext: Fetching properties for user:', currentUser?.id);
+      console.log('v52.0 - PropertyContext: Fetching properties for user:', currentUser?.id);
       
       const formattedProperties = await fetchProperties(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('✅ PropertyContext: Properties fetched successfully');
-      console.log('PropertyContext: Number of properties:', formattedProperties.length);
+      console.log('✅ v52.0 - PropertyContext: Properties fetched successfully');
+      console.log('v52.0 - PropertyContext: Number of properties:', formattedProperties.length);
       setProperties(formattedProperties);
       lastFetchTimeRef.current = Date.now();
     } catch (err) {
@@ -69,12 +70,12 @@ export const usePropertyProvider = (): PropertyContextType => {
         console.warn('❌ Properties fetch aborted due to timeout');
         toast.error('Loading properties timed out. Please refresh.');
       } else {
-        console.error('❌ PropertyContext: Error fetching properties:', err);
+        console.error('❌ v52.0 - PropertyContext: Error fetching properties:', err);
         toast.error('Failed to load properties');
       }
       setLoadingFailed(true);
     } finally {
-      console.log('🏁 PropertyProvider - Resetting loading state');
+      console.log('🏁 v52.0 - PropertyProvider - Resetting loading state');
       // CRITICAL: Only reset loading on first load, keep it false after
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(false);
@@ -82,7 +83,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, [isSessionReady]); // CRITICAL: Add isSessionReady to dependencies
+  }, []); // CRITICAL: Removed isSessionReady from deps - now stable
 
   useEffect(() => {
     console.log('PropertyProvider: useEffect triggered', { 
@@ -136,30 +137,23 @@ export const usePropertyProvider = (): PropertyContextType => {
     };
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
-  // Register with visibility coordinator for coordinated refresh
+  // CRITICAL v52.0: Register handler ONCE on mount, independent of session state
   useEffect(() => {
-    if (!currentUser?.id || !isSessionReady) {
-      console.log('🔄 PropertyProvider - No user or session not ready, skipping registration');
-      return;
-    }
+    console.log('🔄 v52.0 - PropertyProvider - Registering handler (once on mount)');
 
     const refreshProperties = async () => {
-      console.log('🔄 PropertyProvider - Coordinator-triggered refresh');
-      if (isSessionReady) {
-        await fetchAndSetProperties();
-      } else {
-        console.log('🔄 PropertyProvider - Session not ready, skipping refresh');
-      }
+      console.log('🔄 v52.0 - PropertyProvider - Coordinator-triggered refresh');
+      await fetchAndSetProperties();
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshProperties);
-    console.log('🔄 PropertyProvider - Registered with visibility coordinator');
+    console.log('🔄 v52.0 - PropertyProvider - Handler registered');
 
     return () => {
       unregister();
-      console.log('🔄 PropertyProvider - Cleanup: Unregistered from visibility coordinator');
+      console.log('🔄 v52.0 - PropertyProvider - Cleanup: Handler unregistered');
     };
-  }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
+  }, [fetchAndSetProperties]); // CRITICAL: Only fetchAndSetProperties in deps, which is now stable
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
