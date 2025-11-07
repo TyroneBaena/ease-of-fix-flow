@@ -27,6 +27,30 @@ class VisibilityCoordinator {
   private isListening = false;
   private lastHiddenTime: number | null = null;
   private sessionReadyCallback: (() => boolean) | null = null;
+  
+  // v45.0: Global tab refresh state for UI feedback
+  private tabRefreshCallbacks: ((isRefreshing: boolean) => void)[] = [];
+  
+  /**
+   * Subscribe to tab refresh state changes
+   * Returns cleanup function
+   */
+  public onTabRefreshChange(callback: (isRefreshing: boolean) => void): () => void {
+    this.tabRefreshCallbacks.push(callback);
+    return () => {
+      const index = this.tabRefreshCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.tabRefreshCallbacks.splice(index, 1);
+      }
+    };
+  }
+  
+  /**
+   * Notify all subscribers of tab refresh state change
+   */
+  private notifyTabRefreshChange(isRefreshing: boolean) {
+    this.tabRefreshCallbacks.forEach(callback => callback(isRefreshing));
+  }
 
   /**
    * Set a callback to check if session is ready
@@ -104,34 +128,35 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate session restoration + data refresh when tab becomes visible
-   * v44.0: Simple sequential flow - no timeouts, no fallbacks
+   * v45.0: Simple sequential flow with UI feedback
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v44.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v45.0 - Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
+    this.notifyTabRefreshChange(true); // 🎯 Notify UI: Show loader
     const startTime = Date.now();
-    console.log(`🔁 v44.0 - Tab revisit: Starting simple sequential workflow...`);
+    console.log(`🔁 v45.0 - Tab revisit: Starting simple sequential workflow...`);
 
     try {
       // STEP 1: Restore session - just wait for it, no timeout
-      console.log("📡 v44.0 - Step 1: Restoring session from server...");
+      console.log("📡 v45.0 - Step 1: Restoring session from server...");
       const restored = await rehydrateSessionFromServer();
       
       if (!restored) {
-        console.error("❌ v44.0 - Session restoration failed");
-        console.error("💡 v44.0 - This is a real error - session endpoint returned null or failed");
+        console.error("❌ v45.0 - Session restoration failed");
+        console.error("💡 v45.0 - This is a real error - session endpoint returned null or failed");
         // Don't proceed - without session, queries will fail anyway
         return;
       }
       
-      console.log("✅ v44.0 - Session restored successfully");
+      console.log("✅ v45.0 - Session restored successfully");
       
       // STEP 2: Wait for session to propagate to React context
-      console.log("⏳ v44.0 - Step 2: Waiting for session ready in context...");
+      console.log("⏳ v45.0 - Step 2: Waiting for session ready in context...");
       let attempts = 0;
       const maxAttempts = 50; // 5 seconds max
       
@@ -141,32 +166,33 @@ class VisibilityCoordinator {
       }
       
       if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-        console.log(`✅ v44.0 - Session ready in context after ${attempts * 100}ms`);
+        console.log(`✅ v45.0 - Session ready in context after ${attempts * 100}ms`);
       } else {
-        console.error("❌ v44.0 - Session ready timeout - context didn't update");
+        console.error("❌ v45.0 - Session ready timeout - context didn't update");
         return;
       }
       
       // STEP 3: Trigger data refresh - queries will use valid session
-      console.log(`🔁 v44.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
+      console.log(`🔁 v45.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
       if (this.refreshHandlers.length > 0) {
         await Promise.all(
           this.refreshHandlers.map(async (handler) => {
             try {
               await handler();
             } catch (err) {
-              console.error("❌ v44.0 - Handler error:", err);
+              console.error("❌ v45.0 - Handler error:", err);
             }
           })
         );
       }
       
       const duration = Date.now() - startTime;
-      console.log(`✅ v44.0 - Tab revisit complete in ${duration}ms`);
+      console.log(`✅ v45.0 - Tab revisit complete in ${duration}ms`);
     } catch (error) {
-      console.error("❌ v44.0 - Fatal error during tab revisit:", error);
+      console.error("❌ v45.0 - Fatal error during tab revisit:", error);
     } finally {
       this.isRefreshing = false;
+      this.notifyTabRefreshChange(false); // 🎯 Notify UI: Hide loader
     }
   }
 }

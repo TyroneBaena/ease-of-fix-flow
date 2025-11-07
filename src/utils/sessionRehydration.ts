@@ -1,9 +1,9 @@
 /**
- * Session Rehydration Utility v44.0
+ * Session Rehydration Utility v45.0
  * 
  * Simple session restoration from HttpOnly cookies.
  * 
- * v44.0: Simplified - just fetch and restore, no timeout wrapper
+ * v45.0: Same as v44.0 but with updated logging
  * - Returns true if session restored successfully
  * - Returns false if cookie expired or endpoint failed
  * - Never throws exceptions
@@ -17,7 +17,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
  */
 export async function rehydrateSessionFromServer(): Promise<boolean> {
   const start = Date.now();
-  console.log("%c🔄 v44.0 - RESTORING SESSION...", "color: cyan; font-weight: bold");
+  console.log("%c🔄 v45.0 - RESTORING SESSION...", "color: cyan; font-weight: bold");
   
   try {
     const SESSION_FN = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/session";
@@ -30,7 +30,7 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     });
 
     if (!res.ok) {
-      console.error(`❌ v44.0 - Session endpoint failed: ${res.status}`);
+      console.error(`❌ v45.0 - Session endpoint failed: ${res.status}`);
       return false;
     }
 
@@ -38,11 +38,11 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     const session = payload?.session || payload?.data?.session || payload?.data || null;
 
     if (!session?.access_token || !session?.refresh_token) {
-      console.warn("⚠️ v44.0 - No valid session (cookie expired)");
+      console.warn("⚠️ v45.0 - No valid session (cookie expired)");
       return false;
     }
 
-    console.log(`✅ v44.0 - Session received for: ${session.user?.email}`);
+    console.log(`✅ v45.0 - Session received for: ${session.user?.email}`);
 
     const { error } = await supabase.auth.setSession({
       access_token: session.access_token,
@@ -50,7 +50,7 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     });
 
     if (error) {
-      console.error("❌ v44.0 - Failed to set session:", error.message);
+      console.error("❌ v45.0 - Failed to set session:", error.message);
       return false;
     }
 
@@ -58,7 +58,7 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     try {
       supabase.realtime.connect();
     } catch (e) {
-      console.warn("⚠️ v44.0 - Realtime reconnect failed (non-critical)");
+      console.warn("⚠️ v45.0 - Realtime reconnect failed (non-critical)");
     }
 
     // Wait for auth state to propagate
@@ -67,7 +67,7 @@ export async function rehydrateSessionFromServer(): Promise<boolean> {
     console.log(`%c✅ SESSION RESTORED in ${Date.now() - start}ms`, "color: lime; font-weight: bold");
     return true;
   } catch (err) {
-    console.error(`❌ v44.0 - Session restoration error:`, err instanceof Error ? err.message : String(err));
+    console.error(`❌ v45.0 - Session restoration error:`, err instanceof Error ? err.message : String(err));
     return false;
   }
 }

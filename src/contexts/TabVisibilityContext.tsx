@@ -2,10 +2,10 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v44.0 - Simple Sequential Flow
+ * v45.0 - Simple Sequential Flow with UI Feedback
  * 
  * Provides access to visibility coordinator singleton.
- * No complex timeout logic, just sequential session restore → data load.
+ * Shows loader during tab revisit session restoration.
  */
 
 interface TabVisibilityContextType {
@@ -28,11 +28,11 @@ interface TabVisibilityProviderProps {
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
   useEffect(() => {
-    console.log('🔄 v44.0 - Starting visibility coordinator');
+    console.log('🔄 v45.0 - Starting visibility coordinator');
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v44.0 - Stopping visibility coordinator');
+      console.log('🔄 v45.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

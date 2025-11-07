@@ -15,35 +15,30 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const [request, setRequest] = useState<MaintenanceRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useUserContext();
-  const hasLoadedOnceRef = useRef(false);
   const previousSessionReadyRef = useRef(isSessionReady);
 
   useEffect(() => {
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
     previousSessionReadyRef.current = isSessionReady;
     
-    // v44.0: Simple approach - wait for session ready, no timeouts
-    if (!isSessionReady && !hasLoadedOnceRef.current) {
-      console.log('⏳ v44.0 - Waiting for session to be ready...');
-      return; // Just wait, no timeout fallback
+    // v45.0: Wait for session ready before loading
+    if (!isSessionReady) {
+      console.log('⏳ v45.0 - Waiting for session to be ready...');
+      setLoading(true); // v45.0: Always show loading while waiting for session
+      return;
     }
     
     if (sessionJustBecameReady) {
-      console.log('✅ v44.0 - Session ready, loading data');
+      console.log('✅ v45.0 - Session ready, loading data');
     }
     
     if (!requestId || !currentUser) {
-      if (!hasLoadedOnceRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
       return;
     }
     
     const loadRequestData = async () => {
-      // CRITICAL: Only show loading on first load, not on tab revisit
-      if (!hasLoadedOnceRef.current) {
-        setLoading(true);
-      }
+      setLoading(true); // v45.0: Always show loading when fetching data
       
       console.log("useMaintenanceRequestData - Loading request data for ID:", requestId);
       
@@ -111,8 +106,6 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         }
       }
       
-      // Mark as loaded
-      hasLoadedOnceRef.current = true;
       setLoading(false);
     };
     
@@ -169,8 +162,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
 
   return {
     request,
-    // CRITICAL: Return false for loading if we've loaded once, regardless of internal state
-    loading: hasLoadedOnceRef.current ? false : loading,
+    loading, // v45.0: Return actual loading state, no blocking
     refreshRequestData
   };
 }
