@@ -110,26 +110,26 @@ class VisibilityCoordinator {
 
     try {
       // STEP 1: Restore session from HttpOnly cookie with timeout protection
-      console.log("📡 v41.0 - Step 1: Restoring session from server (with 10s timeout)...");
+      console.log("📡 v41.0 - Step 1: Restoring session from server (with 30s timeout for cold starts)...");
       
       const restoreWithTimeout = async (): Promise<boolean> => {
         return Promise.race([
           rehydrateSessionFromServer(),
           new Promise<boolean>((resolve) => {
             setTimeout(() => {
-              console.error("⏱️ v41.0 - Session restoration timeout after 10s!");
+              console.error("⏱️ v41.0 - Session restoration timeout after 30s (edge function cold start?)");
               resolve(false);
-            }, 10000);
+            }, 30000); // Increased to 30s to handle edge function cold starts
           })
         ]);
       };
       
       let restored = await restoreWithTimeout();
       
-      // RETRY LOGIC: If first attempt fails, try once more
+      // RETRY LOGIC: If first attempt fails, try once more with longer delay
       if (!restored) {
-        console.warn("⚠️ v41.0 - First restoration attempt failed, retrying once...");
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+        console.warn("⚠️ v41.0 - First restoration attempt failed, retrying once (waiting 3s for cold start)...");
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s for potential cold start
         restored = await restoreWithTimeout();
       }
       
