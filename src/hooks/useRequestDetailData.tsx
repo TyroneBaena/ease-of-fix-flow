@@ -11,13 +11,13 @@ import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
- * v46.0: Shows loader during tab revisit with comprehensive error handling
+ * v47.0: Shows loader during tab revisit with setSession timeout fix
  */
 export const useRequestDetailData = (requestId: string | undefined) => {
   const { currentUser, isSessionReady } = useSimpleAuth();
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isTabRefreshing, setIsTabRefreshing] = useState(false); // v46.0: Global tab refresh state
+  const [isTabRefreshing, setIsTabRefreshing] = useState(false); // v47.0: Global tab refresh state
   
   // Use specialized hooks with the refresh counter and session ready flag
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(
@@ -30,10 +30,10 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const isContractor = useContractorStatus(currentUser?.id, isSessionReady);
   const { activityLogs, loading: activityLoading } = useActivityLogs(requestId, refreshCounter, isSessionReady);
   
-  // v46.0: Subscribe to global tab refresh state
+  // v47.0: Subscribe to global tab refresh state
   useEffect(() => {
     const unsubscribe = visibilityCoordinator.onTabRefreshChange((refreshing) => {
-      console.log('🔄 v46.0 - Tab refresh state changed:', refreshing);
+      console.log('🔄 v47.0 - Tab refresh state changed:', refreshing);
       setIsTabRefreshing(refreshing);
     });
     
@@ -83,13 +83,13 @@ export const useRequestDetailData = (requestId: string | undefined) => {
 
   return {
     request,
-    loading: loading || isTabRefreshing, // v46.0: Show loading during tab refresh
+    loading: loading || isTabRefreshing, // v47.0: Show loading during tab refresh
     quotes,
     isContractor,
     activityLogs,
     activityLoading,
     refreshData,
     refreshAfterQuoteSubmission,
-    isRefreshing: isRefreshing || isTabRefreshing // v46.0: Include tab refresh state
+    isRefreshing: isRefreshing || isTabRefreshing // v47.0: Include tab refresh state
   };
 };

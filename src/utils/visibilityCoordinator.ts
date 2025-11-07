@@ -177,38 +177,38 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate session restoration + data refresh when tab becomes visible
-   * v46.0: Robust flow with comprehensive error handling
+   * v47.0: Fixed hanging setSession with timeout wrapper
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v46.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v47.0 - Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true); // 🎯 Notify UI: Show loader
     const startTime = Date.now();
-    console.log(`🔁 v46.0 - Tab revisit: Starting robust workflow...`);
+    console.log(`🔁 v47.0 - Tab revisit: Starting robust workflow...`);
 
     try {
       // STEP 1: Restore session
-      console.log("📡 v46.0 - Step 1: Restoring session from server...");
+      console.log("📡 v47.0 - Step 1: Restoring session from server...");
       const restored = await rehydrateSessionFromServer();
       
       if (!restored) {
         this.consecutiveFailures++;
-        console.error(`❌ v46.0 - Session restoration failed (${this.consecutiveFailures} consecutive failures)`);
+        console.error(`❌ v47.0 - Session restoration failed (${this.consecutiveFailures} consecutive failures)`);
         
         // If this is a real session expiration, notify error handlers
         if (this.consecutiveFailures >= 2) {
-          console.error("🚨 v46.0 - Multiple failures detected - session likely expired");
+          console.error("🚨 v47.0 - Multiple failures detected - session likely expired");
           toast.error("Your session has expired. Please log in again.", {
             duration: 5000,
             position: 'top-center'
           });
           this.notifyError('SESSION_EXPIRED');
         } else {
-          console.warn("⚠️ v46.0 - First failure, will retry on next revisit");
+          console.warn("⚠️ v47.0 - First failure, will retry on next revisit");
           toast.warning("Session restoration failed. Please refresh the page if issues persist.", {
             duration: 4000
           });
@@ -219,10 +219,10 @@ class VisibilityCoordinator {
       
       // Reset failure counter on success
       this.consecutiveFailures = 0;
-      console.log("✅ v46.0 - Session restored successfully");
+      console.log("✅ v47.0 - Session restored successfully");
       
       // STEP 2: Wait for session to propagate to React context
-      console.log("⏳ v46.0 - Step 2: Waiting for session ready in context...");
+      console.log("⏳ v47.0 - Step 2: Waiting for session ready in context...");
       let attempts = 0;
       const maxAttempts = 30; // 3 seconds max (reduced from 5s)
       
@@ -232,29 +232,29 @@ class VisibilityCoordinator {
       }
       
       if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-        console.log(`✅ v46.0 - Session ready in context after ${attempts * 100}ms`);
+        console.log(`✅ v47.0 - Session ready in context after ${attempts * 100}ms`);
       } else {
-        console.error("❌ v46.0 - Session ready timeout - context didn't update");
+        console.error("❌ v47.0 - Session ready timeout - context didn't update");
         toast.error("Session propagation timeout. Please refresh the page.");
         return;
       }
       
       // STEP 3: Trigger data refresh
-      console.log(`🔁 v46.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
+      console.log(`🔁 v47.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
       if (this.refreshHandlers.length > 0) {
         await Promise.all(
           this.refreshHandlers.map(async (handler) => {
             try {
               await handler();
             } catch (err) {
-              console.error("❌ v46.0 - Handler error:", err);
+              console.error("❌ v47.0 - Handler error:", err);
             }
           })
         );
       }
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v46.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v47.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       
       // Show success feedback only for longer idle periods (> 30s)
       const hiddenDuration = this.lastHiddenTime ? startTime - this.lastHiddenTime : 0;
@@ -262,7 +262,7 @@ class VisibilityCoordinator {
         toast.success("Data refreshed", { duration: 2000 });
       }
     } catch (error) {
-      console.error("❌ v46.0 - Fatal error during tab revisit:", error);
+      console.error("❌ v47.0 - Fatal error during tab revisit:", error);
       toast.error("Failed to restore session. Please refresh the page.");
       this.notifyError('SESSION_FAILED');
     } finally {
