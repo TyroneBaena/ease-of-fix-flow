@@ -179,7 +179,7 @@
 
 import { toast } from "@/lib/toast";
 import { UserRole } from "@/types/user";
-import { getSupabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // ✅ Use the singleton directly
 
 // 🌐 Direct Supabase Edge Function URLs (NEVER use VITE_* variables in Lovable)
 const LOGIN_FN = "https://ltjlswzrdgtoddyqmydo.functions.supabase.co/login";
@@ -231,16 +231,20 @@ export const signInWithEmailPassword = async (email: string, password: string) =
     }
 
     // 🔹 3. Rehydrate Supabase client with session tokens
-    const supabase = getSupabaseClient();
+    // CRITICAL: Use the SAME supabase instance that UnifiedAuthContext is listening to
     if (session.access_token && session.refresh_token) {
+      console.log("🔄 Setting session on Supabase client...");
       await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
-      console.log("✅ Supabase client session rehydrated");
+      console.log("✅ Supabase client session set");
       
-      // Wait briefly for auth state change to propagate
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // CRITICAL: Wait for onAuthStateChange to fire and update UnifiedAuthContext
+      // The event fires async, so we need to wait for it to propagate
+      console.log("⏳ Waiting for auth state change to propagate...");
+      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log("✅ Auth context should be updated now");
     }
 
     console.log("✅ Session rehydrated for:", user.email);
@@ -279,8 +283,7 @@ export const signOutUser = async () => {
       return { error: result };
     }
 
-    // 🔹 2. Clear Supabase client session
-    const supabase = getSupabaseClient();
+    // 🔹 2. Clear Supabase client session (using singleton)
     await supabase.auth.signOut();
 
     console.log("✅ Logged out successfully");
@@ -307,8 +310,7 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
   try {
     console.log(`🔐 Updating user role: ${userId} → ${role}`);
 
-    const supabase = getSupabaseClient();
-
+    // Use singleton instance
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .update({ role })

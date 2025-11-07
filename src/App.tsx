@@ -890,8 +890,8 @@ import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { Loader2 } from "lucide-react";
 
-// Supabase
-import { createNewSupabaseClient, getSupabaseClient } from "@/integrations/supabase/client";
+// Supabase - use singleton instance only
+import { getSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { cleanupOldAuthStorage } from "@/utils/cleanupOldAuthStorage";
 
 // Pages
@@ -1083,15 +1083,15 @@ const App: React.FC = () => {
     rehydrateSessionFromServer().then(() => setRehydrated(true));
   }, []);
 
-  // 2. TAB REVISIT / FOCUS RESTORE (THIS IS THE FIX)
+  // 2. TAB REVISIT / FOCUS RESTORE
   useEffect(() => {
     const handleRestore = async () => {
       if (document.visibilityState === "visible" || document.hasFocus()) {
-        createNewSupabaseClient(); // Fresh client
+        // Rehydrate session when tab becomes visible
         const restored = await rehydrateSessionFromServer();
         if (restored) {
           console.log(
-            "%cTAB REVISIT FIXED – SESSION ALIVE FOREVER",
+            "%cTAB REVISIT - SESSION RESTORED",
             "color: gold; background: black; font-size: 18px; font-weight: bold;",
           );
         }
