@@ -864,21 +864,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             // Mark loading as false FIRST so UI can start rendering
             setLoading(false);
 
-            // CRITICAL FIX: Wait for Supabase client session propagation before allowing queries
-            console.log("🚀 UnifiedAuth v30.0 - Waiting for Supabase client session propagation...");
-            await new Promise((resolve) => setTimeout(resolve, 1200)); // 1.2s delay for propagation
-
-            // Verify session is available in Supabase client
-            const {
-              data: { session: verifiedSession },
-            } = await supabase.auth.getSession();
-            if (verifiedSession?.access_token) {
-              setIsSessionReady(true);
-              console.log("✅ UnifiedAuth v30.0 - Session verified ready in Supabase client");
-            } else {
-              console.warn("⚠️ UnifiedAuth v30.0 - Session not found in Supabase client after wait");
-              setIsSessionReady(false);
-            }
+            // CRITICAL FIX v40.0: Set session ready IMMEDIATELY after successful conversion
+            // No delay needed - session is already in Supabase client from setSession() call
+            setIsSessionReady(true);
+            console.log("✅ UnifiedAuth v40.0 - Session ready immediately after SIGNED_IN");
 
             // Set Sentry user context
             setSentryUser({
@@ -961,16 +950,9 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true;
               
-              // Wait for propagation then set session ready
-              await new Promise(resolve => setTimeout(resolve, 800));
-              
-              const { data: { session: verifiedSession } } = await supabase.auth.getSession();
-              if (verifiedSession?.access_token) {
-                setIsSessionReady(true);
-                console.log("✅ UnifiedAuth - INITIAL_SESSION processed, session ready");
-              } else {
-                setIsSessionReady(false);
-              }
+              // CRITICAL FIX v40.0: Set session ready IMMEDIATELY
+              setIsSessionReady(true);
+              console.log("✅ UnifiedAuth v40.0 - INITIAL_SESSION processed, session ready immediately");
               
               fetchUserOrganizations(user).catch(console.warn);
             } catch (error) {
@@ -1032,23 +1014,11 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
               setLoading(false);
               initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true; // Mark that we've successfully initialized
-              console.log("🚀 UnifiedAuth v30.0 - Initial auth complete, waiting for session propagation...");
+              console.log("🚀 UnifiedAuth v40.0 - Initial auth complete");
 
-              // CRITICAL FIX: Wait for Supabase client session propagation before allowing queries
-              console.log("🚀 UnifiedAuth v30.0 - Waiting for Supabase client session propagation...");
-              await new Promise((resolve) => setTimeout(resolve, 1200)); // 1.2s delay for propagation
-
-              // Verify session is available in Supabase client
-              const {
-                data: { session: verifiedSession },
-              } = await supabase.auth.getSession();
-              if (verifiedSession?.access_token) {
-                setIsSessionReady(true);
-                console.log("✅ UnifiedAuth v30.0 - Session verified ready in Supabase client");
-              } else {
-                console.warn("⚠️ UnifiedAuth v30.0 - Session not found in Supabase client after wait");
-                setIsSessionReady(false);
-              }
+              // CRITICAL FIX v40.0: Set session ready IMMEDIATELY - session already in client
+              setIsSessionReady(true);
+              console.log("✅ UnifiedAuth v40.0 - Session ready immediately after getSession()");
 
               // Fetch organizations in background WITHOUT blocking UI
               fetchUserOrganizations(user).catch((orgError) => {

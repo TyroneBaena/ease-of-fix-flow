@@ -1,10 +1,11 @@
 /**
- * Tab Visibility Coordinator v39.0 - Session-Aware Refresh
+ * Tab Visibility Coordinator v40.0 - Consolidated Session Management
  *
- * Coordinates data refreshes on tab revisit while respecting session state.
- * - Waits for session to be ready before triggering data refreshes
- * - Session restoration handled by App.tsx (HttpOnly rehydration)
- * - Smart coordination between auth context and data providers
+ * CRITICAL: Now handles BOTH session restoration AND data refresh
+ * - Calls App.tsx rehydrateSessionFromServer() on tab revisit
+ * - Then triggers data provider refreshes
+ * - Single source of truth for tab revisit workflow
+ * - Eliminates race conditions from multiple event listeners
  */
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
@@ -91,8 +92,8 @@ class VisibilityCoordinator {
   };
 
   /**
-   * Coordinate data refresh when tab becomes visible again
-   * v39.0: Session-aware - waits for session ready before triggering refreshes
+   * Coordinate session restoration + data refresh when tab becomes visible
+   * v40.0: Consolidated - handles BOTH session restore AND data refresh
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
@@ -100,19 +101,41 @@ class VisibilityCoordinator {
       return;
     }
 
-    // CRITICAL: Check if session is ready before proceeding
-    if (this.sessionReadyCallback && !this.sessionReadyCallback()) {
-      console.log('⏳ v39.0 - Session not ready yet, deferring refresh. Data providers will auto-fetch when ready.');
-      return;
-    }
-
     this.isRefreshing = true;
     const coordinatorStartTime = Date.now();
-    console.log(`🔁 v39.0 - Coordinating data refresh (${this.refreshHandlers.length} handlers)...`);
+    console.log(`🔁 v40.0 - Starting coordinated tab revisit workflow...`);
 
     try {
-      // Execute all data handlers in parallel
-      // Auth/session restoration is handled by App.tsx rehydrateSessionFromServer
+      // STEP 1: Restore session from HttpOnly cookie
+      console.log("📡 v40.0 - Step 1: Restoring session from server...");
+      const { rehydrateSessionFromServer } = await import('@/App');
+      const restored = await rehydrateSessionFromServer();
+      
+      if (restored) {
+        console.log("✅ v40.0 - Session restored successfully");
+        
+        // STEP 2: Wait for session to propagate to context
+        console.log("⏳ v40.0 - Step 2: Waiting for session ready...");
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds max wait (20 * 100ms)
+        
+        while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
+        if (this.sessionReadyCallback && this.sessionReadyCallback()) {
+          console.log(`✅ v40.0 - Session ready after ${attempts * 100}ms`);
+        } else {
+          console.warn("⚠️ v40.0 - Session ready timeout, proceeding anyway");
+        }
+      } else {
+        console.warn("⚠️ v40.0 - Session restore failed, skipping data refresh");
+        return;
+      }
+
+      // STEP 3: Execute all data refresh handlers in parallel
+      console.log(`🔁 v40.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
       if (this.refreshHandlers.length > 0) {
         await Promise.all(
           this.refreshHandlers.map(async (handler) => {
@@ -123,14 +146,14 @@ class VisibilityCoordinator {
             }
           })
         );
-        console.log("✅ All data handlers completed");
+        console.log("✅ v40.0 - All data handlers completed");
       }
     } catch (error) {
-      console.error("❌ Error during coordinated refresh", error);
+      console.error("❌ v40.0 - Error during coordinated refresh:", error);
     } finally {
       this.isRefreshing = false;
       const totalDuration = Date.now() - coordinatorStartTime;
-      console.log(`✅ v39.0 - Coordinator complete in ${totalDuration}ms`);
+      console.log(`✅ v40.0 - Coordinator complete in ${totalDuration}ms`);
     }
   }
 }

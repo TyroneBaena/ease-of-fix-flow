@@ -911,7 +911,7 @@ import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 
 // Session rehydration from secure HttpOnly cookie
-async function rehydrateSessionFromServer(): Promise<boolean> {
+export async function rehydrateSessionFromServer(): Promise<boolean> {
   console.log("%cREHYDRATING SESSION FROM SERVER...", "color: cyan; font-weight: bold;");
   try {
     const SESSION_FN =
@@ -1084,40 +1084,13 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
-  // 1. Initial load rehydration
+  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator
   useEffect(() => {
+    console.log("🔧 App.tsx - Initial load rehydration");
     // Clean up old v37 storage first
     cleanupOldAuthStorage();
-    // Then rehydrate from HttpOnly cookies
+    // Then rehydrate from HttpOnly cookies ONCE on initial load
     rehydrateSessionFromServer().then(() => setRehydrated(true));
-  }, []);
-
-  // 2. TAB REVISIT / FOCUS RESTORE
-  useEffect(() => {
-    const handleRestore = async () => {
-      if (document.visibilityState === "visible" || document.hasFocus()) {
-        // Rehydrate session when tab becomes visible
-        const restored = await rehydrateSessionFromServer();
-        if (restored) {
-          console.log(
-            "%cTAB REVISIT - SESSION RESTORED",
-            "color: gold; background: black; font-size: 18px; font-weight: bold;",
-          );
-        }
-      }
-    };
-
-    // Run on mount + every focus/visibility change
-    handleRestore();
-    document.addEventListener("visibilitychange", handleRestore);
-    window.addEventListener("focus", handleRestore);
-    window.addEventListener("pageshow", handleRestore);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleRestore);
-      window.removeEventListener("focus", handleRestore);
-      window.removeEventListener("pageshow", handleRestore);
-    };
   }, []);
 
   if (!rehydrated) {
@@ -1133,8 +1106,8 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <TabVisibilityProvider>
-            <UnifiedAuthProvider>
+          <UnifiedAuthProvider>
+            <TabVisibilityProvider>
               <UserProvider>
                 <SubscriptionProvider>
                   <MaintenanceRequestProvider>
@@ -1147,8 +1120,8 @@ const App: React.FC = () => {
                   </MaintenanceRequestProvider>
                 </SubscriptionProvider>
               </UserProvider>
-            </UnifiedAuthProvider>
-          </TabVisibilityProvider>
+            </TabVisibilityProvider>
+          </UnifiedAuthProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
