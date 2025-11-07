@@ -24,17 +24,27 @@
 
 import { supabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { QueryClient } from '@tanstack/react-query';
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
 type ErrorHandler = (error: 'SESSION_EXPIRED' | 'SESSION_FAILED') => void;
 
+// Feature flag: Enable auto-recovery from stuck loading states
+const ENABLE_AUTO_RECOVERY = true;
+
+// Watchdog timeout: Detect stuck states after this duration
+const WATCHDOG_TIMEOUT_MS = 45000; // 45 seconds
+
 class VisibilityCoordinator {
   private isRefreshing = false;
   private isCoordinating = false;
+  private isRecovering = false;
   private refreshHandlers: RefreshHandler[] = [];
   private pendingHandlers: RefreshHandler[] = [];
   private isListening = false;
   private abortController: AbortController | null = null;
+  private watchdogTimer: NodeJS.Timeout | null = null;
+  private queryClient: QueryClient | null = null;
   
   // UI feedback callbacks
   private tabRefreshCallbacks: ((isRefreshing: boolean) => void)[] = [];
@@ -68,6 +78,21 @@ class VisibilityCoordinator {
   
   private notifyError(error: 'SESSION_EXPIRED' | 'SESSION_FAILED') {
     this.errorHandlers.forEach(callback => callback(error));
+  }
+
+  /**
+   * Set QueryClient for soft recovery operations
+   */
+  public setQueryClient(client: QueryClient) {
+    this.queryClient = client;
+    console.log("🔧 Watchdog - QueryClient registered for soft recovery");
+  }
+
+  /**
+   * Get current recovery state
+   */
+  public getRecoveryState() {
+    return this.isRecovering;
   }
 
   // v67.0: Removed setSessionReadyCallback - no longer needed
@@ -153,11 +178,130 @@ class VisibilityCoordinator {
   };
 
   /**
-   * v67.0 - Simplified: Just run handlers, no session restoration
+   * v68.0 - Soft Recovery: Reset stuck states and re-fetch data
+   * Called by watchdog when loading state exceeds threshold
+   */
+  private async softRecovery() {
+    if (!ENABLE_AUTO_RECOVERY) {
+      console.warn("🚨 Watchdog - Auto-recovery is disabled");
+      return;
+    }
+
+    if (this.isRecovering) {
+      console.warn("🚨 Watchdog - Recovery already in progress, skipping");
+      return;
+    }
+
+    this.isRecovering = true;
+    const recoveryStart = Date.now();
+    console.log("═══════════════════════════════════════════════════");
+    console.log("🚨 Watchdog - STUCK STATE DETECTED! Starting soft recovery...");
+    console.log("═══════════════════════════════════════════════════");
+
+    try {
+      // Step 1: Force reset loading states
+      console.log("🔧 Watchdog - Step 1: Forcing isRefreshing = false");
+      this.isRefreshing = false;
+      this.isCoordinating = false;
+      this.notifyTabRefreshChange(false);
+
+      // Step 2: Clear all timeouts and abort controllers
+      console.log("🔧 Watchdog - Step 2: Clearing timeouts and abort controllers");
+      if (this.watchdogTimer) {
+        clearTimeout(this.watchdogTimer);
+        this.watchdogTimer = null;
+      }
+      if (this.abortController) {
+        this.abortController.abort();
+        this.abortController = null;
+      }
+
+      // Step 3: React Query recovery
+      if (this.queryClient) {
+        console.log("🔧 Watchdog - Step 3: React Query recovery (cancel + invalidate + refetch)");
+        
+        // Cancel all ongoing queries
+        await this.queryClient.cancelQueries();
+        console.log("   ✅ Canceled all queries");
+        
+        // Invalidate all queries to mark as stale
+        await this.queryClient.invalidateQueries();
+        console.log("   ✅ Invalidated all queries");
+        
+        // Refetch all active queries
+        await this.queryClient.refetchQueries({ type: 'active' });
+        console.log("   ✅ Refetched active queries");
+      } else {
+        console.warn("⚠️ Watchdog - QueryClient not available, skipping React Query recovery");
+      }
+
+      // Step 4: Re-validate session
+      console.log("🔧 Watchdog - Step 4: Re-validating session");
+      try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) {
+          console.error("❌ Watchdog - Session validation failed:", error);
+          this.notifyError('SESSION_FAILED');
+        } else if (session) {
+          console.log("   ✅ Session valid");
+        } else {
+          console.warn("   ⚠️ No active session");
+          this.notifyError('SESSION_EXPIRED');
+        }
+      } catch (err) {
+        console.error("❌ Watchdog - Session validation error:", err);
+      }
+
+      const recoveryDuration = Date.now() - recoveryStart;
+      console.log("═══════════════════════════════════════════════════");
+      console.log(`✅ Watchdog - Soft recovery complete in ${recoveryDuration}ms`);
+      console.log("═══════════════════════════════════════════════════");
+
+    } catch (error: any) {
+      const recoveryDuration = Date.now() - recoveryStart;
+      console.error(`❌ Watchdog - Recovery failed after ${recoveryDuration}ms:`, error);
+      toast.error("Recovery failed. Please refresh the page manually.");
+    } finally {
+      this.isRecovering = false;
+    }
+  }
+
+  /**
+   * v68.0 - Start watchdog timer to detect stuck loading states
+   */
+  private startWatchdog() {
+    if (!ENABLE_AUTO_RECOVERY) return;
+
+    // Clear any existing watchdog
+    if (this.watchdogTimer) {
+      clearTimeout(this.watchdogTimer);
+    }
+
+    console.log(`🐕 Watchdog - Started (${WATCHDOG_TIMEOUT_MS}ms timeout)`);
+
+    this.watchdogTimer = setTimeout(() => {
+      console.error("🚨 Watchdog - TIMEOUT! Loading state stuck for > 45s");
+      this.softRecovery();
+    }, WATCHDOG_TIMEOUT_MS);
+  }
+
+  /**
+   * v68.0 - Stop watchdog timer (normal completion)
+   */
+  private stopWatchdog() {
+    if (this.watchdogTimer) {
+      clearTimeout(this.watchdogTimer);
+      this.watchdogTimer = null;
+      console.log("🐕 Watchdog - Stopped (normal completion)");
+    }
+  }
+
+  /**
+   * v68.0 - Simplified coordinator with watchdog protection
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v67.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v68.0 - Refresh already in progress, skipping");
       return;
     }
 
@@ -165,14 +309,17 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v67.0 - Starting tab revisit (handler orchestration only)");
+    console.log("🔁 v68.0 - Starting tab revisit with watchdog protection");
+
+    // v68.0: Start watchdog to detect stuck states
+    this.startWatchdog();
 
     this.abortController = new AbortController();
 
-    // v67.0: 60s overall timeout (generous, each handler has its own 30s timeout)
+    // v68.0: 60s overall timeout (generous, each handler has its own 30s timeout)
     const overallTimeout = new Promise((_, reject) => 
       setTimeout(() => {
-        console.error("🚨 v67.0 - Overall timeout reached after 60s");
+        console.error("🚨 v68.0 - Overall timeout reached after 60s");
         this.abortController?.abort();
         reject(new Error('Overall coordination timeout'));
       }, 60000)
@@ -185,18 +332,21 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v67.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v68.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v67.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v68.0 - Coordination failed after ${duration}ms:`, error);
       
-      // v67.0: Don't assume it's a session error - let handlers decide
+      // v68.0: Don't assume it's a session error - let handlers decide
       toast.error("Some data may not have loaded. Please refresh if needed.");
     } finally {
+      // v68.0: Stop watchdog on normal completion
+      this.stopWatchdog();
+
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
-        console.log(`📋 v67.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        console.log(`📋 v68.0 - Processing ${this.pendingHandlers.length} pending handlers`);
         const handlersToProcess = [...this.pendingHandlers];
         this.pendingHandlers = [];
         
@@ -215,27 +365,27 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v67.0 - Simplified: Just run handlers with timeout protection
+   * v68.0 - Simplified: Just run handlers with timeout protection
    * Session restoration is handled by UnifiedAuthContext.refreshAuth handler
    */
   private async executeHandlers() {
     console.log("═══════════════════════════════════════════════════");
-    console.log(`🔁 v67.0 - Running ${this.refreshHandlers.length} handlers...`);
+    console.log(`🔁 v68.0 - Running ${this.refreshHandlers.length} handlers...`);
     console.log("═══════════════════════════════════════════════════");
     
     if (this.refreshHandlers.length === 0) {
-      console.warn("⚠️ v67.0 - No handlers registered");
+      console.warn("⚠️ v68.0 - No handlers registered");
       return;
     }
     
     const handlerTimeout = 30000; // 30s per handler
     const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
       const handlerStart = Date.now();
-      console.log(`▶️ v67.0 - Handler ${index + 1} starting...`);
+      console.log(`▶️ v68.0 - Handler ${index + 1} starting...`);
       
       try {
         if (this.abortController?.signal.aborted) {
-          console.warn(`⚠️ v67.0 - Handler ${index + 1} aborted`);
+          console.warn(`⚠️ v68.0 - Handler ${index + 1} aborted`);
           return;
         }
         
@@ -247,10 +397,10 @@ class VisibilityCoordinator {
         ]);
         
         const duration = Date.now() - handlerStart;
-        console.log(`✅ v67.0 - Handler ${index + 1} done in ${duration}ms`);
+        console.log(`✅ v68.0 - Handler ${index + 1} done in ${duration}ms`);
       } catch (err) {
         const duration = Date.now() - handlerStart;
-        console.error(`❌ v67.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
+        console.error(`❌ v68.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
       }
     });
     
@@ -259,7 +409,7 @@ class VisibilityCoordinator {
     const failed = results.filter(r => r.status === 'rejected').length;
     
     console.log("═══════════════════════════════════════════════════");
-    console.log(`✅ v67.0 - Handlers complete: ${successful} ok, ${failed} failed`);
+    console.log(`✅ v68.0 - Handlers complete: ${successful} ok, ${failed} failed`);
     console.log("═══════════════════════════════════════════════════");
   }
 }
