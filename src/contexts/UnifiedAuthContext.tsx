@@ -147,7 +147,7 @@ let conversionPromise: Promise<User> | null = null;
 const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
   // CRITICAL: Prevent duplicate conversions
   if (isConverting && conversionPromise) {
-    console.log("🔄 UnifiedAuth v50.0 - Deduplicating convertSupabaseUser call");
+    console.log("🔄 UnifiedAuth v51.0 - Deduplicating convertSupabaseUser call");
     return conversionPromise;
   }
 
@@ -155,7 +155,7 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
   
   conversionPromise = (async () => {
     try {
-      console.log("🔄 UnifiedAuth v50.0 - convertSupabaseUser called for:", supabaseUser.email);
+      console.log("🔄 UnifiedAuth v51.0 - convertSupabaseUser called for:", supabaseUser.email);
 
       // CRITICAL FIX: Add AbortSignal with aggressive timeout to prevent hanging
       const abortController = new AbortController();
@@ -298,8 +298,8 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // User management state
   const [users, setUsers] = useState<User[]>([]);
 
-  // CRITICAL FIX: Track if this is a background refresh to prevent loading cascades
-  const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false);
+  // v51.0: Deduplication tracking
+  const deduplicationRef = useRef({ isConverting: false, promise: null as Promise<User> | null });
 
   // CRITICAL: Create refs to hold current session/user for visibility coordinator
   // These refs are updated whenever session/user changes to prevent stale closures
@@ -754,76 +754,75 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Register auth refresh with visibility coordinator
-  // v50.0: REMOVED duplicate convertSupabaseUser() call - let onAuthStateChange handle it
+  // v51.0: Simple session verification, no conversion needed
   useEffect(() => {
     const refreshAuth = async (): Promise<boolean> => {
-      console.log("🔄 UnifiedAuth v50.0 - Verifying session after tab revisit");
+      console.log("🔄 UnifiedAuth v51.0 - Verifying session after tab revisit");
       
       // Simply verify session exists - onAuthStateChange will handle user conversion
       try {
         const { data: { session: clientSession } } = await supabase.auth.getSession();
         
         if (clientSession?.access_token) {
-          console.log("✅ UnifiedAuth v50.0 - Session verified, waiting for auth state listener");
+          console.log("✅ UnifiedAuth v51.0 - Session verified in client");
           return true;
         } else {
-          console.warn("⚠️ UnifiedAuth v50.0 - No session found");
+          console.warn("⚠️ UnifiedAuth v51.0 - No session found in client");
           setIsSessionReady(false);
           return false;
         }
       } catch (error) {
-        console.error("❌ UnifiedAuth v50.0 - Session verification failed:", error);
+        console.error("❌ UnifiedAuth v51.0 - Session verification failed:", error);
         setIsSessionReady(false);
         return false;
       }
     };
 
     const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log("🔄 UnifiedAuth v50.0 - Registered session verifier with coordinator");
+    console.log("🔄 UnifiedAuth v51.0 - Registered session verifier with coordinator");
 
     return () => {
       unregister();
-      console.log("🔄 UnifiedAuth v50.0 - Cleanup: Unregistered from coordinator");
+      console.log("🔄 UnifiedAuth v51.0 - Cleanup: Unregistered from coordinator");
     };
   }, []);
 
   useEffect(() => {
-    console.log("🚀 UnifiedAuth v50.0 - Starting auth initialization at:", new Date().toISOString());
+    console.log("🚀 UnifiedAuth v51.0 - Starting auth initialization at:", new Date().toISOString());
     const startTime = performance.now();
-    console.log("🚀 UnifiedAuth v50.0 - Setting up SINGLE auth listener", { authDebugMarker });
+    console.log("🚀 UnifiedAuth v51.0 - Setting up SINGLE auth listener", { authDebugMarker });
 
     // Set up ONE auth state listener - this is the ONLY place that calls convertSupabaseUser
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🚀 UnifiedAuth v50.0 - Auth state changed:", event, "Session exists:", !!session);
+      console.log("🚀 UnifiedAuth v51.0 - Auth state changed:", event, "Session exists:", !!session);
 
       if (event === "SIGNED_IN" && session?.user) {
-        console.log("🚀 UnifiedAuth v50.0 - SIGNED_IN event, user email:", session.user.email);
+        console.log("🚀 UnifiedAuth v51.0 - SIGNED_IN event, user email:", session.user.email);
 
         // Set session immediately (non-async)
         setSession(session);
-        console.log("🚀 UnifiedAuth v50.0 - Session set, starting user conversion...");
+        console.log("🚀 UnifiedAuth v51.0 - Session set, starting user conversion...");
 
         // CRITICAL FIX: Use setTimeout to defer async Supabase calls to prevent deadlocks
         // This is the official Supabase recommendation to avoid auth callback deadlocks
         setTimeout(async () => {
           try {
-            console.log("🚀 UnifiedAuth v50.0 - Starting deferred user conversion...");
+            console.log("🚀 UnifiedAuth v51.0 - Starting deferred user conversion...");
             const user = await convertSupabaseUser(session.user);
-            console.log("🚀 UnifiedAuth v50.0 - User converted:", user.email, "org_id:", user.organization_id);
+            console.log("🚀 UnifiedAuth v51.0 - User converted:", user.email, "org_id:", user.organization_id);
 
             // CRITICAL: Set user first so components can start rendering
             setCurrentUser(user);
-            console.log("🚀 UnifiedAuth v50.0 - User set, marking auth as loaded");
+            console.log("🚀 UnifiedAuth v51.0 - User set, marking auth as loaded");
 
             // Mark loading as false FIRST so UI can start rendering
             setLoading(false);
 
-            // CRITICAL FIX v50.0: Set session ready IMMEDIATELY after successful conversion
-            // No delay needed - session is already in Supabase client from setSession() call
+            // CRITICAL FIX v51.0: Set session ready IMMEDIATELY after successful conversion
             setIsSessionReady(true);
-            console.log("✅ UnifiedAuth v50.0 - Session ready immediately after SIGNED_IN");
+            console.log("✅ UnifiedAuth v51.0 - Session ready after SIGNED_IN");
 
             // Set Sentry user context
             setSentryUser({
@@ -835,10 +834,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
             // Fetch organizations in background WITHOUT blocking UI
             fetchUserOrganizations(user).catch((orgError) => {
-              console.warn("🚀 UnifiedAuth v50.0 - Non-critical org fetch error:", orgError);
+              console.warn("🚀 UnifiedAuth v51.0 - Non-critical org fetch error:", orgError);
             });
           } catch (error) {
-            console.error("🚀 UnifiedAuth v50.0 - Error in deferred user conversion:", error);
+            console.error("🚀 UnifiedAuth v51.0 - Error in deferred user conversion:", error);
             setCurrentUser(null);
             setSession(null);
             setIsSessionReady(false);
@@ -849,7 +848,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }, 0);
       } else if (event === "SIGNED_OUT") {
-        console.log("🚀 UnifiedAuth v50.0 - SIGNED_OUT event");
+        console.log("🚀 UnifiedAuth v51.0 - SIGNED_OUT event");
         setLoading(false);
         setCurrentUser(null);
         setSession(null);
@@ -862,14 +861,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setSentryUser(null);
       } else if (event === "TOKEN_REFRESHED" && session) {
         console.log(
-          "🚀 UnifiedAuth v50.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally",
+          "🚀 UnifiedAuth v51.0 - TOKEN_REFRESHED event - No action needed, Supabase handles tokens internally",
         );
         // CRITICAL FIX: Do NOT update session state on TOKEN_REFRESHED
         // Supabase client handles token refresh internally and maintains the real session
         // Updating our state snapshot here causes unnecessary re-renders and loading flashes
         // Our session state is just a reference - Supabase keeps it valid automatically
       } else if (event === "USER_UPDATED" && session?.user) {
-        console.log("🚀 UnifiedAuth v50.0 - USER_UPDATED event");
+        console.log("🚀 UnifiedAuth v51.0 - USER_UPDATED event");
         // Use setTimeout for USER_UPDATED as well
         setTimeout(async () => {
           try {
@@ -887,7 +886,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
             await fetchUserOrganizations(user);
           } catch (error) {
-            console.error("🚀 UnifiedAuth v12.0 - Error converting updated user:", error);
+            console.error("🚀 UnifiedAuth v51.0 - Error converting updated user:", error);
           }
         }, 0);
       } else if (event === "INITIAL_SESSION") {

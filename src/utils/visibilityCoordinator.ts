@@ -1,22 +1,24 @@
 /**
- * Tab Visibility Coordinator v50.0 - Eliminated Duplicate Queries
+ * Tab Visibility Coordinator v51.0 - Fixed Handler Cleanup & Timeout
  *
- * CRITICAL FIX: Removed duplicate convertSupabaseUser() call to prevent
- * race conditions and connection pool exhaustion on multiple revisits.
+ * CRITICAL FIXES:
+ * 1. Removed setSession() timeout that was causing false failures
+ * 2. Added overall timeout to coordinateRefresh() flow
+ * 3. Fixed handler cleanup to prevent accumulation
  *
  * CORE FLOW:
  * 1. Tab visible → Show loader
- * 2. Restore session on app's singleton client (triggers onAuthStateChange)
- * 3. Wait for session ready in React context (after auth listener completes)
- * 4. Trigger data refresh handlers (verify session only, no conversion)
+ * 2. Restore session on app's singleton client (no timeout on setSession)
+ * 3. Wait for session ready in React context (with overall timeout)
+ * 4. Trigger data refresh handlers
  * 5. Hide loader
  * 
  * FEATURES:
  * - Single restore operation at a time (no race conditions)
  * - No duplicate database queries (auth listener handles user conversion)
- * - Clean error handling with user feedback
+ * - Overall timeout protection (20s) instead of per-operation timeouts
+ * - Proper handler cleanup to prevent accumulation
  * - Session expiration detection
- * - Simple, sequential logic
  */
 
 import { rehydrateSessionFromServer } from '@/utils/sessionRehydration';
@@ -75,19 +77,22 @@ class VisibilityCoordinator {
   }
 
   /**
-   * Register data refresh handler
+   * Register data refresh handler with proper cleanup
    */
   public onRefresh(handler: RefreshHandler): () => void {
-    if (!this.refreshHandlers.includes(handler)) {
-      this.refreshHandlers.push(handler);
-      console.log(`📝 v50.0 - Registered refresh handler (total: ${this.refreshHandlers.length})`);
-    }
+    // CRITICAL FIX: Always add handler, even if it looks like a duplicate
+    // The handler reference should be unique per component mount
+    this.refreshHandlers.push(handler);
+    console.log(`📝 v51.0 - Registered refresh handler (total: ${this.refreshHandlers.length})`);
 
+    // Return cleanup function that removes THIS specific handler
     return () => {
       const index = this.refreshHandlers.indexOf(handler);
       if (index > -1) {
         this.refreshHandlers.splice(index, 1);
-        console.log(`🗑️ v50.0 - Unregistered refresh handler (remaining: ${this.refreshHandlers.length})`);
+        console.log(`🗑️ v51.0 - Unregistered refresh handler (remaining: ${this.refreshHandlers.length})`);
+      } else {
+        console.warn(`⚠️ v51.0 - Handler not found during cleanup (total: ${this.refreshHandlers.length})`);
       }
     };
   }
@@ -126,92 +131,117 @@ class VisibilityCoordinator {
   };
 
   /**
-   * Main coordination logic - v50.0 eliminates duplicate queries
+   * Main coordination logic - v51.0 with overall timeout protection
    */
   private async coordinateRefresh() {
     // Prevent overlapping restores
     if (this.isRefreshing) {
-      console.warn("⚙️ v50.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v51.0 - Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true); // Show loader
     const startTime = Date.now();
-    console.log("🔁 v50.0 - Starting tab revisit workflow");
+    console.log("🔁 v51.0 - Starting tab revisit workflow with overall timeout");
+
+    // CRITICAL FIX: Overall timeout for entire flow (20 seconds)
+    const overallTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Overall coordination timeout')), 20000)
+    );
 
     try {
-      // STEP 1: Restore session on singleton client (triggers onAuthStateChange)
-      console.log("📡 v50.0 - Step 1: Restoring session (will trigger auth listener)...");
-      const restored = await rehydrateSessionFromServer();
-      
-      if (!restored) {
-        this.consecutiveFailures++;
-        console.error(`❌ v50.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
-        
-        if (this.consecutiveFailures >= 2) {
-          console.error("🚨 v50.0 - Session expired");
-          toast.error("Your session has expired. Please log in again.", {
-            duration: 5000,
-            position: 'top-center'
-          });
-          this.notifyError('SESSION_EXPIRED');
-        } else {
-          toast.warning("Session restoration failed. Please refresh if issues persist.", {
-            duration: 4000
-          });
-          this.notifyError('SESSION_FAILED');
-        }
-        return;
-      }
-      
-      this.consecutiveFailures = 0;
-      console.log("✅ v50.0 - Session restored (auth listener processing user conversion)");
-      
-      // STEP 2: Wait for session ready in React context (after auth listener completes)
-      console.log("⏳ v50.0 - Step 2: Waiting for auth listener to complete...");
-      let attempts = 0;
-      const maxAttempts = 50; // 5 seconds max (increased for profile query time)
-      
-      while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-      
-      if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-        console.log(`✅ v50.0 - Auth listener completed after ${attempts * 100}ms`);
-      } else {
-        console.error("❌ v50.0 - Auth listener timeout");
-        toast.error("Session propagation timeout. Please refresh.");
-        return;
-      }
-      
-      // STEP 3: Trigger data refresh handlers (they just verify session, no conversion)
-      console.log(`🔁 v50.0 - Step 3: Verifying session (${this.refreshHandlers.length} handlers)`);
-      if (this.refreshHandlers.length > 0) {
-        await Promise.all(
-          this.refreshHandlers.map(async (handler) => {
-            try {
-              await handler();
-            } catch (err) {
-              console.error("❌ v50.0 - Handler error:", err);
-            }
-          })
-        );
-      }
+      await Promise.race([
+        this.executeRefreshFlow(),
+        overallTimeout
+      ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v50.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v51.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       toast.success("Data refreshed", { duration: 2000 });
       
-    } catch (error) {
-      console.error("❌ v50.0 - Fatal error:", error);
-      toast.error("Failed to restore session. Please refresh the page.");
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ v51.0 - Coordination failed after ${duration}ms:`, error);
+      
+      if (error.message === 'Overall coordination timeout') {
+        console.error("🚨 v51.0 - Overall timeout reached");
+        toast.error("Session restoration timeout. Please refresh the page.");
+      } else {
+        toast.error("Failed to restore session. Please refresh the page.");
+      }
+      
       this.notifyError('SESSION_FAILED');
     } finally {
       this.isRefreshing = false;
       this.notifyTabRefreshChange(false); // Hide loader
     }
+  }
+
+  /**
+   * Execute the refresh flow steps
+   */
+  private async executeRefreshFlow() {
+    // STEP 1: Restore session on singleton client
+    console.log("📡 v51.0 - Step 1: Restoring session...");
+    const restored = await rehydrateSessionFromServer();
+    
+    if (!restored) {
+      this.consecutiveFailures++;
+      console.error(`❌ v51.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
+      
+      if (this.consecutiveFailures >= 2) {
+        console.error("🚨 v51.0 - Session expired after multiple failures");
+        toast.error("Your session has expired. Please log in again.", {
+          duration: 5000,
+          position: 'top-center'
+        });
+        this.notifyError('SESSION_EXPIRED');
+      } else {
+        toast.warning("Session restoration failed. Retrying on next visit.", {
+          duration: 4000
+        });
+        this.notifyError('SESSION_FAILED');
+      }
+      throw new Error('Session restoration failed');
+    }
+    
+    this.consecutiveFailures = 0;
+    console.log("✅ v51.0 - Session restored successfully");
+    
+    // STEP 2: Wait for session ready in React context
+    console.log("⏳ v51.0 - Step 2: Waiting for auth listener to complete...");
+    let attempts = 0;
+    const maxAttempts = 100; // 10 seconds max for auth listener
+    
+    while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (this.sessionReadyCallback && this.sessionReadyCallback()) {
+      console.log(`✅ v51.0 - Auth listener completed after ${attempts * 100}ms`);
+    } else {
+      console.error("❌ v51.0 - Auth listener timeout after 10s");
+      throw new Error('Auth listener timeout');
+    }
+    
+    // STEP 3: Trigger data refresh handlers
+    console.log(`🔁 v51.0 - Step 3: Running refresh handlers (${this.refreshHandlers.length} registered)`);
+    if (this.refreshHandlers.length > 0) {
+      await Promise.all(
+        this.refreshHandlers.map(async (handler, index) => {
+          try {
+            console.log(`🔁 v51.0 - Running handler ${index + 1}/${this.refreshHandlers.length}`);
+            await handler();
+          } catch (err) {
+            console.error(`❌ v51.0 - Handler ${index + 1} error:`, err);
+          }
+        })
+      );
+    }
+    
+    console.log("✅ v51.0 - All refresh handlers completed");
   }
 }
 
