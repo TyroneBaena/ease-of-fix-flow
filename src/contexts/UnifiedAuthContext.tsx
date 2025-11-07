@@ -822,12 +822,12 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             setCurrentUser(user);
             console.log("🚀 UnifiedAuth v60.0 - User set, marking auth as loaded");
 
-            // Mark loading as false FIRST so UI can start rendering
-            setLoading(false);
-
-            // CRITICAL FIX v60.0: Set session ready IMMEDIATELY after successful conversion
+            // CRITICAL FIX v60.0: Set session ready BEFORE loading becomes false
             setIsSessionReady(true);
             console.log("✅ UnifiedAuth v60.0 - Session ready after SIGNED_IN");
+
+            // Mark loading as false AFTER session ready (prevents query race condition)
+            setLoading(false);
 
             // Set Sentry user context
             setSentryUser({
@@ -906,13 +906,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             try {
               const user = await convertSupabaseUser(session.user);
               setCurrentUser(user);
+              
+              // CRITICAL FIX v60.0: Set session ready BEFORE loading becomes false
+              setIsSessionReady(true);
+              console.log("✅ UnifiedAuth v60.0 - INITIAL_SESSION processed, session ready immediately");
+              
               setLoading(false);
               initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true;
-              
-              // CRITICAL FIX v60.0: Set session ready IMMEDIATELY
-              setIsSessionReady(true);
-              console.log("✅ UnifiedAuth v60.0 - INITIAL_SESSION processed, session ready immediately");
               
               fetchUserOrganizations(user).catch(console.warn);
             } catch (error) {
@@ -969,16 +970,18 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 user.organization_id,
               );
 
-              // CRITICAL: Set user and mark as ready FIRST
+              // CRITICAL: Set user and session ready FIRST
               setCurrentUser(user);
+              
+              // CRITICAL FIX v60.0: Set session ready BEFORE loading becomes false (prevents query race)
+              setIsSessionReady(true);
+              console.log("✅ UnifiedAuth v60.0 - Session ready immediately after getSession()");
+              
+              // Mark as complete AFTER session ready
               setLoading(false);
               initialCheckDone.current = true;
               hasCompletedInitialSetup.current = true; // Mark that we've successfully initialized
               console.log("🚀 UnifiedAuth v60.0 - Initial auth complete");
-
-              // CRITICAL FIX v60.0: Set session ready IMMEDIATELY - session already in client
-              setIsSessionReady(true);
-              console.log("✅ UnifiedAuth v60.0 - Session ready immediately after getSession()");
 
               // Fetch organizations in background WITHOUT blocking UI
               fetchUserOrganizations(user).catch((orgError) => {
