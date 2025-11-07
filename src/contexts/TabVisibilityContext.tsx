@@ -1,16 +1,16 @@
-import React, { createContext, useContext, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
-import { useUnifiedAuth } from './UnifiedAuthContext';
 
 /**
- * v60.0 - SINGLE session ready callback registration (cookie-based session)
+ * v67.0 - Simplified visibility coordinator management
  * 
- * ARCHITECTURE:
- * 1. This is the ONLY place that registers session ready callback
- * 2. Uses ref to access CURRENT auth state (not stale closure)
- * 3. Cookie-based session restoration via /session endpoint
+ * ARCHITECTURE CHANGE (v67.0):
+ * - No longer registers session ready callback (coordinator doesn't wait for session)
+ * - Session management is fully delegated to UnifiedAuthContext handler
+ * - Coordinator only manages handler orchestration
  * 
  * PREVIOUS FIXES:
+ * v60.0 - Registered session ready callback (REMOVED in v67.0)
  * v56.0 - Removed duplicate callback registration from UnifiedAuthContext
  * v55.0 - Session ready callback uses ref for current values
  */
@@ -34,40 +34,17 @@ interface TabVisibilityProviderProps {
 }
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
-  const { isSessionReady, currentUser } = useUnifiedAuth();
-  
-  // CRITICAL v55.0: Use ref to hold CURRENT auth state for session ready callback
-  const authStateRef = useRef({ isSessionReady, currentUser });
-  
-  // Update ref whenever auth state changes
-  useEffect(() => {
-    authStateRef.current = { isSessionReady, currentUser };
-    console.log('🔄 v55.0 - Auth state updated in ref:', { 
-      isSessionReady, 
-      hasUser: !!currentUser?.id 
-    });
-  }, [isSessionReady, currentUser]);
+  // v67.0: Removed auth state tracking - no longer needed
+  // Session management is handled by UnifiedAuthContext handler
 
   useEffect(() => {
-    console.log('🔄 v60.0 - Starting visibility coordinator (cookie-based session)');
+    console.log('🔄 v67.0 - Starting visibility coordinator (handler orchestration only)');
     
-    // CRITICAL v60.0: ONLY place that registers session ready callback
-    visibilityCoordinator.setSessionReadyCallback(() => {
-      const current = authStateRef.current;
-      const ready = current.isSessionReady && !!current.currentUser?.id;
-      console.log('🔍 v60.0 - Session ready check:', { 
-        isSessionReady: current.isSessionReady,
-        hasUser: !!current.currentUser?.id,
-        userEmail: current.currentUser?.email,
-        result: ready
-      });
-      return ready;
-    });
-    
+    // v67.0: No session ready callback - coordinator just runs handlers
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v60.0 - Stopping visibility coordinator');
+      console.log('🔄 v67.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

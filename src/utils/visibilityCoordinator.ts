@@ -1,25 +1,25 @@
 /**
- * Tab Visibility Coordinator v60.0 - Cookie-Based Session Restoration
+ * Tab Visibility Coordinator v67.0 - Simplified Handler Orchestration
  *
- * REVERTED TO COOKIE-BASED ARCHITECTURE:
- * ✅ Uses secure HttpOnly cookies for session storage
- * ✅ Calls /session endpoint to restore session on tab revisit
- * ✅ Server validates cookies and returns session data
- * ✅ Client calls setSession() to restore Supabase state
+ * ARCHITECTURAL CHANGE (v67.0):
+ * ✅ Coordinator NO LONGER does session restoration itself
+ * ✅ Handlers (like UnifiedAuthContext.refreshAuth) are responsible for session restoration
+ * ✅ Coordinator only orchestrates handler execution with timeout protection
+ * ✅ Eliminates duplicate session restoration calls
+ * ✅ Fixes type mismatch bugs from v60.0
  *
- * CORE FLOW (v60.0):
- * 1. Tab visible → Call /session endpoint with credentials
- * 2. Server validates HttpOnly cookie
- * 3. Server returns validated session data
- * 4. Client calls setSession() to restore state
- * 5. Wait for auth listener to propagate
- * 6. Run refresh handlers
+ * CORE FLOW (v67.0):
+ * 1. Tab visible → Trigger handler orchestration
+ * 2. Run all registered handlers in parallel with isolation
+ * 3. Each handler manages its own state (UnifiedAuthContext handles session restoration)
+ * 4. Wait for all handlers to complete or timeout
  * 
  * FEATURES:
- * - Secure HttpOnly cookie storage (no XSS exposure)
- * - Server-side session validation
- * - Works across domains with proper CORS
+ * - Single source of truth for session restoration (UnifiedAuthContext)
  * - Handler isolation with allSettled
+ * - No duplicate network calls
+ * - Proper timeout handling per handler
+ * - Clean separation of concerns
  */
 
 import { supabaseClient } from '@/integrations/supabase/client';
@@ -34,8 +34,6 @@ class VisibilityCoordinator {
   private refreshHandlers: RefreshHandler[] = [];
   private pendingHandlers: RefreshHandler[] = [];
   private isListening = false;
-  private sessionReadyCallback: (() => boolean) | null = null;
-  private consecutiveFailures = 0;
   private abortController: AbortController | null = null;
   
   // UI feedback callbacks
@@ -72,13 +70,8 @@ class VisibilityCoordinator {
     this.errorHandlers.forEach(callback => callback(error));
   }
 
-  /**
-   * v56.0 - Set callback to check if session is ready (now uses refs for current values)
-   */
-  public setSessionReadyCallback(callback: () => boolean) {
-    this.sessionReadyCallback = callback;
-    console.log('📝 v56.0 - Session ready callback registered');
-  }
+  // v67.0: Removed setSessionReadyCallback - no longer needed
+  // Session ready state is managed by UnifiedAuthContext
 
   /**
    * v54.0 - Register data refresh handler with proper cleanup and deduplication
@@ -133,7 +126,7 @@ class VisibilityCoordinator {
     if (this.isListening) return;
     this.isListening = true;
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v50.0 - Started listening for tab visibility changes");
+    console.log("👀 v67.0 - Started listening for tab visibility changes");
   }
 
   /**
@@ -143,7 +136,7 @@ class VisibilityCoordinator {
     if (!this.isListening) return;
     this.isListening = false;
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v50.0 - Stopped listening");
+    console.log("👀 v67.0 - Stopped listening");
   }
 
   /**
@@ -151,20 +144,20 @@ class VisibilityCoordinator {
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v60.0 - Tab hidden");
+      console.log("🔒 v67.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v60.0 - Tab visible, triggering cookie-based refresh");
+    console.log("🔓 v67.0 - Tab visible, triggering handler orchestration");
     this.coordinateRefresh();
   };
 
   /**
-   * v60.0 - Cookie-based coordination with session endpoint
+   * v67.0 - Simplified: Just run handlers, no session restoration
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v60.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v67.0 - Refresh already in progress, skipping");
       return;
     }
 
@@ -172,43 +165,38 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v60.0 - Starting tab revisit (cookie-based, 30s timeout)");
+    console.log("🔁 v67.0 - Starting tab revisit (handler orchestration only)");
 
     this.abortController = new AbortController();
 
-    // v60.0: 30s timeout (allows time for network call to /session endpoint)
+    // v67.0: 60s overall timeout (generous, each handler has its own 30s timeout)
     const overallTimeout = new Promise((_, reject) => 
       setTimeout(() => {
-        console.error("🚨 v60.0 - Overall timeout reached after 30s");
+        console.error("🚨 v67.0 - Overall timeout reached after 60s");
         this.abortController?.abort();
         reject(new Error('Overall coordination timeout'));
-      }, 30000)
+      }, 60000)
     );
 
     try {
       await Promise.race([
-        this.executeRefreshFlow(),
+        this.executeHandlers(),
         overallTimeout
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v60.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v67.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v60.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v67.0 - Coordination failed after ${duration}ms:`, error);
       
-      if (error.message === 'Session validation failed') {
-        toast.error("Session expired. Please log in again.");
-        this.notifyError('SESSION_EXPIRED');
-      } else {
-        toast.error("Failed to load data. Please refresh.");
-        this.notifyError('SESSION_FAILED');
-      }
+      // v67.0: Don't assume it's a session error - let handlers decide
+      toast.error("Some data may not have loaded. Please refresh if needed.");
     } finally {
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
-        console.log(`📋 v60.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        console.log(`📋 v67.0 - Processing ${this.pendingHandlers.length} pending handlers`);
         const handlersToProcess = [...this.pendingHandlers];
         this.pendingHandlers = [];
         
@@ -227,91 +215,27 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v60.0 - Cookie-based: Restore session from /session endpoint
+   * v67.0 - Simplified: Just run handlers with timeout protection
+   * Session restoration is handled by UnifiedAuthContext.refreshAuth handler
    */
-  private async executeRefreshFlow() {
+  private async executeHandlers() {
     console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 v60.0 - STEP 1: Restoring session from cookie...");
-    console.log("═══════════════════════════════════════════════════");
-    
-    // STEP 1: Call /session endpoint to restore from HttpOnly cookie
-    const sessionStart = Date.now();
-    const { rehydrateSessionFromServer } = await import('./sessionRehydration');
-    
-    try {
-      const restored = await rehydrateSessionFromServer();
-      const sessionDuration = Date.now() - sessionStart;
-      
-      console.log(`🔍 v60.0 - Session restoration completed in ${sessionDuration}ms:`, {
-        restored
-      });
-
-      if (!restored) {
-        this.consecutiveFailures++;
-        console.error(`❌ v60.0 - Session restoration failed (failures: ${this.consecutiveFailures})`);
-        
-        if (this.consecutiveFailures >= 2) {
-          toast.error("Your session has expired. Please log in again.", {
-            duration: 5000,
-            position: 'top-center'
-          });
-          this.notifyError('SESSION_EXPIRED');
-        } else {
-          toast.warning("Session check failed. Retrying...", { duration: 3000 });
-          this.notifyError('SESSION_FAILED');
-        }
-        
-        throw new Error('Session validation failed');
-      }
-      
-      this.consecutiveFailures = 0;
-      console.log("✅ v60.0 - STEP 1 COMPLETE - Session restored from cookie");
-      
-    } catch (error) {
-      console.error("❌ v60.0 - STEP 1 FAILED - Could not restore session:", error);
-      throw new Error('Session validation failed');
-    }
-    
-    // STEP 2: Wait for auth listener to propagate
-    console.log("═══════════════════════════════════════════════════");
-    console.log("⏳ v60.0 - STEP 2: Waiting for auth listener...");
-    console.log("═══════════════════════════════════════════════════");
-    
-    let attempts = 0;
-    const maxAttempts = 100; // v60.0: 10s max (network call takes time)
-    
-    while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
-      if (attempts % 10 === 0) {
-        console.log(`⏳ v60.0 - STEP 2: Waiting... (${attempts * 100}ms)`);
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-    
-    if (this.sessionReadyCallback?.()) {
-      console.log(`✅ v60.0 - STEP 2 COMPLETE - Ready in ${attempts * 100}ms`);
-    } else {
-      console.warn(`⚠️ v60.0 - STEP 2 TIMEOUT after ${attempts * 100}ms (continuing anyway)`);
-    }
-    
-    // STEP 3: Run refresh handlers with isolation
-    console.log("═══════════════════════════════════════════════════");
-    console.log(`🔁 v60.0 - STEP 3: Running ${this.refreshHandlers.length} handlers...`);
+    console.log(`🔁 v67.0 - Running ${this.refreshHandlers.length} handlers...`);
     console.log("═══════════════════════════════════════════════════");
     
     if (this.refreshHandlers.length === 0) {
-      console.warn("⚠️ v60.0 - No handlers registered");
+      console.warn("⚠️ v67.0 - No handlers registered");
       return;
     }
     
     const handlerTimeout = 30000; // 30s per handler
     const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
       const handlerStart = Date.now();
-      console.log(`▶️ v60.0 - Handler ${index + 1} starting...`);
+      console.log(`▶️ v67.0 - Handler ${index + 1} starting...`);
       
       try {
         if (this.abortController?.signal.aborted) {
-          console.warn(`⚠️ v60.0 - Handler ${index + 1} aborted`);
+          console.warn(`⚠️ v67.0 - Handler ${index + 1} aborted`);
           return;
         }
         
@@ -323,10 +247,10 @@ class VisibilityCoordinator {
         ]);
         
         const duration = Date.now() - handlerStart;
-        console.log(`✅ v60.0 - Handler ${index + 1} done in ${duration}ms`);
+        console.log(`✅ v67.0 - Handler ${index + 1} done in ${duration}ms`);
       } catch (err) {
         const duration = Date.now() - handlerStart;
-        console.error(`❌ v60.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
+        console.error(`❌ v67.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
       }
     });
     
@@ -335,7 +259,7 @@ class VisibilityCoordinator {
     const failed = results.filter(r => r.status === 'rejected').length;
     
     console.log("═══════════════════════════════════════════════════");
-    console.log(`✅ v60.0 - STEP 3 COMPLETE - ${successful} ok, ${failed} failed`);
+    console.log(`✅ v67.0 - Handlers complete: ${successful} ok, ${failed} failed`);
     console.log("═══════════════════════════════════════════════════");
   }
 }
