@@ -17,20 +17,38 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const { currentUser } = useUserContext();
   const hasLoadedOnceRef = useRef(false); // CRITICAL: Track if we've loaded once to prevent loading on tab revisit
   const previousSessionReadyRef = useRef(isSessionReady);
+  const sessionWaitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Smart Retry: Detect when isSessionReady transitions from false to true
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
     previousSessionReadyRef.current = isSessionReady;
     
-    // CRITICAL: Wait for session to be ready before making queries
-    if (!isSessionReady) {
-      console.log('useMaintenanceRequestData - Waiting for session ready...');
+    // CRITICAL v43.0: If session not ready, wait with timeout fallback
+    if (!isSessionReady && !hasLoadedOnceRef.current) {
+      console.log('useMaintenanceRequestData v43.0 - Waiting for session ready...');
+      
+      // Set timeout to show cached data after 10s if session never becomes ready
+      if (sessionWaitTimeoutRef.current) {
+        clearTimeout(sessionWaitTimeoutRef.current);
+      }
+      sessionWaitTimeoutRef.current = setTimeout(() => {
+        console.warn('⚠️ useMaintenanceRequestData v43.0 - Session ready timeout, proceeding with cached data');
+        hasLoadedOnceRef.current = true;
+        setLoading(false);
+      }, 10000); // 10 second failsafe
+      
       return;
     }
     
+    // Clear timeout if session becomes ready
+    if (sessionWaitTimeoutRef.current) {
+      clearTimeout(sessionWaitTimeoutRef.current);
+      sessionWaitTimeoutRef.current = null;
+    }
+    
     if (sessionJustBecameReady) {
-      console.log('✅ useMaintenanceRequestData - Session became ready, triggering fetch');
+      console.log('✅ useMaintenanceRequestData v43.0 - Session became ready, triggering fetch');
     }
     
     if (!requestId || !currentUser) {

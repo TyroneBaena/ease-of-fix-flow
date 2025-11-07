@@ -1031,13 +1031,23 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
-  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v42.0
+  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v43.0
   useEffect(() => {
-    console.log("🔧 App.tsx v42.0 - Initial load rehydration");
+    console.log("🔧 App.tsx v43.0 - Initial load rehydration with bulletproof error handling");
     // Clean up old v37 storage first
     cleanupOldAuthStorage();
     // Then rehydrate from HttpOnly cookies ONCE on initial load
-    rehydrateSessionFromServer().then(() => setRehydrated(true));
+    // v43.0: Always set rehydrated=true even if session restoration fails (allow cached data)
+    rehydrateSessionFromServer()
+      .then(() => {
+        console.log("✅ App.tsx v43.0 - Initial session restoration complete");
+      })
+      .catch((err) => {
+        console.error("❌ App.tsx v43.0 - Initial session restoration error (non-fatal):", err);
+      })
+      .finally(() => {
+        setRehydrated(true);
+      });
   }, []);
 
   if (!rehydrated) {
