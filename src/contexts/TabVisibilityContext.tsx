@@ -2,14 +2,12 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v43.0 - Bulletproof Error Recovery
+ * v43.2 - Fixed failsafe timeout clearing issue
  * 
- * CRITICAL FIXES:
- * - Fixed callback registration to use ref (reads current value)
- * - Graceful fallback when session restoration fails
- * - UI shows cached data instead of staying stuck in loading state
- * - Prevents "useUnifiedAuth must be used within a UnifiedAuthProvider" errors
- * - Eliminates race conditions during error recovery
+ * CRITICAL FIX:
+ * - Separated failsafe timeout into dedicated effect
+ * - Failsafe now persists across refreshes
+ * - Loading state clears after 3s even if session fails
  */
 
 interface TabVisibilityContextType {
@@ -32,16 +30,15 @@ interface TabVisibilityProviderProps {
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
   useEffect(() => {
-    console.log('🔄 TabVisibilityProvider v43.0 - Starting coordinator (no auth dependency)');
+    console.log('🔄 TabVisibilityProvider v43.2 - Starting coordinator');
     
-    // Start listening for visibility changes
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 TabVisibilityProvider v43.0 - Stopping coordinator');
+      console.log('🔄 TabVisibilityProvider v43.2 - Stopping coordinator');
       visibilityCoordinator.stopListening();
     };
-  }, []); // No dependencies - runs once on mount
+  }, []);
 
   return (
     <TabVisibilityContext.Provider value={{ coordinator: visibilityCoordinator }}>

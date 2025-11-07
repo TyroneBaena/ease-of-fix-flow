@@ -15,43 +15,40 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const [request, setRequest] = useState<MaintenanceRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useUserContext();
-  const hasLoadedOnceRef = useRef(false); // CRITICAL: Track if we've loaded once to prevent loading on tab revisit
+  const hasLoadedOnceRef = useRef(false);
   const previousSessionReadyRef = useRef(isSessionReady);
-  const sessionWaitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // CRITICAL FIX v43.2: Separate failsafe timeout - runs ONCE on mount
   useEffect(() => {
-    // Smart Retry: Detect when isSessionReady transitions from false to true
+    if (!isSessionReady && !hasLoadedOnceRef.current) {
+      console.log('🔒 useMaintenanceRequestData v43.2 - Session not ready, setting 3s failsafe');
+      
+      const timeoutId = setTimeout(() => {
+        console.warn('⏱️ useMaintenanceRequestData v43.2 - Failsafe triggered: showing cached data');
+        hasLoadedOnceRef.current = true;
+        setLoading(false);
+      }, 3000); // 3 second failsafe
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, []); // Empty deps - runs once on mount
+  
+  // Main data fetching effect
+  useEffect(() => {
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
     previousSessionReadyRef.current = isSessionReady;
     
-    // CRITICAL v43.1: Aggressive failsafe - if not ready after 5s on FIRST load, proceed anyway
+    // If session not ready and we haven't loaded once, wait
     if (!isSessionReady && !hasLoadedOnceRef.current) {
-      console.log('useMaintenanceRequestData v43.1 - Waiting for session ready...');
-      
-      // ONLY set timeout once - don't clear it on re-renders
-      if (!sessionWaitTimeoutRef.current) {
-        sessionWaitTimeoutRef.current = setTimeout(() => {
-          console.warn('⚠️ useMaintenanceRequestData v43.1 - 5s session timeout, proceeding with cached data');
-          hasLoadedOnceRef.current = true;
-          setLoading(false);
-        }, 5000); // Reduced to 5s for faster recovery
-      }
-      
+      console.log('⏳ useMaintenanceRequestData v43.2 - Waiting for session...');
       return;
     }
     
-    // Clear timeout ONLY if session becomes ready
-    if (isSessionReady && sessionWaitTimeoutRef.current) {
-      clearTimeout(sessionWaitTimeoutRef.current);
-      sessionWaitTimeoutRef.current = null;
-    }
-    
     if (sessionJustBecameReady) {
-      console.log('✅ useMaintenanceRequestData v43.1 - Session became ready, triggering fetch');
+      console.log('✅ useMaintenanceRequestData v43.2 - Session ready, fetching data');
     }
     
     if (!requestId || !currentUser) {
-      // CRITICAL: Only set loading false if we haven't loaded before
       if (!hasLoadedOnceRef.current) {
         setLoading(false);
       }
@@ -130,13 +127,16 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         }
       }
       
-      // CRITICAL: Mark as loaded and set loading false
+      // CRITICAL: Mark loaded and update UI state
+      if (!hasLoadedOnceRef.current) {
+        console.log('✅ useMaintenanceRequestData v43.2 - First load complete');
+      }
       hasLoadedOnceRef.current = true;
       setLoading(false);
     };
     
     loadRequestData();
-  }, [requestId, currentUser?.id, forceRefresh, isSessionReady]); // Add isSessionReady to deps
+  }, [requestId, currentUser?.id, forceRefresh, isSessionReady]);
 
   // Function to refresh the request data directly from the database
   const refreshRequestData = async () => {
