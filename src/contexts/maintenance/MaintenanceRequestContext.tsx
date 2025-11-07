@@ -1,12 +1,16 @@
-
 import React, { createContext, useContext } from 'react';
 import { MaintenanceRequestContextType } from './MaintenanceRequestTypes';
 import { useMaintenanceRequestProvider } from './useMaintenanceRequestProvider';
 import { MaintenanceRequest } from '@/types/maintenance';
 
-console.log('📦 v63.0 - MaintenanceRequestContext.tsx - FILE IMPORTED/LOADED AT:', new Date().toISOString());
+// CRITICAL v64.0 - TOP LEVEL LOG TO VERIFY FILE LOADS
+console.log('🔥🔥🔥 v64.0 - MaintenanceRequestContext.tsx - FILE IS LOADING NOW!');
+console.log('🔥🔥🔥 v64.0 - Time:', new Date().toISOString());
+console.log('🔥🔥🔥 v64.0 - React available:', typeof React !== 'undefined');
 
 const MaintenanceRequestContext = createContext<MaintenanceRequestContextType | undefined>(undefined);
+
+console.log('🔥🔥🔥 v64.0 - Context created successfully');
 
 export const useMaintenanceRequestContext = () => {
   const context = useContext(MaintenanceRequestContext);
@@ -16,24 +20,25 @@ export const useMaintenanceRequestContext = () => {
   return context;
 };
 
-console.log('📦 v63.0 - MaintenanceRequestContext.tsx - FILE LOADED');
+console.log('🔥🔥🔥 v64.0 - About to define MaintenanceRequestProvider component');
 
 export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('🏗️ v63.0 - MaintenanceRequestProvider - COMPONENT RENDERING START AT:', new Date().toISOString());
-  console.log('🏗️ v63.0 - MaintenanceRequestProvider - children:', !!children);
+  console.log('🏗️🏗️🏗️ v64.0 - MaintenanceRequestProvider COMPONENT IS RENDERING!');
+  console.log('🏗️🏗️🏗️ v64.0 - Time:', new Date().toISOString());
+  console.log('🏗️🏗️🏗️ v64.0 - Has children:', !!children);
   
   let value;
   try {
-    console.log('🏗️ v62.0 - MaintenanceRequestProvider - About to call useMaintenanceRequestProvider()');
+    console.log('🏗️🏗️🏗️ v64.0 - Calling useMaintenanceRequestProvider hook...');
     value = useMaintenanceRequestProvider();
-    console.log('✅ v62.0 - MaintenanceRequestProvider - Hook executed successfully', {
+    console.log('✅✅✅ v64.0 - Hook executed successfully!', {
       hasRequests: !!value.requests,
       requestsCount: value.requests?.length,
       loading: value.loading
     });
   } catch (error) {
-    console.error('❌ v62.0 - MaintenanceRequestProvider - Hook failed:', error);
-    console.error('❌ v62.0 - MaintenanceRequestProvider - Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌❌❌ v64.0 - Hook FAILED:', error);
+    console.error('❌❌❌ v64.0 - Error stack:', error instanceof Error ? error.stack : 'No stack');
     // Return a fallback provider with empty data
     return (
       <MaintenanceRequestContext.Provider value={{
@@ -51,7 +56,7 @@ export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }>
 
   // CRITICAL: Use React.useMemo to prevent unnecessary re-renders
   const typedValue: MaintenanceRequestContextType = React.useMemo(() => {
-    console.log('🔄 MaintenanceRequestProvider - Creating memoized value');
+    console.log('🔄 v64.0 - Creating memoized value');
     return {
       requests: value.requests as MaintenanceRequest[],
       loading: value.loading,
@@ -62,7 +67,7 @@ export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }>
     };
   }, [value.requests, value.loading, value.getRequestsForProperty, value.addRequestToProperty, value.loadRequests]);
 
-  console.log('✅ MaintenanceRequestProvider - Providing context', {
+  console.log('✅ v64.0 - Providing context', {
     requestsCount: typedValue.requests.length,
     loading: typedValue.loading
   });
