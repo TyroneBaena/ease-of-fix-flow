@@ -2,12 +2,10 @@ import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v43.2 - Fixed failsafe timeout clearing issue
+ * v44.0 - Simple Sequential Flow
  * 
- * CRITICAL FIX:
- * - Separated failsafe timeout into dedicated effect
- * - Failsafe now persists across refreshes
- * - Loading state clears after 3s even if session fails
+ * Provides access to visibility coordinator singleton.
+ * No complex timeout logic, just sequential session restore → data load.
  */
 
 interface TabVisibilityContextType {
@@ -30,12 +28,11 @@ interface TabVisibilityProviderProps {
 
 export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ children }) => {
   useEffect(() => {
-    console.log('🔄 TabVisibilityProvider v43.2 - Starting coordinator');
-    
+    console.log('🔄 v44.0 - Starting visibility coordinator');
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 TabVisibilityProvider v43.2 - Stopping coordinator');
+      console.log('🔄 v44.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, []);

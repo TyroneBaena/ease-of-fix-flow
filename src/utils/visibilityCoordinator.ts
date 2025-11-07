@@ -1,17 +1,20 @@
 /**
- * Tab Visibility Coordinator v43.1 - Non-Blocking Session Restoration
+ * Tab Visibility Coordinator v44.0 - Simple Sequential Flow
  *
- * CRITICAL FIXES (v43.1):
- * - Session restoration no longer blocks UI rendering
- * - Reduced timeout from 60s to 30s for faster recovery  
- * - Non-blocking realtime reconnect
- * - Proper cleanup of hanging promises
+ * SIMPLIFIED APPROACH:
+ * 1. Show loader on tab revisit
+ * 2. Await session restoration (no timeout, just wait)
+ * 3. Wait for session to be ready in context
+ * 4. Trigger data refresh
+ * 5. Hide loader
  * 
- * PREVIOUS FIXES (v43.0):
- * - Fixed callback registration to use ref instead of captured value
- * - Added graceful fallback when session restoration fails
- * - Allows UI to render with cached data even if session fails
- * - Handles BOTH session restoration AND data refresh
+ * NO MORE:
+ * - Complex timeout logic
+ * - "Cached data" fallbacks
+ * - Race conditions
+ * - Retry attempts
+ * 
+ * If session fails = show error, don't pretend cached data works
  */
 
 import { rehydrateSessionFromServer } from '@/utils/sessionRehydration';
@@ -101,91 +104,69 @@ class VisibilityCoordinator {
 
   /**
    * Coordinate session restoration + data refresh when tab becomes visible
-   * v43.1: Non-blocking session restoration
+   * v44.0: Simple sequential flow - no timeouts, no fallbacks
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v43.1 - Refresh already in progress, skipping");
+      console.warn("⚙️ v44.0 - Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
-    const coordinatorStartTime = Date.now();
-    console.log(`🔁 v43.1 - Starting coordinated tab revisit workflow...`);
-    
-    let restored = false;
+    const startTime = Date.now();
+    console.log(`🔁 v44.0 - Tab revisit: Starting simple sequential workflow...`);
 
     try {
-      // STEP 1: Restore session with aggressive timeout (30s instead of 60s)
-      console.log("📡 v43.1 - Step 1: Restoring session from server (30s timeout)...");
+      // STEP 1: Restore session - just wait for it, no timeout
+      console.log("📡 v44.0 - Step 1: Restoring session from server...");
+      const restored = await rehydrateSessionFromServer();
       
-      const restoreWithTimeout = async (): Promise<boolean> => {
-        const timeoutPromise = new Promise<boolean>((resolve) => {
-          setTimeout(() => {
-            console.error("⏱️ v43.1 - Session restoration timeout after 30s");
-            resolve(false);
-          }, 30000);
-        });
-        
-        const restorePromise = rehydrateSessionFromServer().catch((err) => {
-          console.error("❌ v43.1 - Session restoration error:", err);
-          return false;
-        });
-        
-        return Promise.race([restorePromise, timeoutPromise]);
-      };
-      
-      restored = await restoreWithTimeout();
-      
-      if (restored) {
-        console.log("✅ v43.1 - Session restored successfully");
-        
-        // STEP 2: Wait for session ready (reduced timeout)
-        console.log("⏳ v43.1 - Step 2: Waiting for session ready...");
-        let attempts = 0;
-        const maxAttempts = 20; // 2 seconds max (20 * 100ms) - reduced from 5s
-        
-        while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
-        }
-        
-        if (this.sessionReadyCallback && this.sessionReadyCallback()) {
-          console.log(`✅ v43.1 - Session ready after ${attempts * 100}ms`);
-        } else {
-          console.warn("⚠️ v43.1 - Session ready timeout, proceeding anyway");
-        }
-      } else {
-        console.warn("⚠️ v43.1 - Session restoration failed, continuing with cached data");
-        console.warn("💡 v43.1 - User viewing cached data. They may need to re-login for fresh data.");
+      if (!restored) {
+        console.error("❌ v44.0 - Session restoration failed");
+        console.error("💡 v44.0 - This is a real error - session endpoint returned null or failed");
+        // Don't proceed - without session, queries will fail anyway
+        return;
       }
       
-      // STEP 3: ALWAYS trigger data refresh (even if session failed)
-      console.log(`🔁 v43.1 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
+      console.log("✅ v44.0 - Session restored successfully");
+      
+      // STEP 2: Wait for session to propagate to React context
+      console.log("⏳ v44.0 - Step 2: Waiting for session ready in context...");
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max
+      
+      while (attempts < maxAttempts && this.sessionReadyCallback && !this.sessionReadyCallback()) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (this.sessionReadyCallback && this.sessionReadyCallback()) {
+        console.log(`✅ v44.0 - Session ready in context after ${attempts * 100}ms`);
+      } else {
+        console.error("❌ v44.0 - Session ready timeout - context didn't update");
+        return;
+      }
+      
+      // STEP 3: Trigger data refresh - queries will use valid session
+      console.log(`🔁 v44.0 - Step 3: Refreshing data (${this.refreshHandlers.length} handlers)...`);
       if (this.refreshHandlers.length > 0) {
-        // Use Promise.allSettled to prevent one failing handler from blocking others
-        const results = await Promise.allSettled(
+        await Promise.all(
           this.refreshHandlers.map(async (handler) => {
             try {
               await handler();
-            } catch (error) {
-              console.error("❌ v43.1 - Handler error (non-fatal):", error);
-              throw error;
+            } catch (err) {
+              console.error("❌ v44.0 - Handler error:", err);
             }
           })
         );
-        
-        const successful = results.filter(r => r.status === 'fulfilled').length;
-        const failed = results.filter(r => r.status === 'rejected').length;
-        console.log(`✅ v43.1 - Data refresh complete: ${successful} succeeded, ${failed} failed`);
       }
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ v44.0 - Tab revisit complete in ${duration}ms`);
     } catch (error) {
-      console.error("❌ v43.1 - Fatal error during coordinated refresh:", error);
-      console.warn("💡 v43.1 - Allowing UI to render with cached data");
+      console.error("❌ v44.0 - Fatal error during tab revisit:", error);
     } finally {
       this.isRefreshing = false;
-      const totalDuration = Date.now() - coordinatorStartTime;
-      console.log(`✅ v43.1 - Coordinator complete in ${totalDuration}ms (${restored ? 'success' : 'fallback'})`);
     }
   }
 }

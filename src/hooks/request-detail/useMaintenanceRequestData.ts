@@ -18,34 +18,18 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const hasLoadedOnceRef = useRef(false);
   const previousSessionReadyRef = useRef(isSessionReady);
 
-  // CRITICAL FIX v43.2: Separate failsafe timeout - runs ONCE on mount
-  useEffect(() => {
-    if (!isSessionReady && !hasLoadedOnceRef.current) {
-      console.log('🔒 useMaintenanceRequestData v43.2 - Session not ready, setting 3s failsafe');
-      
-      const timeoutId = setTimeout(() => {
-        console.warn('⏱️ useMaintenanceRequestData v43.2 - Failsafe triggered: showing cached data');
-        hasLoadedOnceRef.current = true;
-        setLoading(false);
-      }, 3000); // 3 second failsafe
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, []); // Empty deps - runs once on mount
-  
-  // Main data fetching effect
   useEffect(() => {
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
     previousSessionReadyRef.current = isSessionReady;
     
-    // If session not ready and we haven't loaded once, wait
+    // v44.0: Simple approach - wait for session ready, no timeouts
     if (!isSessionReady && !hasLoadedOnceRef.current) {
-      console.log('⏳ useMaintenanceRequestData v43.2 - Waiting for session...');
-      return;
+      console.log('⏳ v44.0 - Waiting for session to be ready...');
+      return; // Just wait, no timeout fallback
     }
     
     if (sessionJustBecameReady) {
-      console.log('✅ useMaintenanceRequestData v43.2 - Session ready, fetching data');
+      console.log('✅ v44.0 - Session ready, loading data');
     }
     
     if (!requestId || !currentUser) {
@@ -127,10 +111,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         }
       }
       
-      // CRITICAL: Mark loaded and update UI state
-      if (!hasLoadedOnceRef.current) {
-        console.log('✅ useMaintenanceRequestData v43.2 - First load complete');
-      }
+      // Mark as loaded
       hasLoadedOnceRef.current = true;
       setLoading(false);
     };
