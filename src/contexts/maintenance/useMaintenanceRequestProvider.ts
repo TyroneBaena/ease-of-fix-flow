@@ -23,27 +23,35 @@ export const useMaintenanceRequestProvider = () => {
   const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
   const lastFetchTimeRef = useRef<number>(0);
+  
+  // CRITICAL v55.0: Use refs to access CURRENT auth state (not stale closure)
+  const authStateRef = useRef({ isSessionReady, currentUser });
+  
+  // Update ref whenever auth state changes
+  useEffect(() => {
+    authStateRef.current = { isSessionReady, currentUser };
+  }, [isSessionReady, currentUser]);
 
-  // CRITICAL v54.0: Stabilize callback with proper checks
+  // CRITICAL v55.0: Stable callback that accesses current values via ref
   const loadRequests = useCallback(async () => {
-    const sessionReady = isSessionReady;
-    const userId = currentUser?.id;
+    const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
+    const userId = user?.id;
     
-    console.log('🔍 v54.0 - LOADING REQUESTS', { 
+    console.log('🔍 v55.0 - LOADING REQUESTS', { 
       sessionReady, 
       hasUser: !!userId,
-      email: currentUser?.email,
-      role: currentUser?.role 
+      email: user?.email,
+      role: user?.role 
     });
     
     // CRITICAL: Wait for BOTH session ready AND user available
     if (!sessionReady) {
-      console.log('🔍 v54.0 - LOADING REQUESTS - Waiting for session ready...');
+      console.log('🔍 v55.0 - LOADING REQUESTS - Waiting for session ready...');
       return [];
     }
     
     if (!userId) {
-      console.log('🔍 v54.0 - LOADING REQUESTS - No user, skipping');
+      console.log('🔍 v55.0 - LOADING REQUESTS - No user, skipping');
       setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       return [];
@@ -51,7 +59,7 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Prevent concurrent fetches
     if (isFetchingRef.current) {
-      console.log('🔍 v54.0 - LOADING REQUESTS - Fetch already in progress, skipping');
+      console.log('🔍 v55.0 - LOADING REQUESTS - Fetch already in progress, skipping');
       return [];
     }
     
@@ -73,24 +81,24 @@ export const useMaintenanceRequestProvider = () => {
       const fetchedRequests = await fetchRequests(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('🔍 v54.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
+      console.log('🔍 v55.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
         const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-        console.log('🔍 v54.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
+        console.log('🔍 v55.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
         
         setRequests(formattedRequests);
         lastFetchTimeRef.current = Date.now();
         return formattedRequests;
       } else {
-        console.log('🔍 v54.0 - LOADING REQUESTS - No requests found');
+        console.log('🔍 v55.0 - LOADING REQUESTS - No requests found');
         setRequests([]);
         lastFetchTimeRef.current = Date.now();
         return [];
       }
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error('🔍 v54.0 - LOADING REQUESTS - Error:', error);
+      console.error('🔍 v55.0 - LOADING REQUESTS - Error:', error);
       
       if (controller.signal.aborted) {
         console.warn('⏱️ Request fetch aborted due to timeout');
@@ -106,7 +114,7 @@ export const useMaintenanceRequestProvider = () => {
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, [currentUser?.email, currentUser?.role, currentUser?.organization_id, fetchRequests]); // CRITICAL: Removed isSessionReady from deps
+  }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
 
   useEffect(() => {
     console.log('🔍 MAINTENANCE PROVIDER v6.0 - useEffect triggered');
@@ -217,12 +225,12 @@ export const useMaintenanceRequestProvider = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, isSessionReady]);
 
-  // CRITICAL v54.0: Register handler ONCE on mount with proper cleanup
+  // CRITICAL v55.0: Register handler ONCE on mount with proper cleanup
   useEffect(() => {
-    console.log('🔄 v54.0 - MaintenanceRequestProvider - Registering handler (once on mount)');
+    console.log('🔄 v55.0 - MaintenanceRequestProvider - Registering handler (once on mount)');
 
     const refreshMaintenance = async () => {
-      console.log('🔄 v54.0 - MaintenanceRequestProvider - Coordinator-triggered refresh');
+      console.log('🔄 v55.0 - MaintenanceRequestProvider - Coordinator-triggered refresh');
       await loadRequests();
     };
 

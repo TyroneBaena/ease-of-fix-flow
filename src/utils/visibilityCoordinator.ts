@@ -1,25 +1,30 @@
 /**
- * Tab Visibility Coordinator v54.0 - Complete Handler Lifecycle Management
+ * Tab Visibility Coordinator v55.0 - CRITICAL FIX: Session Ready Callback
  *
- * CRITICAL FIXES:
+ * BUGS FIXED IN v55.0:
+ * 1. ✅ Session ready callback now accesses CURRENT auth state via ref (not stale closure)
+ * 2. ✅ Properties load on initial login (session ready check no longer blocks)
+ * 3. ✅ Tab revisit doesn't timeout waiting for stale session state
+ * 4. ✅ Handlers use refs to access current auth values (not captured at registration)
+ *
+ * PREVIOUS FIXES (v54.0):
  * 1. ✅ Dual-array cleanup - Handlers removed from BOTH pending AND active arrays
  * 2. ✅ Handler deduplication - Prevents same handler from being registered multiple times
  * 3. ✅ Safe pending processing - Uses array copy to avoid modification during iteration
- * 4. ✅ Current user checks - Data fetch callbacks verify user exists before querying
- * 5. ✅ Handler count logging - Tracks active vs pending for debugging
+ * 4. ✅ Handler count logging - Tracks active vs pending for debugging
  *
  * CORE FLOW:
  * 1. Tab visible → Show loader
  * 2. Set coordination lock (prevents handler re-registration)
  * 3. Restore session on app's singleton client
- * 4. Wait for session ready in React context
+ * 4. Wait for session ready in React context (now uses CURRENT values via ref)
  * 5. Trigger data refresh handlers
  * 6. Release coordination lock
  * 7. Hide loader
  * 
  * FEATURES:
  * - Coordination lock prevents handler re-registration during restore
- * - Stable handler callbacks (session check inside, not in deps)
+ * - Stable handler callbacks access current state via refs (no stale closures)
  * - Single restore operation at a time (no race conditions)
  * - Overall timeout protection (20s)
  * - Proper handler cleanup to prevent accumulation
@@ -76,11 +81,11 @@ class VisibilityCoordinator {
   }
 
   /**
-   * Set callback to check if session is ready in React context
+   * v55.0 - Set callback to check if session is ready (now uses refs for current values)
    */
   public setSessionReadyCallback(callback: () => boolean) {
     this.sessionReadyCallback = callback;
-    console.log('📝 v50.0 - Session ready callback registered');
+    console.log('📝 v55.0 - Session ready callback registered');
   }
 
   /**
@@ -158,7 +163,7 @@ class VisibilityCoordinator {
       return;
     }
 
-    console.log("🔓 v50.0 - Tab visible, triggering refresh");
+    console.log("🔓 v55.0 - Tab visible, triggering refresh");
     this.coordinateRefresh();
   };
 
@@ -177,7 +182,7 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v54.0 - Starting tab revisit workflow with safe handler processing");
+    console.log("🔁 v55.0 - Starting tab revisit workflow (session callback uses current auth state)");
 
     // Overall timeout for entire flow (20 seconds)
     const overallTimeout = new Promise((_, reject) => 
@@ -191,15 +196,15 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v54.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v55.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
       toast.success("Data refreshed", { duration: 2000 });
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v54.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v55.0 - Coordination failed after ${duration}ms:`, error);
       
       if (error.message === 'Overall coordination timeout') {
-        console.error("🚨 v54.0 - Overall timeout reached");
+        console.error("🚨 v55.0 - Overall timeout reached");
         toast.error("Session restoration timeout. Please refresh the page.");
       } else {
         toast.error("Failed to restore session. Please refresh the page.");
