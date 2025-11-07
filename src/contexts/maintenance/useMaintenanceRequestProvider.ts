@@ -12,7 +12,10 @@ export const useMaintenanceRequestProvider = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser, isSessionReady } = useUnifiedAuth();
-  const { fetchRequests, addRequest } = useMaintenanceRequestOperations(currentUser);
+  
+  // CRITICAL v65.0: Get operations hook that will receive CURRENT user
+  const operations = useMaintenanceRequestOperations(currentUser);
+  const { fetchRequests, addRequest } = operations;
   
   // Track the last user ID to prevent unnecessary refetches
   const lastFetchedUserIdRef = useRef<string | null>(null);
@@ -32,12 +35,12 @@ export const useMaintenanceRequestProvider = () => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
-  // CRITICAL v55.0: Stable callback that accesses current values via ref
+  // CRITICAL v65.0: Stable callback that accesses current values via ref
   const loadRequests = useCallback(async () => {
     const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
     const userId = user?.id;
     
-    console.log('🔍 v55.0 - LOADING REQUESTS', { 
+    console.log('🔍 v65.0 - LOADING REQUESTS', { 
       sessionReady, 
       hasUser: !!userId,
       email: user?.email,
@@ -46,12 +49,12 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Wait for BOTH session ready AND user available
     if (!sessionReady) {
-      console.log('🔍 v55.0 - LOADING REQUESTS - Waiting for session ready...');
+      console.log('🔍 v65.0 - LOADING REQUESTS - Waiting for session ready...');
       return [];
     }
     
     if (!userId) {
-      console.log('🔍 v55.0 - LOADING REQUESTS - No user, skipping');
+      console.log('🔍 v65.0 - LOADING REQUESTS - No user, skipping');
       setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       return [];
@@ -59,7 +62,7 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Prevent concurrent fetches
     if (isFetchingRef.current) {
-      console.log('🔍 v55.0 - LOADING REQUESTS - Fetch already in progress, skipping');
+      console.log('🔍 v65.0 - LOADING REQUESTS - Fetch already in progress, skipping');
       return [];
     }
     
@@ -70,35 +73,36 @@ export const useMaintenanceRequestProvider = () => {
     
     isFetchingRef.current = true;
     
-    // v57.0: Reduced timeout to 30s for faster recovery
+    // v65.0: Reduced timeout to 30s for faster recovery
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.warn('⏱️ v57.0 - Request fetch timeout after 30s');
+      console.warn('⏱️ v65.0 - Request fetch timeout after 30s');
     }, 30000);
 
     try {
+      console.log('🔍 v65.0 - LOADING REQUESTS - Calling fetchRequests with current user:', user?.email);
       const fetchedRequests = await fetchRequests(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('🔍 v55.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
+      console.log('🔍 v65.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
         const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-        console.log('🔍 v55.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
+        console.log('🔍 v65.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
         
         setRequests(formattedRequests);
         lastFetchTimeRef.current = Date.now();
         return formattedRequests;
       } else {
-        console.log('🔍 v55.0 - LOADING REQUESTS - No requests found');
+        console.log('🔍 v65.0 - LOADING REQUESTS - No requests found');
         setRequests([]);
         lastFetchTimeRef.current = Date.now();
         return [];
       }
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error('🔍 v55.0 - LOADING REQUESTS - Error:', error);
+      console.error('🔍 v65.0 - LOADING REQUESTS - Error:', error);
       
       if (controller.signal.aborted) {
         console.warn('⏱️ Request fetch aborted due to timeout');
@@ -114,7 +118,7 @@ export const useMaintenanceRequestProvider = () => {
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
+  }, [fetchRequests]); // CRITICAL v65.0: Include fetchRequests so we get updates when user changes
 
   useEffect(() => {
     console.log('🚨 v62.0 - MAINTENANCE PROVIDER useEffect TRIGGERED');
