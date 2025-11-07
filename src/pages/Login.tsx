@@ -55,45 +55,14 @@ const Login = () => {
     }
   };
 
-  // Redirect if already authenticated with improved logic
+  // Don't auto-redirect on auth state change - let handleSubmit control redirects
+  // This prevents conflicts with immediate post-login redirects
   useEffect(() => {
+    // Only log, don't redirect
     if (!authLoading && currentUser) {
-      // Check for redirect parameters from QR code flow
-      const urlParams = new URLSearchParams(location.search);
-      const redirectTo = urlParams.get("redirectTo");
-      const propertyId = urlParams.get("propertyId");
-
-      // Check for invitation code from state
-      const state = location.state as any;
-      const invitationCode = state?.invitationCode;
-
-      let redirectPath;
-      if (invitationCode) {
-        // If there's an invitation code, redirect to signup to complete organization joining
-        redirectPath = "/signup";
-        console.log(`🚀 Login - User authenticated with invitation code, redirecting to signup`);
-        navigate(redirectPath, {
-          replace: true,
-          state: { invitationCode, returnFromLogin: true },
-        });
-        return;
-      } else if (redirectTo && propertyId) {
-        // Redirect to the intended page with property ID
-        redirectPath = `${redirectTo}?propertyId=${propertyId}`;
-        console.log(`🚀 Login - User authenticated, redirecting to QR code flow: ${redirectPath}`);
-      } else if (redirectTo) {
-        // Redirect to the intended page without property ID
-        redirectPath = redirectTo;
-        console.log(`🚀 Login - User authenticated, redirecting to: ${redirectPath}`);
-      } else {
-        // Default role-based redirect
-        redirectPath = getRedirectPathByRole(currentUser.role);
-        console.log(`🚀 Login - User authenticated (${currentUser.email}), redirecting to: ${redirectPath}`);
-      }
-
-      navigate(redirectPath, { replace: true });
+      console.log(`🚀 Login - User already authenticated (${currentUser.email}), but letting manual redirect handle it`);
     }
-  }, [currentUser, authLoading, navigate, location.search, location.state]);
+  }, [currentUser, authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

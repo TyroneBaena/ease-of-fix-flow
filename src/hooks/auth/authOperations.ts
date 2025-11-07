@@ -249,6 +249,9 @@ export const signInWithEmailPassword = async (email: string, password: string) =
         refresh_token: session.refresh_token,
       });
       console.log("✅ Supabase client session rehydrated");
+      
+      // Wait briefly for auth state change to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     console.log("✅ Session rehydrated for:", user.email);

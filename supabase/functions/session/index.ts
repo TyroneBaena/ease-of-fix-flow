@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
 
   try {
     console.log('🔍 Session validation called');
+    console.log('📋 Request headers:', req.headers.get('cookie') ? 'Cookie header present' : 'No cookie header');
 
     // Extract cookie from request
     const cookieHeader = req.headers.get('cookie');
@@ -35,10 +36,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log('🍪 Cookie header found, parsing...');
+    
     // Parse the session cookie
     const match = cookieHeader.match(/sb-auth-session=([^;]+)/);
     if (!match) {
-      console.log('Session cookie not found');
+      console.log('Session cookie not found in cookie header');
+      console.log('Cookie header value:', cookieHeader.substring(0, 100));
       return new Response(
         JSON.stringify({ session: null }),
         { 
@@ -48,9 +52,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log('✅ Found sb-auth-session cookie, decoding...');
     let sessionData;
     try {
       sessionData = JSON.parse(atob(match[1]));
+      console.log('✅ Session data decoded, user:', sessionData.user?.email);
     } catch (e) {
       console.error('Failed to parse session cookie:', e);
       return new Response(
