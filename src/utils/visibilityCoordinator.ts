@@ -33,8 +33,8 @@ type ErrorHandler = (error: 'SESSION_EXPIRED' | 'SESSION_FAILED') => void;
 const ENABLE_AUTO_RECOVERY = true;
 
 // Watchdog timeout: Must fire BEFORE handler timeout (30s)
-// Set to 25s to catch stuck states before handlers give up
-const WATCHDOG_TIMEOUT_MS = 25000; // 25 seconds
+// Set to 20s to catch stuck states EARLY before handlers give up
+const WATCHDOG_TIMEOUT_MS = 20000; // 20 seconds
 
 class VisibilityCoordinator {
   private isRefreshing = false;
@@ -45,6 +45,7 @@ class VisibilityCoordinator {
   private isListening = false;
   private abortController: AbortController | null = null;
   private watchdogTimer: NodeJS.Timeout | null = null;
+  private watchdogStartTime: number = 0;
   private queryClient: QueryClient | null = null;
   
   // UI feedback callbacks
@@ -269,7 +270,7 @@ class VisibilityCoordinator {
 
   /**
    * v68.0 - Start watchdog timer to detect stuck loading states
-   * Fires at 25s to catch stuck states BEFORE handler timeout (30s)
+   * Fires at 20s - BEFORE handler timeout (30s) - to catch stuck states early
    */
   private startWatchdog() {
     if (!ENABLE_AUTO_RECOVERY) return;
@@ -280,11 +281,11 @@ class VisibilityCoordinator {
       return;
     }
 
-    const watchdogStart = Date.now();
+    this.watchdogStartTime = Date.now();
     console.log(`🐕 Watchdog - Started (${WATCHDOG_TIMEOUT_MS}ms = ${WATCHDOG_TIMEOUT_MS/1000}s timeout)`);
 
     this.watchdogTimer = setTimeout(() => {
-      const elapsed = Date.now() - watchdogStart;
+      const elapsed = Date.now() - this.watchdogStartTime;
       
       // Check 1: Is coordinator stuck?
       const coordinatorStuck = this.isRefreshing || this.isCoordinating;
@@ -361,18 +362,30 @@ class VisibilityCoordinator {
       
       // Self-destruct: Clear timer after check
       this.watchdogTimer = null;
+      this.watchdogStartTime = 0;
     }, WATCHDOG_TIMEOUT_MS);
   }
 
   /**
-   * v68.0 - Stop watchdog (clear timer immediately)
-   * Called when coordination completes successfully
+   * v68.0 - Stop watchdog intelligently
+   * Clear timer ONLY if coordination completed quickly (< 15s) AND successfully
+   * Otherwise let watchdog fire to verify state
    */
   private stopWatchdog() {
-    if (this.watchdogTimer) {
+    if (!this.watchdogTimer) return;
+    
+    const elapsedSinceStart = Date.now() - this.watchdogStartTime;
+    const quickSuccess = elapsedSinceStart < 15000; // Completed in under 15s
+    
+    if (quickSuccess) {
+      // Fast success - no need to verify, clear the timer
       clearTimeout(this.watchdogTimer);
       this.watchdogTimer = null;
-      console.log("🐕 Watchdog - Stopped (coordination completed successfully)");
+      this.watchdogStartTime = 0;
+      console.log(`🐕 Watchdog - Cleared (quick success in ${elapsedSinceStart}ms)`);
+    } else {
+      // Slow/failed - let watchdog verify state at 20s
+      console.log(`🐕 Watchdog - Continuing to monitor (coordination took ${elapsedSinceStart}ms, watchdog will verify at 20s)`);
     }
   }
 
