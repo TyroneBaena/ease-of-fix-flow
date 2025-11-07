@@ -8,18 +8,11 @@ function getCorsHeaders(origin: string | null) {
     origin.includes('localhost')
   );
   
-  // If not allowed, don't set CORS headers
-  if (!isAllowedOrigin) {
-    return {
-      'Access-Control-Allow-Origin': '',
-      'Access-Control-Allow-Headers': '',
-      'Access-Control-Allow-Methods': '',
-      'Access-Control-Allow-Credentials': '',
-    };
-  }
+  // Return the requesting origin if allowed, otherwise use default
+  const allowedOrigin = isAllowedOrigin ? origin! : 'https://preview--housinghub.lovable.app';
   
   return {
-    'Access-Control-Allow-Origin': origin!,
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
