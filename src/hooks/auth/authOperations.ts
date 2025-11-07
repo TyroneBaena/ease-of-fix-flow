@@ -221,24 +221,13 @@ export const signInWithEmailPassword = async (email: string, password: string) =
 
     console.log("✅ Login successful, rehydrating session...");
 
-    // 🔹 2. Fetch session from Edge Function `/session`
-    const sessionResponse = await fetch(SESSION_FN, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!sessionResponse.ok) {
-      toast.error("Failed to restore session after login");
-      return { user: null, error: { message: "Session fetch failed" } };
-    }
-
-    const sessionData = await sessionResponse.json();
-    const session = sessionData?.session;
+    // 🔹 2. Get session directly from login response (no need for separate call)
+    const session = result?.session;
     const user = session?.user || null;
 
     if (!user || !session) {
-      toast.error("Unable to fetch user from session");
-      return { user: null, error: { message: "No user returned from session" } };
+      toast.error("Unable to retrieve session from login response");
+      return { user: null, error: { message: "No session returned from login" } };
     }
 
     // 🔹 3. Rehydrate Supabase client with session tokens

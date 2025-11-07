@@ -86,10 +86,11 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          role: authData.user.role,
+        session: {
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+          expires_at: authData.session.expires_at,
+          user: authData.user,
         },
       }),
       {
