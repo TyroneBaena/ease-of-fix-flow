@@ -32,8 +32,9 @@ type ErrorHandler = (error: 'SESSION_EXPIRED' | 'SESSION_FAILED') => void;
 // Feature flag: Enable auto-recovery from stuck loading states
 const ENABLE_AUTO_RECOVERY = true;
 
-// Watchdog timeout: Detect stuck states after this duration
-const WATCHDOG_TIMEOUT_MS = 45000; // 45 seconds
+// Watchdog timeout: Must fire BEFORE handler timeout (30s)
+// Set to 25s to catch stuck states before handlers give up
+const WATCHDOG_TIMEOUT_MS = 25000; // 25 seconds
 
 class VisibilityCoordinator {
   private isRefreshing = false;
@@ -268,14 +269,15 @@ class VisibilityCoordinator {
 
   /**
    * v68.0 - Start watchdog timer to detect stuck loading states
-   * Checks BOTH coordinator state AND React Query state
+   * Fires at 25s to catch stuck states BEFORE handler timeout (30s)
    */
   private startWatchdog() {
     if (!ENABLE_AUTO_RECOVERY) return;
 
-    // Clear any existing watchdog
+    // Don't interrupt existing watchdog - let it complete
     if (this.watchdogTimer) {
-      clearTimeout(this.watchdogTimer);
+      console.log(`🐕 Watchdog - Already running, skipping new timer`);
+      return;
     }
 
     const watchdogStart = Date.now();
@@ -326,11 +328,15 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v68.0 - Stop watchdog (logging only - timer continues)
-   * Timer will fire at 45s to verify both coordinator and React Query are idle
+   * v68.0 - Stop watchdog (clear timer immediately)
+   * Called when coordination completes successfully
    */
   private stopWatchdog() {
-    console.log("🐕 Watchdog - Coordination ended, watchdog will verify final state at 45s...");
+    if (this.watchdogTimer) {
+      clearTimeout(this.watchdogTimer);
+      this.watchdogTimer = null;
+      console.log("🐕 Watchdog - Stopped (coordination completed successfully)");
+    }
   }
 
   /**
@@ -391,18 +397,13 @@ class VisibilityCoordinator {
         });
       }
       
-      // CRITICAL: Reset state first, THEN let watchdog verify
+      // CRITICAL: Stop watchdog first (success), then reset state
+      this.stopWatchdog();
+      
       this.isCoordinating = false;
       this.isRefreshing = false;
       this.abortController = null;
       this.notifyTabRefreshChange(false);
-      
-      // v68.0: Stop watchdog (just logs, timer continues to monitor)
-      this.stopWatchdog();
-      
-      // DON'T clear watchdog timer - let it fire at 45s to verify everything is truly idle
-      // It will check both coordinator state AND React Query state
-      // If stuck, it triggers recovery. If idle, it logs "All clear" and self-destructs
     }
   }
 
