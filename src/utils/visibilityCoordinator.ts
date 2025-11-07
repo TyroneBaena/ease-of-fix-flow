@@ -1,13 +1,10 @@
 /**
- * Tab Visibility Coordinator v37.2
+ * Tab Visibility Coordinator v38.0 - HttpOnly Cookie Compatible
  *
- * Handles safe data refresh when user revisits the tab.
- * - No forced reload (prevents logout or data loss)
- * - Coordinates refresh across registered data providers
- * - Executes refreshes immediately without blocking
- * - v37.0: Proactive session monitoring and restoration
- * - v37.1: Fixed timeout mismatches for reliable user conversion
- * - v37.2: Always attempt restore with refresh_token (30+ day lifetime)
+ * Simplified coordinator for HttpOnly cookie-based authentication.
+ * - Session restoration handled by App.tsx (HttpOnly rehydration)
+ * - Only coordinates data provider refreshes on tab revisit
+ * - No auth handling (delegated to secure backend)
  */
 
 type RefreshHandler = () => Promise<void | boolean> | void | boolean;
@@ -84,80 +81,40 @@ class VisibilityCoordinator {
   };
 
   /**
-   * Coordinate data refresh across all tabs when tab becomes visible again
-   * Executes auth first, then other handlers in parallel
-   * v37.1: Rebalanced timeouts for reliable restoration
+   * Coordinate data refresh when tab becomes visible again
+   * v38.0: Simplified - auth handled by App.tsx HttpOnly system
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ Refresh already in progress — forcing reset after 30s");
-
-      setTimeout(() => {
-        if (this.isRefreshing) {
-          console.error("❌ Coordinator was stuck! Force-resetting isRefreshing flag");
-          this.isRefreshing = false;
-        }
-      }, 30000);
+      console.warn("⚙️ Refresh already in progress, skipping");
       return;
     }
 
     this.isRefreshing = true;
     const coordinatorStartTime = Date.now();
-    console.log(`🔁 Coordinating refresh (${this.refreshHandlers.length} handlers registered)...`);
-
-    // v37.1: Increased to 28s to match new auth handler structure (25s auth + 3s buffer)
-    const refreshTimeout = setTimeout(() => {
-      console.error("❌ Coordinator timeout after 28s - force resetting");
-      this.isRefreshing = false;
-    }, 28000);
+    console.log(`🔁 v38.0 - Coordinating data refresh (${this.refreshHandlers.length} handlers)...`);
 
     try {
-      // CRITICAL: Execute auth handler first (it's always registered first)
+      // Execute all data handlers in parallel
+      // Auth/session restoration is handled by App.tsx rehydrateSessionFromServer
       if (this.refreshHandlers.length > 0) {
-        const authHandler = this.refreshHandlers[0];
-
-        // v37.1: Increased to 25s for multi-step restoration (getSession 4s + backup 6s + refresh 6s + conversion 8s = 24s worst case)
-        const authSuccess = await Promise.race([
-          authHandler(),
-          new Promise<boolean>((resolve) => {
-            setTimeout(() => {
-              console.error("❌ Auth handler timeout after 25s");
-              resolve(false);
-            }, 25000);
-          }),
-        ]);
-
-        if (authSuccess === true) {
-          const authDuration = Date.now() - coordinatorStartTime;
-          console.log(`✅ Auth handler completed in ${authDuration}ms, session and user restored`);
-
-          // v37.1: Reduced to 1000ms since auth handler now includes propagation wait
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log("✅ Final propagation complete, ready for data queries");
-
-          // Session restoration handled by App.tsx HttpOnly rehydration
-          console.log("✅ Session ready for data queries");
-        } else {
-          const authDuration = Date.now() - coordinatorStartTime;
-          console.error(`❌ Auth handler failed after ${authDuration}ms - session restoration unsuccessful`);
-          console.warn("⚠️ Skipping data refresh - user needs to re-login");
-          return;
-        }
-      }
-
-      // Execute remaining handlers in parallel
-      if (this.refreshHandlers.length > 1) {
-        const dataHandlers = this.refreshHandlers.slice(1);
-        await Promise.all(dataHandlers.map((handler) => handler()));
-        console.log("✅ All data handlers completed successfully");
+        await Promise.all(
+          this.refreshHandlers.map(async (handler) => {
+            try {
+              await handler();
+            } catch (error) {
+              console.error("Handler error:", error);
+            }
+          })
+        );
+        console.log("✅ All data handlers completed");
       }
     } catch (error) {
       console.error("❌ Error during coordinated refresh", error);
     } finally {
-      clearTimeout(refreshTimeout);
       this.isRefreshing = false;
       const totalDuration = Date.now() - coordinatorStartTime;
-      console.log(`✅ Coordinator refresh cycle complete in ${totalDuration}ms`);
+      console.log(`✅ v38.0 - Coordinator complete in ${totalDuration}ms`);
     }
   }
 }

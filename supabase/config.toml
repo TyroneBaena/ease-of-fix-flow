@@ -178,3 +178,12 @@ verify_jwt = true
 
 [functions.preview-billing-change]
 verify_jwt = true
+
+[functions.login]
+verify_jwt = false
+
+[functions.logout]
+verify_jwt = false
+
+[functions.session]
+verify_jwt = false
