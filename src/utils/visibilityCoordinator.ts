@@ -266,19 +266,19 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v59.0 - Execute the refresh flow with smart retry logic and failure reset
+   * v60.0 - Execute the refresh flow (FIXED: removed broken cookie check)
    */
   private async executeRefreshFlow() {
     console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 v59.0 - STEP 1: Restoring session from backend...");
+    console.log("🚀 v60.0 - STEP 1: Restoring session from backend...");
     console.log("═══════════════════════════════════════════════════");
     
-    // v59.0: CRITICAL FIX - Reset failure counter after 24 hours
+    // v60.0: CRITICAL FIX - Reset failure counter after 24 hours
     const now = Date.now();
     const hoursSinceLastFailure = (now - this.lastFailureTimestamp) / (1000 * 60 * 60);
     
-    if (hoursSinceLastFailure > 24) {
-      console.log(`🔄 v59.0 - Resetting failure counter (${hoursSinceLastFailure.toFixed(1)}h since last failure)`);
+    if (hoursSinceLastFailure > 24 && this.consecutiveFailures > 0) {
+      console.log(`🔄 v60.0 - Resetting failure counter (${hoursSinceLastFailure.toFixed(1)}h since last failure)`);
       this.consecutiveFailures = 0;
     }
     
@@ -287,11 +287,11 @@ class VisibilityCoordinator {
     if (!restored) {
       this.consecutiveFailures++;
       this.lastFailureTimestamp = now;
-      console.error(`❌ v59.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
+      console.error(`❌ v60.0 - STEP 1 FAILED - Session restoration (failures: ${this.consecutiveFailures})`);
       
-      // v59.0: Allow 2 consecutive failures before redirecting
+      // v60.0: Allow 2 consecutive failures before redirecting
       if (this.consecutiveFailures >= 2) {
-        console.error("🚨 v59.0 - Session expired after 2 consecutive failures - redirecting to login");
+        console.error("🚨 v60.0 - Session expired after 2 consecutive failures - redirecting to login");
         toast.error("Your session has expired. Please log in again.", {
           duration: 5000,
           position: 'top-center'
@@ -302,7 +302,7 @@ class VisibilityCoordinator {
           window.location.href = '/login';
         }, 2000);
       } else {
-        console.warn(`⚠️ v59.0 - First failure, will retry on next visit (${this.consecutiveFailures}/2)`);
+        console.warn(`⚠️ v60.0 - First failure, will retry on next visit (${this.consecutiveFailures}/2)`);
         toast.warning("Session restoration failed. Please try refreshing.", {
           duration: 4000
         });
@@ -311,10 +311,10 @@ class VisibilityCoordinator {
       throw new Error('Session restoration failed');
     }
     
-    // v59.0: Reset both counter and timestamp on success
+    // v60.0: Reset both counter and timestamp on success
     this.consecutiveFailures = 0;
     this.lastFailureTimestamp = 0;
-    console.log("✅ v59.0 - STEP 1 COMPLETE - Session restored successfully");
+    console.log("✅ v60.0 - STEP 1 COMPLETE - Session restored successfully");
     
     // v58.0: STEP 1.5: Validate session is actually set on client
     console.log("═══════════════════════════════════════════════════");
