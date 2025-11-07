@@ -130,30 +130,31 @@ const Login = () => {
         });
         console.log("🔐 [Login] Finished logging SUCCESSFUL login attempt");
 
-        // CRITICAL FIX: Redirect IMMEDIATELY, synchronously, before auth context updates
+        // CRITICAL FIX: signInWithEmailPassword now waits for auth context to update
+        // So we can safely redirect - currentUser will be set when ProtectedRoute checks
         const state = location.state as any;
         const invitationCode = state?.invitationCode;
 
         let redirectPath;
         if (invitationCode) {
           redirectPath = "/signup";
-          console.log(`🚀 Login - Redirecting to signup with invitation code`);
+          console.log(`🚀 Login - Auth ready, redirecting to signup with invitation code`);
           navigate(redirectPath, {
             replace: true,
             state: { invitationCode, returnFromLogin: true },
           });
         } else if (redirectTo && propertyId) {
           redirectPath = `${redirectTo}?propertyId=${propertyId}`;
-          console.log(`🚀 Login - Redirecting to QR code flow: ${redirectPath}`);
+          console.log(`🚀 Login - Auth ready, redirecting to QR code flow: ${redirectPath}`);
           navigate(redirectPath, { replace: true });
         } else if (redirectTo) {
           redirectPath = redirectTo;
-          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
+          console.log(`🚀 Login - Auth ready, redirecting to: ${redirectPath}`);
           navigate(redirectPath, { replace: true });
         } else {
-          // Default to /dashboard for immediate redirect
+          // Default to /dashboard
           redirectPath = "/dashboard";
-          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
+          console.log(`🚀 Login - Auth ready, redirecting to: ${redirectPath}`);
           navigate(redirectPath, { replace: true });
         }
         

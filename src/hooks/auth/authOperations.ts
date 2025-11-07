@@ -245,6 +245,12 @@ export const signInWithEmailPassword = async (email: string, password: string) =
 
     console.log("✅ Session rehydrated for:", user.email);
     toast.success("Signed in successfully!");
+    
+    // CRITICAL: Wait for onAuthStateChange to fire and update UnifiedAuthContext
+    // The auth context uses setTimeout(..., 0) to defer state updates, so we must wait
+    console.log("⏳ Waiting for auth context to update...");
+    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log("✅ Auth context should be updated now");
 
     return { user, error: null };
   } catch (error: any) {
