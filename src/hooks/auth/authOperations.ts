@@ -245,9 +245,6 @@ export const signInWithEmailPassword = async (email: string, password: string) =
 
     console.log("✅ Session rehydrated for:", user.email);
     toast.success("Signed in successfully!");
-    
-    // Wait for onAuthStateChange to fire and propagate (critical for redirect)
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
     return { user, error: null };
   } catch (error: any) {

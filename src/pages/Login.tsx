@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info, Loader2 } from "lucide-react";
 import { signInWithEmailPassword } from "@/hooks/auth/authOperations";
 import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
-import { getRedirectPathByRole } from "@/services/userService";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo-light-bg.png";
 
@@ -17,10 +16,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [justLoggedIn, setJustLoggedIn] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, loading: authLoading, isSessionReady } = useSimpleAuth();
+  const { currentUser, loading: authLoading } = useSimpleAuth();
 
   // Check for invitation code and message from redirect
   useEffect(() => {
@@ -55,44 +53,6 @@ const Login = () => {
       console.error("❌ [Login] Exception stack:", error.stack);
     }
   };
-
-  // CRITICAL FIX: Redirect immediately after justLoggedIn is set
-  // Don't wait for auth context - it will update in background
-  useEffect(() => {
-    if (justLoggedIn) {
-      console.log(`✅ Login - justLoggedIn=true, redirecting immediately...`);
-      
-      // Determine redirect path
-      const urlParams = new URLSearchParams(location.search);
-      const redirectTo = urlParams.get("redirectTo");
-      const propertyId = urlParams.get("propertyId");
-      const state = location.state as any;
-      const invitationCode = state?.invitationCode;
-
-      let redirectPath;
-      if (invitationCode) {
-        redirectPath = "/signup";
-        console.log(`🚀 Login - Redirecting to signup with invitation code`);
-        navigate(redirectPath, {
-          replace: true,
-          state: { invitationCode, returnFromLogin: true },
-        });
-      } else if (redirectTo && propertyId) {
-        redirectPath = `${redirectTo}?propertyId=${propertyId}`;
-        console.log(`🚀 Login - Redirecting to QR code flow: ${redirectPath}`);
-        navigate(redirectPath, { replace: true });
-      } else if (redirectTo) {
-        redirectPath = redirectTo;
-        console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
-        navigate(redirectPath, { replace: true });
-      } else {
-        // Use admin role as default since we don't have user object yet
-        redirectPath = "/dashboard";
-        console.log(`🚀 Login - Redirecting to default: ${redirectPath}`);
-        navigate(redirectPath, { replace: true });
-      }
-    }
-  }, [justLoggedIn, location, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +108,7 @@ const Login = () => {
       }
 
       if (user) {
-        console.log("✅ Login - Sign in successful, waiting for auth context to update...");
+        console.log("✅ Login - Sign in successful, redirecting immediately...");
 
         // Clear any password reset flags on successful login
         sessionStorage.removeItem('password_reset_pending');
@@ -170,10 +130,35 @@ const Login = () => {
         });
         console.log("🔐 [Login] Finished logging SUCCESSFUL login attempt");
 
-        // Set flag to indicate we just logged in successfully
-        setJustLoggedIn(true);
-        setIsLoading(false);
-        console.log("✅ Login - Waiting for useEffect to detect auth state and redirect...");
+        // CRITICAL FIX: Redirect IMMEDIATELY, synchronously, before auth context updates
+        const state = location.state as any;
+        const invitationCode = state?.invitationCode;
+
+        let redirectPath;
+        if (invitationCode) {
+          redirectPath = "/signup";
+          console.log(`🚀 Login - Redirecting to signup with invitation code`);
+          navigate(redirectPath, {
+            replace: true,
+            state: { invitationCode, returnFromLogin: true },
+          });
+        } else if (redirectTo && propertyId) {
+          redirectPath = `${redirectTo}?propertyId=${propertyId}`;
+          console.log(`🚀 Login - Redirecting to QR code flow: ${redirectPath}`);
+          navigate(redirectPath, { replace: true });
+        } else if (redirectTo) {
+          redirectPath = redirectTo;
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
+          navigate(redirectPath, { replace: true });
+        } else {
+          // Default to /dashboard for immediate redirect
+          redirectPath = "/dashboard";
+          console.log(`🚀 Login - Redirecting to: ${redirectPath}`);
+          navigate(redirectPath, { replace: true });
+        }
+        
+        // Keep loading state active during redirect
+        // Don't call setIsLoading(false) - let the redirect happen
       } else {
         setError("Login failed - no user returned");
         setIsLoading(false);
@@ -201,9 +186,9 @@ const Login = () => {
     }
   };
 
-  // CRITICAL: Don't render login UI while checking auth or if user is already authenticated
-  // This prevents the flash of login page during page refresh
-  if (authLoading || currentUser) {
+  // CRITICAL: Only show loading spinner during initial auth check, not after login
+  // If we're loading from a login attempt, don't unmount - let redirect happen
+  if (authLoading || (currentUser && !isLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
