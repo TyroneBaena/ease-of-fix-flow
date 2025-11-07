@@ -240,7 +240,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
   const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
   
-  // v44.0: Register isSessionReady callback with coordinator
+  // v46.0: Register isSessionReady callback with coordinator
   const isSessionReadyRef = useRef(isSessionReady);
   
   useEffect(() => {
@@ -248,8 +248,30 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [isSessionReady]);
   
   useEffect(() => {
-    console.log('🔧 v44.0 - Registering session ready callback');
+    console.log('🔧 v46.0 - Registering session ready callback');
     visibilityCoordinator.setSessionReadyCallback(() => isSessionReadyRef.current);
+    
+    // v46.0: Register error handler for session failures
+    const unsubscribe = visibilityCoordinator.onError((error) => {
+      console.error('🚨 v46.0 - Session error received:', error);
+      
+      if (error === 'SESSION_EXPIRED') {
+        // Clear local state and redirect to login
+        console.log('🔐 v46.0 - Clearing state and redirecting to login');
+        setCurrentUser(null);
+        setSession(null);
+        setIsSessionReady(false);
+        setUserOrganizations([]);
+        setCurrentOrganization(null);
+        
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
+    });
+    
+    return unsubscribe;
   }, []);
 
   // Organization state

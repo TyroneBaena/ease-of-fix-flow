@@ -21,15 +21,15 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
     previousSessionReadyRef.current = isSessionReady;
     
-    // v45.0: Wait for session ready before loading
+    // v46.0: Wait for session ready before loading
     if (!isSessionReady) {
-      console.log('⏳ v45.0 - Waiting for session to be ready...');
-      setLoading(true); // v45.0: Always show loading while waiting for session
+      console.log('⏳ v46.0 - Waiting for session to be ready...');
+      setLoading(true); // v46.0: Always show loading while waiting for session
       return;
     }
     
     if (sessionJustBecameReady) {
-      console.log('✅ v45.0 - Session ready, loading data');
+      console.log('✅ v46.0 - Session ready, loading data');
     }
     
     if (!requestId || !currentUser) {
@@ -38,7 +38,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     }
     
     const loadRequestData = async () => {
-      setLoading(true); // v45.0: Always show loading when fetching data
+      setLoading(true); // v46.0: Always show loading when fetching data
       
       console.log("useMaintenanceRequestData - Loading request data for ID:", requestId);
       
@@ -162,7 +162,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
 
   return {
     request,
-    loading, // v45.0: Return actual loading state, no blocking
+    loading, // v46.0: Return actual loading state, no blocking
     refreshRequestData
   };
 }
