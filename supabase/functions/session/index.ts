@@ -1,9 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
+  // Allow all Lovable preview domains and lovable.app domains
+  const allowedOrigin = origin && (
+    origin.includes('lovableproject.com') || 
+    origin.includes('lovable.app') ||
+    origin.includes('localhost')
+  ) ? origin : '*';
+  
   return {
-    'Access-Control-Allow-Origin': origin || 'https://preview--housinghub.lovable.app',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cookie',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
   };
