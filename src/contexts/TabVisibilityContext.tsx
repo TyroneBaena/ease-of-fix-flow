@@ -3,16 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v75.0 - INSTANT loading reset on tab return + background refresh
+ * v76.0 - Fixed handler timeout cleanup
  * 
- * CRITICAL CHANGE (v75.0):
- * - On tab return, loading states reset INSTANTLY (synchronous)
- * - Then background refresh happens silently (no loading indicators)
- * - Eliminates ALL loading flashes on tab revisit
+ * CRITICAL FIX (v76.0):
+ * - Handler timeouts are now properly cleared when handlers complete
+ * - Eliminates ghost "Handler timeout" errors after successful completion
+ * - Recovery flag pauses health monitor during tab return refresh
  * 
  * PREVIOUS CHANGES:
+ * v75.0 - INSTANT loading reset on tab return + background refresh
  * v68.0 - Added QueryClient integration for soft recovery
- * v67.0 - Simplified to handler orchestration only (no session management)
  */
 
 interface TabVisibilityContextType {
@@ -37,16 +37,16 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔄 v75.0 - Starting visibility coordinator with INSTANT reset');
+    console.log('🔄 v76.0 - Starting visibility coordinator with timeout cleanup');
     
-    // v75.0: Register QueryClient for instant reset + background refresh
+    // v76.0: Register QueryClient for instant reset + background refresh
     visibilityCoordinator.setQueryClient(queryClient);
     
     // Start listening for visibility changes
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v75.0 - Stopping visibility coordinator');
+      console.log('🔄 v76.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, [queryClient]);

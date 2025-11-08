@@ -1,5 +1,5 @@
 /**
- * Tab Visibility Coordinator v75.0 - INSTANT Loading Reset + Background Refresh
+ * Tab Visibility Coordinator v76.0 - Fixed Timeout Cleanup
  *
  * ARCHITECTURAL CHANGE (v67.0):
  * ✅ Coordinator NO LONGER does session restoration itself
@@ -100,19 +100,18 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v75.0: Force reset coordinator state (called by soft recovery)
-   * CRITICAL FIX: Clear the overall timeout to prevent zombie timers
+   * v76.0: Force reset coordinator state
    */
   public async forceReset() {
-    console.log("🔧 v75.0 - Force resetting coordinator state");
+    console.log("🔧 v76.0 - Force resetting coordinator state");
     this.isRefreshing = false;
     this.isCoordinating = false;
     
-    // v75.0: CRITICAL - Clear the overall timeout to stop zombie timers
+    // v76.0: CRITICAL - Clear the overall timeout to stop zombie timers
     if (this.overallTimeoutId) {
       clearTimeout(this.overallTimeoutId);
       this.overallTimeoutId = null;
-      console.log("✅ v75.0 - Cleared overall timeout (preventing zombie timer)");
+      console.log("✅ v76.0 - Cleared overall timeout (preventing zombie timer)");
     }
     
     if (this.abortController) {
@@ -121,17 +120,14 @@ class VisibilityCoordinator {
     }
     
     this.notifyTabRefreshChange(false);
-    console.log("✅ v75.0 - Coordinator state reset");
+    console.log("✅ v76.0 - Coordinator state reset");
   }
 
   /**
-   * v75.0: Trigger refresh manually (called by health monitor during recovery)
-   * This actually re-runs handlers to fetch fresh data
-   * CRITICAL: Add delay to let previous coordination fully clean up
+   * v76.0: Trigger refresh manually
    */
   public async triggerRefresh() {
-    console.log("🔧 v75.0 - Manually triggering refresh (with 500ms settle time)");
-    // v75.0: Wait 500ms to let abort controller and timeouts fully clean up
+    console.log("🔧 v76.0 - Manually triggering refresh (with 500ms settle time)");
     await new Promise(resolve => setTimeout(resolve, 500));
     await this.coordinateRefresh();
   }
@@ -192,7 +188,7 @@ class VisibilityCoordinator {
     if (this.isListening) return;
     this.isListening = true;
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v75.0 - Started listening for tab visibility changes");
+    console.log("👀 v76.0 - Started listening for tab visibility changes");
   }
 
   /**
@@ -202,22 +198,21 @@ class VisibilityCoordinator {
     if (!this.isListening) return;
     this.isListening = false;
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v75.0 - Stopped listening");
+    console.log("👀 v76.0 - Stopped listening");
   }
 
   /**
-   * v75.0: Handle tab becoming visible - INSTANT loading reset + background refresh
-   * CRITICAL: Reset loading states IMMEDIATELY, then refresh in background
+   * v76.0: Handle tab becoming visible - INSTANT reset + disable health monitor
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v75.0 - Tab hidden");
+      console.log("🔒 v76.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v75.0 - Tab visible, starting INSTANT RESET");
+    console.log("🔓 v76.0 - Tab visible, starting INSTANT RESET");
     
-    // v75.0: CRITICAL - Reset loading states INSTANTLY (don't wait for async operations)
+    // v76.0: CRITICAL - Reset loading states INSTANTLY
     this.instantLoadingReset();
     
     // Then do background refresh (non-blocking)
@@ -225,66 +220,65 @@ class VisibilityCoordinator {
   };
 
   /**
-   * v75.0: INSTANT loading reset - happens IMMEDIATELY on tab return
-   * This ensures NO loading states appear to the user
+   * v76.0: INSTANT loading reset - synchronous, immediate
    */
   private instantLoadingReset() {
-    console.log("⚡ v75.0 - INSTANT RESET: Clearing all loading flags");
+    console.log("⚡ v76.0 - INSTANT RESET: Clearing all loading flags");
     
-    // Reset coordinator state immediately
     this.isRefreshing = false;
     this.isCoordinating = false;
+    this.isRecovering = false; // v76.0: Also reset recovery flag
     
-    // Clear any pending timeouts
     if (this.overallTimeoutId) {
       clearTimeout(this.overallTimeoutId);
       this.overallTimeoutId = null;
     }
     
-    // Abort any in-progress operations
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
     
-    // Notify UI that loading is OFF
     this.notifyTabRefreshChange(false);
     
-    console.log("✅ v75.0 - INSTANT RESET complete (loading flags cleared)");
+    console.log("✅ v76.0 - INSTANT RESET complete (loading flags cleared)");
   }
 
   /**
-   * v75.0: Background soft recovery - runs AFTER instant reset
-   * This refreshes data without showing loading states
+   * v76.0: Background refresh - silent, no loading states
    */
   private async guaranteedSoftRecovery() {
-    console.log("🔄 v75.0 - Starting BACKGROUND refresh (no loading states)...");
+    console.log("🔄 v76.0 - Starting BACKGROUND refresh (no loading states)...");
+    
+    // v76.0: Set recovery flag to pause health monitor
+    this.isRecovering = true;
     
     try {
-      // Step 1: Cancel all pending React Query requests
       if (this.queryClient) {
-        console.log("🔄 v75.0 - Canceling stale queries...");
+        console.log("🔄 v76.0 - Canceling stale queries...");
         await this.queryClient.cancelQueries();
       }
       
-      // Step 2: Wait 300ms for cancellations to settle
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Step 3: Invalidate queries to mark as stale (but don't show loading)
       if (this.queryClient) {
-        console.log("🔄 v75.0 - Invalidating queries...");
+        console.log("🔄 v76.0 - Invalidating queries...");
         await this.queryClient.invalidateQueries();
       }
       
-      // Step 4: Trigger silent background refresh via handlers
-      console.log("🔄 v75.0 - Triggering silent background refresh...");
+      console.log("🔄 v76.0 - Triggering silent background refresh...");
       await this.coordinateRefresh();
       
-      console.log("✅ v75.0 - Background refresh complete");
+      console.log("✅ v76.0 - Background refresh complete");
     } catch (error) {
-      console.error("❌ v75.0 - Background refresh failed:", error);
-      // Ensure we're not stuck even if refresh fails
+      console.error("❌ v76.0 - Background refresh failed:", error);
       this.instantLoadingReset();
+    } finally {
+      // v76.0: Clear recovery flag after 2 seconds to re-enable health monitor
+      setTimeout(() => {
+        this.isRecovering = false;
+        console.log("🔄 v76.0 - Recovery flag cleared, health monitor re-enabled");
+      }, 2000);
     }
   }
 
@@ -319,13 +313,11 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v75.0 - Coordinate all refresh handlers
-   * Integrated with independent ApplicationHealthMonitor
-   * CRITICAL FIX: Store timeout ID so it can be cleared during force reset
+   * v76.0 - Coordinate all refresh handlers with proper timeout cleanup
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v75.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v76.0 - Refresh already in progress, skipping");
       return;
     }
 
@@ -333,14 +325,14 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v75.0 - Starting coordination (monitored by ApplicationHealthMonitor)");
+    console.log("🔁 v76.0 - Starting coordination");
 
     this.abortController = new AbortController();
 
-    // v75.0: Store timeout ID so it can be cleared in forceReset()
+    // v76.0: Store timeout ID so it can be cleared
     const overallTimeout = new Promise((_, reject) => {
       this.overallTimeoutId = setTimeout(() => {
-        console.error("🚨 v75.0 - Overall timeout reached after 60s");
+        console.error("🚨 v76.0 - Overall timeout reached after 60s");
         this.abortController?.abort();
         reject(new Error('Overall coordination timeout'));
       }, 60000);
@@ -353,21 +345,21 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v75.0 - Coordination complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v76.0 - Coordination complete in ${duration}ms`, "color: lime; font-weight: bold");
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v75.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v76.0 - Coordination failed after ${duration}ms:`, error);
       toast.error("Some data may not have loaded. Please refresh if needed.");
     } finally {
-      // v75.0: Clear the timeout ID
+      // v76.0: Clear the timeout ID
       if (this.overallTimeoutId) {
         clearTimeout(this.overallTimeoutId);
         this.overallTimeoutId = null;
       }
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
-        console.log(`📋 v75.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        console.log(`📋 v76.0 - Processing ${this.pendingHandlers.length} pending handlers`);
         const handlersToProcess = [...this.pendingHandlers];
         this.pendingHandlers = [];
         
@@ -386,42 +378,60 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v75.0 - Simplified: Just run handlers with timeout protection
-   * Session restoration is handled by UnifiedAuthContext.refreshAuth handler
+   * v76.0 - Handler execution with PROPER timeout cleanup
+   * CRITICAL FIX: Clear timeout when handler completes to prevent ghost errors
    */
   private async executeHandlers() {
     console.log("═══════════════════════════════════════════════════");
-    console.log(`🔁 v75.0 - Running ${this.refreshHandlers.length} handlers...`);
+    console.log(`🔁 v76.0 - Running ${this.refreshHandlers.length} handlers...`);
     console.log("═══════════════════════════════════════════════════");
     
     if (this.refreshHandlers.length === 0) {
-      console.warn("⚠️ v75.0 - No handlers registered");
+      console.warn("⚠️ v76.0 - No handlers registered");
       return;
     }
     
     const handlerTimeout = 30000; // 30s per handler
     const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
       const handlerStart = Date.now();
-      console.log(`▶️ v75.0 - Handler ${index + 1} starting...`);
+      console.log(`▶️ v76.0 - Handler ${index + 1} starting...`);
+      
+      // v76.0: CRITICAL FIX - Store timeout ID so we can clear it
+      let timeoutId: NodeJS.Timeout | null = null;
       
       try {
         if (this.abortController?.signal.aborted) {
-          console.warn(`⚠️ v75.0 - Handler ${index + 1} aborted`);
+          console.warn(`⚠️ v76.0 - Handler ${index + 1} aborted`);
           return;
         }
         
-        await Promise.race([
-          handler(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Handler timeout')), handlerTimeout)
-          )
-        ]);
+        // v76.0: Create timeout promise with stored ID for cleanup
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Handler timeout'));
+          }, handlerTimeout);
+        });
+        
+        // Race handler against timeout
+        await Promise.race([handler(), timeoutPromise]);
+        
+        // v76.0: CRITICAL - Clear timeout if handler completed successfully
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
         
         const duration = Date.now() - handlerStart;
-        console.log(`✅ v75.0 - Handler ${index + 1} done in ${duration}ms`);
+        console.log(`✅ v76.0 - Handler ${index + 1} done in ${duration}ms`);
       } catch (err) {
+        // v76.0: CRITICAL - Clear timeout on error too
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
         const duration = Date.now() - handlerStart;
-        console.error(`❌ v75.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
+        console.error(`❌ v76.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
       }
     });
     
@@ -430,7 +440,7 @@ class VisibilityCoordinator {
     const failed = results.filter(r => r.status === 'rejected').length;
     
     console.log("═══════════════════════════════════════════════════");
-    console.log(`✅ v75.0 - Handlers complete: ${successful} ok, ${failed} failed`);
+    console.log(`✅ v76.0 - Handlers complete: ${successful} ok, ${failed} failed`);
     console.log("═══════════════════════════════════════════════════");
   }
 }

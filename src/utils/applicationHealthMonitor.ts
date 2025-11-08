@@ -114,25 +114,32 @@ class ApplicationHealthMonitor {
    */
   private async performHealthCheck(): Promise<void> {
     if (this.state.recoveryInProgress) {
-      console.log("🏥 v75.0 - Health check skipped (recovery in progress)");
+      console.log("🏥 v76.0 - Health check skipped (recovery in progress)");
       return;
     }
 
     const now = Date.now();
     this.state.lastCheckTime = now;
 
-    console.log(`🏥 v75.0 - Health check at ${new Date().toISOString()}`);
+    console.log(`🏥 v76.0 - Health check at ${new Date().toISOString()}`);
 
-    // v75.0: Track when coordinator started refreshing (independent of callbacks)
+    // v76.0: Track when coordinator started refreshing
     const coordinator = visibilityCoordinator;
     const isCoordinatorRefreshing = coordinator.getRefreshingState();
+    const isRecovering = coordinator.getRecoveryState();
+    
+    // v76.0: Skip check if manual tab return recovery is in progress
+    if (isRecovering) {
+      console.log("🏥 v76.0 - Health check skipped (tab return recovery in progress)");
+      return;
+    }
     
     if (isCoordinatorRefreshing && !this.state.coordinatorRefreshingSince) {
       this.state.coordinatorRefreshingSince = now;
-      console.log("📝 v75.0 - Detected coordinator started refreshing");
+      console.log("📝 v76.0 - Detected coordinator started refreshing");
     } else if (!isCoordinatorRefreshing && this.state.coordinatorRefreshingSince) {
       const duration = now - this.state.coordinatorRefreshingSince;
-      console.log(`📝 v75.0 - Detected coordinator stopped refreshing (was active for ${duration}ms)`);
+      console.log(`📝 v76.0 - Detected coordinator stopped refreshing (was active for ${duration}ms)`);
       this.state.coordinatorRefreshingSince = null;
       this.state.lastSuccessfulFetch = now;
       this.state.consecutiveStuckChecks = 0;
@@ -145,7 +152,7 @@ class ApplicationHealthMonitor {
 
     if (needsRecovery) {
       this.state.consecutiveStuckChecks++;
-      console.log(`🚨 v75.0 - STUCK STATE DETECTED (${this.state.consecutiveStuckChecks} consecutive)`);
+      console.log(`🚨 v76.0 - STUCK STATE DETECTED (${this.state.consecutiveStuckChecks} consecutive)`);
       console.log(`   Refresh stuck: ${refreshStuck}`);
       console.log(`   Queries stuck: ${queriesStuck}`);
       console.log(`   Data stale: ${dataStale}`);
@@ -153,16 +160,16 @@ class ApplicationHealthMonitor {
       await this.triggerSoftRecovery();
     } else {
       if (this.state.consecutiveStuckChecks > 0) {
-        console.log("✅ v75.0 - Health check PASSED (recovered from stuck state)");
+        console.log("✅ v76.0 - Health check PASSED (recovered from stuck state)");
       } else {
-        console.log("✅ v75.0 - Health check PASSED (all systems healthy)");
+        console.log("✅ v76.0 - Health check PASSED (all systems healthy)");
       }
       this.state.consecutiveStuckChecks = 0;
     }
   }
 
   /**
-   * v75.0: Check if refresh operation is stuck
+   * v76.0: Check if refresh operation is stuck
    */
   private checkRefreshStuck(now: number): boolean {
     if (!this.state.coordinatorRefreshingSince) {
