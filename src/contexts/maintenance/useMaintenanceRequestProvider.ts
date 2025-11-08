@@ -40,7 +40,7 @@ export const useMaintenanceRequestProvider = () => {
     const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
     const userId = user?.id;
     
-    console.log('🔍 v65.0 - LOADING REQUESTS', { 
+    console.log('🔍 v73.0 - LOADING REQUESTS', { 
       sessionReady, 
       hasUser: !!userId,
       email: user?.email,
@@ -49,60 +49,63 @@ export const useMaintenanceRequestProvider = () => {
     
     // CRITICAL: Wait for BOTH session ready AND user available
     if (!sessionReady) {
-      console.log('🔍 v65.0 - LOADING REQUESTS - Waiting for session ready...');
+      console.log('🔍 v73.0 - LOADING REQUESTS - Waiting for session ready...');
       return [];
     }
     
     if (!userId) {
-      console.log('🔍 v65.0 - LOADING REQUESTS - No user, skipping');
+      console.log('🔍 v73.0 - LOADING REQUESTS - No user, skipping');
       setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       return [];
     }
     
-    // CRITICAL: Prevent concurrent fetches
+    // v73.0: Prevent concurrent fetches BUT ensure loading gets reset
     if (isFetchingRef.current) {
-      console.log('🔍 v65.0 - LOADING REQUESTS - Fetch already in progress, skipping');
+      console.log('🔍 v73.0 - LOADING REQUESTS - Fetch already in progress, skipping');
+      // Ensure loading is false if we're skipping
+      setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
       return [];
     }
     
-    // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
-    if (!hasCompletedInitialLoadRef.current) {
-      setLoading(true);
-    }
-    
-    isFetchingRef.current = true;
-    
-    // v65.0: Reduced timeout to 30s for faster recovery
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      console.warn('⏱️ v65.0 - Request fetch timeout after 30s');
-    }, 30000);
+  // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+  if (!hasCompletedInitialLoadRef.current) {
+    setLoading(true);
+  }
+  
+  isFetchingRef.current = true;
+  
+  // v73.0: 15s timeout to match health monitor detection (was 30s)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.warn('⏱️ v73.0 - Request fetch timeout after 15s');
+  }, 15000);
 
     try {
-      console.log('🔍 v65.0 - LOADING REQUESTS - Calling fetchRequests with current user:', user?.email);
+      console.log('🔍 v73.0 - LOADING REQUESTS - Calling fetchRequests with current user:', user?.email);
       const fetchedRequests = await fetchRequests(controller.signal);
       clearTimeout(timeoutId);
       
-      console.log('🔍 v65.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
+      console.log('🔍 v73.0 - LOADING REQUESTS - Fetched:', fetchedRequests?.length, 'requests');
       
       if (fetchedRequests && fetchedRequests.length > 0) {
         const formattedRequests = fetchedRequests.map(request => formatRequestData(request));
-        console.log('🔍 v65.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
+        console.log('🔍 v73.0 - LOADING REQUESTS - Formatted:', formattedRequests.length, 'requests');
         
         setRequests(formattedRequests);
         lastFetchTimeRef.current = Date.now();
         return formattedRequests;
       } else {
-        console.log('🔍 v65.0 - LOADING REQUESTS - No requests found');
+        console.log('🔍 v73.0 - LOADING REQUESTS - No requests found');
         setRequests([]);
         lastFetchTimeRef.current = Date.now();
         return [];
       }
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error('🔍 v65.0 - LOADING REQUESTS - Error:', error);
+      console.error('🔍 v73.0 - LOADING REQUESTS - Error:', error);
       
       if (controller.signal.aborted) {
         console.warn('⏱️ Request fetch aborted due to timeout');
@@ -111,12 +114,12 @@ export const useMaintenanceRequestProvider = () => {
       setRequests([]);
       return [];
     } finally {
-      // CRITICAL: Only reset loading on first load, keep it false after
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(false);
-      }
+      // v73.0: CRITICAL FIX - Always reset loading and flags even if error/timeout
+      // This prevents stuck loading states that health monitor can't detect
+      setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
+      console.log('✅ v73.0 - loadRequests finally: loading=false, completed=true');
     }
   }, [fetchRequests]); // CRITICAL v65.0: Include fetchRequests so we get updates when user changes
 
@@ -327,8 +330,8 @@ export const useMaintenanceRequestProvider = () => {
 
   const contextValue = useMemo(() => ({
     requests,
-    // CRITICAL: Override loading to false after initial load completes
-    // This prevents loading flashes on tab switches
+    // v73.0: CRITICAL FIX - Always return false loading after initial load completes
+    // This prevents UI getting stuck in loading state even if internal flag is somehow true
     loading: hasCompletedInitialLoadRef.current ? false : loading,
     getRequestsForProperty,
     addRequestToProperty,
