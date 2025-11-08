@@ -4,6 +4,7 @@ import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
 import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 // Define the return type for the addUser function
 export interface AddUserResult {
@@ -46,7 +47,6 @@ export const useUserProvider = () => {
 
   // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
   useEffect(() => {
-    const { visibilityCoordinator } = require('@/utils/visibilityCoordinator');
     const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing: boolean) => {
       if (!isRefreshing && hasCompletedInitialLoadRef.current) {
         // Instant reset: Clear loading immediately on tab return

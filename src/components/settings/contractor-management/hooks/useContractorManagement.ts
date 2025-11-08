@@ -8,6 +8,7 @@ import { useContractorPagination } from './useContractorPagination';
 import { fetchContractors } from '../operations/contractorFetch';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/lib/supabase';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 export const useContractorManagement = () => {
   const { currentUser, isAdmin, session } = useSimpleAuth();
@@ -26,7 +27,6 @@ export const useContractorManagement = () => {
   // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
   const hasCompletedInitialLoadRef = useRef(false);
   useEffect(() => {
-    const { visibilityCoordinator } = require('@/utils/visibilityCoordinator');
     const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing: boolean) => {
       if (!isRefreshing && hasCompletedInitialLoadRef.current) {
         // Instant reset: Clear loading immediately on tab return
