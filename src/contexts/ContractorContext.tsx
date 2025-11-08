@@ -39,18 +39,11 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const fetchContractors = async () => {
     try {
-      // Timeout protection
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const { data, error } = await supabase
+        .from('contractors')
+        .select('*');
 
-      try {
-        const { data, error } = await supabase
-          .from('contractors')
-          .select('*');
-
-        clearTimeout(timeoutId);
-
-        if (error) throw error;
+      if (error) throw error;
 
         const mappedContractors: Contractor[] = data.map(item => ({
           id: item.id,
@@ -66,21 +59,11 @@ export const ContractorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }));
 
         setContractors(mappedContractors);
-      } catch (fetchErr) {
-        clearTimeout(timeoutId);
-        throw fetchErr;
-      }
     } catch (err) {
       console.error('Error fetching contractors:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
-      
-      if (err instanceof Error && (err.message.includes('aborted') || err.message.includes('timeout'))) {
-        toast.error('Loading contractors timed out');
-      } else {
-        toast.error('Failed to load contractors');
-      }
+      toast.error('Failed to load contractors');
     } finally {
-      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   };

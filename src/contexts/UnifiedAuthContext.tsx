@@ -267,34 +267,10 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [loading, setLoading] = useState(true);
   const [isSessionReady, setIsSessionReady] = useState(false); // CRITICAL: Track if Supabase client session is ready
   const initialCheckDone = useRef(false); // CRITICAL: Use ref to prevent reset on remount
-  const [isSigningOut, setIsSigningOut] = useState(false); // Track sign out process
-  const hasCompletedInitialSetup = useRef(false); // CRITICAL: Track if we've ever completed setup
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const hasCompletedInitialSetup = useRef(false);
   
-  // v56.0: REMOVED - TabVisibilityContext now handles session ready callback to avoid collision
-  // Only register error handler for session failures
-  useEffect(() => {
-    console.log('🔧 v56.0 - Registering error handler (session ready callback handled by TabVisibilityContext)');
-    
-    // v56.0: Register error handler for session failures
-    const unsubscribe = visibilityCoordinator.onError((error) => {
-      console.error('🚨 v56.0 - Session error received:', error);
-      
-      if (error === 'SESSION_EXPIRED') {
-        console.log('🔐 v56.0 - Clearing state and redirecting to login');
-        setCurrentUser(null);
-        setSession(null);
-        setIsSessionReady(false);
-        setUserOrganizations([]);
-        setCurrentOrganization(null);
-        
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      }
-    });
-    
-    return unsubscribe;
-  }, []);
+  // v79.0: REMOVED - No error handler needed, React Query handles all errors
 
   // Organization state
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);

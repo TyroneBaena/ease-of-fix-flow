@@ -913,9 +913,6 @@ import NotFound from "@/pages/NotFound";
 // Import session rehydration utility
 import { rehydrateSessionFromServer } from "@/utils/sessionRehydration";
 
-// Import health monitor
-import { applicationHealthMonitor } from "@/utils/applicationHealthMonitor";
-
 // React Query setup - v78.0: Simplified with proper auto-refetch configuration
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -1035,30 +1032,15 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
-  // v78.0 - DISABLED - applicationHealthMonitor interferes with React Query
-  // Let React Query handle all refetching automatically
-  // useEffect(() => {
-  //   console.log("🏥 App.tsx v78.0 - ApplicationHealthMonitor DISABLED");
-  //   return () => {};
-  // }, []);
-
-  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v72.0
+  // v79.0 - Pure React Query approach, no health monitor needed
+  // ONLY initial load rehydration
   useEffect(() => {
-    console.log("🔧 App.tsx v72.0 - Initial load rehydration with bulletproof error handling");
-    // Clean up old v37 storage first
+    console.log("🔧 v79.0 - Initial load rehydration");
     cleanupOldAuthStorage();
-    // Then rehydrate from HttpOnly cookies ONCE on initial load
-    // v72.0: Always set rehydrated=true even if session restoration fails (allow cached data)
     rehydrateSessionFromServer()
-      .then(() => {
-        console.log("✅ App.tsx v72.0 - Initial session restoration complete");
-      })
-      .catch((err) => {
-        console.error("❌ App.tsx v72.0 - Initial session restoration error (non-fatal):", err);
-      })
-      .finally(() => {
-        setRehydrated(true);
-      });
+      .then(() => console.log("✅ v79.0 - Session restored"))
+      .catch((err) => console.error("❌ v79.0 - Session restore error:", err))
+      .finally(() => setRehydrated(true));
   }, []);
 
   if (!rehydrated) {

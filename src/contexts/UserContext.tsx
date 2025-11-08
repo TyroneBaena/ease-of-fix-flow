@@ -44,27 +44,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setLoadingError(null);
-      console.log('🔧 UserContext - Fetching users');
+      console.log('🔧 v79.0 - UserContext: Fetching users');
       
-      // Timeout protection - 60 seconds for auth queries
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-      try {
-        const userData = await userService.getAllUsers();
-        clearTimeout(timeoutId);
-        
-        setUsers(userData);
-        console.log('🔧 UserContext - Users fetched:', userData.length);
-      } catch (fetchErr) {
-        clearTimeout(timeoutId);
-        throw fetchErr;
-      }
+      const userData = await userService.getAllUsers();
+      setUsers(userData);
+      console.log('✅ v79.0 - UserContext: Users fetched:', userData.length);
     } catch (error) {
-      console.error('🔧 UserContext - Error fetching users:', error);
+      console.error('❌ v79.0 - UserContext: Error:', error);
       setLoadingError(error as Error);
     } finally {
-      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   }, [isAdmin]);

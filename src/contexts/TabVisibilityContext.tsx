@@ -37,16 +37,13 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔄 v77.0 - Starting visibility coordinator with component loading subscriptions');
+    console.log('🔄 v79.0 - Starting visibility coordinator (passive mode)');
     
-    // v77.0: Register QueryClient for instant reset + background refresh
-    visibilityCoordinator.setQueryClient(queryClient);
-    
-    // Start listening for visibility changes
+    // v79.0: Just start listening - no setup needed
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v77.0 - Stopping visibility coordinator');
+      console.log('🔄 v79.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, [queryClient]);
