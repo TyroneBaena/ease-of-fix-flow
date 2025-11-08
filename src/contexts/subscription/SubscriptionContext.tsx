@@ -77,8 +77,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const refresh = useCallback(async () => {
     // CRITICAL: Wait for session to be ready before querying
     if (!isSessionReady) {
-      console.log('🔄 SubscriptionContext - Waiting for session to be ready...');
-      setLoading(true);
+      console.log('🔄 v77.2 - SubscriptionContext - Waiting for session to be ready...');
+      // v77.2: NEVER set loading when waiting for session
       return;
     }
     
@@ -106,9 +106,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     try {
       isFetchingRef.current = true;
-      // CRITICAL: Only set loading on first fetch
+      // v77.2: CRITICAL - NEVER set loading after initial load
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(true);
+      } else {
+        console.log('🔕 v77.2 - SubscriptionContext - SILENT REFRESH - Skipping loading state');
       }
       
       console.log('🔄 SubscriptionContext - Fetching for organization:', currentOrganization.id);

@@ -47,8 +47,8 @@ export const useActivityLogs = (
     const fetchActivityLogs = async () => {
       // CRITICAL: Wait for session to be ready before querying
       if (!isSessionReady) {
-        console.log('🔄 useActivityLogs - Waiting for session to be ready...');
-        setLoading(true);
+        console.log('🔄 v77.2 - useActivityLogs - Waiting for session to be ready...');
+        // v77.2: NEVER set loading when waiting for session
         return;
       }
       

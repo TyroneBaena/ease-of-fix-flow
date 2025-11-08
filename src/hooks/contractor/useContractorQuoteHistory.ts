@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -27,6 +27,8 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteLogs, setQuoteLogs] = useState<QuoteLog[]>([]);
   const [loading, setLoading] = useState(true);
+  // v77.2: Track initial load to prevent loading flashes on tab revisits
+  const hasCompletedInitialLoadRef = useRef(false);
 
   useEffect(() => {
     if (!requestId) {
@@ -36,7 +38,12 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
 
     const fetchContractorQuotes = async () => {
       try {
-        setLoading(true);
+        // v77.2: CRITICAL - NEVER set loading after initial load
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(true);
+        } else {
+          console.log('🔕 v77.2 - ContractorQuoteHistory - SILENT REFRESH');
+        }
         
         // First get the contractor ID for the current user
         const { data: contractorData, error: contractorError } = await supabase
@@ -118,7 +125,11 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
         console.error('Error in fetchContractorQuotes:', error);
         toast.error('Error loading quote history');
       } finally {
-        setLoading(false);
+        // v77.2: Mark initial load as complete
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(false);
+        }
+        hasCompletedInitialLoadRef.current = true;
       }
     };
 
@@ -188,7 +199,8 @@ export const useContractorQuoteHistory = (requestId: string | undefined) => {
   return {
     quotes,
     quoteLogs,
-    loading,
+    // v77.2: Override loading after initial load completes
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     refreshQuotes
   };
 };

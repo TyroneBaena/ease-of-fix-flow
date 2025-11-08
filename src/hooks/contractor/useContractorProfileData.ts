@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
@@ -23,6 +23,8 @@ export const useContractorProfileData = () => {
   const [contractor, setContractor] = useState<ContractorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // v77.2: Track initial load to prevent loading flashes on tab revisits
+  const hasCompletedInitialLoadRef = useRef(false);
 
   const fetchContractorProfile = async () => {
     console.log('useContractorProfileData - fetchContractorProfile called');
@@ -41,7 +43,12 @@ export const useContractorProfileData = () => {
     }
 
     try {
-      setLoading(true);
+      // v77.2: CRITICAL - NEVER set loading after initial load
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      } else {
+        console.log('🔕 v77.2 - ContractorProfile - SILENT REFRESH');
+      }
       setError(null);
 
       console.log('useContractorProfileData - Starting fetch for user:', currentUser.id);
@@ -181,7 +188,11 @@ export const useContractorProfileData = () => {
       setError('Failed to load contractor profile');
       toast.error('Could not load profile information');
     } finally {
-      setLoading(false);
+      // v77.2: Mark initial load as complete
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
+      hasCompletedInitialLoadRef.current = true;
     }
   };
 
@@ -198,7 +209,8 @@ export const useContractorProfileData = () => {
 
   return { 
     contractor, 
-    loading, 
+    // v77.2: Override loading after initial load completes
+    loading: hasCompletedInitialLoadRef.current ? false : loading, 
     error, 
     refetch: fetchContractorProfile 
   };

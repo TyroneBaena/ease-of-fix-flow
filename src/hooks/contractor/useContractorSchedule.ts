@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 
@@ -18,10 +18,17 @@ export const useContractorSchedule = () => {
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // v77.2: Track initial load to prevent loading flashes on tab revisits
+  const hasCompletedInitialLoadRef = useRef(false);
 
   const fetchScheduleData = async () => {
     try {
-      setLoading(true);
+      // v77.2: CRITICAL - NEVER set loading after initial load
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      } else {
+        console.log('🔕 v77.2 - ContractorSchedule - SILENT REFRESH');
+      }
       setError(null);
 
       // Get contractor ID for current user
@@ -117,7 +124,11 @@ export const useContractorSchedule = () => {
       setError('Failed to load schedule data');
       toast.error('Failed to load schedule');
     } finally {
-      setLoading(false);
+      // v77.2: Mark initial load as complete
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(false);
+      }
+      hasCompletedInitialLoadRef.current = true;
     }
   };
 
@@ -143,7 +154,8 @@ export const useContractorSchedule = () => {
 
   return {
     scheduleItems,
-    loading,
+    // v77.2: Override loading after initial load completes
+    loading: hasCompletedInitialLoadRef.current ? false : loading,
     error,
     refreshSchedule
   };

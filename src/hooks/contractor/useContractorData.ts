@@ -283,12 +283,17 @@ export const useContractorData = (
 
   const refreshData = () => {
     if (contractorId && !isFetchingRef.current) {
-      console.log('useContractorData - Manual refresh triggered');
-      setLoading(true);
+      console.log('v77.2 - useContractorData - Manual refresh triggered');
+      // v77.2: Don't set loading on manual refresh if initial load completed
+      if (!hasCompletedInitialLoadRef.current) {
+        setLoading(true);
+      } else {
+        console.log('🔕 v77.2 - useContractorData - SILENT REFRESH');
+      }
       setRefreshTrigger(prev => prev + 1);
       toast.info('Refreshing data...');
     } else if (isFetchingRef.current) {
-      console.log('useContractorData - Refresh skipped - already fetching');
+      console.log('v77.2 - useContractorData - Refresh skipped - already fetching');
     }
   };
 

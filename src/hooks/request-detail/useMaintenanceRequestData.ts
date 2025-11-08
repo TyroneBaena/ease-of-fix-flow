@@ -40,8 +40,8 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     
     // v47.0: Wait for session ready before loading
     if (!isSessionReady) {
-      console.log('⏳ v47.0 - Waiting for session to be ready...');
-      setLoading(true); // v47.0: Always show loading while waiting for session
+      console.log('⏳ v77.2 - Waiting for session to be ready...');
+      // v77.2: NEVER set loading when waiting for session
       return;
     }
     
