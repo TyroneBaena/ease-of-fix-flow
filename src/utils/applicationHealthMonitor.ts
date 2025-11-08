@@ -1,5 +1,5 @@
 /**
- * v69.0 - ApplicationHealthMonitor
+ * v71.0 - ApplicationHealthMonitor
  * 
  * Independent background monitor that runs continuously from app mount.
  * Detects stuck states and triggers automatic recovery without relying on
@@ -243,38 +243,55 @@ class ApplicationHealthMonitor {
   }
 
   /**
-   * v70.0: Trigger soft recovery to unstick the application
+   * v71.0: Trigger soft recovery to unstick the application
+   * CRITICAL FIX: Actually re-trigger data fetch via handlers
    */
   private async triggerSoftRecovery(): Promise<void> {
     if (this.state.recoveryInProgress) {
-      console.log("⚠️ v70.0 - Recovery already in progress, skipping");
+      console.log("⚠️ v71.0 - Recovery already in progress, skipping");
       return;
     }
 
     this.state.recoveryInProgress = true;
-    console.log("🔧 v70.0 - TRIGGERING SOFT RECOVERY");
+    console.log("═══════════════════════════════════════════════════");
+    console.log("🔧 v71.0 - TRIGGERING SOFT RECOVERY");
+    console.log("═══════════════════════════════════════════════════");
 
     try {
-      // Step 1: Cancel and invalidate hung queries FIRST
+      // Step 1: Cancel hung queries
       if (this.queryClient) {
-        console.log("🔧 v70.0 - Step 1: Canceling and invalidating queries...");
+        console.log("🔧 v71.0 - Step 1: Canceling all queries...");
         await this.queryClient.cancelQueries();
-        await this.queryClient.invalidateQueries();
-        console.log("✅ v70.0 - Queries canceled and invalidated");
+        console.log("✅ v71.0 - All queries canceled");
       }
 
-      // Step 2: Trigger coordinator's soft recovery
-      console.log("🔧 v70.0 - Step 2: Calling coordinator.softRecovery()...");
-      await visibilityCoordinator.softRecovery();
+      // Step 2: Force reset coordinator state (critical!)
+      console.log("🔧 v71.0 - Step 2: Force resetting coordinator...");
+      await visibilityCoordinator.forceReset();
+      console.log("✅ v71.0 - Coordinator reset");
 
-      // Step 3: Reset monitor state
-      this.state.coordinatorRefreshingSince = null; // v70.0: Reset independent tracking
+      // Step 3: Invalidate queries to mark as stale
+      if (this.queryClient) {
+        console.log("🔧 v71.0 - Step 3: Invalidating queries...");
+        await this.queryClient.invalidateQueries();
+        console.log("✅ v71.0 - Queries invalidated");
+      }
+
+      // Step 4: Re-trigger handlers to actually fetch data
+      console.log("🔧 v71.0 - Step 4: Re-triggering data fetch via handlers...");
+      await visibilityCoordinator.triggerRefresh();
+      console.log("✅ v71.0 - Handlers re-triggered");
+
+      // Step 5: Reset monitor state
+      this.state.coordinatorRefreshingSince = null;
       this.state.consecutiveStuckChecks = 0;
-      this.state.lastSuccessfulFetch = Date.now(); // Give it fresh start
+      this.state.lastSuccessfulFetch = Date.now();
 
-      console.log("✅ v70.0 - SOFT RECOVERY COMPLETE");
+      console.log("═══════════════════════════════════════════════════");
+      console.log("✅ v71.0 - SOFT RECOVERY COMPLETE");
+      console.log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error("❌ v70.0 - Soft recovery failed:", error);
+      console.error("❌ v71.0 - Soft recovery failed:", error);
     } finally {
       this.state.recoveryInProgress = false;
     }
