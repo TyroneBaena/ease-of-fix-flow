@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Contractor } from '@/types/contractor';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
@@ -8,7 +7,6 @@ import { useContractorPagination } from './useContractorPagination';
 import { fetchContractors } from '../operations/contractorFetch';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/lib/supabase';
-import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 export const useContractorManagement = () => {
   const { currentUser, isAdmin, session } = useSimpleAuth();
@@ -24,19 +22,8 @@ export const useContractorManagement = () => {
     loading
   });
 
-  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
+  // v78.0: Removed onTabRefreshChange subscription - no longer needed
   const hasCompletedInitialLoadRef = useRef(false);
-  useEffect(() => {
-    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing: boolean) => {
-      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
-        // Instant reset: Clear loading immediately on tab return
-        console.log('⚡ v77.0 - ContractorManagement - Instant loading reset from coordinator');
-        setLoading(false);
-      }
-    });
-    
-    return unsubscribe;
-  }, []);
 
   const {
     isDialogOpen,
@@ -111,12 +98,10 @@ export const useContractorManagement = () => {
       if (err instanceof Error && (err.message.includes('aborted') || err.message.includes('timeout'))) {
         toast.error('Loading contractors timed out. Please refresh the page.');
       }
-    } finally {
-      // CRITICAL: Always reset loading state
-      console.log("🏁 loadContractors - Finally block, resetting loading");
-      setLoading(false);
-      hasCompletedInitialLoadRef.current = true; // v77.0: Mark as completed
-    }
+      } finally {
+        setLoading(false);
+        hasCompletedInitialLoadRef.current = true;
+      }
   }, []); // CRITICAL: Empty dependencies to prevent recreation
 
   // Initialize the contractor actions after loadContractors is defined

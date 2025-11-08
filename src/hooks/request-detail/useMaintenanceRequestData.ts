@@ -6,7 +6,6 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from 'sonner';
 import { formatRequestData } from './formatRequestData';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
  * Hook to fetch and manage maintenance request data
@@ -18,21 +17,6 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
   const [loading, setLoading] = useState(true);
   const { currentUser } = useUserContext();
   const previousSessionReadyRef = useRef(isSessionReady);
-  // CRITICAL: Track if we've completed initial load to prevent loading flashes
-  const hasCompletedInitialLoadRef = useRef(false);
-
-  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
-  useEffect(() => {
-    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
-      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
-        // Instant reset: Clear loading immediately on tab return
-        console.log('⚡ v77.0 - MaintenanceRequestData - Instant loading reset from coordinator');
-        setLoading(false);
-      }
-    });
-    
-    return unsubscribe;
-  }, []);
 
   useEffect(() => {
     const sessionJustBecameReady = !previousSessionReadyRef.current && isSessionReady;
@@ -55,14 +39,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     }
     
     const loadRequestData = async () => {
-      // v77.1: CRITICAL - NEVER set loading after initial load
-      // Background refreshes must be completely silent
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(true);
-      } else {
-        console.log('🔕 v77.1 - RequestData - SILENT REFRESH - Skipping loading state');
-      }
-      
+      setLoading(true);
       console.log("useMaintenanceRequestData - Loading request data for ID:", requestId);
       
       try {
@@ -129,11 +106,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
         }
       }
       
-      // CRITICAL: Only reset loading on first load, keep it false after
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(false);
-      }
-      hasCompletedInitialLoadRef.current = true;
+      setLoading(false);
     };
     
     loadRequestData();
@@ -189,8 +162,7 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
 
   return {
     request,
-    // CRITICAL: Override loading to false after initial load completes
-    loading: hasCompletedInitialLoadRef.current ? false : loading,
+    loading,
     refreshRequestData
   };
 }

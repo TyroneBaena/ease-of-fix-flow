@@ -1035,26 +1035,12 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
-  // v72.0 - Initialize ApplicationHealthMonitor on mount
-  useEffect(() => {
-    console.log("🏥 App.tsx v72.0 - Initializing ApplicationHealthMonitor");
-    
-    // Initialize with QueryClient
-    applicationHealthMonitor.initialize(queryClient);
-    
-    // Start monitoring
-    applicationHealthMonitor.start();
-    
-    // Expose to window for coordinator access
-    (window as any).__healthMonitor = applicationHealthMonitor;
-    
-    // Cleanup on unmount
-    return () => {
-      console.log("🏥 App.tsx v72.0 - Stopping ApplicationHealthMonitor");
-      applicationHealthMonitor.stop();
-      delete (window as any).__healthMonitor;
-    };
-  }, []);
+  // v78.0 - DISABLED - applicationHealthMonitor interferes with React Query
+  // Let React Query handle all refetching automatically
+  // useEffect(() => {
+  //   console.log("🏥 App.tsx v78.0 - ApplicationHealthMonitor DISABLED");
+  //   return () => {};
+  // }, []);
 
   // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v72.0
   useEffect(() => {

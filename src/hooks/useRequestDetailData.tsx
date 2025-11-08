@@ -7,17 +7,15 @@ import { useContractorStatus } from './request-detail/useContractorStatus';
 import { useRequestCommentsSubscription } from './request-detail/useRequestCommentsSubscription';
 import { useActivityLogs } from './request-detail/useActivityLogs';
 import { toast } from 'sonner';
-import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
  * Main hook for managing request detail data, combining several smaller hooks
- * v47.0: Shows loader during tab revisit with setSession timeout fix
+ * v78.0: Simplified - removed tab refresh state tracking
  */
 export const useRequestDetailData = (requestId: string | undefined) => {
   const { currentUser, isSessionReady } = useSimpleAuth();
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isTabRefreshing, setIsTabRefreshing] = useState(false); // v47.0: Global tab refresh state
   
   // Use specialized hooks with the refresh counter and session ready flag
   const { request, loading, refreshRequestData } = useMaintenanceRequestData(
@@ -29,16 +27,6 @@ export const useRequestDetailData = (requestId: string | undefined) => {
   const quotes = useRequestQuotes(requestId, refreshCounter, isSessionReady);
   const isContractor = useContractorStatus(currentUser?.id, isSessionReady);
   const { activityLogs, loading: activityLoading } = useActivityLogs(requestId, refreshCounter, isSessionReady);
-  
-  // v47.0: Subscribe to global tab refresh state
-  useEffect(() => {
-    const unsubscribe = visibilityCoordinator.onTabRefreshChange((refreshing) => {
-      console.log('🔄 v47.0 - Tab refresh state changed:', refreshing);
-      setIsTabRefreshing(refreshing);
-    });
-    
-    return unsubscribe;
-  }, []);
   
   // Listen for comments but don't auto-refresh on every comment
   useRequestCommentsSubscription(requestId, () => {
@@ -83,13 +71,13 @@ export const useRequestDetailData = (requestId: string | undefined) => {
 
   return {
     request,
-    loading: loading || isTabRefreshing, // v47.0: Show loading during tab refresh
+    loading,
     quotes,
     isContractor,
     activityLogs,
     activityLoading,
     refreshData,
     refreshAfterQuoteSubmission,
-    isRefreshing: isRefreshing || isTabRefreshing // v47.0: Include tab refresh state
+    isRefreshing
   };
 };
