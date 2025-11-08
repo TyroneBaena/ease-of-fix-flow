@@ -1,5 +1,5 @@
 /**
- * Tab Visibility Coordinator v71.0 - Simplified Handler Orchestration
+ * Tab Visibility Coordinator v74.0 - Guaranteed Soft Recovery on Tab Return
  *
  * ARCHITECTURAL CHANGE (v67.0):
  * ✅ Coordinator NO LONGER does session restoration itself
@@ -100,19 +100,19 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v72.0: Force reset coordinator state (called by health monitor)
+   * v74.0: Force reset coordinator state (called by soft recovery)
    * CRITICAL FIX: Clear the overall timeout to prevent zombie timers
    */
   public async forceReset() {
-    console.log("🔧 v72.0 - Force resetting coordinator state");
+    console.log("🔧 v74.0 - Force resetting coordinator state");
     this.isRefreshing = false;
     this.isCoordinating = false;
     
-    // v72.0: CRITICAL - Clear the overall timeout to stop zombie timers
+    // v74.0: CRITICAL - Clear the overall timeout to stop zombie timers
     if (this.overallTimeoutId) {
       clearTimeout(this.overallTimeoutId);
       this.overallTimeoutId = null;
-      console.log("✅ v72.0 - Cleared overall timeout (preventing zombie timer)");
+      console.log("✅ v74.0 - Cleared overall timeout (preventing zombie timer)");
     }
     
     if (this.abortController) {
@@ -121,17 +121,17 @@ class VisibilityCoordinator {
     }
     
     this.notifyTabRefreshChange(false);
-    console.log("✅ v72.0 - Coordinator state reset");
+    console.log("✅ v74.0 - Coordinator state reset");
   }
 
   /**
-   * v72.0: Trigger refresh manually (called by health monitor during recovery)
+   * v74.0: Trigger refresh manually (called by health monitor during recovery)
    * This actually re-runs handlers to fetch fresh data
    * CRITICAL: Add delay to let previous coordination fully clean up
    */
   public async triggerRefresh() {
-    console.log("🔧 v72.0 - Manually triggering refresh (with 500ms settle time)");
-    // v72.0: Wait 500ms to let abort controller and timeouts fully clean up
+    console.log("🔧 v74.0 - Manually triggering refresh (with 500ms settle time)");
+    // v74.0: Wait 500ms to let abort controller and timeouts fully clean up
     await new Promise(resolve => setTimeout(resolve, 500));
     await this.coordinateRefresh();
   }
@@ -192,7 +192,7 @@ class VisibilityCoordinator {
     if (this.isListening) return;
     this.isListening = true;
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v67.0 - Started listening for tab visibility changes");
+    console.log("👀 v74.0 - Started listening for tab visibility changes");
   }
 
   /**
@@ -202,60 +202,100 @@ class VisibilityCoordinator {
     if (!this.isListening) return;
     this.isListening = false;
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
-    console.log("👀 v67.0 - Stopped listening");
+    console.log("👀 v74.0 - Stopped listening");
   }
 
   /**
-   * Handle tab becoming visible
+   * Handle tab becoming visible - v74.0: ALWAYS trigger soft recovery
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v67.0 - Tab hidden");
+      console.log("🔒 v74.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v72.0 - Tab visible, triggering handler orchestration");
-    this.coordinateRefresh();
+    console.log("🔓 v74.0 - Tab visible, triggering GUARANTEED soft recovery");
+    
+    // v74.0: ALWAYS do soft recovery on tab return - this guarantees fresh state
+    await this.guaranteedSoftRecovery();
   };
 
   /**
-   * v72.0 - DEPRECATED: Soft recovery is now handled by health monitor
-   * This method kept for backwards compatibility but does nothing
+   * v74.0: Guaranteed soft recovery on tab visibility
+   * This ALWAYS runs when tab becomes visible, ensuring clean state
    */
-  public async softRecovery() {
-    console.log("⚠️ v72.0 - softRecovery() deprecated, handled by health monitor");
+  private async guaranteedSoftRecovery() {
+    console.log("🔄 v74.0 - Starting GUARANTEED soft recovery...");
+    
+    try {
+      // Step 1: Force reset coordinator (clear all timeouts and state)
+      await this.forceReset();
+      
+      // Step 2: Cancel all pending React Query requests
+      if (this.queryClient) {
+        console.log("🔄 v74.0 - Canceling all pending queries...");
+        await this.queryClient.cancelQueries();
+      }
+      
+      // Step 3: Wait 500ms for cleanup to settle
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Step 4: Invalidate all queries to force fresh fetch
+      if (this.queryClient) {
+        console.log("🔄 v74.0 - Invalidating all queries...");
+        await this.queryClient.invalidateQueries();
+      }
+      
+      // Step 5: Trigger fresh coordination
+      console.log("🔄 v74.0 - Triggering fresh coordination...");
+      await this.coordinateRefresh();
+      
+      console.log("✅ v74.0 - GUARANTEED soft recovery complete");
+    } catch (error) {
+      console.error("❌ v74.0 - Soft recovery failed:", error);
+      // Even if recovery fails, ensure we're not stuck
+      await this.forceReset();
+    }
   }
 
   /**
-   * v72.0 - Internal recovery for session validation only
+   * v74.0 - DEPRECATED: Soft recovery now happens automatically on tab visibility
+   * This method kept for backwards compatibility but does nothing
+   */
+  public async softRecovery() {
+    console.log("⚠️ v74.0 - softRecovery() deprecated, now automatic on tab return");
+  }
+
+  /**
+   * v74.0 - Internal recovery for session validation only
    */
   private async validateSession() {
-    console.log("🔧 v72.0 - Validating session...");
+    console.log("🔧 v74.0 - Validating session...");
 
     try {
       const { data: { session }, error } = await supabaseClient.auth.getSession();
       if (error) {
-        console.error("❌ v72.0 - Session validation failed:", error);
+        console.error("❌ v74.0 - Session validation failed:", error);
         this.notifyError('SESSION_FAILED');
       } else if (session) {
-        console.log("✅ v72.0 - Session valid");
+        console.log("✅ v74.0 - Session valid");
       } else {
-        console.warn("⚠️ v72.0 - No active session");
+        console.warn("⚠️ v74.0 - No active session");
         this.notifyError('SESSION_EXPIRED');
       }
     } catch (err) {
-      console.error("❌ v72.0 - Session validation error:", err);
+      console.error("❌ v74.0 - Session validation error:", err);
     }
   }
 
   /**
-   * v72.0 - Coordinate all refresh handlers
+   * v74.0 - Coordinate all refresh handlers
    * Integrated with independent ApplicationHealthMonitor
    * CRITICAL FIX: Store timeout ID so it can be cleared during force reset
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v72.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v74.0 - Refresh already in progress, skipping");
       return;
     }
 
@@ -263,14 +303,14 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v72.0 - Starting coordination (monitored by ApplicationHealthMonitor)");
+    console.log("🔁 v74.0 - Starting coordination (monitored by ApplicationHealthMonitor)");
 
     this.abortController = new AbortController();
 
-    // v72.0: Store timeout ID so it can be cleared in forceReset()
+    // v74.0: Store timeout ID so it can be cleared in forceReset()
     const overallTimeout = new Promise((_, reject) => {
       this.overallTimeoutId = setTimeout(() => {
-        console.error("🚨 v72.0 - Overall timeout reached after 60s");
+        console.error("🚨 v74.0 - Overall timeout reached after 60s");
         this.abortController?.abort();
         reject(new Error('Overall coordination timeout'));
       }, 60000);
@@ -283,21 +323,21 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v72.0 - Coordination complete in ${duration}ms`, "color: lime; font-weight: bold");
+      console.log(`%c✅ v74.0 - Coordination complete in ${duration}ms`, "color: lime; font-weight: bold");
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v72.0 - Coordination failed after ${duration}ms:`, error);
+      console.error(`❌ v74.0 - Coordination failed after ${duration}ms:`, error);
       toast.error("Some data may not have loaded. Please refresh if needed.");
     } finally {
-      // v72.0: Clear the timeout ID
+      // v74.0: Clear the timeout ID
       if (this.overallTimeoutId) {
         clearTimeout(this.overallTimeoutId);
         this.overallTimeoutId = null;
       }
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
-        console.log(`📋 v72.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        console.log(`📋 v74.0 - Processing ${this.pendingHandlers.length} pending handlers`);
         const handlersToProcess = [...this.pendingHandlers];
         this.pendingHandlers = [];
         
@@ -316,27 +356,27 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v72.0 - Simplified: Just run handlers with timeout protection
+   * v74.0 - Simplified: Just run handlers with timeout protection
    * Session restoration is handled by UnifiedAuthContext.refreshAuth handler
    */
   private async executeHandlers() {
     console.log("═══════════════════════════════════════════════════");
-    console.log(`🔁 v72.0 - Running ${this.refreshHandlers.length} handlers...`);
+    console.log(`🔁 v74.0 - Running ${this.refreshHandlers.length} handlers...`);
     console.log("═══════════════════════════════════════════════════");
     
     if (this.refreshHandlers.length === 0) {
-      console.warn("⚠️ v72.0 - No handlers registered");
+      console.warn("⚠️ v74.0 - No handlers registered");
       return;
     }
     
     const handlerTimeout = 30000; // 30s per handler
     const handlerPromises = this.refreshHandlers.map(async (handler, index) => {
       const handlerStart = Date.now();
-      console.log(`▶️ v72.0 - Handler ${index + 1} starting...`);
+      console.log(`▶️ v74.0 - Handler ${index + 1} starting...`);
       
       try {
         if (this.abortController?.signal.aborted) {
-          console.warn(`⚠️ v72.0 - Handler ${index + 1} aborted`);
+          console.warn(`⚠️ v74.0 - Handler ${index + 1} aborted`);
           return;
         }
         
@@ -348,10 +388,10 @@ class VisibilityCoordinator {
         ]);
         
         const duration = Date.now() - handlerStart;
-        console.log(`✅ v72.0 - Handler ${index + 1} done in ${duration}ms`);
+        console.log(`✅ v74.0 - Handler ${index + 1} done in ${duration}ms`);
       } catch (err) {
         const duration = Date.now() - handlerStart;
-        console.error(`❌ v72.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
+        console.error(`❌ v74.0 - Handler ${index + 1} failed after ${duration}ms:`, err);
       }
     });
     
@@ -360,7 +400,7 @@ class VisibilityCoordinator {
     const failed = results.filter(r => r.status === 'rejected').length;
     
     console.log("═══════════════════════════════════════════════════");
-    console.log(`✅ v72.0 - Handlers complete: ${successful} ok, ${failed} failed`);
+    console.log(`✅ v74.0 - Handlers complete: ${successful} ok, ${failed} failed`);
     console.log("═══════════════════════════════════════════════════");
   }
 }

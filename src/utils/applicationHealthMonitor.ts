@@ -114,25 +114,25 @@ class ApplicationHealthMonitor {
    */
   private async performHealthCheck(): Promise<void> {
     if (this.state.recoveryInProgress) {
-      console.log("🏥 v72.0 - Health check skipped (recovery in progress)");
+      console.log("🏥 v74.0 - Health check skipped (recovery in progress)");
       return;
     }
 
     const now = Date.now();
     this.state.lastCheckTime = now;
 
-    console.log(`🏥 v72.0 - Health check at ${new Date().toISOString()}`);
+    console.log(`🏥 v74.0 - Health check at ${new Date().toISOString()}`);
 
-    // v72.0: Track when coordinator started refreshing (independent of callbacks)
+    // v74.0: Track when coordinator started refreshing (independent of callbacks)
     const coordinator = visibilityCoordinator;
     const isCoordinatorRefreshing = coordinator.getRefreshingState();
     
     if (isCoordinatorRefreshing && !this.state.coordinatorRefreshingSince) {
       this.state.coordinatorRefreshingSince = now;
-      console.log("📝 v72.0 - Detected coordinator started refreshing");
+      console.log("📝 v74.0 - Detected coordinator started refreshing");
     } else if (!isCoordinatorRefreshing && this.state.coordinatorRefreshingSince) {
       const duration = now - this.state.coordinatorRefreshingSince;
-      console.log(`📝 v72.0 - Detected coordinator stopped refreshing (was active for ${duration}ms)`);
+      console.log(`📝 v74.0 - Detected coordinator stopped refreshing (was active for ${duration}ms)`);
       this.state.coordinatorRefreshingSince = null;
       this.state.lastSuccessfulFetch = now; // Assume success when coordinator completes normally
       this.state.consecutiveStuckChecks = 0;
@@ -152,7 +152,7 @@ class ApplicationHealthMonitor {
 
     if (needsRecovery) {
       this.state.consecutiveStuckChecks++;
-      console.log(`🚨 v72.0 - STUCK STATE DETECTED (${this.state.consecutiveStuckChecks} consecutive)`);
+      console.log(`🚨 v74.0 - STUCK STATE DETECTED (${this.state.consecutiveStuckChecks} consecutive)`);
       console.log(`   Refresh stuck: ${refreshStuck}`);
       console.log(`   Queries stuck: ${queriesStuck}`);
       console.log(`   Data stale: ${dataStale}`);
@@ -161,16 +161,16 @@ class ApplicationHealthMonitor {
     } else {
       // All clear
       if (this.state.consecutiveStuckChecks > 0) {
-        console.log("✅ v72.0 - Health check PASSED (recovered from stuck state)");
+        console.log("✅ v74.0 - Health check PASSED (recovered from stuck state)");
       } else {
-        console.log("✅ v72.0 - Health check PASSED (all systems healthy)");
+        console.log("✅ v74.0 - Health check PASSED (all systems healthy)");
       }
       this.state.consecutiveStuckChecks = 0;
     }
   }
 
   /**
-   * v72.0: Check if refresh operation is stuck
+   * v74.0: Check if refresh operation is stuck
    * Now uses coordinatorRefreshingSince instead of refreshStartTime
    */
   private checkRefreshStuck(now: number): boolean {
@@ -180,7 +180,7 @@ class ApplicationHealthMonitor {
 
     const elapsed = now - this.state.coordinatorRefreshingSince;
     if (elapsed > REFRESH_STUCK_THRESHOLD_MS) {
-      console.error(`❌ v72.0 - Refresh stuck for ${elapsed}ms (threshold: ${REFRESH_STUCK_THRESHOLD_MS}ms)`);
+      console.error(`❌ v74.0 - Refresh stuck for ${elapsed}ms (threshold: ${REFRESH_STUCK_THRESHOLD_MS}ms)`);
       return true;
     }
 
@@ -188,7 +188,7 @@ class ApplicationHealthMonitor {
   }
 
   /**
-   * v72.0: Check if React Query queries are stuck
+   * v74.0: Check if React Query queries are stuck
    */
   private checkQueriesStuck(now: number): boolean {
     if (!this.queryClient) return false;
@@ -243,46 +243,46 @@ class ApplicationHealthMonitor {
   }
 
   /**
-   * v72.0: Trigger soft recovery to unstick the application
+   * v74.0: Trigger soft recovery to unstick the application
    * CRITICAL FIX: Actually re-trigger data fetch via handlers
-   * v72.0: Added delay between reset and re-trigger to prevent timeout race
+   * v74.0: Added delay between reset and re-trigger to prevent timeout race
    */
   private async triggerSoftRecovery(): Promise<void> {
     if (this.state.recoveryInProgress) {
-      console.log("⚠️ v72.0 - Recovery already in progress, skipping");
+      console.log("⚠️ v74.0 - Recovery already in progress, skipping");
       return;
     }
 
     this.state.recoveryInProgress = true;
     console.log("═══════════════════════════════════════════════════");
-    console.log("🔧 v72.0 - TRIGGERING SOFT RECOVERY");
+    console.log("🔧 v74.0 - TRIGGERING SOFT RECOVERY");
     console.log("═══════════════════════════════════════════════════");
 
     try {
       // Step 1: Cancel hung queries
       if (this.queryClient) {
-        console.log("🔧 v72.0 - Step 1: Canceling all queries...");
+        console.log("🔧 v74.0 - Step 1: Canceling all queries...");
         await this.queryClient.cancelQueries();
-        console.log("✅ v72.0 - All queries canceled");
+        console.log("✅ v74.0 - All queries canceled");
       }
 
       // Step 2: Force reset coordinator state (clears timeout!)
-      console.log("🔧 v72.0 - Step 2: Force resetting coordinator (clearing timeouts)...");
+      console.log("🔧 v74.0 - Step 2: Force resetting coordinator (clearing timeouts)...");
       await visibilityCoordinator.forceReset();
-      console.log("✅ v72.0 - Coordinator reset (timeout cleared)");
+      console.log("✅ v74.0 - Coordinator reset (timeout cleared)");
 
       // Step 3: Invalidate queries to mark as stale
       if (this.queryClient) {
-        console.log("🔧 v72.0 - Step 3: Invalidating queries...");
+        console.log("🔧 v74.0 - Step 3: Invalidating queries...");
         await this.queryClient.invalidateQueries();
-        console.log("✅ v72.0 - Queries invalidated");
+        console.log("✅ v74.0 - Queries invalidated");
       }
 
       // Step 4: Re-trigger handlers to actually fetch data
       // Note: triggerRefresh() now includes its own 500ms delay
-      console.log("🔧 v72.0 - Step 4: Re-triggering data fetch via handlers...");
+      console.log("🔧 v74.0 - Step 4: Re-triggering data fetch via handlers...");
       await visibilityCoordinator.triggerRefresh();
-      console.log("✅ v72.0 - Handlers re-triggered");
+      console.log("✅ v74.0 - Handlers re-triggered");
 
       // Step 5: Reset monitor state
       this.state.coordinatorRefreshingSince = null;
@@ -290,10 +290,10 @@ class ApplicationHealthMonitor {
       this.state.lastSuccessfulFetch = Date.now();
 
       console.log("═══════════════════════════════════════════════════");
-      console.log("✅ v72.0 - SOFT RECOVERY COMPLETE");
+      console.log("✅ v74.0 - SOFT RECOVERY COMPLETE");
       console.log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error("❌ v72.0 - Soft recovery failed:", error);
+      console.error("❌ v74.0 - Soft recovery failed:", error);
     } finally {
       this.state.recoveryInProgress = false;
     }
