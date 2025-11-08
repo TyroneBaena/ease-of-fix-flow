@@ -271,9 +271,9 @@ class ApplicationHealthMonitor {
         console.log("✅ v75.0 - Queries invalidated");
       }
 
-      console.log("🔧 v75.0 - Step 4: Re-triggering data fetch via handlers...");
-      await visibilityCoordinator.triggerRefresh();
-      console.log("✅ v75.0 - Handlers re-triggered");
+      // REMOVED v77.3: DO NOT re-trigger manual refresh - React Query handles this
+      // await visibilityCoordinator.triggerRefresh();
+      console.log("🔧 v77.3 - Step 4: Relying on React Query refetchOnWindowFocus (no manual trigger)");
 
       this.state.coordinatorRefreshingSince = null;
       this.state.consecutiveStuckChecks = 0;

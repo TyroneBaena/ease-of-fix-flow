@@ -842,12 +842,15 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     };
 
-    const unregister = visibilityCoordinator.onRefresh(refreshAuth);
-    console.log("🔄 UnifiedAuth v66.0 - Registered DUAL-PATH session restorer with coordinator");
+    // DISABLED v77.3: Auth refresh now happens automatically via onAuthStateChange
+    // Manual refresh via coordinator was causing duplicate session restoration attempts
+    // React Query + auth listener is sufficient for tab revisits
+    // const unregister = visibilityCoordinator.onRefresh(refreshAuth);
+    console.log("🔄 UnifiedAuth v77.3 - DISABLED manual auth refresh (relying on auth listener + React Query)");
 
     return () => {
-      unregister();
-      console.log("🔄 UnifiedAuth v66.0 - Cleanup: Unregistered from coordinator");
+      // unregister();
+      console.log("🔄 UnifiedAuth v77.3 - Cleanup: No coordinator registration to unregister");
     };
   }, []);
 

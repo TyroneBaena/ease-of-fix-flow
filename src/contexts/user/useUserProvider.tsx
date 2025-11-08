@@ -96,14 +96,26 @@ export const useUserProvider = () => {
       console.log("👥 Current user org:", currentUser?.organization_id);
       console.log("👥 Current session org:", currentUser?.session_organization_id);
       fetchInProgress.current = true;
-      // v77.1: CRITICAL - NEVER set loading after initial load
+      
+      // v77.3: CRITICAL - NEVER set loading after initial load
       // Background refreshes must be completely silent
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(true);
       } else {
-        console.log('🔕 v77.1 - Users - SILENT REFRESH - Skipping loading state');
+        console.log('🔕 v77.3 - Users - SILENT REFRESH - Skipping loading state');
       }
+      
+      // v77.3: Add 30s timeout protection
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('❌ v77.3 - Users fetch timeout after 30s');
+      }, 30000);
+      
       const allUsers = await userService.getAllUsers();
+      
+      clearTimeout(timeoutId); // v77.3: Clear timeout on success
+      
       console.log("👥 Fetched users successfully:", {
         count: allUsers.length,
         users: allUsers.map(u => ({ 

@@ -916,16 +916,16 @@ import { rehydrateSessionFromServer } from "@/utils/sessionRehydration";
 // Import health monitor
 import { applicationHealthMonitor } from "@/utils/applicationHealthMonitor";
 
-// React Query setup
+// React Query setup - v77.3: Enable automatic refetch on window focus
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      retry: false,
+      refetchOnWindowFocus: true, // v77.3: ENABLED - Let React Query handle tab revisits
+      refetchOnMount: false, // Only refetch on initial mount, not every remount
+      refetchOnReconnect: true, // Refetch when internet reconnects
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+      gcTime: 10 * 60 * 1000, // Keep unused data in cache for 10 minutes
+      retry: false, // Don't retry failed queries automatically
     },
     mutations: { retry: false },
   },

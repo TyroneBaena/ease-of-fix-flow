@@ -12,7 +12,8 @@ import { BillingWidgets } from '@/components/dashboard/BillingWidgets';
 import { PropertyManagementWidget } from '@/components/dashboard/PropertyManagementWidget';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
-import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
+// REMOVED: useContractorProfileMonitoring causes network congestion on every dashboard mount
+// import { useContractorProfileMonitoring } from '@/hooks/useContractorProfileMonitoring';
 import { SubscriptionProvider } from '@/contexts/subscription/SubscriptionContext';
 import { PropertyProvider } from '@/contexts/property/PropertyContext';
 import { MaintenanceRequest } from '@/types/maintenance';
@@ -29,8 +30,9 @@ const Dashboard = () => {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [contractorCheckDone, setContractorCheckDone] = useState(false);
   
-  // Enable proactive contractor profile monitoring for admin users
-  useContractorProfileMonitoring();
+  // REMOVED v77.3: useContractorProfileMonitoring causes 30+ queries on every dashboard mount
+  // This was causing network congestion and timeout cascades on tab revisits
+  // Contractor validation should be done on-demand, not proactively on every load
   
   // CRITICAL: Redirect contractors to their proper dashboard
   useEffect(() => {
