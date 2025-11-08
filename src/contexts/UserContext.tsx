@@ -30,6 +30,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
+  
+  // v77.0: Note - This context has action-based loading (not automatic),
+  // so instant reset isn't needed. Loading only shows during user actions
+  // (add/update/remove), not on tab revisits.
 
   const fetchUsers = useCallback(async () => {
     if (!isAdmin) {

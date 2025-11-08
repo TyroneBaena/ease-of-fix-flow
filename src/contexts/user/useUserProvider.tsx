@@ -44,6 +44,20 @@ export const useUserProvider = () => {
   const hasCompletedInitialLoadRef = useRef(false);
   const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
+  useEffect(() => {
+    const { visibilityCoordinator } = require('@/utils/visibilityCoordinator');
+    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing: boolean) => {
+      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
+        // Instant reset: Clear loading immediately on tab return
+        console.log('⚡ v77.0 - Users - Instant loading reset from coordinator');
+        setLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
+
   // Debug logging for auth state
   useEffect(() => {
     console.log('👤 UserProvider: Auth state changed', {

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Json } from '@/integrations/supabase/types';
+import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 export interface ActivityLog {
   id: string;
@@ -22,6 +23,21 @@ export const useActivityLogs = (
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const previousSessionReadyRef = useRef(isSessionReady);
+  // CRITICAL: Track if we've completed initial load to prevent loading flashes
+  const hasCompletedInitialLoadRef = useRef(false);
+
+  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
+  useEffect(() => {
+    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
+      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
+        // Instant reset: Clear loading immediately on tab return
+        console.log('⚡ v77.0 - ActivityLogs - Instant loading reset from coordinator');
+        setLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     // Smart Retry: Detect when isSessionReady transitions from false to true
@@ -53,7 +69,10 @@ export const useActivityLogs = (
       }, 10000);
 
       try {
-        setLoading(true);
+        // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(true);
+        }
         console.log('Fetching activity logs for request:', requestId);
 
         const { data, error } = await supabase
@@ -80,12 +99,20 @@ export const useActivityLogs = (
           console.error('Error in fetchActivityLogs:', error);
         }
       } finally {
-        setLoading(false);
+        // CRITICAL: Only reset loading on first load, keep it false after
+        if (!hasCompletedInitialLoadRef.current) {
+          setLoading(false);
+        }
+        hasCompletedInitialLoadRef.current = true;
       }
     };
 
     fetchActivityLogs();
   }, [requestId, refreshCounter, isSessionReady]); // Add isSessionReady to deps
 
-  return { activityLogs, loading };
+  return { 
+    activityLogs, 
+    // CRITICAL: Override loading to false after initial load completes
+    loading: hasCompletedInitialLoadRef.current ? false : loading 
+  };
 };

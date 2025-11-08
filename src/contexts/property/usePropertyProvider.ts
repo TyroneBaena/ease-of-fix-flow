@@ -30,6 +30,19 @@ export const usePropertyProvider = (): PropertyContextType => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
+  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
+  useEffect(() => {
+    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
+      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
+        // Instant reset: Clear loading immediately on tab return
+        console.log('⚡ v77.0 - Properties - Instant loading reset from coordinator');
+        setLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
+
   // CRITICAL v55.0: Stable callback that accesses current values via ref
   const fetchAndSetProperties = useCallback(async () => {
     const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
