@@ -1034,9 +1034,9 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
-  // v69.0 - Initialize ApplicationHealthMonitor on mount
+  // v72.0 - Initialize ApplicationHealthMonitor on mount
   useEffect(() => {
-    console.log("🏥 App.tsx v69.0 - Initializing ApplicationHealthMonitor");
+    console.log("🏥 App.tsx v72.0 - Initializing ApplicationHealthMonitor");
     
     // Initialize with QueryClient
     applicationHealthMonitor.initialize(queryClient);
@@ -1049,25 +1049,25 @@ const App: React.FC = () => {
     
     // Cleanup on unmount
     return () => {
-      console.log("🏥 App.tsx v69.0 - Stopping ApplicationHealthMonitor");
+      console.log("🏥 App.tsx v72.0 - Stopping ApplicationHealthMonitor");
       applicationHealthMonitor.stop();
       delete (window as any).__healthMonitor;
     };
   }, []);
 
-  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v43.0
+  // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v72.0
   useEffect(() => {
-    console.log("🔧 App.tsx v69.0 - Initial load rehydration with bulletproof error handling");
+    console.log("🔧 App.tsx v72.0 - Initial load rehydration with bulletproof error handling");
     // Clean up old v37 storage first
     cleanupOldAuthStorage();
     // Then rehydrate from HttpOnly cookies ONCE on initial load
-    // v69.0: Always set rehydrated=true even if session restoration fails (allow cached data)
+    // v72.0: Always set rehydrated=true even if session restoration fails (allow cached data)
     rehydrateSessionFromServer()
       .then(() => {
-        console.log("✅ App.tsx v69.0 - Initial session restoration complete");
+        console.log("✅ App.tsx v72.0 - Initial session restoration complete");
       })
       .catch((err) => {
-        console.error("❌ App.tsx v69.0 - Initial session restoration error (non-fatal):", err);
+        console.error("❌ App.tsx v72.0 - Initial session restoration error (non-fatal):", err);
       })
       .finally(() => {
         setRehydrated(true);

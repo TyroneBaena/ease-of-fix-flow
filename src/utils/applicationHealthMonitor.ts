@@ -18,7 +18,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { visibilityCoordinator } from "./visibilityCoordinator";
 
-// Monitor configuration - v70.0: More aggressive detection
+// Monitor configuration - v72.0: More aggressive detection
 const CHECK_INTERVAL_MS = 3000; // Check every 3 seconds (faster detection)
 const REFRESH_STUCK_THRESHOLD_MS = 15000; // 15 seconds (detect before handler timeout)
 const QUERY_STUCK_THRESHOLD_MS = 15000; // 15 seconds
@@ -32,7 +32,7 @@ interface MonitorState {
   refreshStartTime: number | null;
   consecutiveStuckChecks: number;
   recoveryInProgress: boolean;
-  coordinatorRefreshingSince: number | null; // v70.0: Track when coordinator started refreshing
+  coordinatorRefreshingSince: number | null; // v72.0: Track when coordinator started refreshing
 }
 
 class ApplicationHealthMonitor {
@@ -44,7 +44,7 @@ class ApplicationHealthMonitor {
     refreshStartTime: null,
     consecutiveStuckChecks: 0,
     recoveryInProgress: false,
-    coordinatorRefreshingSince: null, // v70.0
+    coordinatorRefreshingSince: null, // v72.0
   };
 
   private queryClient: QueryClient | null = null;
@@ -63,12 +63,12 @@ class ApplicationHealthMonitor {
    */
   public start(): void {
     if (this.state.isRunning) {
-      console.warn("⚠️ v70.0 - ApplicationHealthMonitor - Already running");
+      console.warn("⚠️ v72.0 - ApplicationHealthMonitor - Already running");
       return;
     }
 
-    console.log(`🏥 v70.0 - ApplicationHealthMonitor - Starting (check every ${CHECK_INTERVAL_MS}ms = ${CHECK_INTERVAL_MS / 1000}s)`);
-    console.log(`🔍 v70.0 - Detection thresholds:`);
+    console.log(`🏥 v72.0 - ApplicationHealthMonitor - Starting (check every ${CHECK_INTERVAL_MS}ms = ${CHECK_INTERVAL_MS / 1000}s)`);
+    console.log(`🔍 v72.0 - Detection thresholds:`);
     console.log(`   - Refresh stuck: ${REFRESH_STUCK_THRESHOLD_MS / 1000}s`);
     console.log(`   - Query stuck: ${QUERY_STUCK_THRESHOLD_MS / 1000}s`);
     console.log(`   - Data stale: ${DATA_STALE_THRESHOLD_MS / 1000}s`);
@@ -82,7 +82,7 @@ class ApplicationHealthMonitor {
       this.performHealthCheck();
     }, CHECK_INTERVAL_MS);
 
-    console.log("✅ v70.0 - ApplicationHealthMonitor - Started successfully");
+    console.log("✅ v72.0 - ApplicationHealthMonitor - Started successfully");
   }
 
   /**
@@ -91,7 +91,7 @@ class ApplicationHealthMonitor {
   public stop(): void {
     if (!this.state.isRunning) return;
 
-    console.log("🏥 v70.0 - ApplicationHealthMonitor - Stopping...");
+    console.log("🏥 v72.0 - ApplicationHealthMonitor - Stopping...");
     
     if (this.state.intervalId) {
       clearInterval(this.state.intervalId);
@@ -99,40 +99,40 @@ class ApplicationHealthMonitor {
     }
 
     this.state.isRunning = false;
-    console.log("✅ v70.0 - ApplicationHealthMonitor - Stopped");
+    console.log("✅ v72.0 - ApplicationHealthMonitor - Stopped");
   }
 
   /**
-   * v70.0: REMOVED - No longer using coordinator callbacks
+   * v72.0: REMOVED - No longer using coordinator callbacks
    * Monitor now tracks coordinator state directly via isRefreshing flag
    * This eliminates race conditions between coordinator lifecycle and monitoring
    */
 
   /**
-   * v70.0: Perform comprehensive health check
+   * v72.0: Perform comprehensive health check
    * Now directly monitors coordinator state instead of relying on callbacks
    */
   private async performHealthCheck(): Promise<void> {
     if (this.state.recoveryInProgress) {
-      console.log("🏥 v70.0 - Health check skipped (recovery in progress)");
+      console.log("🏥 v72.0 - Health check skipped (recovery in progress)");
       return;
     }
 
     const now = Date.now();
     this.state.lastCheckTime = now;
 
-    console.log(`🏥 v70.0 - Health check at ${new Date().toISOString()}`);
+    console.log(`🏥 v72.0 - Health check at ${new Date().toISOString()}`);
 
-    // v70.0: Track when coordinator started refreshing (independent of callbacks)
+    // v72.0: Track when coordinator started refreshing (independent of callbacks)
     const coordinator = visibilityCoordinator;
     const isCoordinatorRefreshing = coordinator.getRefreshingState();
     
     if (isCoordinatorRefreshing && !this.state.coordinatorRefreshingSince) {
       this.state.coordinatorRefreshingSince = now;
-      console.log("📝 v70.0 - Detected coordinator started refreshing");
+      console.log("📝 v72.0 - Detected coordinator started refreshing");
     } else if (!isCoordinatorRefreshing && this.state.coordinatorRefreshingSince) {
       const duration = now - this.state.coordinatorRefreshingSince;
-      console.log(`📝 v70.0 - Detected coordinator stopped refreshing (was active for ${duration}ms)`);
+      console.log(`📝 v72.0 - Detected coordinator stopped refreshing (was active for ${duration}ms)`);
       this.state.coordinatorRefreshingSince = null;
       this.state.lastSuccessfulFetch = now; // Assume success when coordinator completes normally
       this.state.consecutiveStuckChecks = 0;
@@ -152,7 +152,7 @@ class ApplicationHealthMonitor {
 
     if (needsRecovery) {
       this.state.consecutiveStuckChecks++;
-      console.log(`🚨 v70.0 - STUCK STATE DETECTED (${this.state.consecutiveStuckChecks} consecutive)`);
+      console.log(`🚨 v72.0 - STUCK STATE DETECTED (${this.state.consecutiveStuckChecks} consecutive)`);
       console.log(`   Refresh stuck: ${refreshStuck}`);
       console.log(`   Queries stuck: ${queriesStuck}`);
       console.log(`   Data stale: ${dataStale}`);
@@ -161,16 +161,16 @@ class ApplicationHealthMonitor {
     } else {
       // All clear
       if (this.state.consecutiveStuckChecks > 0) {
-        console.log("✅ v70.0 - Health check PASSED (recovered from stuck state)");
+        console.log("✅ v72.0 - Health check PASSED (recovered from stuck state)");
       } else {
-        console.log("✅ v70.0 - Health check PASSED (all systems healthy)");
+        console.log("✅ v72.0 - Health check PASSED (all systems healthy)");
       }
       this.state.consecutiveStuckChecks = 0;
     }
   }
 
   /**
-   * v70.0: Check if refresh operation is stuck
+   * v72.0: Check if refresh operation is stuck
    * Now uses coordinatorRefreshingSince instead of refreshStartTime
    */
   private checkRefreshStuck(now: number): boolean {
@@ -180,7 +180,7 @@ class ApplicationHealthMonitor {
 
     const elapsed = now - this.state.coordinatorRefreshingSince;
     if (elapsed > REFRESH_STUCK_THRESHOLD_MS) {
-      console.error(`❌ v70.0 - Refresh stuck for ${elapsed}ms (threshold: ${REFRESH_STUCK_THRESHOLD_MS}ms)`);
+      console.error(`❌ v72.0 - Refresh stuck for ${elapsed}ms (threshold: ${REFRESH_STUCK_THRESHOLD_MS}ms)`);
       return true;
     }
 
@@ -188,7 +188,7 @@ class ApplicationHealthMonitor {
   }
 
   /**
-   * v70.0: Check if React Query queries are stuck
+   * v72.0: Check if React Query queries are stuck
    */
   private checkQueriesStuck(now: number): boolean {
     if (!this.queryClient) return false;
@@ -215,7 +215,7 @@ class ApplicationHealthMonitor {
     });
 
     if (stuckQueries.length > 0) {
-      console.error(`❌ v70.0 - Found ${stuckQueries.length} stuck queries:`);
+      console.error(`❌ v72.0 - Found ${stuckQueries.length} stuck queries:`);
       stuckQueries.forEach((query, index) => {
         const queryKey = JSON.stringify(query.queryKey);
         const dataAge = query.state.dataUpdatedAt ? now - query.state.dataUpdatedAt : 'never';
@@ -229,13 +229,13 @@ class ApplicationHealthMonitor {
   }
 
   /**
-   * v70.0: Check if last successful fetch is too old
+   * v72.0: Check if last successful fetch is too old
    */
   private checkDataStale(now: number): boolean {
     const timeSinceLastFetch = now - this.state.lastSuccessfulFetch;
     
     if (timeSinceLastFetch > DATA_STALE_THRESHOLD_MS) {
-      console.error(`❌ v70.0 - No successful data fetch in ${timeSinceLastFetch}ms (threshold: ${DATA_STALE_THRESHOLD_MS}ms)`);
+      console.error(`❌ v72.0 - No successful data fetch in ${timeSinceLastFetch}ms (threshold: ${DATA_STALE_THRESHOLD_MS}ms)`);
       return true;
     }
 
