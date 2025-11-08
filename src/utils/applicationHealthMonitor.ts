@@ -1,5 +1,5 @@
 /**
- * v71.0 - ApplicationHealthMonitor
+ * v72.0 - ApplicationHealthMonitor
  * 
  * Independent background monitor that runs continuously from app mount.
  * Detects stuck states and triggers automatic recovery without relying on
@@ -53,9 +53,9 @@ class ApplicationHealthMonitor {
    * Initialize the monitor with QueryClient and visibility coordinator reference
    */
   public initialize(queryClient: QueryClient): void {
-    console.log("🏥 v70.0 - ApplicationHealthMonitor - Initializing...");
+    console.log("🏥 v72.0 - ApplicationHealthMonitor - Initializing...");
     this.queryClient = queryClient;
-    console.log("✅ v70.0 - ApplicationHealthMonitor - Initialized with QueryClient");
+    console.log("✅ v72.0 - ApplicationHealthMonitor - Initialized with QueryClient");
   }
 
   /**
@@ -243,44 +243,46 @@ class ApplicationHealthMonitor {
   }
 
   /**
-   * v71.0: Trigger soft recovery to unstick the application
+   * v72.0: Trigger soft recovery to unstick the application
    * CRITICAL FIX: Actually re-trigger data fetch via handlers
+   * v72.0: Added delay between reset and re-trigger to prevent timeout race
    */
   private async triggerSoftRecovery(): Promise<void> {
     if (this.state.recoveryInProgress) {
-      console.log("⚠️ v71.0 - Recovery already in progress, skipping");
+      console.log("⚠️ v72.0 - Recovery already in progress, skipping");
       return;
     }
 
     this.state.recoveryInProgress = true;
     console.log("═══════════════════════════════════════════════════");
-    console.log("🔧 v71.0 - TRIGGERING SOFT RECOVERY");
+    console.log("🔧 v72.0 - TRIGGERING SOFT RECOVERY");
     console.log("═══════════════════════════════════════════════════");
 
     try {
       // Step 1: Cancel hung queries
       if (this.queryClient) {
-        console.log("🔧 v71.0 - Step 1: Canceling all queries...");
+        console.log("🔧 v72.0 - Step 1: Canceling all queries...");
         await this.queryClient.cancelQueries();
-        console.log("✅ v71.0 - All queries canceled");
+        console.log("✅ v72.0 - All queries canceled");
       }
 
-      // Step 2: Force reset coordinator state (critical!)
-      console.log("🔧 v71.0 - Step 2: Force resetting coordinator...");
+      // Step 2: Force reset coordinator state (clears timeout!)
+      console.log("🔧 v72.0 - Step 2: Force resetting coordinator (clearing timeouts)...");
       await visibilityCoordinator.forceReset();
-      console.log("✅ v71.0 - Coordinator reset");
+      console.log("✅ v72.0 - Coordinator reset (timeout cleared)");
 
       // Step 3: Invalidate queries to mark as stale
       if (this.queryClient) {
-        console.log("🔧 v71.0 - Step 3: Invalidating queries...");
+        console.log("🔧 v72.0 - Step 3: Invalidating queries...");
         await this.queryClient.invalidateQueries();
-        console.log("✅ v71.0 - Queries invalidated");
+        console.log("✅ v72.0 - Queries invalidated");
       }
 
       // Step 4: Re-trigger handlers to actually fetch data
-      console.log("🔧 v71.0 - Step 4: Re-triggering data fetch via handlers...");
+      // Note: triggerRefresh() now includes its own 500ms delay
+      console.log("🔧 v72.0 - Step 4: Re-triggering data fetch via handlers...");
       await visibilityCoordinator.triggerRefresh();
-      console.log("✅ v71.0 - Handlers re-triggered");
+      console.log("✅ v72.0 - Handlers re-triggered");
 
       // Step 5: Reset monitor state
       this.state.coordinatorRefreshingSince = null;
@@ -288,10 +290,10 @@ class ApplicationHealthMonitor {
       this.state.lastSuccessfulFetch = Date.now();
 
       console.log("═══════════════════════════════════════════════════");
-      console.log("✅ v71.0 - SOFT RECOVERY COMPLETE");
+      console.log("✅ v72.0 - SOFT RECOVERY COMPLETE");
       console.log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error("❌ v71.0 - Soft recovery failed:", error);
+      console.error("❌ v72.0 - Soft recovery failed:", error);
     } finally {
       this.state.recoveryInProgress = false;
     }
