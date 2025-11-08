@@ -73,19 +73,19 @@ export const useMaintenanceRequestProvider = () => {
       return [];
     }
     
-    // v73.0: Prevent concurrent fetches BUT ensure loading gets reset
+    // v77.1: Prevent concurrent fetches
     if (isFetchingRef.current) {
-      console.log('🔍 v73.0 - LOADING REQUESTS - Fetch already in progress, skipping');
-      // Ensure loading is false if we're skipping
-      setLoading(false);
-      hasCompletedInitialLoadRef.current = true;
+      console.log('🔍 v77.1 - LOADING REQUESTS - Fetch already in progress, skipping');
       return [];
     }
     
-  // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
-  if (!hasCompletedInitialLoadRef.current) {
-    setLoading(true);
-  }
+    // v77.1: CRITICAL - NEVER set loading after initial load
+    // Background refreshes must be completely silent
+    if (!hasCompletedInitialLoadRef.current) {
+      setLoading(true);
+    } else {
+      console.log('🔕 v77.1 - SILENT REFRESH - Skipping loading state');
+    }
   
   isFetchingRef.current = true;
   

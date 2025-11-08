@@ -69,9 +69,12 @@ export const useActivityLogs = (
       }, 10000);
 
       try {
-        // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+        // v77.1: CRITICAL - NEVER set loading after initial load
+        // Background refreshes must be completely silent
         if (!hasCompletedInitialLoadRef.current) {
           setLoading(true);
+        } else {
+          console.log('🔕 v77.1 - ActivityLogs - SILENT REFRESH - Skipping loading state');
         }
         console.log('Fetching activity logs for request:', requestId);
 

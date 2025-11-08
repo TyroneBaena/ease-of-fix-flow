@@ -55,9 +55,12 @@ export function useMaintenanceRequestData(requestId: string | undefined, forceRe
     }
     
     const loadRequestData = async () => {
-      // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+      // v77.1: CRITICAL - NEVER set loading after initial load
+      // Background refreshes must be completely silent
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(true);
+      } else {
+        console.log('🔕 v77.1 - RequestData - SILENT REFRESH - Skipping loading state');
       }
       
       console.log("useMaintenanceRequestData - Loading request data for ID:", requestId);

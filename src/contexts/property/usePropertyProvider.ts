@@ -79,9 +79,12 @@ export const usePropertyProvider = (): PropertyContextType => {
     }, 60000);
 
     try {
-      // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+      // v77.1: CRITICAL - NEVER set loading after initial load
+      // Background refreshes must be completely silent
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(true);
+      } else {
+        console.log('🔕 v77.1 - Properties - SILENT REFRESH - Skipping loading state');
       }
       setLoadingFailed(false);
       isFetchingRef.current = true;

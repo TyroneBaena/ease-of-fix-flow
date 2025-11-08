@@ -96,9 +96,12 @@ export const useUserProvider = () => {
       console.log("👥 Current user org:", currentUser?.organization_id);
       console.log("👥 Current session org:", currentUser?.session_organization_id);
       fetchInProgress.current = true;
-      // CRITICAL: Only set loading on first fetch
+      // v77.1: CRITICAL - NEVER set loading after initial load
+      // Background refreshes must be completely silent
       if (!hasCompletedInitialLoadRef.current) {
         setLoading(true);
+      } else {
+        console.log('🔕 v77.1 - Users - SILENT REFRESH - Skipping loading state');
       }
       const allUsers = await userService.getAllUsers();
       console.log("👥 Fetched users successfully:", {

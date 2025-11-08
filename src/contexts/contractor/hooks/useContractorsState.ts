@@ -49,9 +49,12 @@ export const useContractorsState = () => {
       return;
     }
     
-    // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
+    // v77.1: CRITICAL - NEVER set loading after initial load
+    // Background refreshes must be completely silent
     if (!hasCompletedInitialLoadRef.current) {
       setLoading(true);
+    } else {
+      console.log('🔕 v77.1 - Contractors - SILENT REFRESH - Skipping loading state');
     }
     
     // v57.0: Add 30s timeout
