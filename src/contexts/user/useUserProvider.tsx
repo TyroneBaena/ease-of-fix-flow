@@ -4,7 +4,6 @@ import { useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { userService } from '@/services/userService';
 import { toast } from "sonner";
 import { AdminPasswordResetResult } from '@/services/user/adminPasswordReset';
-import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 // Define the return type for the addUser function
 export interface AddUserResult {
@@ -41,22 +40,9 @@ export const useUserProvider = () => {
   const fetchInProgress = useRef(false);
   const lastFetchedUserIdRef = useRef<string | null>(null);
   const lastFetchedOrgIdRef = useRef<string | null>(null);
-  // CRITICAL: Track completion and prevent loading flashes
-  const hasCompletedInitialLoadRef = useRef(false);
   const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
-  useEffect(() => {
-    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing: boolean) => {
-      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
-        // Instant reset: Clear loading immediately on tab return
-        console.log('⚡ v77.0 - Users - Instant loading reset from coordinator');
-        setLoading(false);
-      }
-    });
-    
-    return unsubscribe;
-  }, []);
+  // v78.0: Removed tab refresh subscription - no longer needed
 
   // Debug logging for auth state
   useEffect(() => {
@@ -74,65 +60,27 @@ export const useUserProvider = () => {
   }, [currentUser?.id, authLoading, isAdmin, canFetchUsers]);
 
   const fetchUsers = useCallback(async () => {
-    // Prevent concurrent fetches and only allow admins and managers
     if (fetchInProgress.current || !canFetchUsers) {
-      console.log("👥 Fetch skipped: already in progress or not admin/manager", {
+      console.log("👥 v78.0 - Fetch skipped", {
         fetchInProgress: fetchInProgress.current,
-        canFetchUsers,
-        currentUserRole: currentUser?.role
+        canFetchUsers
       });
       return;
     }
 
-    // Log organization info but don't block fetch - admin users should be able to fetch all users
-    console.log("👥 Organization info:", {
-      hasCurrentUser: !!currentUser,
-      organization_id: currentUser?.organization_id,
-      role: currentUser?.role
-    });
+    console.log("👥 v78.0 - Starting user fetch");
+    fetchInProgress.current = true;
+    setLoading(true);
 
     try {
-      console.log("👥 Starting user fetch for role:", currentUser?.role);
-      console.log("👥 Current user org:", currentUser?.organization_id);
-      console.log("👥 Current session org:", currentUser?.session_organization_id);
-      fetchInProgress.current = true;
-      
-      // v77.3: CRITICAL - NEVER set loading after initial load
-      // Background refreshes must be completely silent
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(true);
-      } else {
-        console.log('🔕 v77.3 - Users - SILENT REFRESH - Skipping loading state');
-      }
-      
-      // v77.3: Add 30s timeout protection
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.error('❌ v77.3 - Users fetch timeout after 30s');
-      }, 30000);
-      
       const allUsers = await userService.getAllUsers();
-      
-      clearTimeout(timeoutId); // v77.3: Clear timeout on success
-      
-      console.log("👥 Fetched users successfully:", {
-        count: allUsers.length,
-        users: allUsers.map(u => ({ 
-          id: u.id, 
-          email: u.email, 
-          role: u.role,
-          name: u.name,
-          organization_id: u.organization_id 
-        }))
-      });
+      console.log("👥 v78.0 - Fetched users:", allUsers.length);
       setUsers(allUsers);
       setLoadingError(null);
     } catch (error) {
-      console.error('❌ Error fetching users:', error);
+      console.error('❌ v78.0 - Error fetching users:', error);
       setLoadingError(error as Error);
       
-      // More specific error messages
       if (error.message?.includes('0 rows')) {
         toast.error("No users found - this may be an authentication issue");
       } else if (error.message?.includes('406')) {
@@ -141,68 +89,49 @@ export const useUserProvider = () => {
         toast.error(`Failed to load users: ${error.message}`);
       }
     } finally {
-      // CRITICAL: Only reset loading on first load
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(false);
-      }
-      hasCompletedInitialLoadRef.current = true;
+      setLoading(false);
       fetchInProgress.current = false;
     }
   }, [canFetchUsers, currentUser?.role, currentUser?.organization_id, currentUser?.session_organization_id]);
 
-  // Force fetch users when component mounts and user is admin or manager
-  // CRITICAL FIX: Only refetch if user ID or org ID actually changed
+  // v78.0: Simplified - Fetch users when user/org changes
   useEffect(() => {
-    console.log('👥 UserProvider: useEffect triggered', {
-      canFetchUsers,
-      currentUserId: currentUser?.id,
-      currentOrgId: currentUser?.organization_id,
-      lastFetchedUserId: lastFetchedUserIdRef.current,
-      lastFetchedOrgId: lastFetchedOrgIdRef.current
-    });
+    console.log('👥 v78.0 - UserProvider: useEffect triggered');
     
-    // Clear any pending debounce timers
     if (fetchDebounceTimerRef.current) {
       clearTimeout(fetchDebounceTimerRef.current);
     }
     
     if (!canFetchUsers) {
-      console.log('👥 UserProvider: User cannot fetch users, clearing state');
+      console.log('👥 v78.0 - User cannot fetch users, clearing state');
       setUsers([]);
       lastFetchedUserIdRef.current = null;
       lastFetchedOrgIdRef.current = null;
-      hasCompletedInitialLoadRef.current = true;
       return;
     }
     
-    // Check if user ID or org ID actually changed
     const userIdChanged = lastFetchedUserIdRef.current !== currentUser?.id;
     const orgIdChanged = lastFetchedOrgIdRef.current !== currentUser?.organization_id;
     
     if (!userIdChanged && !orgIdChanged) {
-      console.log("👥 UserProvider: No changes detected, skipping fetch");
+      console.log("👥 v78.0 - No changes, skipping fetch");
       return;
     }
     
-    if (!fetchInProgress.current) {
-      console.log("👥 UserProvider: Changes detected, debouncing user fetch");
-      lastFetchedUserIdRef.current = currentUser?.id || null;
-      lastFetchedOrgIdRef.current = currentUser?.organization_id || null;
-      
-      // CRITICAL: Debounce rapid tab switches (300ms delay)
-      fetchDebounceTimerRef.current = setTimeout(() => {
-        // Force refresh by clearing any existing data
-        setUsers([]);
-        fetchUsers().catch(console.error);
-      }, 300);
-    }
+    lastFetchedUserIdRef.current = currentUser?.id || null;
+    lastFetchedOrgIdRef.current = currentUser?.organization_id || null;
+    
+    fetchDebounceTimerRef.current = setTimeout(() => {
+      setUsers([]);
+      fetchUsers().catch(console.error);
+    }, 300);
     
     return () => {
       if (fetchDebounceTimerRef.current) {
         clearTimeout(fetchDebounceTimerRef.current);
       }
     };
-  }, [canFetchUsers, currentUser?.id, currentUser?.organization_id, fetchUsers]); // Use IDs only
+  }, [canFetchUsers, currentUser?.id, currentUser?.organization_id, fetchUsers]);
 
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
@@ -316,9 +245,7 @@ export const useUserProvider = () => {
   return {
     currentUser,
     users,
-    // CRITICAL: Override loading to false after initial load completes for automatic fetches
-    // Action-based loading (addUser, updateUser, etc.) will still show loading state
-    loading: hasCompletedInitialLoadRef.current ? false : (authLoading || loading),
+    loading: authLoading || loading,
     loadingError,
     fetchUsers,
     addUser,

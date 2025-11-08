@@ -202,95 +202,30 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v76.0: Handle tab becoming visible - INSTANT reset + disable health monitor
+   * v78.0: Handle tab becoming visible - Pure React Query approach
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v77.3 - Tab hidden");
+      console.log("🔒 v78.0 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v77.3 - Tab visible, starting INSTANT RESET");
-    console.log("🔓 v77.3 - Registered handlers:", this.refreshHandlers.length);
-    console.log("🔓 v77.3 - Tab refresh callbacks:", this.tabRefreshCallbacks.length);
+    console.log("🔓 v78.0 - Tab visible - React Query will handle refetching");
     
-    // v76.0: CRITICAL - Reset loading states INSTANTLY
-    this.instantLoadingReset();
-    
-    console.log("🔓 v77.3 - After instant reset, starting background recovery");
-    
-    // Then do background refresh (non-blocking)
-    this.guaranteedSoftRecovery();
-    
-    console.log("🔓 v77.3 - Background recovery initiated");
+    // v78.0: Let React Query's refetchOnWindowFocus handle everything
+    // No manual resets, no coordinator interference
+    if (this.queryClient) {
+      console.log("🔄 v78.0 - React Query will refetch stale data automatically");
+    }
   };
 
   /**
-   * v76.0: INSTANT loading reset - synchronous, immediate
+   * v78.0: REMOVED - No longer needed with pure React Query approach
    */
-  private instantLoadingReset() {
-    console.log("⚡ v77.3 - INSTANT RESET: Clearing all loading flags");
-    console.log("⚡ v77.3 - BEFORE: isRefreshing=", this.isRefreshing, "isCoordinating=", this.isCoordinating, "isRecovering=", this.isRecovering);
-    
-    this.isRefreshing = false;
-    this.isCoordinating = false;
-    this.isRecovering = false; // v76.0: Also reset recovery flag
-    
-    console.log("⚡ v77.3 - AFTER: isRefreshing=", this.isRefreshing, "isCoordinating=", this.isCoordinating, "isRecovering=", this.isRecovering);
-    
-    if (this.overallTimeoutId) {
-      clearTimeout(this.overallTimeoutId);
-      this.overallTimeoutId = null;
-    }
-    
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
-    }
-    
-    console.log("⚡ v77.3 - Notifying", this.tabRefreshCallbacks.length, "subscribers");
-    this.notifyTabRefreshChange(false);
-    
-    console.log("✅ v77.3 - INSTANT RESET complete (loading flags cleared)");
-  }
 
   /**
-   * v77.3: SIMPLIFIED - Don't trigger manual queries, let React Query handle it
+   * v78.0: REMOVED - React Query handles everything automatically
    */
-  private async guaranteedSoftRecovery() {
-    console.log("🔄 v77.3 - BACKGROUND REFRESH: React Query will handle refetching");
-    
-    // v76.0: Set recovery flag to pause health monitor briefly
-    this.isRecovering = true;
-    
-    try {
-      if (this.queryClient) {
-        console.log("🔄 v77.3 - Canceling stale queries...");
-        await this.queryClient.cancelQueries();
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      if (this.queryClient) {
-        console.log("🔄 v77.3 - Invalidating queries for background refetch...");
-        // React Query will automatically refetch based on refetchOnWindowFocus
-        await this.queryClient.invalidateQueries();
-      }
-      
-      // v77.3: REMOVED coordinateRefresh() - was causing timeout errors
-      // React Query handles refetching automatically
-      console.log("✅ v77.3 - Background refresh complete (React Query handles the rest)");
-    } catch (error) {
-      console.error("❌ v77.3 - Background refresh failed:", error);
-      this.instantLoadingReset();
-    } finally {
-      // v76.0: Clear recovery flag after 2 seconds to re-enable health monitor
-      setTimeout(() => {
-        this.isRecovering = false;
-        console.log("🔄 v77.3 - Recovery flag cleared, health monitor re-enabled");
-      }, 2000);
-    }
-  }
 
   /**
    * v75.0 - DEPRECATED: Soft recovery now happens automatically on tab visibility

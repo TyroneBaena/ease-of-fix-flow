@@ -6,196 +6,81 @@ import { toast } from '@/lib/toast';
 import { useUnifiedAuth } from '../UnifiedAuthContext';
 import { PropertyContextType } from './PropertyContextTypes';
 import { fetchProperties } from './propertyOperations';
-import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
+/**
+ * v78.0: SIMPLIFIED - Pure data fetching, no complex refresh logic
+ */
 export const usePropertyProvider = (): PropertyContextType => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingFailed, setLoadingFailed] = useState<boolean>(false);
   const { currentUser, isSessionReady } = useUnifiedAuth();
   const lastFetchedUserIdRef = useRef<string | null>(null);
-  // CRITICAL: Track if we've completed initial load to prevent loading flashes
-  const hasCompletedInitialLoadRef = useRef(false);
-  // CRITICAL: Prevent concurrent fetches during rapid tab switches
-  const isFetchingRef = useRef(false);
-  const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  // CRITICAL: Track last fetch time to enable smart refresh on tab visibility
-  const lastFetchTimeRef = useRef<number>(0);
-
-  // CRITICAL v55.0: Use refs to access CURRENT auth state (not stale closure)
   const authStateRef = useRef({ isSessionReady, currentUser });
   
-  // Update ref whenever auth state changes
   useEffect(() => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
-  // v77.3: CRITICAL DEBUG - Track component lifecycle
-  useEffect(() => {
-    console.log('🔵 v77.3 - Properties - COMPONENT MOUNTED/REMOUNTED');
-    console.log('🔵 v77.3 - hasCompletedInitialLoadRef.current:', hasCompletedInitialLoadRef.current);
-    
-    return () => {
-      console.log('🔴 v77.3 - Properties - COMPONENT UNMOUNTING');
-    };
-  }, []);
-
-  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
-  useEffect(() => {
-    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
-      console.log('🔄 v77.3 - Properties - Tab refresh change:', isRefreshing);
-      console.log('🔄 v77.3 - hasCompletedInitialLoadRef.current:', hasCompletedInitialLoadRef.current);
-      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
-        // Instant reset: Clear loading immediately on tab return
-        console.log('⚡ v77.3 - Properties - Instant loading reset from coordinator');
-        setLoading(false);
-      } else if (!isRefreshing && !hasCompletedInitialLoadRef.current) {
-        console.log('⚠️ v77.3 - Properties - Tab return but initial load NOT complete yet');
-      }
-    });
-    
-    return unsubscribe;
-  }, []);
-
-  // CRITICAL v55.0: Stable callback that accesses current values via ref
   const fetchAndSetProperties = useCallback(async () => {
     const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
     const userId = user?.id;
     
-    console.log('v55.0 - PropertyProvider: fetchAndSetProperties called', { 
-      sessionReady, 
-      hasUser: !!userId,
-      userId 
-    });
+    console.log('v78.0 - PropertyProvider: fetchAndSetProperties', { sessionReady, hasUser: !!userId });
     
-    // CRITICAL: Wait for BOTH session ready AND user available
     if (!sessionReady) {
-      console.log('v55.0 - PropertyProvider: Waiting for session ready...');
+      console.log('v78.0 - PropertyProvider: Waiting for session ready...');
       return;
     }
     
     if (!userId) {
-      console.log('v55.0 - PropertyProvider: No current user, skipping fetch');
+      console.log('v78.0 - PropertyProvider: No user, skipping');
       return;
     }
-    
-    // CRITICAL: Prevent concurrent fetches
-    if (isFetchingRef.current) {
-      console.log('v55.0 - PropertyProvider: Fetch already in progress, skipping');
-      return;
-    }
-    
-    // CRITICAL FIX: 60-second timeout for RLS queries
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      console.warn('⏱️ Properties fetch timeout after 60s');
-    }, 60000);
+
+    setLoading(true);
+    setLoadingFailed(false);
 
     try {
-      console.log('🔍 v77.3 - loadProperties - hasCompletedInitialLoadRef:', hasCompletedInitialLoadRef.current);
-      console.log('🔍 v77.3 - loadProperties - current loading state:', loading);
-      
-      // v77.1: CRITICAL - NEVER set loading after initial load
-      // Background refreshes must be completely silent
-      if (!hasCompletedInitialLoadRef.current) {
-        console.log('✅ v77.3 - loadProperties - Setting loading=true (FIRST LOAD)');
-        setLoading(true);
-      } else {
-        console.log('🔕 v77.3 - Properties - SILENT REFRESH - Skipping loading state');
-      }
-      setLoadingFailed(false);
-      isFetchingRef.current = true;
-      console.log('v55.0 - PropertyContext: Fetching properties for user:', userId);
-      
-      const formattedProperties = await fetchProperties(controller.signal);
-      clearTimeout(timeoutId);
-      
-      console.log('✅ v55.0 - PropertyContext: Properties fetched successfully');
-      console.log('v55.0 - PropertyContext: Number of properties:', formattedProperties.length);
+      console.log('v78.0 - PropertyProvider: Fetching properties...');
+      const formattedProperties = await fetchProperties();
+      console.log('✅ v78.0 - Properties fetched:', formattedProperties.length);
       setProperties(formattedProperties);
-      lastFetchTimeRef.current = Date.now();
     } catch (err) {
-      clearTimeout(timeoutId);
-      
-      if (controller.signal.aborted) {
-        console.warn('❌ Properties fetch aborted due to timeout');
-        toast.error('Loading properties timed out. Please refresh.');
-      } else {
-        console.error('❌ v55.0 - PropertyContext: Error fetching properties:', err);
-        toast.error('Failed to load properties');
-      }
+      console.error('❌ v78.0 - Error fetching properties:', err);
+      toast.error('Failed to load properties');
       setLoadingFailed(true);
     } finally {
-      console.log('🏁 v55.0 - PropertyProvider - Resetting loading state');
-      // CRITICAL: Only reset loading on first load, keep it false after
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(false);
-      }
-      hasCompletedInitialLoadRef.current = true;
-      isFetchingRef.current = false;
+      setLoading(false);
     }
-  }, []); // CRITICAL v55.0: Empty deps - callback uses ref for current values
+  }, []);
 
   useEffect(() => {
-    console.log('PropertyProvider: useEffect triggered', { 
-      currentUser: currentUser ? `User: ${currentUser.email}` : 'No user',
-      userId: currentUser?.id,
-      lastFetchedUserId: lastFetchedUserIdRef.current,
-      isSessionReady
-    });
+    console.log('PropertyProvider: useEffect triggered');
     
-    // Clear any pending debounce timers
-    if (fetchDebounceTimerRef.current) {
-      clearTimeout(fetchDebounceTimerRef.current);
-    }
-    
-    // CRITICAL: Wait for session to be ready
     if (!isSessionReady) {
       console.log('PropertyProvider: Waiting for session ready...');
       return;
     }
     
-    // If no user, clear everything
     if (!currentUser?.id) {
       console.log('PropertyProvider: No user, clearing properties');
       setProperties([]);
       setLoading(false);
       setLoadingFailed(false);
       lastFetchedUserIdRef.current = null;
-      hasCompletedInitialLoadRef.current = true;
-      isFetchingRef.current = false;
       return;
     }
     
-    // Only fetch if the user ID has actually changed
+    // Only fetch if user ID changed
     if (lastFetchedUserIdRef.current === currentUser.id) {
-      console.log('PropertyProvider: User ID unchanged, skipping fetch');
+      console.log('PropertyProvider: User unchanged, skipping fetch');
       return;
     }
     
-    console.log('PropertyProvider: User ID changed, debouncing fetch');
     lastFetchedUserIdRef.current = currentUser.id;
-    
-    // CRITICAL: Debounce rapid tab switches (300ms delay)
-    fetchDebounceTimerRef.current = setTimeout(() => {
-      fetchAndSetProperties();
-    }, 300);
-    
-    return () => {
-      if (fetchDebounceTimerRef.current) {
-        clearTimeout(fetchDebounceTimerRef.current);
-      }
-    };
+    fetchAndSetProperties();
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
-
-  // CRITICAL v77.3: REMOVED - Causing timeout errors on tab return
-  // React Query handles background refetching automatically via refetchOnWindowFocus
-  // useEffect(() => {
-  //   console.log('🔄 v55.0 - PropertyProvider - Handler registration DISABLED');
-  //   return () => {};
-  // }, [fetchAndSetProperties]);
-
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
     try {
@@ -249,10 +134,6 @@ export const usePropertyProvider = (): PropertyContextType => {
       };
 
       setProperties(prev => [...prev, newProperty]);
-      
-      // Trigger billing integration hook to handle notifications and billing updates
-      // This will be handled by usePropertyBillingIntegration automatically through the properties.length change
-      
       return newProperty;
     } catch (err) {
       console.error('Unexpected error adding property:', err);
@@ -261,26 +142,15 @@ export const usePropertyProvider = (): PropertyContextType => {
   }, [currentUser?.id]);
 
   const getProperty = useCallback((id: string): Property | undefined => {
-    console.log('PropertyContext: getProperty called with ID:', id);
-    console.log('PropertyContext: Available properties:', properties.map(p => ({ id: p.id, name: p.name })));
-    const foundProperty = properties.find(property => property.id === id);
-    console.log('PropertyContext: Found property:', foundProperty);
-    return foundProperty;
+    return properties.find(property => property.id === id);
   }, [properties]);
 
   const updateProperty = useCallback(async (id: string, propertyUpdate: Partial<Property>) => {
-    console.log('PropertyContext: updateProperty called with ID:', id);
-    console.log('PropertyContext: Current user:', currentUser);
-    console.log('PropertyContext: Property update data:', propertyUpdate);
-    
     try {
       if (!currentUser) {
-        console.error('PropertyContext: No current user - blocking update');
         toast.error('You must be logged in to update a property');
         return;
       }
-
-      console.log('PropertyContext: User authenticated, proceeding with update');
 
       const propertyToUpdate: any = {};
       if ('name' in propertyUpdate) propertyToUpdate.name = propertyUpdate.name;
@@ -295,39 +165,27 @@ export const usePropertyProvider = (): PropertyContextType => {
       if ('rentPeriod' in propertyUpdate) propertyToUpdate.rent_period = propertyUpdate.rentPeriod;
       if ('landlordId' in propertyUpdate) propertyToUpdate.landlord_id = propertyUpdate.landlordId ?? null;
 
-      console.log('PropertyContext: Mapped data for database:', propertyToUpdate);
-      console.log('PropertyContext: Sending PATCH request to Supabase...');
-
       const { data, error } = await supabase
         .from('properties')
         .update(propertyToUpdate)
         .eq('id', id)
-        .select('*'); // Add select to see what was actually updated
-
-      console.log('PropertyContext: Supabase response - data:', data);
-      console.log('PropertyContext: Supabase response - error:', error);
+        .select('*');
 
       if (error) {
-        console.error('PropertyContext: Supabase update error:', error);
+        console.error('PropertyContext: Update error:', error);
         toast.error('Failed to update property');
         return;
       }
 
       if (!data || data.length === 0) {
-        console.error('PropertyContext: No rows were updated! This suggests the property was not found or RLS blocked the update');
         toast.error('Property update failed - no rows affected');
         return;
       }
-
-      console.log('PropertyContext: Database update successful');
-      console.log('PropertyContext: Updated data from DB:', data[0]);
-      console.log('PropertyContext: Updating local state...');
 
       setProperties(prev => prev.map(property => 
         property.id === id ? { ...property, ...propertyUpdate } : property
       ));
       
-      console.log('PropertyContext: Local state updated');
       toast.success('Property updated successfully');
     } catch (err) {
       console.error('PropertyContext: Unexpected error updating property:', err);
@@ -342,12 +200,11 @@ export const usePropertyProvider = (): PropertyContextType => {
         return;
       }
 
-      // Get property name using state callback to avoid circular dependency
       let propertyName = 'Property';
       setProperties(prev => {
         const deletedProperty = prev.find(p => p.id === id);
         propertyName = deletedProperty?.name || 'Property';
-        return prev; // Don't actually update state here
+        return prev;
       });
 
       const { error } = await supabase
@@ -362,13 +219,7 @@ export const usePropertyProvider = (): PropertyContextType => {
       }
 
       setProperties(prev => prev.filter(property => property.id !== id));
-      
-      // Show deletion confirmation with billing impact
       toast.success(`${propertyName} deleted successfully`);
-      
-      // Billing will be automatically recalculated by usePropertyBillingIntegration 
-      // through the properties.length change
-      
     } catch (err) {
       console.error('Unexpected error deleting property:', err);
       toast.error('An unexpected error occurred');
@@ -377,9 +228,7 @@ export const usePropertyProvider = (): PropertyContextType => {
 
   return useMemo(() => ({
     properties,
-    // CRITICAL: Override loading to false after initial load completes
-    // This prevents loading flashes on tab switches
-    loading: hasCompletedInitialLoadRef.current ? false : loading,
+    loading,
     loadingFailed,
     addProperty,
     getProperty,
