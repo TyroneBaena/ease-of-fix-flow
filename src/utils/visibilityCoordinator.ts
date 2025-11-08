@@ -1,5 +1,5 @@
 /**
- * Tab Visibility Coordinator v76.0 - Fixed Timeout Cleanup
+ * Tab Visibility Coordinator v77.0 - Connected Component Loading States
  *
  * ARCHITECTURAL CHANGE (v67.0):
  * ✅ Coordinator NO LONGER does session restoration itself

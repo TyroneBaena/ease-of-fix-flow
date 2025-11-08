@@ -25,6 +25,19 @@ export const useContractorsState = () => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
+  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
+  useEffect(() => {
+    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
+      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
+        // Instant reset: Clear loading immediately on tab return
+        console.log('⚡ v77.0 - Contractors - Instant loading reset from coordinator');
+        setLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
+
   // CRITICAL v57.0: Stable callback with 30s timeout
   const loadContractors = useCallback(async () => {
     const { isSessionReady: sessionReady } = authStateRef.current;

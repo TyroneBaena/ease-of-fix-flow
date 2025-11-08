@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Contractor } from '@/types/contractor';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { useContractorDialog } from './useContractorDialog';
@@ -22,6 +22,21 @@ export const useContractorManagement = () => {
     hasCurrentUser: !!currentUser,
     loading
   });
+
+  // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
+  const hasCompletedInitialLoadRef = useRef(false);
+  useEffect(() => {
+    const { visibilityCoordinator } = require('@/utils/visibilityCoordinator');
+    const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing: boolean) => {
+      if (!isRefreshing && hasCompletedInitialLoadRef.current) {
+        // Instant reset: Clear loading immediately on tab return
+        console.log('⚡ v77.0 - ContractorManagement - Instant loading reset from coordinator');
+        setLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
 
   const {
     isDialogOpen,
@@ -100,6 +115,7 @@ export const useContractorManagement = () => {
       // CRITICAL: Always reset loading state
       console.log("🏁 loadContractors - Finally block, resetting loading");
       setLoading(false);
+      hasCompletedInitialLoadRef.current = true; // v77.0: Mark as completed
     }
   }, []); // CRITICAL: Empty dependencies to prevent recreation
 
