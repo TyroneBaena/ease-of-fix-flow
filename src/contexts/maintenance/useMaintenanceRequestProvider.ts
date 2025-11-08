@@ -35,13 +35,28 @@ export const useMaintenanceRequestProvider = () => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
+  // v77.3: CRITICAL DEBUG - Track component lifecycle
+  useEffect(() => {
+    console.log('🔵 v77.3 - MaintenanceRequest - COMPONENT MOUNTED/REMOUNTED');
+    console.log('🔵 v77.3 - hasCompletedInitialLoadRef.current:', hasCompletedInitialLoadRef.current);
+    console.log('🔵 v77.3 - loading state:', loading);
+    
+    return () => {
+      console.log('🔴 v77.3 - MaintenanceRequest - COMPONENT UNMOUNTING');
+    };
+  }, []);
+
   // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
   useEffect(() => {
     const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
+      console.log('🔄 v77.3 - MaintenanceRequest - Tab refresh change:', isRefreshing);
+      console.log('🔄 v77.3 - hasCompletedInitialLoadRef.current:', hasCompletedInitialLoadRef.current);
       if (!isRefreshing && hasCompletedInitialLoadRef.current) {
         // Instant reset: Clear loading immediately on tab return
-        console.log('⚡ v77.0 - MaintenanceRequest - Instant loading reset from coordinator');
+        console.log('⚡ v77.3 - MaintenanceRequest - Instant loading reset from coordinator');
         setLoading(false);
+      } else if (!isRefreshing && !hasCompletedInitialLoadRef.current) {
+        console.log('⚠️ v77.3 - MaintenanceRequest - Tab return but initial load NOT complete yet');
       }
     });
     
@@ -79,12 +94,17 @@ export const useMaintenanceRequestProvider = () => {
       return [];
     }
     
+    // v77.3: Enhanced logging for debugging
+    console.log('🔍 v77.3 - loadRequests - hasCompletedInitialLoadRef:', hasCompletedInitialLoadRef.current);
+    console.log('🔍 v77.3 - loadRequests - current loading state:', loading);
+    
     // v77.1: CRITICAL - NEVER set loading after initial load
     // Background refreshes must be completely silent
     if (!hasCompletedInitialLoadRef.current) {
+      console.log('✅ v77.3 - loadRequests - Setting loading=true (FIRST LOAD)');
       setLoading(true);
     } else {
-      console.log('🔕 v77.1 - SILENT REFRESH - Skipping loading state');
+      console.log('🔕 v77.3 - SILENT REFRESH - Skipping loading state (hasCompletedInitialLoad=true)');
     }
   
   isFetchingRef.current = true;
@@ -129,10 +149,11 @@ export const useMaintenanceRequestProvider = () => {
     } finally {
       // v73.0: CRITICAL FIX - Always reset loading and flags even if error/timeout
       // This prevents stuck loading states that health monitor can't detect
+      console.log('🏁 v77.3 - loadRequests finally - BEFORE: hasCompletedInitialLoad=', hasCompletedInitialLoadRef.current);
       setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
-      console.log('✅ v73.0 - loadRequests finally: loading=false, completed=true');
+      console.log('🏁 v77.3 - loadRequests finally - AFTER: loading=false, completed=true');
     }
   }, [fetchRequests]); // CRITICAL v65.0: Include fetchRequests so we get updates when user changes
 

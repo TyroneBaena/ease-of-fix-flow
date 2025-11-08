@@ -206,28 +206,37 @@ class VisibilityCoordinator {
    */
   private handleVisibilityChange = async () => {
     if (document.hidden) {
-      console.log("🔒 v76.0 - Tab hidden");
+      console.log("🔒 v77.3 - Tab hidden");
       return;
     }
 
-    console.log("🔓 v76.0 - Tab visible, starting INSTANT RESET");
+    console.log("🔓 v77.3 - Tab visible, starting INSTANT RESET");
+    console.log("🔓 v77.3 - Registered handlers:", this.refreshHandlers.length);
+    console.log("🔓 v77.3 - Tab refresh callbacks:", this.tabRefreshCallbacks.length);
     
     // v76.0: CRITICAL - Reset loading states INSTANTLY
     this.instantLoadingReset();
     
+    console.log("🔓 v77.3 - After instant reset, starting background recovery");
+    
     // Then do background refresh (non-blocking)
     this.guaranteedSoftRecovery();
+    
+    console.log("🔓 v77.3 - Background recovery initiated");
   };
 
   /**
    * v76.0: INSTANT loading reset - synchronous, immediate
    */
   private instantLoadingReset() {
-    console.log("⚡ v76.0 - INSTANT RESET: Clearing all loading flags");
+    console.log("⚡ v77.3 - INSTANT RESET: Clearing all loading flags");
+    console.log("⚡ v77.3 - BEFORE: isRefreshing=", this.isRefreshing, "isCoordinating=", this.isCoordinating, "isRecovering=", this.isRecovering);
     
     this.isRefreshing = false;
     this.isCoordinating = false;
     this.isRecovering = false; // v76.0: Also reset recovery flag
+    
+    console.log("⚡ v77.3 - AFTER: isRefreshing=", this.isRefreshing, "isCoordinating=", this.isCoordinating, "isRecovering=", this.isRecovering);
     
     if (this.overallTimeoutId) {
       clearTimeout(this.overallTimeoutId);
@@ -239,9 +248,10 @@ class VisibilityCoordinator {
       this.abortController = null;
     }
     
+    console.log("⚡ v77.3 - Notifying", this.tabRefreshCallbacks.length, "subscribers");
     this.notifyTabRefreshChange(false);
     
-    console.log("✅ v76.0 - INSTANT RESET complete (loading flags cleared)");
+    console.log("✅ v77.3 - INSTANT RESET complete (loading flags cleared)");
   }
 
   /**

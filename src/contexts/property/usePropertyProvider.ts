@@ -30,13 +30,27 @@ export const usePropertyProvider = (): PropertyContextType => {
     authStateRef.current = { isSessionReady, currentUser };
   }, [isSessionReady, currentUser]);
 
+  // v77.3: CRITICAL DEBUG - Track component lifecycle
+  useEffect(() => {
+    console.log('🔵 v77.3 - Properties - COMPONENT MOUNTED/REMOUNTED');
+    console.log('🔵 v77.3 - hasCompletedInitialLoadRef.current:', hasCompletedInitialLoadRef.current);
+    
+    return () => {
+      console.log('🔴 v77.3 - Properties - COMPONENT UNMOUNTING');
+    };
+  }, []);
+
   // v77.0: CRITICAL FIX - Subscribe to coordinator's instant reset
   useEffect(() => {
     const unsubscribe = visibilityCoordinator.onTabRefreshChange((isRefreshing) => {
+      console.log('🔄 v77.3 - Properties - Tab refresh change:', isRefreshing);
+      console.log('🔄 v77.3 - hasCompletedInitialLoadRef.current:', hasCompletedInitialLoadRef.current);
       if (!isRefreshing && hasCompletedInitialLoadRef.current) {
         // Instant reset: Clear loading immediately on tab return
-        console.log('⚡ v77.0 - Properties - Instant loading reset from coordinator');
+        console.log('⚡ v77.3 - Properties - Instant loading reset from coordinator');
         setLoading(false);
+      } else if (!isRefreshing && !hasCompletedInitialLoadRef.current) {
+        console.log('⚠️ v77.3 - Properties - Tab return but initial load NOT complete yet');
       }
     });
     
@@ -79,12 +93,16 @@ export const usePropertyProvider = (): PropertyContextType => {
     }, 60000);
 
     try {
+      console.log('🔍 v77.3 - loadProperties - hasCompletedInitialLoadRef:', hasCompletedInitialLoadRef.current);
+      console.log('🔍 v77.3 - loadProperties - current loading state:', loading);
+      
       // v77.1: CRITICAL - NEVER set loading after initial load
       // Background refreshes must be completely silent
       if (!hasCompletedInitialLoadRef.current) {
+        console.log('✅ v77.3 - loadProperties - Setting loading=true (FIRST LOAD)');
         setLoading(true);
       } else {
-        console.log('🔕 v77.1 - Properties - SILENT REFRESH - Skipping loading state');
+        console.log('🔕 v77.3 - Properties - SILENT REFRESH - Skipping loading state');
       }
       setLoadingFailed(false);
       isFetchingRef.current = true;
