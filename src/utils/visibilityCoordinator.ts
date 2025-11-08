@@ -32,10 +32,6 @@ type ErrorHandler = (error: 'SESSION_EXPIRED' | 'SESSION_FAILED') => void;
 // Feature flag: Enable auto-recovery from stuck loading states
 const ENABLE_AUTO_RECOVERY = true;
 
-// Watchdog timeout: Must fire BEFORE handler timeout (30s)
-// Set to 20s to catch stuck states EARLY before handlers give up
-const WATCHDOG_TIMEOUT_MS = 20000; // 20 seconds
-
 class VisibilityCoordinator {
   private isRefreshing = false;
   private isCoordinating = false;
@@ -44,8 +40,6 @@ class VisibilityCoordinator {
   private pendingHandlers: RefreshHandler[] = [];
   private isListening = false;
   private abortController: AbortController | null = null;
-  private watchdogTimer: NodeJS.Timeout | null = null;
-  private watchdogStartTime: number = 0;
   private queryClient: QueryClient | null = null;
   
   // UI feedback callbacks
@@ -175,15 +169,15 @@ class VisibilityCoordinator {
       return;
     }
 
-    console.log("🔓 v67.0 - Tab visible, triggering handler orchestration");
+    console.log("🔓 v69.0 - Tab visible, triggering handler orchestration");
     this.coordinateRefresh();
   };
 
   /**
-   * v68.0 - Soft Recovery: Reset stuck states and re-fetch data
-   * Called by watchdog when loading state exceeds threshold
+   * v69.0 - Soft Recovery: Reset stuck states and re-fetch data
+   * Called by ApplicationHealthMonitor when loading state exceeds threshold
    */
-  private async softRecovery() {
+  public async softRecovery() {
     if (!ENABLE_AUTO_RECOVERY) {
       console.warn("🚨 Watchdog - Auto-recovery is disabled");
       return;
@@ -207,12 +201,8 @@ class VisibilityCoordinator {
       this.isCoordinating = false;
       this.notifyTabRefreshChange(false);
 
-      // Step 2: Clear all timeouts and abort controllers
-      console.log("🔧 Watchdog - Step 2: Clearing timeouts and abort controllers");
-      if (this.watchdogTimer) {
-        clearTimeout(this.watchdogTimer);
-        this.watchdogTimer = null;
-      }
+      // Step 2: Clear abort controllers
+      console.log("🔧 v69.0 - Step 2: Clearing abort controllers");
       if (this.abortController) {
         this.abortController.abort();
         this.abortController = null;
@@ -220,7 +210,7 @@ class VisibilityCoordinator {
 
       // Step 3: React Query recovery
       if (this.queryClient) {
-        console.log("🔧 Watchdog - Step 3: React Query recovery (cancel + invalidate + refetch)");
+        console.log("🔧 v69.0 - Step 3: React Query recovery (cancel + invalidate + refetch)");
         
         // Cancel all ongoing queries
         await this.queryClient.cancelQueries();
@@ -234,15 +224,15 @@ class VisibilityCoordinator {
         await this.queryClient.refetchQueries({ type: 'active' });
         console.log("   ✅ Refetched active queries");
       } else {
-        console.warn("⚠️ Watchdog - QueryClient not available, skipping React Query recovery");
+        console.warn("⚠️ v69.0 - QueryClient not available, skipping React Query recovery");
       }
 
       // Step 4: Re-validate session
-      console.log("🔧 Watchdog - Step 4: Re-validating session");
+      console.log("🔧 v69.0 - Step 4: Re-validating session");
       try {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (error) {
-          console.error("❌ Watchdog - Session validation failed:", error);
+          console.error("❌ v69.0 - Session validation failed:", error);
           this.notifyError('SESSION_FAILED');
         } else if (session) {
           console.log("   ✅ Session valid");
@@ -251,17 +241,17 @@ class VisibilityCoordinator {
           this.notifyError('SESSION_EXPIRED');
         }
       } catch (err) {
-        console.error("❌ Watchdog - Session validation error:", err);
+        console.error("❌ v69.0 - Session validation error:", err);
       }
 
       const recoveryDuration = Date.now() - recoveryStart;
       console.log("═══════════════════════════════════════════════════");
-      console.log(`✅ Watchdog - Soft recovery complete in ${recoveryDuration}ms`);
+      console.log(`✅ v69.0 - Soft recovery complete in ${recoveryDuration}ms`);
       console.log("═══════════════════════════════════════════════════");
 
     } catch (error: any) {
       const recoveryDuration = Date.now() - recoveryStart;
-      console.error(`❌ Watchdog - Recovery failed after ${recoveryDuration}ms:`, error);
+      console.error(`❌ v69.0 - Recovery failed after ${recoveryDuration}ms:`, error);
       toast.error("Recovery failed. Please refresh the page manually.");
     } finally {
       this.isRecovering = false;
@@ -269,132 +259,12 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v68.0 - Start watchdog timer to detect stuck loading states
-   * Fires at 20s - BEFORE handler timeout (30s) - to catch stuck states early
-   */
-  private startWatchdog() {
-    if (!ENABLE_AUTO_RECOVERY) return;
-
-    // Don't interrupt existing watchdog - let it complete
-    if (this.watchdogTimer) {
-      console.log(`🐕 Watchdog - Already running, skipping new timer`);
-      return;
-    }
-
-    this.watchdogStartTime = Date.now();
-    console.log(`🐕 Watchdog - Started (${WATCHDOG_TIMEOUT_MS}ms = ${WATCHDOG_TIMEOUT_MS/1000}s timeout)`);
-
-    this.watchdogTimer = setTimeout(() => {
-      const elapsed = Date.now() - this.watchdogStartTime;
-      
-      // Check 1: Is coordinator stuck?
-      const coordinatorStuck = this.isRefreshing || this.isCoordinating;
-      
-      // Check 2: Are React Query queries stuck IN ANY NON-IDLE STATE?
-      let queriesStuck = false;
-      let stuckQueries: any[] = [];
-      let queryDetails: any[] = [];
-      
-      if (this.queryClient) {
-        const allQueries = this.queryClient.getQueryCache().getAll();
-        
-        // Check for queries in ANY non-idle state (fetching, paused, error with ongoing fetch)
-        stuckQueries = allQueries.filter(q => {
-          const isFetching = q.state.fetchStatus === 'fetching';
-          const isPaused = q.state.fetchStatus === 'paused';
-          const isStale = q.isStale();
-          const hasError = !!q.state.error;
-          const dataUpdatedAt = q.state.dataUpdatedAt;
-          const errorUpdatedAt = q.state.errorUpdatedAt;
-          
-          // Stuck if: fetching, paused, or recently errored but stale
-          const stuck = isFetching || isPaused || (hasError && isStale && (Date.now() - errorUpdatedAt < 10000));
-          
-          if (stuck || isFetching || isPaused || hasError) {
-            queryDetails.push({
-              key: q.queryKey,
-              fetchStatus: q.state.fetchStatus,
-              isFetching,
-              isPaused,
-              isStale,
-              hasError,
-              error: q.state.error?.message,
-              dataUpdatedAt: dataUpdatedAt ? Date.now() - dataUpdatedAt : 'never',
-              errorUpdatedAt: errorUpdatedAt ? Date.now() - errorUpdatedAt : 'never'
-            });
-          }
-          
-          return stuck;
-        });
-        
-        queriesStuck = stuckQueries.length > 0;
-      }
-      
-      // ALWAYS log detailed query state at this point
-      console.log("═══════════════════════════════════════════════════");
-      console.log(`🐕 Watchdog - Firing after ${elapsed}ms (${(elapsed/1000).toFixed(1)}s)`);
-      console.log(`   - Coordinator stuck: ${coordinatorStuck}`);
-      console.log(`   - isRefreshing: ${this.isRefreshing}`);
-      console.log(`   - isCoordinating: ${this.isCoordinating}`);
-      console.log(`   - Queries stuck: ${queriesStuck}`);
-      console.log(`   - Total queries: ${this.queryClient?.getQueryCache().getAll().length ?? 0}`);
-      console.log(`   - Fetching count: ${this.queryClient?.isFetching() ?? 0}`);
-      console.log(`   - Stuck query count: ${stuckQueries.length}`);
-      
-      if (queryDetails.length > 0) {
-        console.log(`   - Query details (${queryDetails.length}):`);
-        queryDetails.forEach((q, i) => {
-          console.log(`     ${i + 1}. ${JSON.stringify(q.key)}`);
-          console.log(`        fetchStatus: ${q.fetchStatus}, stale: ${q.isStale}, error: ${q.hasError}`);
-          if (q.hasError) console.log(`        error: ${q.error}`);
-          console.log(`        dataAge: ${q.dataUpdatedAt}ms, errorAge: ${q.errorUpdatedAt}ms`);
-        });
-      }
-      
-      if (coordinatorStuck || queriesStuck) {
-        console.error("🚨 STUCK STATE DETECTED - Triggering soft recovery!");
-        console.error("═══════════════════════════════════════════════════");
-        this.softRecovery();
-      } else {
-        console.log(`✅ All clear - coordinator idle and no stuck queries`);
-        console.log("═══════════════════════════════════════════════════");
-      }
-      
-      // Self-destruct: Clear timer after check
-      this.watchdogTimer = null;
-      this.watchdogStartTime = 0;
-    }, WATCHDOG_TIMEOUT_MS);
-  }
-
-  /**
-   * v68.0 - Stop watchdog intelligently
-   * Clear timer ONLY if coordination completed quickly (< 15s) AND successfully
-   * Otherwise let watchdog fire to verify state
-   */
-  private stopWatchdog() {
-    if (!this.watchdogTimer) return;
-    
-    const elapsedSinceStart = Date.now() - this.watchdogStartTime;
-    const quickSuccess = elapsedSinceStart < 15000; // Completed in under 15s
-    
-    if (quickSuccess) {
-      // Fast success - no need to verify, clear the timer
-      clearTimeout(this.watchdogTimer);
-      this.watchdogTimer = null;
-      this.watchdogStartTime = 0;
-      console.log(`🐕 Watchdog - Cleared (quick success in ${elapsedSinceStart}ms)`);
-    } else {
-      // Slow/failed - let watchdog verify state at 20s
-      console.log(`🐕 Watchdog - Continuing to monitor (coordination took ${elapsedSinceStart}ms, watchdog will verify at 20s)`);
-    }
-  }
-
-  /**
-   * v68.0 - Simplified coordinator with watchdog protection
+   * v69.0 - Coordinate all refresh handlers
+   * Integrated with independent ApplicationHealthMonitor
    */
   private async coordinateRefresh() {
     if (this.isRefreshing) {
-      console.warn("⚙️ v68.0 - Refresh already in progress, skipping");
+      console.warn("⚙️ v69.0 - Refresh already in progress, skipping");
       return;
     }
 
@@ -402,17 +272,19 @@ class VisibilityCoordinator {
     this.isRefreshing = true;
     this.notifyTabRefreshChange(true);
     const startTime = Date.now();
-    console.log("🔁 v68.0 - Starting tab revisit with watchdog protection");
+    console.log("🔁 v69.0 - Starting tab revisit (monitored by ApplicationHealthMonitor)");
 
-    // v68.0: Start watchdog to detect stuck states
-    this.startWatchdog();
+    // v69.0: Notify health monitor that refresh started
+    if (typeof window !== 'undefined' && (window as any).__healthMonitor) {
+      (window as any).__healthMonitor.recordRefreshStart();
+    }
 
     this.abortController = new AbortController();
 
-    // v68.0: 60s overall timeout (generous, each handler has its own 30s timeout)
+    // v69.0: 60s overall timeout (generous, each handler has its own 30s timeout)
     const overallTimeout = new Promise((_, reject) => 
       setTimeout(() => {
-        console.error("🚨 v68.0 - Overall timeout reached after 60s");
+        console.error("🚨 v69.0 - Overall timeout reached after 60s");
         this.abortController?.abort();
         reject(new Error('Overall coordination timeout'));
       }, 60000)
@@ -425,18 +297,30 @@ class VisibilityCoordinator {
       ]);
       
       const duration = Date.now() - startTime;
-      console.log(`%c✅ v68.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      const success = true; // Reached here means success
+      console.log(`%c✅ v69.0 - Tab revisit complete in ${duration}ms`, "color: lime; font-weight: bold");
+      
+      // v69.0: Notify health monitor of successful completion
+      if (typeof window !== 'undefined' && (window as any).__healthMonitor) {
+        (window as any).__healthMonitor.recordRefreshEnd(success);
+      }
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ v68.0 - Coordination failed after ${duration}ms:`, error);
+      const success = false;
+      console.error(`❌ v69.0 - Coordination failed after ${duration}ms:`, error);
       
-      // v68.0: Don't assume it's a session error - let handlers decide
+      // v69.0: Notify health monitor of failed completion
+      if (typeof window !== 'undefined' && (window as any).__healthMonitor) {
+        (window as any).__healthMonitor.recordRefreshEnd(success);
+      }
+      
+      // v69.0: Don't assume it's a session error - let handlers decide
       toast.error("Some data may not have loaded. Please refresh if needed.");
     } finally {
       // Process pending handlers
       if (this.pendingHandlers.length > 0) {
-        console.log(`📋 v68.0 - Processing ${this.pendingHandlers.length} pending handlers`);
+        console.log(`📋 v69.0 - Processing ${this.pendingHandlers.length} pending handlers`);
         const handlersToProcess = [...this.pendingHandlers];
         this.pendingHandlers = [];
         
@@ -446,9 +330,6 @@ class VisibilityCoordinator {
           }
         });
       }
-      
-      // CRITICAL: Stop watchdog first (success), then reset state
-      this.stopWatchdog();
       
       this.isCoordinating = false;
       this.isRefreshing = false;

@@ -913,6 +913,9 @@ import NotFound from "@/pages/NotFound";
 // Import session rehydration utility
 import { rehydrateSessionFromServer } from "@/utils/sessionRehydration";
 
+// Import health monitor
+import { applicationHealthMonitor } from "@/utils/applicationHealthMonitor";
+
 // React Query setup
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -1031,19 +1034,40 @@ const AppRoutes = () => {
 const App: React.FC = () => {
   const [rehydrated, setRehydrated] = useState(false);
 
+  // v69.0 - Initialize ApplicationHealthMonitor on mount
+  useEffect(() => {
+    console.log("🏥 App.tsx v69.0 - Initializing ApplicationHealthMonitor");
+    
+    // Initialize with QueryClient
+    applicationHealthMonitor.initialize(queryClient);
+    
+    // Start monitoring
+    applicationHealthMonitor.start();
+    
+    // Expose to window for coordinator access
+    (window as any).__healthMonitor = applicationHealthMonitor;
+    
+    // Cleanup on unmount
+    return () => {
+      console.log("🏥 App.tsx v69.0 - Stopping ApplicationHealthMonitor");
+      applicationHealthMonitor.stop();
+      delete (window as any).__healthMonitor;
+    };
+  }, []);
+
   // ONLY initial load rehydration - tab revisits handled by visibilityCoordinator v43.0
   useEffect(() => {
-    console.log("🔧 App.tsx v43.0 - Initial load rehydration with bulletproof error handling");
+    console.log("🔧 App.tsx v69.0 - Initial load rehydration with bulletproof error handling");
     // Clean up old v37 storage first
     cleanupOldAuthStorage();
     // Then rehydrate from HttpOnly cookies ONCE on initial load
-    // v43.0: Always set rehydrated=true even if session restoration fails (allow cached data)
+    // v69.0: Always set rehydrated=true even if session restoration fails (allow cached data)
     rehydrateSessionFromServer()
       .then(() => {
-        console.log("✅ App.tsx v43.0 - Initial session restoration complete");
+        console.log("✅ App.tsx v69.0 - Initial session restoration complete");
       })
       .catch((err) => {
-        console.error("❌ App.tsx v43.0 - Initial session restoration error (non-fatal):", err);
+        console.error("❌ App.tsx v69.0 - Initial session restoration error (non-fatal):", err);
       })
       .finally(() => {
         setRehydrated(true);
