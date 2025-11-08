@@ -39,18 +39,12 @@ export const useSecurityAnalytics = () => {
       // Get current user session for active sessions count
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Call the security analytics edge function with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
       try {
         const { data: response, error: functionError } = await supabase.functions.invoke('security-analytics', {
           headers: {
             'Content-Type': 'application/json',
           }
         });
-        
-        clearTimeout(timeoutId);
         
         if (functionError) {
           console.error('❌ [Security Analytics] Function error:', functionError);
@@ -72,7 +66,6 @@ export const useSecurityAnalytics = () => {
         setMetrics(updatedMetrics);
         
       } catch (fetchError) {
-        clearTimeout(timeoutId);
         throw fetchError;
       }
 

@@ -60,19 +60,11 @@ export const useNotifications = () => {
       setLoading(false);
       return;
     }
-    
-    // CRITICAL FIX: Add timeout protection
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      console.warn('Notifications fetch timeout after 10s');
-    }, 10000);
 
     try {
       setLoading(true);
       
       const fetchedData = await fetchNotifications(currentUser.id);
-      clearTimeout(timeoutId);
         
       // If we have real data from database, use it
       if (fetchedData && fetchedData.length > 0) {
@@ -88,15 +80,8 @@ export const useNotifications = () => {
         await storeNotifications(mockNotifications);
       }
     } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (controller.signal.aborted) {
-        console.warn('Notifications fetch aborted due to timeout');
-        toast.error("Notifications loading timed out");
-      } else {
-        console.error('Error fetching notifications:', error);
-        toast.error("Failed to load notifications");
-      }
+      console.error('Error fetching notifications:', error);
+      toast.error("Failed to load notifications");
     } finally {
       setLoading(false);
     }

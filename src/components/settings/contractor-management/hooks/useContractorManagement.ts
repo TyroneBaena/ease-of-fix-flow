@@ -53,21 +53,12 @@ export const useContractorManagement = () => {
       console.log("Fetching contractors in useContractorManagement...");
       console.log("User is admin:", isAdmin);
       
-      // v57.0: Increased timeout to 30s (was 5s) to match coordinator
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.error("⏱️ v57.0 - loadContractors - Timeout after 30s");
-      }, 30000);
-      
       try {
         console.log("Attempting to fetch contractors directly from Supabase...");
         
         const { data: rawData, error, count } = await supabase
           .from('contractors')
           .select('*', { count: 'exact' });
-        
-        clearTimeout(timeoutId);
         
         if (error) {
           console.error("Supabase query error:", error);
@@ -88,7 +79,6 @@ export const useContractorManagement = () => {
           console.log("No contractors were returned after fetching");
         }
       } catch (fetchErr) {
-        clearTimeout(timeoutId);
         throw fetchErr;
       }
     } catch (err) {

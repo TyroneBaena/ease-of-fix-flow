@@ -60,14 +60,8 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
       isFetchingRef.current = true;
       console.log("Loading contractors...");
       
-      // Timeout protection - 60 seconds for contractor queries with RLS
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-      
       try {
-        const data = await fetchContractors(controller.signal);
-        clearTimeout(timeoutId);
-        
+        const data = await fetchContractors();
         console.log("Contractors loaded:", data.length);
         
         setContractors(data);
@@ -77,7 +71,7 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
           console.log("No contractors found in current organization");
         }
       } catch (fetchErr) {
-        clearTimeout(timeoutId);
+        console.error("Fetch contractors failed:", fetchErr);
         throw fetchErr;
       }
     } catch (err) {

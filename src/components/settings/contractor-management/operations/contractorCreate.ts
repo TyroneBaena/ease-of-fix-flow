@@ -55,19 +55,11 @@ export const createContractor = async (newContractor: Partial<Contractor>) => {
     
     console.log('📦 createContractor - Invocation body:', invocationBody);
     
-    // Add timeout protection
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      console.error('⏱️ createContractor - Edge function timeout after 30s');
-    }, 30000);
-    
     try {
       const { data, error } = await supabase.functions.invoke('invite-contractor', {
         body: invocationBody
       });
       
-      clearTimeout(timeoutId);
       console.log('📨 createContractor - Edge function response:', { data, error });
       
       if (error) {
@@ -95,10 +87,9 @@ export const createContractor = async (newContractor: Partial<Contractor>) => {
       } else {
         throw new Error(data?.message || 'Failed to invite contractor');
       }
-    } catch (invocationError) {
-      clearTimeout(timeoutId);
-      throw invocationError;
-    }
+      } catch (invocationError) {
+        throw invocationError;
+      }
   } catch (error: any) {
     console.error("❌ createContractor - Error creating contractor:", error);
     

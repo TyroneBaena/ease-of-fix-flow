@@ -166,27 +166,20 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
   
   conversionPromise = (async () => {
     try {
-      console.log("🔄 UnifiedAuth v51.0 - convertSupabaseUser called for:", supabaseUser.email);
-
-      // CRITICAL FIX: Add AbortSignal with aggressive timeout to prevent hanging
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), 8000); // 8 second timeout
+      console.log("🔄 v79.2 - UnifiedAuth: convertSupabaseUser called for:", supabaseUser.email);
 
     try {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", supabaseUser.id)
-        .abortSignal(abortController.signal)
         .maybeSingle();
 
-      clearTimeout(timeoutId);
-
       if (profileError) {
-        console.warn("🔄 UnifiedAuth v50.0 - Profile query error:", profileError.message);
+        console.warn("🔄 v79.2 - Profile query error:", profileError.message);
       }
 
-      console.log("🔄 UnifiedAuth v50.0 - Profile query completed:", {
+      console.log("🔄 v79.2 - Profile query completed:", {
         hasProfile: !!profile,
         hasOrganization: !!profile?.organization_id,
         error: profileError?.message,
@@ -216,12 +209,10 @@ const convertSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> =>
 
       return user;
     } catch (queryError: any) {
-      clearTimeout(timeoutId);
-
       if (queryError.name === "AbortError") {
-        console.warn("🔄 UnifiedAuth v50.0 - Profile query timed out, using fallback");
+        console.warn("🔄 v79.2 - Profile query timed out, using fallback");
       } else {
-        console.error("🔄 UnifiedAuth v50.0 - Profile query failed:", queryError);
+        console.error("🔄 v79.2 - Profile query failed:", queryError);
       }
 
       // Return basic user on timeout/error
@@ -345,10 +336,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log("UnifiedAuth - Fetching organizations for user:", user.id);
 
-      // CRITICAL FIX: 60-second timeout to prevent blocking on tab switches
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-
       try {
         // Fetch user organizations
         const { data: userOrgs, error: userOrgsError } = await supabase
@@ -365,8 +352,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           .eq("user_id", user.id)
           .eq("is_active", true);
 
-        clearTimeout(timeoutId);
-
         if (userOrgsError) {
           console.warn("UnifiedAuth - Error fetching user organizations:", userOrgsError);
           throw userOrgsError;
@@ -379,16 +364,13 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
           return user.organization_id || null;
         }
 
-        // Fetch organization details with timeout - 60 seconds
-        const orgTimeoutId = setTimeout(() => controller.abort(), 60000);
+        // Fetch organization details
         const orgIds = userOrgs.map((uo: any) => uo.organization_id);
 
         const { data: organizations, error: orgsError } = await supabase
           .from("organizations")
           .select("*")
           .in("id", orgIds);
-
-        clearTimeout(orgTimeoutId);
 
         if (orgsError) {
           console.warn("UnifiedAuth - Error fetching organizations:", orgsError);
@@ -441,11 +423,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         return user.organization_id || null;
       } catch (fetchError) {
-        clearTimeout(timeoutId);
-        if (controller.signal.aborted) {
-          console.warn("UnifiedAuth - Organization fetch timeout after 3s");
-          throw new Error("Organization fetch timeout");
-        }
         throw fetchError;
       }
     } catch (error) {
@@ -588,16 +565,8 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log("UnifiedAuth - Fetching users for practice leader dropdown");
       const { fetchAllUsers } = await import("@/services/user/userQueries");
 
-      // CRITICAL FIX: 60-second timeout for user queries with RLS
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.warn("⏱️ User fetch timeout after 60s");
-      }, 60000);
-
       try {
-        const userData = await fetchAllUsers(controller.signal);
-        clearTimeout(timeoutId);
+        const userData = await fetchAllUsers();
 
         console.log("UnifiedAuth - Raw user data received:", userData.length, "users");
 
@@ -616,7 +585,6 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setUsers(convertedUsers);
         console.log("UnifiedAuth - Users set for practice leaders:", convertedUsers.length);
       } catch (fetchError) {
-        clearTimeout(timeoutId);
         throw fetchError;
       }
     } catch (error) {

@@ -2,32 +2,25 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 
-export async function fetchAllUsers(signal?: AbortSignal): Promise<User[]> {
-  console.log("📋 fetchAllUsers: Getting current user's organization");
+export async function fetchAllUsers(): Promise<User[]> {
+  console.log("📋 v79.2 - fetchAllUsers: Getting current user's organization");
   
-  // Create abort controller with timeout if signal not provided
-  const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10 second timeout
-  const effectiveSignal = signal || abortController.signal;
+  // First, get the current user's organization ID
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   
-  try {
-    // First, get the current user's organization ID
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.error("❌ Error getting current user for organization filtering:", authError);
-      throw new Error("Authentication required to fetch users");
-    }
+  if (authError || !user) {
+    console.error("❌ Error getting current user:", authError);
+    throw new Error("Authentication required to fetch users");
+  }
 
-    console.log("📋 Current authenticated user:", { id: user.id, email: user.email });
+  console.log("📋 Current authenticated user:", { id: user.id, email: user.email });
 
-    // Get the current user's profile to find their organization
-    const { data: initialProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id, role, session_organization_id')
-      .eq('id', user.id)
-      .abortSignal(effectiveSignal)
-      .maybeSingle();
+  // Get the current user's profile to find their organization
+  const { data: initialProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('organization_id, role, session_organization_id')
+    .eq('id', user.id)
+    .maybeSingle();
 
   console.log("📋 Profile query result:", { profile: initialProfile, error: profileError });
 
@@ -96,19 +89,12 @@ export async function fetchAllUsers(signal?: AbortSignal): Promise<User[]> {
 
   console.log("📋 Current user organization:", userOrgId);
   console.log("📋 Current user role:", currentUserProfile.role);
-
-  // Fetch users from the same organization
-  let profilesQuery = supabase
+  
+  const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
     .select('*')
     .in('role', ['admin', 'manager'])
     .eq('organization_id', userOrgId);
-  
-  if (signal) {
-    profilesQuery = profilesQuery.abortSignal(signal);
-  }
-  
-  const { data: profiles, error: profilesError } = await profilesQuery;
     
   if (profilesError) {
     console.error("❌ Error fetching profiles:", profilesError);
@@ -126,9 +112,6 @@ export async function fetchAllUsers(signal?: AbortSignal): Promise<User[]> {
     organization_id: profile.organization_id || undefined,
     createdAt: profile.created_at || ''
   }));
-  } finally {
-    clearTimeout(timeoutId);
-  }
 }
 
 export async function checkExistingUser(email: string): Promise<boolean> {

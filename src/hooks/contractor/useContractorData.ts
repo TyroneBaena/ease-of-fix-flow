@@ -59,13 +59,6 @@ export const useContractorData = (
     lastFetchedContractorIdRef.current = contractorId;
     
     const fetchContractorData = async () => {
-      // CRITICAL FIX: 60-second timeout - RLS queries with get_current_user_organization_safe() are slow
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.warn('Contractor data fetch timeout after 60s');
-      }, 60000);
-
       try {
         // Prevent concurrent requests
         if (isFetchingRef.current) {
@@ -92,10 +85,7 @@ export const useContractorData = (
             maintenance_requests!inner(*)
           `)
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'pending', 'submitted'])
-          .abortSignal(controller.signal);
-
-        clearTimeout(timeoutId);
+          .in('status', ['requested', 'pending', 'submitted']);
           
         console.log('🔍 useContractorData - Quotes query result:', quotes?.length || 0, 'quotes');
           
@@ -111,8 +101,7 @@ export const useContractorData = (
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
-          .in('status', ['requested', 'in-progress'])
-          .abortSignal(controller.signal);
+          .in('status', ['requested', 'in-progress']);
           
         console.log('🔍 useContractorData - Active jobs query result:');
         console.log('  - Data:', activeJobsData);
@@ -130,8 +119,7 @@ export const useContractorData = (
           .from('maintenance_requests')
           .select('*')
           .eq('contractor_id', contractorId)
-          .eq('status', 'completed')
-          .abortSignal(controller.signal);
+          .eq('status', 'completed');
           
         if (completedJobsError) {
           console.error('useContractorData - Error fetching completed jobs:', completedJobsError);

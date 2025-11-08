@@ -70,10 +70,6 @@ const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setLoading(true);
       
-      // Timeout protection
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
       try {
         const { data, error } = await supabase
           .from('organizations')
@@ -81,13 +77,10 @@ const FallbackOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq('id', currentUser.organization_id)
           .single();
 
-        clearTimeout(timeoutId);
-
         if (error) throw error;
         setCurrentOrganization(data);
         setError(null);
       } catch (fetchErr) {
-        clearTimeout(timeoutId);
         throw fetchErr;
       }
     } catch (err) {

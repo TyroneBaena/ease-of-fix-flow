@@ -35,13 +35,6 @@ export function useRequestQuotes(
     if (!requestId) return;
     
     const fetchQuotes = async () => {
-      // CRITICAL FIX: Add timeout protection with longer window for session restoration
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.warn('Quotes fetch timeout after 30s');
-      }, 30000); // 30 second timeout to allow for session restoration
-
       try {
         // Wrap with retry logic
         const result = await retryableQuery(
@@ -60,8 +53,6 @@ export function useRequestQuotes(
             }
           }
         );
-
-        clearTimeout(timeoutId);
         
         const { data, error } = result;
           
@@ -86,15 +77,8 @@ export function useRequestQuotes(
           toast.error("Failed to load quotes");
         }
       } catch (err) {
-        clearTimeout(timeoutId);
-        
-        if (controller.signal.aborted) {
-          console.warn('Quotes fetch aborted due to timeout');
-          toast.error("Quotes loading timed out");
-        } else {
-          console.error("useRequestQuotes - Exception fetching quotes:", err);
-          toast.error("Error loading quotes data");
-        }
+        console.error("useRequestQuotes - Exception fetching quotes:", err);
+        toast.error("Error loading quotes data");
       }
     };
     
