@@ -255,39 +255,39 @@ class VisibilityCoordinator {
   }
 
   /**
-   * v76.0: Background refresh - silent, no loading states
+   * v77.3: SIMPLIFIED - Don't trigger manual queries, let React Query handle it
    */
   private async guaranteedSoftRecovery() {
-    console.log("🔄 v76.0 - Starting BACKGROUND refresh (no loading states)...");
+    console.log("🔄 v77.3 - BACKGROUND REFRESH: React Query will handle refetching");
     
-    // v76.0: Set recovery flag to pause health monitor
+    // v76.0: Set recovery flag to pause health monitor briefly
     this.isRecovering = true;
     
     try {
       if (this.queryClient) {
-        console.log("🔄 v76.0 - Canceling stale queries...");
+        console.log("🔄 v77.3 - Canceling stale queries...");
         await this.queryClient.cancelQueries();
       }
       
       await new Promise(resolve => setTimeout(resolve, 300));
       
       if (this.queryClient) {
-        console.log("🔄 v76.0 - Invalidating queries...");
+        console.log("🔄 v77.3 - Invalidating queries for background refetch...");
+        // React Query will automatically refetch based on refetchOnWindowFocus
         await this.queryClient.invalidateQueries();
       }
       
-      console.log("🔄 v76.0 - Triggering silent background refresh...");
-      await this.coordinateRefresh();
-      
-      console.log("✅ v76.0 - Background refresh complete");
+      // v77.3: REMOVED coordinateRefresh() - was causing timeout errors
+      // React Query handles refetching automatically
+      console.log("✅ v77.3 - Background refresh complete (React Query handles the rest)");
     } catch (error) {
-      console.error("❌ v76.0 - Background refresh failed:", error);
+      console.error("❌ v77.3 - Background refresh failed:", error);
       this.instantLoadingReset();
     } finally {
       // v76.0: Clear recovery flag after 2 seconds to re-enable health monitor
       setTimeout(() => {
         this.isRecovering = false;
-        console.log("🔄 v76.0 - Recovery flag cleared, health monitor re-enabled");
+        console.log("🔄 v77.3 - Recovery flag cleared, health monitor re-enabled");
       }, 2000);
     }
   }

@@ -267,24 +267,13 @@ export const useMaintenanceRequestProvider = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, isSessionReady]);
 
-  // CRITICAL v55.0: Register handler ONCE on mount with proper cleanup
-  useEffect(() => {
-    console.log('🔄 v55.0 - MaintenanceRequestProvider - Registering handler (once on mount)');
-
-    const refreshMaintenance = async () => {
-      console.log('🔄 v55.0 - MaintenanceRequestProvider - Coordinator-triggered refresh');
-      await loadRequests();
-    };
-
-    const unregister = visibilityCoordinator.onRefresh(refreshMaintenance);
-    console.log('🔄 v54.0 - MaintenanceRequestProvider - Handler registered');
-
-    return () => {
-      console.log('🔄 v54.0 - MaintenanceRequestProvider - Cleanup: Unregistering handler');
-      unregister();
-      console.log('🔄 v54.0 - MaintenanceRequestProvider - Cleanup complete');
-    };
-  }, [loadRequests]);
+  // CRITICAL v55.0: REMOVED - Let React Query handle refetching automatically
+  // The onRefresh handlers were causing timeout errors and loading state issues
+  // React Query's refetchOnWindowFocus handles this correctly
+  // useEffect(() => {
+  //   console.log('🔄 v55.0 - MaintenanceRequestProvider - Handler registration DISABLED');
+  //   return () => {};
+  // }, [loadRequests]);
 
 
   const getRequestsForProperty = useCallback((propertyId: string) => {

@@ -189,24 +189,12 @@ export const usePropertyProvider = (): PropertyContextType => {
     };
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
-  // CRITICAL v55.0: Register handler ONCE on mount with proper cleanup
-  useEffect(() => {
-    console.log('🔄 v55.0 - PropertyProvider - Registering handler (once on mount)');
-
-    const refreshProperties = async () => {
-      console.log('🔄 v55.0 - PropertyProvider - Coordinator-triggered refresh');
-      await fetchAndSetProperties();
-    };
-
-    const unregister = visibilityCoordinator.onRefresh(refreshProperties);
-    console.log('🔄 v55.0 - PropertyProvider - Handler registered');
-
-    return () => {
-      console.log('🔄 v55.0 - PropertyProvider - Cleanup: Unregistering handler');
-      unregister();
-      console.log('🔄 v55.0 - PropertyProvider - Cleanup complete');
-    };
-  }, [fetchAndSetProperties]);
+  // CRITICAL v77.3: REMOVED - Causing timeout errors on tab return
+  // React Query handles background refetching automatically via refetchOnWindowFocus
+  // useEffect(() => {
+  //   console.log('🔄 v55.0 - PropertyProvider - Handler registration DISABLED');
+  //   return () => {};
+  // }, [fetchAndSetProperties]);
 
 
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {

@@ -94,24 +94,11 @@ export const useContractorsState = () => {
     loadContractors();
   }, [isSessionReady, loadContractors]);
 
-  // CRITICAL v55.0: Register handler ONCE on mount with proper cleanup
-  useEffect(() => {
-    console.log('🔄 v55.0 - ContractorProvider - Registering handler (once on mount)');
-
-    const refreshContractors = async () => {
-      console.log('🔄 v55.0 - ContractorProvider - Coordinator-triggered refresh');
-      await loadContractors();
-    };
-
-    const unregister = visibilityCoordinator.onRefresh(refreshContractors);
-    console.log('🔄 v55.0 - ContractorProvider - Handler registered');
-
-    return () => {
-      console.log('🔄 v55.0 - ContractorProvider - Cleanup: Unregistering handler');
-      unregister();
-      console.log('🔄 v55.0 - ContractorProvider - Cleanup complete');
-    };
-  }, [loadContractors]);
+  // CRITICAL v77.3: REMOVED - Let React Query handle refetching automatically
+  // useEffect(() => {
+  //   console.log('🔄 v55.0 - ContractorProvider - Handler registration DISABLED');
+  //   return () => {};
+  // }, [loadContractors]);
 
   return {
     contractors,
