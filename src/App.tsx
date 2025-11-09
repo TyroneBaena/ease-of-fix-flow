@@ -873,12 +873,218 @@
 
 // export default App;
 
+// // src/App.tsx
+// import React, { useEffect, useState } from "react";
+// import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// import { Toaster } from "@/components/ui/sonner";
+// import { TabVisibilityProvider } from "@/contexts/TabVisibilityContext";
+// import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContext";
+// import { UserProvider } from "@/contexts/UserContext";
+// import { SubscriptionProvider } from "@/contexts/subscription/SubscriptionContext";
+// import { MaintenanceRequestProvider } from "@/contexts/maintenance";
+// import { PropertyProvider } from "@/contexts/property/PropertyContext";
+// import { ContractorProvider } from "@/contexts/contractor";
+// import ProtectedRoute from "@/components/ProtectedRoute";
+// import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
+// import ErrorBoundary from "@/components/ui/error-boundary";
+// import { Loader2 } from "lucide-react";
+
+// // Supabase - use singleton instance only
+// import { getSupabaseClient, supabase } from "@/integrations/supabase/client";
+// import { cleanupOldAuthStorage } from "@/utils/cleanupOldAuthStorage";
+
+// // Pages
+// import Login from "@/pages/Login";
+// import Signup from "@/pages/Signup";
+// import SignupStatus from "@/pages/SignupStatus";
+// import ForgotPassword from "@/pages/ForgotPassword";
+// import SetupPassword from "@/pages/SetupPassword";
+// import Dashboard from "@/pages/Dashboard";
+// import Settings from "@/pages/Settings";
+// import Properties from "@/pages/Properties";
+// import PropertyDetail from "@/pages/PropertyDetail";
+// import AllRequests from "@/pages/AllRequests";
+// import NewRequest from "@/pages/NewRequest";
+// import RequestDetail from "@/pages/RequestDetail";
+// import Reports from "@/pages/Reports";
+// import NotFound from "@/pages/NotFound";
+
+// // Import session rehydration utility
+// import { rehydrateSessionFromServer } from "@/utils/sessionRehydration";
+
+// // React Query setup - v78.0: Simplified with proper auto-refetch configuration
+// const queryClient = new QueryClient({
+//   defaultOptions: {
+//     queries: {
+//       refetchOnWindowFocus: true, // ✅ Auto-refetch on tab return
+//       refetchOnMount: false, // ✅ Prevent double-fetch on component mount
+//       refetchOnReconnect: true, // ✅ Refetch when internet reconnects
+//       staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
+//       gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+//       retry: 5, // ✅ More retries for resilience
+//       retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+//     },
+//     mutations: { retry: false },
+//   },
+// });
+
+// const AppRoutes = () => {
+//   const { currentUser, loading, isInitialized } = useSimpleAuth();
+
+//   if (loading && !isInitialized) {
+//     return (
+//       <div className="flex h-screen w-full items-center justify-center bg-background">
+//         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <OrganizationGuard>
+//       <Routes>
+//         <Route
+//           path="/"
+//           element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
+//         />
+//         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+//         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+//         <Route path="/signup-status" element={<SignupStatus />} />
+//         <Route
+//           path="/forgot-password"
+//           element={currentUser ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+//         />
+//         <Route
+//           path="/setup-password"
+//           element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
+//         />
+
+//         <Route
+//           path="/dashboard"
+//           element={
+//             <ProtectedRoute>
+//               <Dashboard />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/properties"
+//           element={
+//             <ProtectedRoute>
+//               <Properties />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/properties/:id"
+//           element={
+//             <ProtectedRoute>
+//               <PropertyDetail />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/requests"
+//           element={
+//             <ProtectedRoute>
+//               <AllRequests />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/new-request"
+//           element={
+//             <ProtectedRoute>
+//               <NewRequest />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/requests/:id"
+//           element={
+//             <ProtectedRoute>
+//               <RequestDetail />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/reports"
+//           element={
+//             <ProtectedRoute>
+//               <Reports />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route
+//           path="/settings"
+//           element={
+//             <ProtectedRoute>
+//               <Settings />
+//             </ProtectedRoute>
+//           }
+//         />
+//         <Route path="*" element={<NotFound />} />
+//       </Routes>
+//     </OrganizationGuard>
+//   );
+// };
+
+// const App: React.FC = () => {
+//   const [rehydrated, setRehydrated] = useState(false);
+
+//   // v79.0 - Pure React Query approach, no health monitor needed
+//   // ONLY initial load rehydration
+//   useEffect(() => {
+//     console.log("🔧 v79.0 - Initial load rehydration");
+//     cleanupOldAuthStorage();
+//     rehydrateSessionFromServer()
+//       .then(() => console.log("✅ v79.0 - Session restored"))
+//       .catch((err) => console.error("❌ v79.0 - Session restore error:", err))
+//       .finally(() => setRehydrated(true));
+//   }, []);
+
+//   if (!rehydrated) {
+//     return (
+//       <div className="flex h-screen items-center justify-center bg-background">
+//         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+//         <p className="ml-3 text-lg text-gray-600">Restoring session...</p>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <ErrorBoundary>
+//       <QueryClientProvider client={queryClient}>
+//         <BrowserRouter>
+//           <UnifiedAuthProvider>
+//             <TabVisibilityProvider>
+//               <UserProvider>
+//                 <SubscriptionProvider>
+//                   <MaintenanceRequestProvider>
+//                     <PropertyProvider>
+//                       <ContractorProvider>
+//                         <AppRoutes />
+//                         <Toaster />
+//                       </ContractorProvider>
+//                     </PropertyProvider>
+//                   </MaintenanceRequestProvider>
+//                 </SubscriptionProvider>
+//               </UserProvider>
+//             </TabVisibilityProvider>
+//           </UnifiedAuthProvider>
+//         </BrowserRouter>
+//       </QueryClientProvider>
+//     </ErrorBoundary>
+//   );
+// };
+
+// export default App;
+
 // src/App.tsx
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { TabVisibilityProvider } from "@/contexts/TabVisibilityContext";
 import { UnifiedAuthProvider, useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { SubscriptionProvider } from "@/contexts/subscription/SubscriptionContext";
@@ -893,6 +1099,9 @@ import { Loader2 } from "lucide-react";
 // Supabase - use singleton instance only
 import { getSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { cleanupOldAuthStorage } from "@/utils/cleanupOldAuthStorage";
+import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
+import { useLocation } from "react-router-dom";
+import { toast } from "@/lib/toast";
 
 // Pages
 import Login from "@/pages/Login";
@@ -910,20 +1119,17 @@ import RequestDetail from "@/pages/RequestDetail";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 
-// Import session rehydration utility
-import { rehydrateSessionFromServer } from "@/utils/sessionRehydration";
-
-// React Query setup - v78.0: Simplified with proper auto-refetch configuration
+// React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: true, // ✅ Auto-refetch on tab return
+      refetchOnWindowFocus: false, // ✅ CRITICAL FIX: Prevents aggressive refetch storms
       refetchOnMount: false, // ✅ Prevent double-fetch on component mount
-      refetchOnReconnect: true, // ✅ Refetch when internet reconnects
+      refetchOnReconnect: false, // ✅ Prevent refetch storms on reconnect
       staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
       gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
-      retry: 5, // ✅ More retries for resilience
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      retry: 2, // ✅ Reduced from 5 to prevent timeout accumulation
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Faster timeout (10s max)
     },
     mutations: { retry: false },
   },
@@ -1030,47 +1236,30 @@ const AppRoutes = () => {
 };
 
 const App: React.FC = () => {
-  const [rehydrated, setRehydrated] = useState(false);
-
-  // v79.0 - Pure React Query approach, no health monitor needed
-  // ONLY initial load rehydration
+  // v96.2 - Removed tab visibility handler - relying on Supabase's native session management
+  // Supabase's onAuthStateChange automatically handles session expiration and token refresh
   useEffect(() => {
-    console.log("🔧 v79.0 - Initial load rehydration");
+    console.log("🔧 v96.2 - App initialization - using native Supabase session management (no manual refresh)");
     cleanupOldAuthStorage();
-    rehydrateSessionFromServer()
-      .then(() => console.log("✅ v79.0 - Session restored"))
-      .catch((err) => console.error("❌ v79.0 - Session restore error:", err))
-      .finally(() => setRehydrated(true));
   }, []);
-
-  if (!rehydrated) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="ml-3 text-lg text-gray-600">Restoring session...</p>
-      </div>
-    );
-  }
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <UnifiedAuthProvider>
-            <TabVisibilityProvider>
-              <UserProvider>
-                <SubscriptionProvider>
-                  <MaintenanceRequestProvider>
-                    <PropertyProvider>
-                      <ContractorProvider>
-                        <AppRoutes />
-                        <Toaster />
-                      </ContractorProvider>
-                    </PropertyProvider>
-                  </MaintenanceRequestProvider>
-                </SubscriptionProvider>
-              </UserProvider>
-            </TabVisibilityProvider>
+            <UserProvider>
+              <SubscriptionProvider>
+                <MaintenanceRequestProvider>
+                  <PropertyProvider>
+                    <ContractorProvider>
+                      <AppRoutes />
+                      <Toaster />
+                    </ContractorProvider>
+                  </PropertyProvider>
+                </MaintenanceRequestProvider>
+              </SubscriptionProvider>
+            </UserProvider>
           </UnifiedAuthProvider>
         </BrowserRouter>
       </QueryClientProvider>
