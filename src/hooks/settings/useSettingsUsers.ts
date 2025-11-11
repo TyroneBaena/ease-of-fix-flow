@@ -29,7 +29,7 @@ export const useSettingsUsers = ({ enabled }: UseSettingsUsersOptions) => {
     enabled,
     // CRITICAL: These settings solve both issues
     refetchOnWindowFocus: true, // ✅ Solves: No fetch on tab return
-    staleTime: 30000, // 30s - Consider data stale after this time
+    staleTime: 0, // Always consider data stale - refetch on every window focus
     gcTime: 5 * 60 * 1000, // 5 minutes cache time
     retry: 2,
   });
