@@ -42,23 +42,7 @@ export const useUserProvider = () => {
   const lastFetchedOrgIdRef = useRef<string | null>(null);
   const fetchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // v79.1: Register flag reset on tab visibility to prevent stuck state
-  useEffect(() => {
-    const { visibilityCoordinator } = require('@/utils/visibilityCoordinator');
-    
-    const resetFetchFlag = () => {
-      if (fetchInProgress.current) {
-        console.log('👥 v79.1 - Resetting stuck fetchInProgress flag on tab return');
-        fetchInProgress.current = false;
-      }
-    };
-    
-    visibilityCoordinator.registerResetCallback(resetFetchFlag);
-    
-    return () => {
-      visibilityCoordinator.unregisterResetCallback(resetFetchFlag);
-    };
-  }, []);
+  // v78.0: Removed tab refresh subscription - no longer needed
 
   // Debug logging for auth state
   useEffect(() => {

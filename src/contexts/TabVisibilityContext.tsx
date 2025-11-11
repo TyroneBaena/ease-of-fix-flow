@@ -3,15 +3,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { visibilityCoordinator } from '@/utils/visibilityCoordinator';
 
 /**
- * v79.1 - Minimal flag reset on tab return
+ * v77.0 - Component loading states now subscribe to instant reset
  * 
- * CURRENT FIX (v79.1):
- * - Visibility coordinator supports reset callbacks
- * - Components can register callbacks to reset stuck flags
- * - Prevents fetchInProgress flags from blocking subsequent fetches
+ * CRITICAL FIX (v77.0):
+ * - Data providers now subscribe to `onTabRefreshChange` callback
+ * - Component loading states are instantly reset on tab return
+ * - Eliminates "Loading..." UI on tab revisit
  * 
  * PREVIOUS FIXES:
- * v77.0 - Component loading states subscribe to instant reset
  * v76.0 - Handler timeouts properly cleared
  * v75.0 - INSTANT loading reset on tab return
  */
@@ -38,13 +37,13 @@ export const TabVisibilityProvider: React.FC<TabVisibilityProviderProps> = ({ ch
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔄 v79.1 - Starting visibility coordinator (with flag reset)');
+    console.log('🔄 v79.0 - Starting visibility coordinator (passive mode)');
     
-    // v79.1: Start listening for visibility changes
+    // v79.0: Just start listening - no setup needed
     visibilityCoordinator.startListening();
 
     return () => {
-      console.log('🔄 v79.1 - Stopping visibility coordinator');
+      console.log('🔄 v79.0 - Stopping visibility coordinator');
       visibilityCoordinator.stopListening();
     };
   }, [queryClient]);
