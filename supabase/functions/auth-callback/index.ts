@@ -59,15 +59,25 @@ serve(async (req: Request) => {
     console.log('✅ Session created by verifyOtp');
 
     // Determine redirect URL
+    // IMPORTANT: For email confirmations to work across browsers, 
+    // always redirect to production URL, never to preview URLs that require Lovable auth
     const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
-    let finalRedirectUrl: string;
     
-    if (redirectTo) {
-      finalRedirectUrl = redirectTo;
-    } else if (type === 'recovery') {
-      finalRedirectUrl = `${applicationUrl}/setup-password`;
+    // Override preview URLs to production for cross-browser compatibility
+    let finalRedirectUrl: string;
+    const isPreviewUrl = redirectTo?.includes('lovable.app') || redirectTo?.includes('lovableproject.com');
+    
+    if (isPreviewUrl || !redirectTo) {
+      // Use production URL for email confirmations to avoid Lovable auth requirement
+      const productionUrl = 'https://housinghub.app';
+      if (type === 'recovery') {
+        finalRedirectUrl = `${productionUrl}/setup-password`;
+      } else {
+        finalRedirectUrl = `${productionUrl}/email-confirm`;
+      }
+      console.log('Using production URL for cross-browser compatibility');
     } else {
-      finalRedirectUrl = `${applicationUrl}/email-confirm`;
+      finalRedirectUrl = redirectTo;
     }
 
     // Add session tokens as hash parameters (client-side only, not sent to server)
