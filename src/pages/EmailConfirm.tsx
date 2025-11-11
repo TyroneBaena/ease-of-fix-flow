@@ -17,7 +17,7 @@ const EmailConfirm = () => {
   useEffect(() => {
     const handleEmailConfirmation = async () => {
       try {
-        console.log('✨ v80.0 - EmailConfirm component loaded (Cookie-based flow)');
+        console.log('EmailConfirm component loaded');
         console.log('Current URL:', window.location.href);
         console.log('Hash:', window.location.hash);
         
@@ -32,7 +32,7 @@ const EmailConfirm = () => {
         if (error || errorCode) {
           console.log('Error detected in URL:', { error, errorCode, errorDescription });
           
-          // Special handling for token-related errors
+          // Special handling for token-related errors that might indicate an already-confirmed account
           if (error === 'access_denied' || 
               errorDescription?.includes('expired') || 
               errorDescription?.includes('not found') || 
@@ -53,6 +53,7 @@ const EmailConfirm = () => {
               console.log('Session check failed:', e);
             }
             
+            // Show a more helpful error for expired/invalid tokens
             throw new Error('This confirmation link is no longer valid or has already been used. If you already have an account, please sign in instead.');
           }
           
@@ -78,52 +79,32 @@ const EmailConfirm = () => {
         });
 
         if (accessToken && refreshToken) {
-          // v80.0: Call edge function to validate tokens and set HttpOnly cookies
+          // This is a proper Supabase auth callback
           if (type !== 'signup' && type !== 'recovery') {
-            throw new Error('Invalid confirmation type. Expected "signup" or "recovery" but got: ' + type);
+            throw new Error('Invalid confirmation type. Expected "signup" but got: ' + type);
           }
 
-          console.log('🔐 v80.0 - Calling auth-callback edge function to set cookies...');
-          
-          // Call the edge function to validate tokens and set cookies
-          const response = await fetch('https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/auth-callback', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include', // CRITICAL: Include cookies in request
-            body: JSON.stringify({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-              type: type,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (!response.ok || !result.success) {
-            console.error('Auth callback failed:', result);
-            throw new Error(result.error || 'Failed to validate confirmation link');
-          }
-
-          console.log('✅ v80.0 - HttpOnly cookies set by edge function');
-          console.log('User confirmed:', result.user.email);
-
-          // Now set the session in the client using the validated tokens
-          const { error: sessionError } = await supabase.auth.setSession({
+          console.log('Setting session with tokens...');
+          // Set the session using the tokens
+          const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
-            refresh_token: refreshToken,
+            refresh_token: refreshToken
           });
 
-          if (sessionError) {
-            console.error('Error setting client session:', sessionError);
-            throw sessionError;
+          if (error) {
+            console.error('Error setting session:', error);
+            throw error;
           }
 
-          console.log('✅ v80.0 - Client session set successfully');
-          setIsVerified(true);
-          toast.success('Email confirmed successfully!');
-          
+          if (data.user) {
+            console.log('Email confirmed successfully for user:', data.user.id);
+            console.log('User email confirmed at:', data.user.email_confirmed_at);
+            setIsVerified(true);
+            toast.success('Email confirmed successfully!');
+            // User can now click the Continue button to proceed
+          } else {
+            throw new Error('No user data returned after setting session');
+          }
         } else {
           // No tokens in URL - check if user is already signed in
           console.log('No tokens found in URL, checking for existing session...');
@@ -133,6 +114,7 @@ const EmailConfirm = () => {
               console.log('User is already authenticated and confirmed');
               setIsVerified(true);
               toast.success('You are already signed in!');
+              // User can now click the Continue button to proceed
             } else {
               throw new Error('Your email is not yet confirmed. Please check your email and click the confirmation link.');
             }
