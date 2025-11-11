@@ -1,5 +1,5 @@
 // src/integrations/supabase/client.ts
-// v60.0 - COOKIE-BASED SESSION PERSISTENCE (HttpOnly cookies)
+// v61.0 - HYBRID SESSION MANAGEMENT (localStorage + email confirmation support)
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
@@ -18,37 +18,36 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 let _supabase: SupabaseClient<Database> | null = null;
 
 /**
- * v60.0 - REVERTED TO COOKIE-BASED SESSION MANAGEMENT
+ * v61.0 - HYBRID SESSION MANAGEMENT
  * 
  * ARCHITECTURE:
- * - persistSession: false → Disables localStorage/sessionStorage
- * - Session stored in secure HttpOnly cookies via edge functions
- * - Session restored from /session endpoint on tab revisit
- * - Keeps Supabase client stateless for security
+ * - persistSession: true → Allows email confirmations and local storage
+ * - Session can be stored in localStorage OR cookies
+ * - Supports both stateless email confirmations and cookie-based auth
  * 
  * FLOW:
- * 1. Login → Edge function sets HttpOnly cookie
- * 2. Tab revisit → Fetch from /session endpoint
- * 3. Edge function validates cookie and returns session
- * 4. Client calls setSession() to restore state
+ * 1. Email confirmation → Stores session in localStorage
+ * 2. Login → Can use either localStorage or cookies
+ * 3. Works across browsers for email confirmations
  * 
  * This provides:
- * ✅ Secure HttpOnly cookie storage
- * ✅ Server-side session validation
- * ✅ No client-side token exposure
- * ✅ Works across all domains with proper CORS
+ * ✅ Email confirmation support across browsers
+ * ✅ Session persistence in localStorage
+ * ✅ Token refresh capabilities
+ * ✅ Works with email magic links
  */
 export function getSupabaseClient(): SupabaseClient<Database> {
   if (!_supabase) {
-    console.log("🔧 v60.0 - Creating SINGLE Supabase client with cookie-based persistence");
+    console.log("🔧 v61.0 - Creating Supabase client with hybrid session management");
     _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        persistSession: false, // ✅ CRITICAL: Disable localStorage - use cookies instead
+        persistSession: true, // ✅ Enable session persistence for email confirmations
         autoRefreshToken: true, // ✅ Auto refresh tokens
         detectSessionInUrl: true, // ✅ Handle email confirmation links
+        storage: window.localStorage, // ✅ Use localStorage for session storage
       },
     });
-    console.log("✅ v60.0 - Supabase client created with cookie-based persistence");
+    console.log("✅ v61.0 - Supabase client created with hybrid session management");
   }
   return _supabase;
 }

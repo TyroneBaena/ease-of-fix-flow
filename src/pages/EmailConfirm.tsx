@@ -59,21 +59,34 @@ const EmailConfirm = () => {
         if (accessToken && refreshToken) {
           console.log('Setting session with tokens from auth-callback...');
           
+          // Add timeout to prevent infinite loading
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Session setup timed out after 10 seconds')), 10000);
+          });
+          
           // Set the session using the tokens from our auth-callback edge function
-          // These tokens were created server-side and work in any browser
-          const { data, error: sessionError } = await supabase.auth.setSession({
+          const sessionPromise = supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
 
+          const { data, error: sessionError } = await Promise.race([
+            sessionPromise,
+            timeoutPromise
+          ]);
+
           if (sessionError) {
             console.error('Error setting session:', sessionError);
-            throw sessionError;
+            throw new Error(`Failed to set session: ${sessionError.message || sessionError}`);
           }
 
-          if (data.user) {
+          if (data?.user) {
             console.log('✅ Email confirmed successfully for user:', data.user.id);
             console.log('User email confirmed at:', data.user.email_confirmed_at);
+            
+            // Clear the hash from URL for security
+            window.history.replaceState(null, '', window.location.pathname);
+            
             setIsVerified(true);
             toast.success('Email confirmed successfully!');
           } else {
