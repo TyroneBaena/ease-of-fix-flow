@@ -7,6 +7,7 @@ import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';
 import { User } from '@/types/user';
 import { useSettingsUsers } from '@/hooks/settings/useSettingsUsers';
+import { useSettingsProfile } from '@/hooks/settings/useSettingsProfile';
 
 /**
  * v80.0 - Updated to use React Query hook for User Management
@@ -20,6 +21,12 @@ export const useUserManagement = () => {
   const { currentUser, isAdmin, session } = useSimpleAuth();
   const { properties } = usePropertyContext();
   const [ready, setReady] = useState(false);
+  
+  // v80.1: Fetch profile on tab revisit to solve profiles API issue
+  useSettingsProfile({ 
+    enabled: isAdmin, 
+    userId: currentUser?.id 
+  });
   
   // v80.0: Use React Query hook for automatic refetch on window focus and deduplication
   const canFetchUsers = isAdmin;

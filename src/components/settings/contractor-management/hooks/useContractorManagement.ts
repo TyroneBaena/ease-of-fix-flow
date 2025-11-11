@@ -5,6 +5,7 @@ import { useContractorDialog } from './useContractorDialog';
 import { useContractorActions } from './useContractorActions';
 import { useContractorPagination } from './useContractorPagination';
 import { useSettingsContractors } from '@/hooks/settings/useSettingsContractors';
+import { useSettingsProfile } from '@/hooks/settings/useSettingsProfile';
 
 /**
  * v80.0 - Updated to use React Query hook for Contractor Management
@@ -22,6 +23,12 @@ export const useContractorManagement = () => {
     isAdmin,
     currentUserRole: currentUser?.role,
     hasCurrentUser: !!currentUser,
+  });
+
+  // v80.1: Fetch profile on tab revisit to solve profiles API issue
+  useSettingsProfile({ 
+    enabled: isAdmin, 
+    userId: currentUser?.id 
   });
 
   // v80.0: Use React Query hook for automatic refetch on window focus and deduplication
