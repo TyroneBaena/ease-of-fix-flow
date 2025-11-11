@@ -1,52 +1,37 @@
 
-import { useCallback, useMemo, useState, useEffect } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
+import { useCallback, useState, useEffect } from 'react';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { usePropertyContext } from '@/contexts/property';
 import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
 import { useUserDialog } from './hooks/useUserDialog';
 import { useUserActions } from './hooks/useUserActions';
 import { User } from '@/types/user';
-import { toast } from 'sonner';
+import { useSettingsUsers } from '@/hooks/settings/useSettingsUsers';
+
+/**
+ * v80.0 - Updated to use React Query hook for User Management
+ * 
+ * FIXES TWO ISSUES:
+ * 1. Multiple API calls on tab click - React Query deduplication
+ * 2. No fetch on tab return - React Query refetchOnWindowFocus
+ */
 
 export const useUserManagement = () => {
-  const { users, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
   const { currentUser, isAdmin, session } = useSimpleAuth();
   const { properties } = usePropertyContext();
-  const [fetchedOnce, setFetchedOnce] = useState(false);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [fetchError, setFetchError] = useState<Error | null>(null);
   const [ready, setReady] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
   
-  // Function to safely fetch users
+  // v80.0: Use React Query hook for automatic refetch on window focus and deduplication
+  const canFetchUsers = isAdmin;
+  const { users, loading: isLoadingUsers, error: fetchError, refetch } = useSettingsUsers({ 
+    enabled: canFetchUsers 
+  });
+  
+  // Wrapper function for compatibility with existing code
   const fetchUsers = useCallback(async () => {
-    console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin);
-    
-    if (!isAdmin) {
-      console.log("Not fetching users because user is not admin");
-      setIsLoadingUsers(false);
-      setFetchedOnce(true);
-      return;
-    }
-
-    try {
-      console.log("Fetching users from useUserManagement");
-      setIsLoadingUsers(true);
-      setFetchError(null);
-      await fetchUsersFromContext();
-      setFetchedOnce(true);
-      setLastRefreshTime(Date.now());
-      console.log("✅ fetchUsers - Success");
-    } catch (error) {
-      console.error("❌ fetchUsers - Error:", error);
-      setFetchError(error as Error);
-      toast.error("Failed to load users. Please try again.");
-    } finally {
-      console.log("🏁 fetchUsers - Finally block, resetting loading");
-      setIsLoadingUsers(false);
-    }
-  }, [isAdmin, fetchUsersFromContext]); // Include dependencies
+    console.log("🔄 v80.0 - fetchUsers - Triggering refetch via React Query");
+    await refetch();
+  }, [refetch]);
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -88,44 +73,25 @@ export const useUserManagement = () => {
     fetchUsers // Pass the fetchUsers function to the actions hook
   );
   
-  // Clean form error management - no need for window object
-  
-  // Update fetchError if there's an error in the user context
+  // v80.0: Set ready once we have basic data
   useEffect(() => {
-    if (userContextError) {
-      setFetchError(userContextError);
-    }
-  }, [userContextError]);
-  
-  // Clean form error management - no need for window object
-
-  // Fetch users when component mounts
-  useEffect(() => {
-    if (isAdmin && !fetchedOnce && !isLoadingUsers) {
-      console.log("Initial fetch for admin user");
-      fetchUsers();
-    }
-  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
-
-  // Set ready once we have basic data - don't block on session checks
-  useEffect(() => {
-    if (isAdmin && (users.length > 0 || fetchedOnce || !isLoadingUsers)) {
-      console.log("UserManagement: Data is ready");
+    if (isAdmin && (users.length > 0 || !isLoadingUsers)) {
+      console.log("👥 v80.0 - UserManagement: Data is ready");
       setReady(true);
     }
-  }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
+  }, [users.length, isLoadingUsers, isAdmin]);
 
-  // Refresh user list when dialog is closed
+  // v80.0: Refresh user list when dialog is closed
   useEffect(() => {
-    if (!isDialogOpen && isAdmin && fetchedOnce && !isLoadingUsers) {
+    if (!isDialogOpen && isAdmin) {
       const refreshTimeout = setTimeout(() => {
-        console.log("Dialog closed, refreshing user list");
+        console.log("👥 v80.0 - Dialog closed, refreshing user list");
         fetchUsers();
       }, 500);
       
       return () => clearTimeout(refreshTimeout);
     }
-  }, [isDialogOpen, isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
+  }, [isDialogOpen, isAdmin, fetchUsers]);
 
   // CRITICAL FIX: Memoize callbacks to prevent unnecessary re-renders
   const handleEditUser = useCallback((user: User) => {
@@ -151,9 +117,8 @@ export const useUserManagement = () => {
     properties,
     currentUser,
     isAdmin,
-    // CRITICAL FIX: Only show loading on INITIAL load, not background refreshes
-    // This prevents action buttons from being disabled during tab revisit refreshes
-    isLoading: (isLoading || (!fetchedOnce && isLoadingUsers) || !ready) && isAdmin,
+    // v80.0: Show loading only when actually loading AND ready state not set
+    isLoading: (isLoading || (isLoadingUsers && !ready)) && isAdmin,
     fetchError,
     isDialogOpen,
     setIsDialogOpen,
