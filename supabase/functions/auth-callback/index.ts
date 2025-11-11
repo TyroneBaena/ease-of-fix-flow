@@ -40,13 +40,13 @@ serve(async (req: Request) => {
 
     console.log('Verifying OTP token...');
     
-    // Verify the token using verifyOtp - this works regardless of browser/session
+    // Verify the token using verifyOtp - this returns a session automatically!
     const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
       token_hash: token,
       type: type === 'recovery' ? 'recovery' : 'signup'
     });
 
-    if (verifyError || !verifyData.user) {
+    if (verifyError || !verifyData.user || !verifyData.session) {
       console.error('OTP verification failed:', verifyError?.message);
       return redirectWithError(
         verifyError?.message || 'Invalid or expired verification link',
@@ -56,21 +56,7 @@ serve(async (req: Request) => {
 
     console.log('✅ Token verified successfully for user:', verifyData.user.id);
     console.log('User email confirmed:', verifyData.user.email_confirmed_at);
-
-    // Create a new session for the verified user
-    console.log('Creating session tokens...');
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.createSession({
-      user_id: verifyData.user.id,
-      // Session will last 30 days
-      session_duration: 60 * 60 * 24 * 30
-    });
-
-    if (sessionError || !sessionData.session) {
-      console.error('Failed to create session:', sessionError?.message);
-      return redirectWithError('Failed to create session', redirectTo);
-    }
-
-    console.log('✅ Session created successfully');
+    console.log('✅ Session created by verifyOtp');
 
     // Determine redirect URL
     const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
@@ -87,9 +73,9 @@ serve(async (req: Request) => {
     // Add session tokens as hash parameters (client-side only, not sent to server)
     const redirectUrl = new URL(finalRedirectUrl);
     const hashParams = new URLSearchParams();
-    hashParams.set('access_token', sessionData.session.access_token);
-    hashParams.set('refresh_token', sessionData.session.refresh_token);
-    hashParams.set('expires_at', sessionData.session.expires_at?.toString() || '');
+    hashParams.set('access_token', verifyData.session.access_token);
+    hashParams.set('refresh_token', verifyData.session.refresh_token);
+    hashParams.set('expires_at', verifyData.session.expires_at?.toString() || '');
     hashParams.set('type', type);
     
     redirectUrl.hash = hashParams.toString();
