@@ -21,7 +21,7 @@ const EmailConfirm = () => {
         console.log('Current URL:', window.location.href);
         console.log('Hash:', window.location.hash);
         
-        // Check if this is a callback with tokens in hash
+        // Check if this is a Supabase auth callback with tokens in hash
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
         // Check for errors first
@@ -32,17 +32,39 @@ const EmailConfirm = () => {
         if (error || errorCode) {
           console.log('Error detected in URL:', { error, errorCode, errorDescription });
           
-          // Provide user-friendly error messages
-          if (error === 'verification_failed' || errorDescription?.includes('expired') || 
-              errorDescription?.includes('Invalid') || errorDescription?.includes('not found')) {
-            throw new Error(errorDescription || 'This confirmation link is no longer valid or has already been used.');
+          // Special handling for token-related errors that might indicate an already-confirmed account
+          if (error === 'access_denied' || 
+              errorDescription?.includes('expired') || 
+              errorDescription?.includes('not found') || 
+              errorDescription?.includes('invalid')) {
+            
+            console.log('Token error detected - checking if account already exists...');
+            
+            // Try to check if this user already exists by attempting to get session
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              if (sessionData.session?.user?.email_confirmed_at) {
+                console.log('User already confirmed, redirecting to verified state');
+                setIsVerified(true);
+                toast.success('Your email is already confirmed!');
+                return;
+              }
+            } catch (e) {
+              console.log('Session check failed:', e);
+            }
+            
+            // Show a more helpful error for expired/invalid tokens
+            throw new Error('This confirmation link is no longer valid or has already been used. If you already have an account, please sign in instead.');
           }
           
+          // Handle specific error cases
           if (errorCode === 'otp_expired') {
-            throw new Error('The confirmation link has expired. Please request a new confirmation email.');
+            throw new Error('The confirmation link has expired. Please request a new confirmation email or sign up again.');
+          } else if (error === 'access_denied') {
+            throw new Error('This confirmation link is invalid. If you already have an account, please sign in instead.');
+          } else {
+            throw new Error(errorDescription || `Confirmation failed: ${error || errorCode}`);
           }
-          
-          throw new Error(errorDescription || error || errorCode || 'Verification failed');
         }
         
         const accessToken = hashParams.get('access_token');
@@ -57,38 +79,29 @@ const EmailConfirm = () => {
         });
 
         if (accessToken && refreshToken) {
-          console.log('Setting session with tokens from auth-callback...');
-          
-          // Add timeout to prevent infinite loading
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Session setup timed out after 10 seconds')), 10000);
-          });
-          
-          // Set the session using the tokens from our auth-callback edge function
-          const sessionPromise = supabase.auth.setSession({
+          // This is a proper Supabase auth callback
+          if (type !== 'signup' && type !== 'recovery') {
+            throw new Error('Invalid confirmation type. Expected "signup" but got: ' + type);
+          }
+
+          console.log('Setting session with tokens...');
+          // Set the session using the tokens
+          const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
 
-          const { data, error: sessionError } = await Promise.race([
-            sessionPromise,
-            timeoutPromise
-          ]);
-
-          if (sessionError) {
-            console.error('Error setting session:', sessionError);
-            throw new Error(`Failed to set session: ${sessionError.message || sessionError}`);
+          if (error) {
+            console.error('Error setting session:', error);
+            throw error;
           }
 
-          if (data?.user) {
-            console.log('✅ Email confirmed successfully for user:', data.user.id);
+          if (data.user) {
+            console.log('Email confirmed successfully for user:', data.user.id);
             console.log('User email confirmed at:', data.user.email_confirmed_at);
-            
-            // Clear the hash from URL for security
-            window.history.replaceState(null, '', window.location.pathname);
-            
             setIsVerified(true);
             toast.success('Email confirmed successfully!');
+            // User can now click the Continue button to proceed
           } else {
             throw new Error('No user data returned after setting session');
           }
@@ -101,11 +114,12 @@ const EmailConfirm = () => {
               console.log('User is already authenticated and confirmed');
               setIsVerified(true);
               toast.success('You are already signed in!');
+              // User can now click the Continue button to proceed
             } else {
               throw new Error('Your email is not yet confirmed. Please check your email and click the confirmation link.');
             }
           } else {
-            throw new Error('No authentication tokens found. Please use the confirmation link from your email.');
+            throw new Error('No authentication tokens found. Please use the confirmation link from your email or sign up again.');
           }
         }
       } catch (err: any) {
@@ -152,14 +166,11 @@ const EmailConfirm = () => {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Your email has been successfully confirmed! You can now access your account from any device or browser.
+              Your email has been successfully confirmed! Click the button below to complete your signup.
             </p>
             <Button onClick={() => navigate('/signup', { replace: true })} className="w-full">
               Continue to Complete Setup
             </Button>
-            <p className="text-xs text-muted-foreground mt-4">
-              💡 Your account is now verified and can be accessed from any browser or device
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -185,11 +196,11 @@ const EmailConfirm = () => {
             </Alert>
           )}
           
-          {(error?.includes('already been used') || error?.includes('no longer valid') || error?.includes('already') || error?.includes('expired')) && (
+          {(error?.includes('already been used') || error?.includes('no longer valid') || error?.includes('already have an account')) && (
             <Alert className="border-blue-200 bg-blue-50">
               <AlertDescription className="text-blue-800">
-                <strong>Link Already Used?</strong><br />
-                If you've already confirmed your email, you can sign in directly. Confirmation links can only be used once for security.
+                <strong>Already have an account?</strong><br />
+                If you've already confirmed your email, you can sign in directly using your credentials.
               </AlertDescription>
             </Alert>
           )}

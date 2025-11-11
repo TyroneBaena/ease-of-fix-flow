@@ -30,7 +30,7 @@ serve(async (req: Request) => {
     
     // Get application URL from environment, fallback to production
     const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
-    const supabaseUrl = 'https://ltjlswzrdgtoddyqmydo.supabase.co';
+    const isProduction = applicationUrl.includes('housinghub.app');
     
     // Extract email and create confirmation URL with proper token
     let userEmail = "";
@@ -49,11 +49,7 @@ serve(async (req: Request) => {
         redirectTo = `${applicationUrl}${defaultPath}`;
       }
       
-      // NEW: Route through our custom auth-callback edge function
-      // This makes the flow stateless and works across any browser
-      confirmationUrl = `${supabaseUrl}/functions/v1/auth-callback?token=${token}&type=${emailType}&redirect_to=${encodeURIComponent(redirectTo)}`;
-      
-      console.log('Generated confirmation URL (token hidden):', confirmationUrl.replace(/token=[^&]*/, 'token=***'));
+      confirmationUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/auth/v1/verify?token=${token}&type=${emailType}&redirect_to=${encodeURIComponent(redirectTo)}`;
     } else if (body.record?.email) {
       userEmail = body.record.email;
       confirmationUrl = body.record.confirmation_url || `${applicationUrl}/email-confirm`;
