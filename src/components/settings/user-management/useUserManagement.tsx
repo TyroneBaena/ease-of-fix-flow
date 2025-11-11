@@ -1,13 +1,12 @@
-
-import { useCallback, useMemo, useState, useEffect } from 'react';
-import { useUserContext } from '@/contexts/UserContext';
-import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
-import { usePropertyContext } from '@/contexts/property';
-import { useUserPagination, USERS_PER_PAGE } from './hooks/useUserPagination';
-import { useUserDialog } from './hooks/useUserDialog';
-import { useUserActions } from './hooks/useUserActions';
-import { User } from '@/types/user';
-import { toast } from 'sonner';
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { useUserContext } from "@/contexts/UserContext";
+import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
+import { usePropertyContext } from "@/contexts/property";
+import { useUserPagination, USERS_PER_PAGE } from "./hooks/useUserPagination";
+import { useUserDialog } from "./hooks/useUserDialog";
+import { useUserActions } from "./hooks/useUserActions";
+import { User } from "@/types/user";
+import { toast } from "sonner";
 
 export const useUserManagement = () => {
   const { users, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
@@ -18,11 +17,39 @@ export const useUserManagement = () => {
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [ready, setReady] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
-  
+
   // Function to safely fetch users
+  // const fetchUsers = useCallback(async () => {
+  //   console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin);
+
+  //   if (!isAdmin) {
+  //     console.log("Not fetching users because user is not admin");
+  //     setIsLoadingUsers(false);
+  //     setFetchedOnce(true);
+  //     return;
+  //   }
+
+  //   try {
+  //     console.log("Fetching users from useUserManagement");
+  //     setIsLoadingUsers(true);
+  //     setFetchError(null);
+  //     await fetchUsersFromContext();
+  //     setFetchedOnce(true);
+  //     setLastRefreshTime(Date.now());
+  //     console.log("✅ fetchUsers - Success");
+  //   } catch (error) {
+  //     console.error("❌ fetchUsers - Error:", error);
+  //     setFetchError(error as Error);
+  //     toast.error("Failed to load users. Please try again.");
+  //   } finally {
+  //     console.log("🏁 fetchUsers - Finally block, resetting loading");
+  //     setIsLoadingUsers(false);
+  //   }
+  // }, [isAdmin, fetchUsersFromContext]); // Include dependencies
+
   const fetchUsers = useCallback(async () => {
     console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin);
-    
+
     if (!isAdmin) {
       console.log("Not fetching users because user is not admin");
       setIsLoadingUsers(false);
@@ -46,11 +73,11 @@ export const useUserManagement = () => {
       console.log("🏁 fetchUsers - Finally block, resetting loading");
       setIsLoadingUsers(false);
     }
-  }, [isAdmin, fetchUsersFromContext]); // Include dependencies
+  }, []);
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
-  
+
   // Set up dialog management
   const {
     isDialogOpen,
@@ -61,9 +88,9 @@ export const useUserManagement = () => {
     handleOpenDialog,
     handleUserChange,
     handlePropertySelection,
-    isPreparingDialog
+    isPreparingDialog,
   } = useUserDialog(session);
-  
+
   // Set up user actions
   const {
     isLoading,
@@ -76,7 +103,7 @@ export const useUserManagement = () => {
     ManualResetDialog,
     confirmDeleteUser,
     handleDeleteUser,
-    userToDelete
+    userToDelete,
   } = useUserActions(
     setIsDialogOpen,
     isEditMode,
@@ -85,18 +112,18 @@ export const useUserManagement = () => {
     currentPage,
     handlePageChange,
     USERS_PER_PAGE,
-    fetchUsers // Pass the fetchUsers function to the actions hook
+    fetchUsers, // Pass the fetchUsers function to the actions hook
   );
-  
+
   // Clean form error management - no need for window object
-  
+
   // Update fetchError if there's an error in the user context
   useEffect(() => {
     if (userContextError) {
       setFetchError(userContextError);
     }
   }, [userContextError]);
-  
+
   // Clean form error management - no need for window object
 
   // Fetch users when component mounts
@@ -122,27 +149,39 @@ export const useUserManagement = () => {
         console.log("Dialog closed, refreshing user list");
         fetchUsers();
       }, 500);
-      
+
       return () => clearTimeout(refreshTimeout);
     }
   }, [isDialogOpen, isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
 
   // CRITICAL FIX: Memoize callbacks to prevent unnecessary re-renders
-  const handleEditUser = useCallback((user: User) => {
-    handleOpenDialog(true, user);
-  }, [handleOpenDialog]);
+  const handleEditUser = useCallback(
+    (user: User) => {
+      handleOpenDialog(true, user);
+    },
+    [handleOpenDialog],
+  );
 
-  const handleDeleteUserConfirm = useCallback((userId: string) => {
-    confirmDeleteUser(userId);
-  }, [confirmDeleteUser]);
+  const handleDeleteUserConfirm = useCallback(
+    (userId: string) => {
+      confirmDeleteUser(userId);
+    },
+    [confirmDeleteUser],
+  );
 
-  const handleResetPasswordCallback = useCallback((userId: string, email: string) => {
-    handleResetPassword(userId, email);
-  }, [handleResetPassword]);
+  const handleResetPasswordCallback = useCallback(
+    (userId: string, email: string) => {
+      handleResetPassword(userId, email);
+    },
+    [handleResetPassword],
+  );
 
-  const handleManualResetCallback = useCallback((userId: string, email: string) => {
-    openManualReset(userId, email);
-  }, [openManualReset]);
+  const handleManualResetCallback = useCallback(
+    (userId: string, email: string) => {
+      openManualReset(userId, email);
+    },
+    [openManualReset],
+  );
 
   // Remove the overly aggressive periodic refresh that was causing constant refreshes
 
@@ -179,6 +218,6 @@ export const useUserManagement = () => {
     handlePageChange,
     fetchUsers,
     ready,
-    isPreparingDialog
+    isPreparingDialog,
   };
 };
