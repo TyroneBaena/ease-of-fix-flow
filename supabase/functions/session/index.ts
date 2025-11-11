@@ -1,21 +1,24 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 function getCorsHeaders(origin: string | null) {
-  // CRITICAL: Exact origin matching for credentials
+  // Support production domains, preview domains, and local development
   const allowedOrigins = [
-    'https://56a1a977-22a1-4e1e-83f7-9571291dc8ad.lovableproject.com',
-    'https://preview--housinghub.lovable.app',
+    'https://housinghub.app',
+    'https://www.housinghub.app',
+    /^https:\/\/preview--housinghub\.lovable\.app$/,
+    /^https:\/\/preview-[a-z0-9]+-housinghub\.lovable\.app$/,
+    /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost:8080'
   ];
   
-  // Return specific origin if allowed, otherwise use fallback
-  const allowedOrigin = origin && allowedOrigins.includes(origin) 
-    ? origin 
-    : 'https://preview--housinghub.lovable.app';
+  const isAllowed = origin && allowedOrigins.some(allowed => 
+    typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+  );
   
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Origin': isAllowed ? origin! : 'https://housinghub.app',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cookie',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',

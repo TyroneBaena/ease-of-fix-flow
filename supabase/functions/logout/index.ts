@@ -1,6 +1,22 @@
 function getCorsHeaders(origin: string | null) {
+  // Support production domains, preview domains, and local development
+  const allowedOrigins = [
+    'https://housinghub.app',
+    'https://www.housinghub.app',
+    /^https:\/\/preview--housinghub\.lovable\.app$/,
+    /^https:\/\/preview-[a-z0-9]+-housinghub\.lovable\.app$/,
+    /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ];
+  
+  const isAllowed = origin && allowedOrigins.some(allowed => 
+    typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+  );
+  
   return {
-    'Access-Control-Allow-Origin': origin || 'https://preview--housinghub.lovable.app',
+    'Access-Control-Allow-Origin': isAllowed ? origin! : 'https://housinghub.app',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
