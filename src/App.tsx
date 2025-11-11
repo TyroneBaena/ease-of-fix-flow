@@ -1110,6 +1110,7 @@ import SignupStatus from "@/pages/SignupStatus";
 import ForgotPassword from "@/pages/ForgotPassword";
 import SetupPassword from "@/pages/SetupPassword";
 import EmailConfirm from "@/pages/EmailConfirm";
+import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Properties from "@/pages/Properties";
@@ -1166,6 +1167,7 @@ const AppRoutes = () => {
           element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
         />
         <Route path="/email-confirm" element={<EmailConfirm />} />
+        <Route path="/onboarding" element={<Onboarding />} />
 
         <Route
           path="/dashboard"

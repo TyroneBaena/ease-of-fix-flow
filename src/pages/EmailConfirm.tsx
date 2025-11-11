@@ -105,6 +105,32 @@ const EmailConfirm = () => {
           }
 
           console.log('✅ Email confirmed and session stored in cookies for user:', data.user?.id);
+          
+          // Now restore the session from the cookie into the Supabase client
+          console.log('🔄 Restoring session from cookie...');
+          const sessionResponse = await fetch('https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/session', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Origin': window.location.origin,
+            },
+          });
+
+          if (!sessionResponse.ok) {
+            throw new Error('Failed to restore session from cookie');
+          }
+
+          const sessionData = await sessionResponse.json();
+          
+          if (sessionData.session?.access_token && sessionData.session?.refresh_token) {
+            await supabase.auth.setSession({
+              access_token: sessionData.session.access_token,
+              refresh_token: sessionData.session.refresh_token,
+            });
+            console.log('✅ Session restored from cookie into Supabase client');
+          }
+
           setIsVerified(true);
           toast.success('Email confirmed successfully!');
           
@@ -170,10 +196,10 @@ const EmailConfirm = () => {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Your email has been successfully confirmed! Click the button below to complete your signup.
+              Your email has been successfully confirmed! Click the button below to continue.
             </p>
-            <Button onClick={() => navigate('/signup', { replace: true })} className="w-full">
-              Continue to Complete Setup
+            <Button onClick={() => navigate('/dashboard', { replace: true })} className="w-full">
+              Continue to Dashboard
             </Button>
           </CardContent>
         </Card>
