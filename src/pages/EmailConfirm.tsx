@@ -84,27 +84,32 @@ const EmailConfirm = () => {
             throw new Error('Invalid confirmation type. Expected "signup" but got: ' + type);
           }
 
-          console.log('Setting session with tokens...');
-          // Set the session using the tokens
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
+          console.log('🔐 Calling auth-callback edge function to store session in cookies...');
+          
+          // Call the auth-callback edge function to store tokens in secure cookies
+          const { data, error: callbackError } = await supabase.functions.invoke('auth-callback', {
+            body: {
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            },
           });
 
-          if (error) {
-            console.error('Error setting session:', error);
-            throw error;
+          if (callbackError) {
+            console.error('❌ Error calling auth-callback:', callbackError);
+            throw new Error('Failed to store session: ' + callbackError.message);
           }
 
-          if (data.user) {
-            console.log('Email confirmed successfully for user:', data.user.id);
-            console.log('User email confirmed at:', data.user.email_confirmed_at);
-            setIsVerified(true);
-            toast.success('Email confirmed successfully!');
-            // User can now click the Continue button to proceed
-          } else {
-            throw new Error('No user data returned after setting session');
+          if (!data?.success) {
+            console.error('❌ auth-callback returned error:', data);
+            throw new Error(data?.error || 'Failed to store session');
           }
+
+          console.log('✅ Email confirmed and session stored in cookies for user:', data.user?.id);
+          setIsVerified(true);
+          toast.success('Email confirmed successfully!');
+          
+          // Clear the hash from URL for security
+          window.history.replaceState(null, '', window.location.pathname);
         } else {
           // No tokens in URL - check if user is already signed in
           console.log('No tokens found in URL, checking for existing session...');
@@ -114,7 +119,6 @@ const EmailConfirm = () => {
               console.log('User is already authenticated and confirmed');
               setIsVerified(true);
               toast.success('You are already signed in!');
-              // User can now click the Continue button to proceed
             } else {
               throw new Error('Your email is not yet confirmed. Please check your email and click the confirmation link.');
             }
