@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSubscriptionGuard } from '@/hooks/useSubscriptionGuard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   requirePaymentMethod = false,
   fallbackPath = '/settings',
 }) => {
+  const navigate = useNavigate();
   const { hasAccess, isLoading, reason, message } = useSubscriptionGuard(requirePaymentMethod);
   const [showLoadingTimeout, setShowLoadingTimeout] = React.useState(false);
 
@@ -109,13 +110,11 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
           )}
 
           <div className="flex flex-col gap-2">
-            <Button asChild className="w-full">
-              <a href={fallbackPath}>
-                {reason === 'subscription_cancelled' ? 'Reactivate Subscription' : 'Go to Billing'}
-              </a>
+            <Button onClick={() => navigate(fallbackPath)} className="w-full">
+              {reason === 'subscription_cancelled' ? 'Reactivate Subscription' : 'Go to Billing'}
             </Button>
-            <Button variant="outline" asChild className="w-full">
-              <a href="/dashboard">Return to Dashboard</a>
+            <Button variant="outline" onClick={() => navigate('/dashboard')} className="w-full">
+              Return to Dashboard
             </Button>
           </div>
         </CardContent>
