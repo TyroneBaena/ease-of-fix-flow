@@ -96,7 +96,7 @@ export const UserMenu = () => {
         {isAdmin && (
           <DropdownMenuItem 
             className="cursor-pointer"
-            onClick={() => navigate('/billing-security')}
+            onClick={() => navigate('/settings')}
           >
             <Shield className="mr-2 h-4 w-4" />
             <span>Billing & Security</span>
