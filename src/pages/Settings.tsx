@@ -276,43 +276,13 @@ import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
 
 const Settings = () => {
-  const { currentUser, loading, refreshUser } = useSimpleAuth();
+  const { currentUser, loading } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
-
-  // v79.1: Settings-specific tab visibility handler for profile refresh
-  useEffect(() => {
-    let lastHiddenTime: number | null = null;
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        lastHiddenTime = Date.now();
-        console.log('🔒 Settings - Tab hidden');
-      } else {
-        console.log('🔓 Settings - Tab visible');
-        
-        if (lastHiddenTime !== null) {
-          const timeSinceHidden = Date.now() - lastHiddenTime;
-          
-          // Only refresh if tab was hidden for more than 1 second
-          if (timeSinceHidden > 1000) {
-            console.log('🔄 Settings - Refreshing user profile after tab revisit');
-            refreshUser();
-          }
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refreshUser]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
