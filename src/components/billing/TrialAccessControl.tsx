@@ -109,7 +109,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
 
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Button 
-                onClick={() => navigate('/billing-security')}
+                onClick={() => navigate('/settings')}
                 className="bg-red-600 hover:bg-red-700"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -117,7 +117,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => navigate('/billing-security')}
+                onClick={() => navigate('/settings')}
                 className="border-red-300 text-red-700 hover:bg-red-100"
               >
                 View Plans
@@ -145,7 +145,7 @@ export const TrialAccessControl: React.FC<TrialAccessControlProps> = ({
                   </p>
                   <Button 
                     size="sm"
-                    onClick={() => navigate('/billing-security')}
+                    onClick={() => navigate('/settings')}
                     className="bg-orange-600 hover:bg-orange-700"
                   >
                     <Zap className="w-3 h-3 mr-1" />

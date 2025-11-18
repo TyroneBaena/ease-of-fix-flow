@@ -75,7 +75,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
       toast.error("Your subscription is cancelled. Please reactivate to continue.", {
         action: {
           label: "Reactivate",
-          onClick: () => navigate('/billing-security')
+          onClick: () => navigate('/settings')
         },
         duration: 6000
       });
@@ -87,7 +87,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
         toast.error("Start your free trial to access property management.", {
           action: {
             label: "Start Trial",
-            onClick: () => navigate('/billing-security')
+            onClick: () => navigate('/settings')
           },
           duration: 6000
         });
@@ -95,7 +95,7 @@ export const usePropertyAccessControl = (): PropertyAccessControl => {
         toast.error("Your trial has expired. Please upgrade to continue.", {
           action: {
             label: "Go to Billing",
-            onClick: () => navigate('/billing-security')
+            onClick: () => navigate('/settings')
           },
           duration: 6000
         });

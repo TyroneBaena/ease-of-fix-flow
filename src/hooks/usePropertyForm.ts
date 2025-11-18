@@ -261,7 +261,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
         toast.error("Trial accounts are limited to 1 property. Add a payment method to add unlimited properties.", {
           action: {
             label: "Add Payment Method",
-            onClick: () => (window.location.href = "/billing-security"),
+            onClick: () => (window.location.href = "/settings"),
           },
           duration: 10000,
         });

@@ -232,7 +232,7 @@ export const BillingSummaryCard: React.FC = () => {
         <Button 
           variant="outline" 
           className="w-full" 
-          onClick={() => navigate('/billing-security')}
+          onClick={() => navigate('/settings')}
         >
           <Eye className="w-4 h-4 mr-2" />
           {isAdmin ? 'Manage Billing' : 'View Billing Details'}

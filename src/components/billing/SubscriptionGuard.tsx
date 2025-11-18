@@ -19,7 +19,7 @@ interface SubscriptionGuardProps {
 export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
   children,
   requirePaymentMethod = false,
-  fallbackPath = '/billing-security',
+  fallbackPath = '/settings',
 }) => {
   const { hasAccess, isLoading, reason, message } = useSubscriptionGuard(requirePaymentMethod);
   const [showLoadingTimeout, setShowLoadingTimeout] = React.useState(false);

@@ -76,7 +76,7 @@ export const TrialBillingAlert: React.FC = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/billing-security')}
+              onClick={() => navigate('/settings')}
               className="border-green-300 text-green-700 hover:bg-green-100"
             >
               {isAdmin ? 'Manage' : 'View Details'}
@@ -139,7 +139,7 @@ export const TrialBillingAlert: React.FC = () => {
                 {isAdmin && (
                   <Button 
                     size="sm"
-                    onClick={() => navigate('/billing-security')}
+                    onClick={() => navigate('/settings')}
                     disabled={!propertyCount}
                   >
                     <CreditCard className="w-3 h-3 mr-1" />
@@ -149,7 +149,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant={isAdmin ? "outline" : "default"}
                   size="sm"
-                  onClick={() => navigate('/billing-security')}
+                  onClick={() => navigate('/settings')}
                 >
                   <Eye className="w-3 h-3 mr-1" />
                   View Billing
@@ -187,7 +187,7 @@ export const TrialBillingAlert: React.FC = () => {
                 {isAdmin && (
                   <Button 
                     size="sm"
-                    onClick={() => navigate('/billing-security')}
+                    onClick={() => navigate('/settings')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Reactivate
@@ -196,7 +196,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing-security')}
+                  onClick={() => navigate('/settings')}
                   className="border-gray-300 text-gray-700 hover:bg-gray-100"
                 >
                   View {isAdmin ? 'Options' : 'Details'}
@@ -228,7 +228,7 @@ export const TrialBillingAlert: React.FC = () => {
                 {isAdmin && (
                   <Button 
                     size="sm"
-                    onClick={() => navigate('/billing-security')}
+                    onClick={() => navigate('/settings')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Start Free Trial
@@ -237,7 +237,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing-security')}
+                  onClick={() => navigate('/settings')}
                   className="border-blue-300 text-blue-700 hover:bg-blue-100"
                 >
                   View {isAdmin ? 'Plans' : 'Details'}
@@ -268,7 +268,7 @@ export const TrialBillingAlert: React.FC = () => {
                 {isAdmin && (
                   <Button 
                     size="sm"
-                    onClick={() => navigate('/billing-security')}
+                    onClick={() => navigate('/settings')}
                     className="bg-red-600 hover:bg-red-700"
                   >
                     Reactivate
@@ -277,7 +277,7 @@ export const TrialBillingAlert: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/billing-security')}
+                  onClick={() => navigate('/settings')}
                   className="border-red-300 text-red-700 hover:bg-red-100"
                 >
                   View {isAdmin ? 'Options' : 'Details'}

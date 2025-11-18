@@ -89,7 +89,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
           <div className="flex gap-3 justify-center">
             {isAdmin && (
               <Button 
-                onClick={() => navigate('/billing-security')}
+                onClick={() => navigate('/settings')}
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -98,7 +98,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             )}
             <Button 
               variant={isAdmin ? "outline" : "default"}
-              onClick={() => navigate('/billing-security')}
+              onClick={() => navigate('/settings')}
             >
               {isAdmin ? 'Back to Dashboard' : 'View Billing Details'}
             </Button>
@@ -136,16 +136,16 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             <div className="flex gap-3 justify-center">
             {isAdmin && (
               <Button 
-                  onClick={() => navigate('/billing-security')}
-                  className="flex items-center gap-2"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Go to Billing
-                </Button>
+                onClick={() => navigate('/settings')}
+                className="flex items-center gap-2"
+              >
+                <CreditCard className="h-4 w-4" />
+                Go to Billing
+              </Button>
             )}
               <Button 
                 variant={isAdmin ? "outline" : "default"}
-                onClick={() => navigate(isAdmin ? '/dashboard' : '/billing-security')}
+                onClick={() => navigate(isAdmin ? '/dashboard' : '/settings')}
               >
                 {isAdmin ? 'Back to Dashboard' : 'View Billing Details'}
               </Button>
@@ -170,7 +170,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
       </CardHeader>
       <CardContent className="text-center">
         <Button 
-          onClick={() => navigate('/billing-security')}
+          onClick={() => navigate('/settings')}
           className="flex items-center gap-2 mx-auto"
         >
           <Eye className="h-4 w-4" />
