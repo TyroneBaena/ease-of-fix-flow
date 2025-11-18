@@ -61,12 +61,13 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
         properties={properties}
       />
       
-      <CategorySelectionField
+      {/* COMMENTED OUT - Budget Category and Priority fields hidden as per user request */}
+      {/* <CategorySelectionField
         category={formState.budgetCategoryId || ''}
         priority={formState.priority || ''}
         onCategoryChange={(value) => updateFormState('budgetCategoryId', value)}
         onPriorityChange={(value) => updateFormState('priority', value)}
-      />
+      /> */}
       
       <ParticipantRelatedField
         value={formState.isParticipantRelated || false}

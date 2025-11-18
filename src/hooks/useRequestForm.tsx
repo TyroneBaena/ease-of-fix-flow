@@ -28,8 +28,8 @@ export const useRequestForm = () => {
     reportDate: '',
     submittedBy: '',
     category: '',
-    priority: '',
-    budgetCategoryId: ''
+    priority: 'medium', // Default value since field is hidden
+    budgetCategoryId: '' // Will be set to null in submission if empty
   });
 
   const [files, setFiles] = useState<File[]>([]);

@@ -107,17 +107,17 @@ export const RequestFormContainer = () => {
     console.log('🔍 [DEBUG] RequestForm - Selected property:', selectedProperty);
     console.log('🔍 [DEBUG] RequestForm - Site name:', site);
     
-    // More lenient validation for public users - category is optional for public
+    // More lenient validation - priority and budgetCategory are now optional (hidden fields with defaults)
     const requiredFieldsCheck = isPublic 
-      ? !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !priority
-      : !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix || !priority || !budgetCategoryId;
+      ? !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy
+      : !propertyId || !issueNature || !explanation || !location || !reportDate || !submittedBy || !attemptedFix;
     
-    console.log('🔍 [DEBUG] RequestForm - Validation check result:', requiredFieldsCheck);
+      console.log('🔍 [DEBUG] RequestForm - Validation check result:', requiredFieldsCheck);
     
     if (requiredFieldsCheck) {
       console.log('❌ [DEBUG] RequestForm - Validation failed');
       console.log('❌ [DEBUG] Missing fields check:', { propertyId, issueNature, explanation, location, reportDate, submittedBy, priority, budgetCategoryId, attemptedFix });
-      toast.error(isPublic ? "Please fill in all required fields" : "Please fill in all required fields including category");
+      toast.error("Please fill in all required fields");
       return;
     }
     
@@ -178,11 +178,11 @@ export const RequestFormContainer = () => {
             issueNature: issueNature,
             explanation: explanation,
             location: location,
-            reportDate: reportDate,
-            submittedBy: submittedBy,
-            attemptedFix: attemptedFix || 'None attempted',
-            priority: priority,
-            budgetCategoryId: budgetCategoryId || null
+              reportDate: reportDate,
+              submittedBy: submittedBy,
+              attemptedFix: attemptedFix || 'None attempted',
+              priority: priority || 'medium', // Use default if empty
+              budgetCategoryId: budgetCategoryId || null
           });
           
           const response = await fetch('https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/submit-public-maintenance-request', {
@@ -198,7 +198,7 @@ export const RequestFormContainer = () => {
               reportDate: reportDate,
               submittedBy: submittedBy,
               attemptedFix: attemptedFix || 'None attempted',
-              priority: priority,
+              priority: priority || 'medium', // Use default if empty
               budgetCategoryId: budgetCategoryId || null
             })
           });
