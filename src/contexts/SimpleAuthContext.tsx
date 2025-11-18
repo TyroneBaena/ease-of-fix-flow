@@ -170,10 +170,13 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const refreshUser = async () => {
-    if (!session?.user) return;
-    
     try {
-      const { user, organization } = await convertSupabaseUser(session.user);
+      // Fetch the latest session from Supabase to get fresh user data
+      const { data: { session: latestSession } } = await supabase.auth.getSession();
+      
+      if (!latestSession?.user) return;
+      
+      const { user, organization } = await convertSupabaseUser(latestSession.user);
       setCurrentUser(user);
       setCurrentOrganization(organization);
     } catch (error) {
