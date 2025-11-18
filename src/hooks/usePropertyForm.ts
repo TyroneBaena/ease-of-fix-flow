@@ -269,7 +269,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
       }
     }
 
-    const requiredFields = ["name", "address", "contactNumber", "email", "practiceLeader"];
+    const requiredFields = ["name", "address", "contactNumber", "email"];
     const missingFields = requiredFields.filter((field) => {
       const value = form[field as keyof typeof form];
       const isEmpty = !value || (typeof value === "string" && value.trim() === "");
@@ -281,6 +281,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
 
     if (missingFields.length > 0) {
       console.error("PropertyForm: Validation failed, missing fields:", missingFields);
+      toast.error(`Please fill in all required fields: ${missingFields.join(", ")}`);
       return;
     }
 
