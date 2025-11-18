@@ -88,8 +88,8 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
     }
   };
 
-  // Get display title (either issueNature or title)
-  const displayTitle = request.issueNature || request.title || 'Untitled Request';
+  // Get display title - prioritize title field over issueNature
+  const displayTitle = request.title || request.issueNature || 'Untitled Request';
   
   // Get display description (either explanation or description)
   const displayDescription = request.explanation || request.description || '';
