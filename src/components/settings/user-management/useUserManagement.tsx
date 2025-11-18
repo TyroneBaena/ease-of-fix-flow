@@ -19,17 +19,10 @@ export const useUserManagement = () => {
   const [ready, setReady] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
   
-  // Function to safely fetch users
+  // Function to safely fetch users - stable reference with no dependencies
   const fetchUsers = useCallback(async () => {
-    console.log("🔄 fetchUsers - Starting, isAdmin:", isAdmin);
+    console.log("🔄 fetchUsers - Starting");
     
-    if (!isAdmin) {
-      console.log("Not fetching users because user is not admin");
-      setIsLoadingUsers(false);
-      setFetchedOnce(true);
-      return;
-    }
-
     try {
       console.log("Fetching users from useUserManagement");
       setIsLoadingUsers(true);
@@ -46,7 +39,7 @@ export const useUserManagement = () => {
       console.log("🏁 fetchUsers - Finally block, resetting loading");
       setIsLoadingUsers(false);
     }
-  }, [isAdmin, fetchUsersFromContext]); // Include dependencies
+  }, [fetchUsersFromContext]); // Only depends on context function
 
   // Set up pagination
   const { currentPage, totalPages, handlePageChange } = useUserPagination(users.length);
@@ -99,13 +92,14 @@ export const useUserManagement = () => {
   
   // Clean form error management - no need for window object
 
-  // Fetch users when component mounts
+  // Fetch users when component mounts - ONLY ONCE
   useEffect(() => {
     if (isAdmin && !fetchedOnce && !isLoadingUsers) {
       console.log("Initial fetch for admin user");
       fetchUsers();
     }
-  }, [isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]); // Only run when isAdmin changes
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {
@@ -115,17 +109,8 @@ export const useUserManagement = () => {
     }
   }, [users.length, fetchedOnce, isLoadingUsers, isAdmin]);
 
-  // Refresh user list when dialog is closed
-  useEffect(() => {
-    if (!isDialogOpen && isAdmin && fetchedOnce && !isLoadingUsers) {
-      const refreshTimeout = setTimeout(() => {
-        console.log("Dialog closed, refreshing user list");
-        fetchUsers();
-      }, 500);
-      
-      return () => clearTimeout(refreshTimeout);
-    }
-  }, [isDialogOpen, isAdmin, fetchedOnce, isLoadingUsers, fetchUsers]);
+  // Note: Removed aggressive auto-refresh on dialog close
+  // Data will be refreshed through context when actions complete
 
   // CRITICAL FIX: Memoize callbacks to prevent unnecessary re-renders
   const handleEditUser = useCallback((user: User) => {
