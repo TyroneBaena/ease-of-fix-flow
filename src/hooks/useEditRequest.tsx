@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 
 interface EditRequestData {
   title?: string;
@@ -59,6 +60,7 @@ const transformDbToMaintenanceRequest = (dbData: any): MaintenanceRequest => {
 
 export const useEditRequest = () => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const { refreshRequests } = useMaintenanceRequestContext();
 
   const updateRequest = async (requestId: string, updateData: EditRequestData): Promise<MaintenanceRequest | null> => {
     console.log('useEditRequest - updateRequest called with:', { requestId, updateData });
@@ -103,18 +105,14 @@ export const useEditRequest = () => {
       console.log('useEditRequest - Update successful, updated fields:', Object.keys(dbUpdateData));
       console.log('useEditRequest - New title value:', data?.title);
       
+      // v85.0 SIMPLE FIX: Just refresh all requests from the API
+      console.log('useEditRequest - Calling refreshRequests to update UI');
+      await refreshRequests();
+      
       toast.success('Request updated successfully');
       
       // Transform the database response to match MaintenanceRequest type
-      const result = transformDbToMaintenanceRequest(data);
-      
-      // v84.3: Trigger a custom event to notify all components to refresh
-      console.log('useEditRequest - Dispatching request-updated event');
-      window.dispatchEvent(new CustomEvent('maintenance-request-updated', { 
-        detail: { requestId, updatedData: result } 
-      }));
-      
-      return result;
+      return transformDbToMaintenanceRequest(data);
       
     } catch (error) {
       console.error('useEditRequest - Error updating request:', error);

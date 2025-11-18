@@ -273,14 +273,14 @@ export const useMaintenanceRequestProvider = () => {
   );
 
   useEffect(() => {
-    console.log("🔧 v84.3 - MaintenanceRequest: useEffect triggered", {
+    console.log("🔧 v85.0 - MaintenanceRequest: useEffect triggered", {
       hasUser: !!currentUser?.id,
       sessionVersion,
       inFlight: inFlightVersionRef.current,
     });
 
     if (!currentUser?.id) {
-      console.log("🔧 v84.3 - MaintenanceRequest: No user, clearing requests");
+      console.log("🔧 v85.0 - MaintenanceRequest: No user, clearing requests");
       setRequests([]);
       setLoading(false);
       inFlightVersionRef.current = null;
@@ -290,29 +290,17 @@ export const useMaintenanceRequestProvider = () => {
     // v84.1 FIX: Mark version as in-flight BEFORE starting fetch
     // This prevents duplicate fetches from React StrictMode double-mounting
     if (inFlightVersionRef.current === sessionVersion) {
-      console.log(`🔧 v84.3 - MaintenanceRequest: Already fetching version ${sessionVersion}, skipping`);
+      console.log(`🔧 v85.0 - MaintenanceRequest: Already fetching version ${sessionVersion}, skipping`);
       return;
     }
 
-    console.log(`🔧 v84.3 - MaintenanceRequest: Fetching for version ${sessionVersion}`);
+    console.log(`🔧 v85.0 - MaintenanceRequest: Fetching for version ${sessionVersion}`);
     inFlightVersionRef.current = sessionVersion; // Mark as in-flight BEFORE fetch starts
     loadRequests(sessionVersion);
 
-    // v84.3: Listen for manual refresh events from edit operations
-    const handleRefreshEvent = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      console.log("🔄 v84.3 MANUAL REFRESH: Request updated event received", customEvent.detail);
-      // Reload requests to get the latest data
-      inFlightVersionRef.current = null; // Clear in-flight to allow refresh
-      loadRequests(sessionVersion);
-    };
-    
-    window.addEventListener('maintenance-request-updated', handleRefreshEvent);
-
-    // Real-time subscription - v84.3: Simplified channel name
+    // Real-time subscription for INSERT/DELETE (UPDATE handled by manual refresh)
     const channelName = `maintenance_requests_${currentUser.id}`;
-    console.log("🔌 v84.3 REAL-TIME: Setting up subscription with channel:", channelName);
-    console.log("🔌 v84.3 REAL-TIME: Current time:", new Date().toISOString());
+    console.log("🔌 v85.0 REAL-TIME: Setting up subscription");
     
     const channel = supabase
       .channel(channelName)
@@ -324,64 +312,30 @@ export const useMaintenanceRequestProvider = () => {
           table: "maintenance_requests",
         },
         (payload) => {
-          console.log("🔄 v84.3 REAL-TIME: ========= EVENT RECEIVED =========");
-          console.log("🔄 v84.3 REAL-TIME: Event time:", new Date().toISOString());
-          const recordId = (payload.new as any)?.id || (payload.old as any)?.id;
-          console.log("🔄 v84.3 REAL-TIME: Event type:", payload.eventType, "ID:", recordId);
-          console.log("🔄 v84.3 REAL-TIME: Full payload:", JSON.stringify(payload, null, 2));
+          console.log("🔄 v85.0 REAL-TIME: Event:", payload.eventType);
 
           if (payload.eventType === "INSERT" && payload.new) {
-            console.log("🔄 v84.3 REAL-TIME: Processing INSERT");
             const formattedRequest = formatRequestData(payload.new);
             setRequests((prev) => {
               const exists = prev.some((r) => r.id === formattedRequest.id);
-              if (exists) {
-                console.log("🔄 v84.3 REAL-TIME: INSERT - request already exists, skipping");
-                return prev;
-              }
-              console.log("🔄 v84.3 REAL-TIME: INSERT - adding new request");
+              if (exists) return prev;
               return [formattedRequest, ...prev];
             });
           } else if (payload.eventType === "UPDATE" && payload.new) {
-            const newData = payload.new as any;
-            console.log("🔄 v84.3 REAL-TIME: Processing UPDATE for ID:", newData.id);
-            console.log("🔄 v84.3 REAL-TIME: UPDATE - new title:", newData.title);
-            console.log("🔄 v84.3 REAL-TIME: UPDATE - new issue_nature:", newData.issue_nature);
+            // UPDATE handled by manual refresh in useEditRequest
             const formattedRequest = formatRequestData(payload.new);
-            console.log("🔄 v84.3 REAL-TIME: UPDATE - formatted title:", formattedRequest.title);
-            setRequests((prev) => {
-              console.log("🔄 v84.3 REAL-TIME: Current requests count:", prev.length);
-              const updated = prev.map((r) => {
-                if (r.id === formattedRequest.id) {
-                  console.log("🔄 v84.3 REAL-TIME: ✅ UPDATING request", r.id);
-                  console.log("🔄 v84.3 REAL-TIME: ✅ Old title:", r.title);
-                  console.log("🔄 v84.3 REAL-TIME: ✅ New title:", formattedRequest.title);
-                  return formattedRequest;
-                }
-                return r;
-              });
-              console.log("🔄 v84.3 REAL-TIME: Update complete, new requests count:", updated.length);
-              return updated;
-            });
+            setRequests((prev) => prev.map((r) => 
+              r.id === formattedRequest.id ? formattedRequest : r
+            ));
           } else if (payload.eventType === "DELETE" && payload.old) {
-            console.log("🔄 v84.3 REAL-TIME: Processing DELETE");
             setRequests((prev) => prev.filter((r) => r.id !== (payload.old as any).id));
           }
         },
       )
-      .subscribe((status, err) => {
-        console.log("🔌 v84.3 REAL-TIME: Subscription status changed:", status);
-        if (err) {
-          console.error("🔌 v84.3 REAL-TIME: Subscription error:", err);
-        }
-        if (status === 'SUBSCRIBED') {
-          console.log("🔌 v84.3 REAL-TIME: ✅ Successfully subscribed to maintenance_requests changes");
-        }
-      });
+      .subscribe();
 
     return () => {
-      console.log("🔌 v84.3 REAL-TIME: Cleaning up - unsubscribing from channel:", channelName);
-      window.removeEventListener('maintenance-request-updated', handleRefreshEvent);
+      console.log("🔌 v85.0 REAL-TIME: Cleaning up");
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, sessionVersion, loadRequests]);
@@ -436,8 +390,9 @@ export const useMaintenanceRequestProvider = () => {
       getRequestsForProperty,
       addRequestToProperty,
       loadRequests,
+      sessionVersion, // Export sessionVersion for context to use
     }),
-    [requests, loading, getRequestsForProperty, addRequestToProperty, loadRequests],
+    [requests, loading, getRequestsForProperty, addRequestToProperty, loadRequests, sessionVersion],
   );
 
   return contextValue;
