@@ -103,13 +103,18 @@ export const useEditRequest = () => {
       console.log('useEditRequest - Update successful, updated fields:', Object.keys(dbUpdateData));
       console.log('useEditRequest - New title value:', data?.title);
       
-      // Add a small delay to ensure database transaction completes and realtime event is broadcast
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       toast.success('Request updated successfully');
       
       // Transform the database response to match MaintenanceRequest type
-      return transformDbToMaintenanceRequest(data);
+      const result = transformDbToMaintenanceRequest(data);
+      
+      // v84.3: Trigger a custom event to notify all components to refresh
+      console.log('useEditRequest - Dispatching request-updated event');
+      window.dispatchEvent(new CustomEvent('maintenance-request-updated', { 
+        detail: { requestId, updatedData: result } 
+      }));
+      
+      return result;
       
     } catch (error) {
       console.error('useEditRequest - Error updating request:', error);
