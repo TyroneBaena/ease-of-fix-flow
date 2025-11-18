@@ -9,10 +9,10 @@ interface RequestHeaderProps {
   id: string;
   status: string;
   createdAt: string;
-  issueNature: string;
+  title: string;
 }
 
-export const RequestHeader = ({ id, status, createdAt, issueNature }: RequestHeaderProps) => {
+export const RequestHeader = ({ id, status, createdAt, title }: RequestHeaderProps) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
       <div>
@@ -25,7 +25,7 @@ export const RequestHeader = ({ id, status, createdAt, issueNature }: RequestHea
             Submitted {formatTimestamp(createdAt)}
           </p>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">{issueNature}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
       </div>
       <div className="mt-4 sm:mt-0">
         <Badge variant="outline" className="text-blue-600">
