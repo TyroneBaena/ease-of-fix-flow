@@ -35,7 +35,7 @@ export const MobileMenu = () => {
     
     // Add Billing & Security for admins only
     if (isAdmin) {
-      items.push({ name: 'Billing & Security', icon: <Shield className="h-5 w-5" />, path: '/billing-security' });
+      items.push({ name: 'Billing & Security', icon: <Shield className="h-5 w-5" />, path: '/settings' });
     }
     
     // Add Settings for admin and manager
