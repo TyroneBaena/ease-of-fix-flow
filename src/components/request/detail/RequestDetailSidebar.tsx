@@ -179,6 +179,7 @@
 // };
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { RequestQuoteDialog } from "@/components/contractor/RequestQuoteDialog";
 import { QuoteRequestDialog } from "@/components/contractor/QuoteRequestDialog";
 import { RequestActions } from "@/components/request/RequestActions";
@@ -211,6 +212,7 @@ export const RequestDetailSidebar = ({
   onOpenRequestQuoteDialog,
   onRefreshData,
 }: RequestDetailSidebarProps) => {
+  const navigate = useNavigate();
   const { currentUser, isAdmin } = useUserContext();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -250,7 +252,7 @@ export const RequestDetailSidebar = ({
         requestId={request.id}
         onStatusChange={onRefreshData}
         onEditRequest={canEditRequests ? handleEditRequest : undefined}
-        onCancelSuccess={() => (window.location.href = "/dashboard")}
+        onCancelSuccess={() => navigate("/dashboard")}
       />
 
       {/* Landlord Assignment - Admins and Managers can assign */}
