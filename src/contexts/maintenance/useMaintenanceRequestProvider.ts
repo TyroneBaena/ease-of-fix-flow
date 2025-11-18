@@ -273,14 +273,14 @@ export const useMaintenanceRequestProvider = () => {
   );
 
   useEffect(() => {
-    console.log("🔧 v84.1 - MaintenanceRequest: useEffect triggered", {
+    console.log("🔧 v84.2 - MaintenanceRequest: useEffect triggered", {
       hasUser: !!currentUser?.id,
       sessionVersion,
       inFlight: inFlightVersionRef.current,
     });
 
     if (!currentUser?.id) {
-      console.log("🔧 v84.1 - MaintenanceRequest: No user, clearing requests");
+      console.log("🔧 v84.2 - MaintenanceRequest: No user, clearing requests");
       setRequests([]);
       setLoading(false);
       inFlightVersionRef.current = null;
@@ -290,18 +290,20 @@ export const useMaintenanceRequestProvider = () => {
     // v84.1 FIX: Mark version as in-flight BEFORE starting fetch
     // This prevents duplicate fetches from React StrictMode double-mounting
     if (inFlightVersionRef.current === sessionVersion) {
-      console.log(`🔧 v84.1 - MaintenanceRequest: Already fetching version ${sessionVersion}, skipping`);
+      console.log(`🔧 v84.2 - MaintenanceRequest: Already fetching version ${sessionVersion}, skipping`);
       return;
     }
 
-    console.log(`🔧 v84.1 - MaintenanceRequest: Fetching for version ${sessionVersion}`);
+    console.log(`🔧 v84.2 - MaintenanceRequest: Fetching for version ${sessionVersion}`);
     inFlightVersionRef.current = sessionVersion; // Mark as in-flight BEFORE fetch starts
     loadRequests(sessionVersion);
 
-    // Real-time subscription
-    console.log("🔌 REAL-TIME: Setting up maintenance_requests subscription");
+    // Real-time subscription - CRITICAL FIX: Use unique channel name per user
+    const channelName = `maintenance-requests-${currentUser.id}-${Date.now()}`;
+    console.log("🔌 v84.2 REAL-TIME: Setting up subscription with channel:", channelName);
+    
     const channel = supabase
-      .channel("maintenance-requests-changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -311,49 +313,60 @@ export const useMaintenanceRequestProvider = () => {
         },
         (payload) => {
           const recordId = (payload.new as any)?.id || (payload.old as any)?.id;
-          console.log("🔄 REAL-TIME: Event received:", payload.eventType, "ID:", recordId);
-          console.log("🔄 REAL-TIME: Payload:", payload);
+          console.log("🔄 v84.2 REAL-TIME: Event received:", payload.eventType, "ID:", recordId);
+          console.log("🔄 v84.2 REAL-TIME: Full payload:", JSON.stringify(payload, null, 2));
 
           if (payload.eventType === "INSERT" && payload.new) {
-            console.log("🔄 REAL-TIME: Processing INSERT");
+            console.log("🔄 v84.2 REAL-TIME: Processing INSERT");
             const formattedRequest = formatRequestData(payload.new);
             setRequests((prev) => {
               const exists = prev.some((r) => r.id === formattedRequest.id);
               if (exists) {
-                console.log("🔄 REAL-TIME: INSERT - request already exists, skipping");
+                console.log("🔄 v84.2 REAL-TIME: INSERT - request already exists, skipping");
                 return prev;
               }
-              console.log("🔄 REAL-TIME: INSERT - adding new request");
+              console.log("🔄 v84.2 REAL-TIME: INSERT - adding new request");
               return [formattedRequest, ...prev];
             });
           } else if (payload.eventType === "UPDATE" && payload.new) {
             const newData = payload.new as any;
-            console.log("🔄 REAL-TIME: Processing UPDATE for ID:", newData.id);
-            console.log("🔄 REAL-TIME: UPDATE - new title:", newData.title);
+            console.log("🔄 v84.2 REAL-TIME: Processing UPDATE for ID:", newData.id);
+            console.log("🔄 v84.2 REAL-TIME: UPDATE - new title:", newData.title);
+            console.log("🔄 v84.2 REAL-TIME: UPDATE - new issue_nature:", newData.issue_nature);
             const formattedRequest = formatRequestData(payload.new);
-            console.log("🔄 REAL-TIME: UPDATE - formatted title:", formattedRequest.title);
+            console.log("🔄 v84.2 REAL-TIME: UPDATE - formatted title:", formattedRequest.title);
             setRequests((prev) => {
+              console.log("🔄 v84.2 REAL-TIME: Current requests count:", prev.length);
               const updated = prev.map((r) => {
                 if (r.id === formattedRequest.id) {
-                  console.log("🔄 REAL-TIME: UPDATE - updating request", r.id, "old title:", r.title, "new title:", formattedRequest.title);
+                  console.log("🔄 v84.2 REAL-TIME: ✅ UPDATING request", r.id);
+                  console.log("🔄 v84.2 REAL-TIME: ✅ Old title:", r.title);
+                  console.log("🔄 v84.2 REAL-TIME: ✅ New title:", formattedRequest.title);
                   return formattedRequest;
                 }
                 return r;
               });
+              console.log("🔄 v84.2 REAL-TIME: Update complete, new requests count:", updated.length);
               return updated;
             });
           } else if (payload.eventType === "DELETE" && payload.old) {
-            console.log("🔄 REAL-TIME: Processing DELETE");
+            console.log("🔄 v84.2 REAL-TIME: Processing DELETE");
             setRequests((prev) => prev.filter((r) => r.id !== (payload.old as any).id));
           }
         },
       )
-      .subscribe((status) => {
-        console.log("🔌 REAL-TIME: Subscription status:", status);
+      .subscribe((status, err) => {
+        console.log("🔌 v84.2 REAL-TIME: Subscription status changed:", status);
+        if (err) {
+          console.error("🔌 v84.2 REAL-TIME: Subscription error:", err);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log("🔌 v84.2 REAL-TIME: ✅ Successfully subscribed to maintenance_requests changes");
+        }
       });
 
     return () => {
-      console.log("🔌 REAL-TIME: Unsubscribing from maintenance requests");
+      console.log("🔌 v84.2 REAL-TIME: Cleaning up - unsubscribing from channel:", channelName);
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, sessionVersion, loadRequests]);
