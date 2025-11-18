@@ -40,7 +40,7 @@ const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getProperty, deleteProperty, properties, loading } = usePropertyContext();
-  const { getRequestsForProperty } = useMaintenanceRequestContext();
+  const { getRequestsForProperty, refreshRequests } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
   
   
@@ -261,7 +261,16 @@ const PropertyDetail = () => {
           </TabsContent>
           
           <TabsContent value="requests" className="mt-6">
-            {id && <PropertyRequests requests={requests as any} propertyId={id} />}
+            {id && (
+              <PropertyRequests 
+                requests={requests as any} 
+                propertyId={id}
+                onRequestUpdated={async () => {
+                  console.log('Request updated - refreshing requests');
+                  await refreshRequests();
+                }}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </main>

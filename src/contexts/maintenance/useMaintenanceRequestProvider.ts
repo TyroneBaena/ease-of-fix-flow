@@ -368,8 +368,8 @@ export const useMaintenanceRequestProvider = () => {
           return [formattedNewRequest, ...prev];
         });
 
-        toast.success("Maintenance request added successfully. Redirecting...", { duration: 1500 });
-        window.location.replace(`${window.location.origin}/dashboard`);
+        toast.success("Maintenance request added successfully!");
+        // Note: Navigation handled by component after receiving response
 
         return formattedNewRequest;
       }

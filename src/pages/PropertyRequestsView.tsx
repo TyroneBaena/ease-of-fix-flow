@@ -183,10 +183,10 @@ const PropertyRequestsView = () => {
         <PropertyRequests 
           requests={requests as any} 
           propertyId={id!} 
-          onRequestUpdated={() => {
-            // Real-time subscription will handle the refresh automatically
-            console.log('Request updated - real-time will handle refresh');
-          }} 
+          onRequestUpdated={async () => {
+            console.log('Request updated - refreshing requests');
+            await refreshRequests();
+          }}
         />
       </main>
     </div>
