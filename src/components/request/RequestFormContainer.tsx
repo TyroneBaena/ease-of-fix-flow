@@ -278,9 +278,9 @@ export const RequestFormContainer = () => {
           // Don't block the success flow if email fails
         }
         
-        // Note: Page will automatically redirect immediately (handled in addRequestToProperty)
-        // Don't set isSubmitting to false - we're redirecting anyway
-        console.log('RequestForm - Request created, redirect in progress...');
+        // Redirect to dashboard after successful submission
+        toast.success("Maintenance request added successfully!");
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error('❌ [DEBUG] RequestForm - Overall submission error:', error);
