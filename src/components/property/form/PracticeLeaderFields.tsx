@@ -21,13 +21,13 @@ export const PracticeLeaderFields: React.FC<PracticeLeaderFieldsProps> = ({
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="practiceLeader">Practice Leader*</Label>
+        <Label htmlFor="practiceLeader">Practice Leader (Optional)</Label>
         <Select
           value={managers.find(m => m.name === practiceLeader)?.id}
           onValueChange={onPracticeLeaderChange}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a practice leader" />
+            <SelectValue placeholder="Select a practice leader (optional)" />
           </SelectTrigger>
           <SelectContent>
             {managers.map((manager) => (
