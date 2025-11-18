@@ -274,6 +274,7 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Settings = () => {
   const { currentUser, loading } = useSimpleAuth();
@@ -281,6 +282,16 @@ const Settings = () => {
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
+  
+  // Full profile API that refetches on tab revisit
+  const { data: fullProfile, isLoading: profileLoading, error: profileError } = useUserProfile();
+  
+  // Log when profile data updates
+  React.useEffect(() => {
+    if (fullProfile) {
+      console.log('🔄 Settings: Full profile data updated:', fullProfile);
+    }
+  }, [fullProfile]);
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
