@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 
 interface UserProfile {
   id: string;
