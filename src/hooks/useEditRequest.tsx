@@ -100,7 +100,12 @@ export const useEditRequest = () => {
         throw error;
       }
       
-      console.log('useEditRequest - Update successful:', data);
+      console.log('useEditRequest - Update successful, updated fields:', Object.keys(dbUpdateData));
+      console.log('useEditRequest - New title value:', data?.title);
+      
+      // Add a small delay to ensure database transaction completes and realtime event is broadcast
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       toast.success('Request updated successfully');
       
       // Transform the database response to match MaintenanceRequest type

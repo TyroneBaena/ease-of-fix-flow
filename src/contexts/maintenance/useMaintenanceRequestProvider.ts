@@ -310,24 +310,47 @@ export const useMaintenanceRequestProvider = () => {
           table: "maintenance_requests",
         },
         (payload) => {
-          console.log("🔄 REAL-TIME: Maintenance request change:", payload.eventType);
+          const recordId = (payload.new as any)?.id || (payload.old as any)?.id;
+          console.log("🔄 REAL-TIME: Event received:", payload.eventType, "ID:", recordId);
+          console.log("🔄 REAL-TIME: Payload:", payload);
 
           if (payload.eventType === "INSERT" && payload.new) {
+            console.log("🔄 REAL-TIME: Processing INSERT");
             const formattedRequest = formatRequestData(payload.new);
             setRequests((prev) => {
               const exists = prev.some((r) => r.id === formattedRequest.id);
-              if (exists) return prev;
+              if (exists) {
+                console.log("🔄 REAL-TIME: INSERT - request already exists, skipping");
+                return prev;
+              }
+              console.log("🔄 REAL-TIME: INSERT - adding new request");
               return [formattedRequest, ...prev];
             });
           } else if (payload.eventType === "UPDATE" && payload.new) {
+            const newData = payload.new as any;
+            console.log("🔄 REAL-TIME: Processing UPDATE for ID:", newData.id);
+            console.log("🔄 REAL-TIME: UPDATE - new title:", newData.title);
             const formattedRequest = formatRequestData(payload.new);
-            setRequests((prev) => prev.map((r) => (r.id === formattedRequest.id ? formattedRequest : r)));
+            console.log("🔄 REAL-TIME: UPDATE - formatted title:", formattedRequest.title);
+            setRequests((prev) => {
+              const updated = prev.map((r) => {
+                if (r.id === formattedRequest.id) {
+                  console.log("🔄 REAL-TIME: UPDATE - updating request", r.id, "old title:", r.title, "new title:", formattedRequest.title);
+                  return formattedRequest;
+                }
+                return r;
+              });
+              return updated;
+            });
           } else if (payload.eventType === "DELETE" && payload.old) {
-            setRequests((prev) => prev.filter((r) => r.id !== payload.old.id));
+            console.log("🔄 REAL-TIME: Processing DELETE");
+            setRequests((prev) => prev.filter((r) => r.id !== (payload.old as any).id));
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("🔌 REAL-TIME: Subscription status:", status);
+      });
 
     return () => {
       console.log("🔌 REAL-TIME: Unsubscribing from maintenance requests");
