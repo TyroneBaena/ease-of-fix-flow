@@ -224,8 +224,9 @@ export const RequestDetailSidebar = ({
     setEditDialogOpen(true);
   };
 
-  const handleRequestUpdated = () => {
-    onRefreshData();
+  const handleRequestUpdated = async () => {
+    // Refresh detail page data
+    await onRefreshData();
   };
 
   const isLandlordAssigned = (request as any).assigned_to_landlord ?? (request as any).assignedToLandlord ?? false;
