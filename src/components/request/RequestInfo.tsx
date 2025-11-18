@@ -9,6 +9,7 @@ import { RequestAttachments } from './detail/RequestAttachments';
 interface RequestInfoProps {
   request: {
     id: string;
+    title: string;
     isParticipantRelated: boolean;
     participantName: string;
     attemptedFix: string;
@@ -41,7 +42,7 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         id={request.id} 
         status={request.status} 
         createdAt={request.createdAt}
-        issueNature={request.issueNature}
+        title={request.title}
       />
       
       <RequestMetadata 

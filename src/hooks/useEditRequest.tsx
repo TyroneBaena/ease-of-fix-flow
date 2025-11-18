@@ -101,10 +101,6 @@ export const useEditRequest = () => {
       }
       
       console.log('useEditRequest - Update successful:', data);
-      
-      // Wait a bit to ensure database has fully committed
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
       toast.success('Request updated successfully');
       
       // Transform the database response to match MaintenanceRequest type
