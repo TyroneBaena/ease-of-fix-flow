@@ -63,9 +63,12 @@ export const MaintenanceRequestProvider: React.FC<{ children: React.ReactNode }>
       getRequestsForProperty: value.getRequestsForProperty as (propertyId: string) => MaintenanceRequest[],
       addRequestToProperty: value.addRequestToProperty,
       fetchRequests: value.loadRequests,
-      refreshRequests: async () => { await value.loadRequests(); }
+      refreshRequests: async () => { 
+        // Pass the current sessionVersion to loadRequests
+        await value.loadRequests(value.sessionVersion); 
+      }
     };
-  }, [value.requests, value.loading, value.getRequestsForProperty, value.addRequestToProperty, value.loadRequests]);
+  }, [value.requests, value.loading, value.getRequestsForProperty, value.addRequestToProperty, value.loadRequests, value.sessionVersion]);
 
   console.log('✅ v64.0 - Providing context', {
     requestsCount: typedValue.requests.length,
