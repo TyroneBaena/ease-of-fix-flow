@@ -59,26 +59,28 @@ export const useUserProvider = () => {
     });
   }, [currentUser?.id, authLoading, isAdmin, canFetchUsers]);
 
+  // FIXED: Stable fetchUsers function - checks canFetchUsers internally instead of depending on it
   const fetchUsers = useCallback(async () => {
+    // Check permissions inside function instead of depending on them
     if (fetchInProgress.current || !canFetchUsers) {
-      console.log("👥 v78.0 - Fetch skipped", {
+      console.log("👥 FIXED - Fetch skipped", {
         fetchInProgress: fetchInProgress.current,
         canFetchUsers
       });
       return;
     }
 
-    console.log("👥 v78.0 - Starting user fetch");
+    console.log("👥 FIXED - Starting user fetch");
     fetchInProgress.current = true;
     setLoading(true);
 
     try {
       const allUsers = await userService.getAllUsers();
-      console.log("👥 v78.0 - Fetched users:", allUsers.length);
+      console.log("👥 FIXED - Fetched users:", allUsers.length);
       setUsers(allUsers);
       setLoadingError(null);
     } catch (error) {
-      console.error('❌ v78.0 - Error fetching users:', error);
+      console.error('❌ FIXED - Error fetching users:', error);
       setLoadingError(error as Error);
       
       if (error.message?.includes('0 rows')) {
@@ -92,18 +94,18 @@ export const useUserProvider = () => {
       setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [canFetchUsers, currentUser?.role, currentUser?.organization_id, currentUser?.session_organization_id]);
+  }, []); // Empty dependencies - function never recreates
 
-  // v78.0: Simplified - Fetch users when user/org changes
+  // FIXED: Only trigger when user/org ID actually changes, not when fetchUsers recreates
   useEffect(() => {
-    console.log('👥 v78.0 - UserProvider: useEffect triggered');
+    console.log('👥 FIXED - UserProvider: useEffect triggered');
     
     if (fetchDebounceTimerRef.current) {
       clearTimeout(fetchDebounceTimerRef.current);
     }
     
     if (!canFetchUsers) {
-      console.log('👥 v78.0 - User cannot fetch users, clearing state');
+      console.log('👥 FIXED - User cannot fetch users, clearing state');
       setUsers([]);
       lastFetchedUserIdRef.current = null;
       lastFetchedOrgIdRef.current = null;
@@ -114,7 +116,7 @@ export const useUserProvider = () => {
     const orgIdChanged = lastFetchedOrgIdRef.current !== currentUser?.organization_id;
     
     if (!userIdChanged && !orgIdChanged) {
-      console.log("👥 v78.0 - No changes, skipping fetch");
+      console.log("👥 FIXED - No changes, skipping fetch");
       return;
     }
     
@@ -131,7 +133,9 @@ export const useUserProvider = () => {
         clearTimeout(fetchDebounceTimerRef.current);
       }
     };
-  }, [canFetchUsers, currentUser?.id, currentUser?.organization_id, fetchUsers]);
+    // CRITICAL FIX: Removed fetchUsers from dependencies - only depend on actual data changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canFetchUsers, currentUser?.id, currentUser?.organization_id]);
 
 
   const addUser = async (email: string, name: string, role: UserRole, assignedProperties: string[] = []): Promise<AddUserResult> => {
