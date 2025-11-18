@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, RefreshCcw, Edit } from 'lucide-react';
 import { useContractorContext } from '@/contexts/contractor/ContractorContext';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
+import { useMaintenanceRequestContext } from '@/contexts/maintenance';
 import { toast } from '@/lib/toast';
 
 interface RequestActionsProps {
@@ -24,6 +25,7 @@ export const RequestActions = ({
 }: RequestActionsProps) => {
   const { updateJobProgress } = useContractorContext();
   const { currentUser, isAdmin } = useUserContext();
+  const { refreshRequests } = useMaintenanceRequestContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [actionType, setActionType] = useState<'none' | 'complete' | 'reopen' | 'cancel'>('none');
   const [lastActionTime, setLastActionTime] = useState(0);
@@ -130,20 +132,29 @@ export const RequestActions = ({
   }, [status, performStatusUpdate, currentUser?.role]);
 
   // Handler for cancel action - available to both admins and managers
-  const handleCancelRequest = useCallback(() => {
-    performStatusUpdate(
-      0, 
-      `Request cancelled by ${currentUser?.role || 'user'}`,
-      "Request cancelled successfully",
-      'cancel'
-    );
-    // Navigate away after a short delay to allow the toast to be seen
-    if (onCancelSuccess) {
-      setTimeout(() => {
-        onCancelSuccess();
-      }, 1500);
+  const handleCancelRequest = useCallback(async () => {
+    try {
+      await performStatusUpdate(
+        0, 
+        `Request cancelled by ${currentUser?.role || 'user'}`,
+        "Request cancelled successfully",
+        'cancel'
+      );
+      
+      // v85.1 FIX: Refresh the requests list to update UI
+      console.log('RequestActions - Refreshing requests list after cancel');
+      await refreshRequests();
+      
+      // Navigate away after refresh to show updated data
+      if (onCancelSuccess) {
+        setTimeout(() => {
+          onCancelSuccess();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
     }
-  }, [performStatusUpdate, currentUser?.role, onCancelSuccess]);
+  }, [performStatusUpdate, currentUser?.role, onCancelSuccess, refreshRequests]);
 
   // Determine if a specific button should be disabled
   const isButtonDisabled = (action: 'reopen' | 'complete' | 'cancel') => {
