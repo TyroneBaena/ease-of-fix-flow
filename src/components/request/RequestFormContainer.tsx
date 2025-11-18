@@ -214,7 +214,7 @@ export const RequestFormContainer = () => {
 
           console.log('✅ [DEBUG] RequestForm - Public submission successful:', result);
           toast.success("Your maintenance request has been submitted successfully!");
-          navigate(`/property-requests/${propertyId}`);
+          navigate('/requests');
         } catch (error) {
           console.error('❌ [DEBUG] RequestForm - Public submission error:', error);
           console.error('❌ [DEBUG] RequestForm - Error details:', error instanceof Error ? error.message : 'Unknown error');
@@ -324,7 +324,7 @@ export const RequestFormContainer = () => {
       
       <RequestFormActions 
         isSubmitting={totalLoading}
-        onCancel={() => navigate(isPublic ? `/property-requests/${propertyIdParam}` : '/dashboard')}
+        onCancel={() => navigate('/dashboard')}
       />
     </form>
   );
