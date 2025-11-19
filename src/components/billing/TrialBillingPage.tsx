@@ -77,7 +77,7 @@ export const TrialBillingPage: React.FC = () => {
         await refresh();
         
         // Navigate to refresh the page and ensure clean state
-        navigate('/settings', { replace: true });
+        navigate('/settings?tab=billing', { replace: true });
       } else {
         let errorMessage = result.error || "Failed to upgrade subscription";
         
