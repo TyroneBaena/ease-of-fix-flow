@@ -1122,6 +1122,7 @@ import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 import PublicPropertyRequests from "@/pages/PublicPropertyRequests";
 import QRCodeRedirect from "@/components/QRCodeRedirect";
+import AdminSyncTest from "@/pages/AdminSyncTest";
 
 // React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
@@ -1236,6 +1237,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/sync-test"
+          element={
+            <ProtectedRoute>
+              <AdminSyncTest />
             </ProtectedRoute>
           }
         />
