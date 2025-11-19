@@ -37,7 +37,7 @@ const PaymentForm: React.FC<PaymentFormProps> = React.memo(({ onSuccess, onCance
       const { error: submitError } = await stripe.confirmSetup({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/billing?setup=success`,
+          return_url: `${window.location.origin}/settings?setup=success`,
         },
         redirect: 'if_required',
       });

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +41,7 @@ interface BillingManagementPageProps {
 
 export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useUnifiedAuth();
   const {
     subscribed,
@@ -66,6 +67,40 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
     console.log('[BillingManagementPage] Component mounted - forcing subscription refresh');
     refresh();
   }, []); // Empty deps = run once on mount
+
+  // Handle Stripe redirect after successful payment method setup
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('setup') !== 'success') return;
+
+    (async () => {
+      try {
+        console.log('[BillingManagementPage] Detected setup=success, confirming payment method...');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await supabase.functions.invoke('confirm-payment-method', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (error) {
+          console.error('[BillingManagementPage] confirm-payment-method error:', error);
+          toast.error((data as any)?.error || 'Failed to save payment method');
+        } else {
+          console.log('[BillingManagementPage] Payment method confirmed after redirect');
+          toast.success('Payment method saved successfully');
+          await refresh();
+        }
+      } catch (err) {
+        console.error('[BillingManagementPage] Error during post-redirect payment confirmation:', err);
+        toast.error('Could not confirm payment method. Please try again.');
+      } finally {
+        // Clean up the URL so the effect doesn't run again
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    })();
+  }, [refresh]);
 
   // PHASE 4: Track failed payment status
   const failedPaymentStatus = useFailedPaymentStatus();
@@ -106,6 +141,10 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
         toast.success('Successfully upgraded to paid subscription!');
       } else {
         toast.error(result.error || 'Failed to upgrade subscription');
+        if (result.error?.includes('no attached payment source') || result.error?.includes('Payment method required')) {
+          // Guide the user to add a payment method instead of showing a cryptic Stripe error
+          setShowPaymentSetup(true);
+        }
       }
     } catch (error) {
       toast.error('An error occurred while upgrading');
