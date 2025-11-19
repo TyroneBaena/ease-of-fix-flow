@@ -7,9 +7,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { usePaymentSetup } from '@/hooks/usePaymentSetup';
+import { STRIPE_CONFIG } from '@/config/stripe';
 
-// Stripe promise created once at module level
-const stripePromise = loadStripe('pk_test_51RvCRkERrSyHgYuuVYKfaGpq95rXEdqPsJqpBiBbyLz3vhb0sNaohYoLT7Fi1mYF9ox5kyrJgtLqOs0tdIgUeICb00zSDCxUXs');
+// Stripe promise created once at module level using centralized config
+const stripePromise = loadStripe(STRIPE_CONFIG.publishableKey);
 
 interface PaymentFormProps {
   onSuccess: () => void;
