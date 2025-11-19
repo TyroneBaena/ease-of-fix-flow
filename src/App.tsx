@@ -1152,29 +1152,42 @@ const AppRoutes = () => {
   }
 
   return (
-    <OrganizationGuard>
-      <Routes>
+    <Routes>
+      {/* Admin utility routes - outside OrganizationGuard */}
+      <Route
+        path="/admin/sync-test"
+        element={
+          <ProtectedRoute>
+            <AdminSyncTest />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Public routes */}
+      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+      <Route path="/signup-status" element={<SignupStatus />} />
+      <Route
+        path="/forgot-password"
+        element={currentUser ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+      />
+      <Route
+        path="/setup-password"
+        element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
+      />
+      <Route path="/email-confirm" element={<EmailConfirm />} />
+      
+      {/* QR code routes - public access */}
+      <Route path="/qr/:token" element={<QRCodeRedirect />} />
+      <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
+
+      {/* Organization-protected routes */}
+      <OrganizationGuard>
         <Route
           path="/"
           element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
         />
-        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
-        <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
-        <Route path="/signup-status" element={<SignupStatus />} />
-        <Route
-          path="/forgot-password"
-          element={currentUser ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
-        />
-        <Route
-          path="/setup-password"
-          element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
-        />
-        <Route path="/email-confirm" element={<EmailConfirm />} />
         <Route path="/onboarding" element={<Onboarding />} />
-
-        {/* QR code routes - public access */}
-        <Route path="/qr/:token" element={<QRCodeRedirect />} />
-        <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
 
         <Route
           path="/dashboard"
@@ -1240,17 +1253,9 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/sync-test"
-          element={
-            <ProtectedRoute>
-              <AdminSyncTest />
-            </ProtectedRoute>
-          }
-        />
         <Route path="*" element={<NotFound />} />
-      </Routes>
-    </OrganizationGuard>
+      </OrganizationGuard>
+    </Routes>
   );
 };
 
