@@ -1124,6 +1124,7 @@ import NotFound from "@/pages/NotFound";
 import PublicPropertyRequests from "@/pages/PublicPropertyRequests";
 import QRCodeRedirect from "@/components/QRCodeRedirect";
 import AdminSyncTest from "@/pages/AdminSyncTest";
+import AdminSettings from "@/pages/AdminSettings";
 
 // React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
@@ -1287,6 +1288,18 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <OrganizationGuard>
               <Settings />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Billing & Security Settings */}
+      <Route
+        path="/billing-security"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <AdminSettings />
             </OrganizationGuard>
           </ProtectedRoute>
         }
