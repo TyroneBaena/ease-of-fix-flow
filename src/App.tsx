@@ -1225,6 +1225,18 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Alias for backward compatibility */}
+      <Route
+        path="/new-request"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <NewRequest />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/requests/:id"
         element={
