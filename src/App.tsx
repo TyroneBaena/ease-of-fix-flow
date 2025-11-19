@@ -1093,6 +1093,7 @@ import { PropertyProvider } from "@/contexts/property/PropertyContext";
 import { ContractorProvider } from "@/contexts/contractor";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { OrganizationGuard } from "@/components/routing/OrganizationGuard";
+import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { Loader2 } from "lucide-react";
 
@@ -1153,7 +1154,14 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/admin/sync-test" element={<AdminSyncTest />} />
+      <Route
+        path="/admin/sync-test"
+        element={
+          <AdminRouteGuard>
+            <AdminSyncTest />
+          </AdminRouteGuard>
+        }
+      />
 
       {/* Public routes */}
       <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
