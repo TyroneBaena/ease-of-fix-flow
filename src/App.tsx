@@ -1153,15 +1153,7 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Admin utility routes - outside OrganizationGuard */}
-      <Route
-        path="/admin/sync-test"
-        element={
-          <ProtectedRoute>
-            <AdminSyncTest />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/admin/sync-test" element={<AdminSyncTest />} />
 
       {/* Public routes */}
       <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
