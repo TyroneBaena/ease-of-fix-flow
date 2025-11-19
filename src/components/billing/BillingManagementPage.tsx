@@ -597,10 +597,12 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
             <ReactivationFlow 
               onComplete={async () => {
                 setShowReactivation(false);
-                // Force a fresh data fetch after modal closes
+                // Wait a moment for database to update
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Force multiple refreshes to ensure state updates
                 await refresh();
-                // Reload page to ensure clean state
-                window.location.reload();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await refresh();
               }} 
             />
           </DialogContent>

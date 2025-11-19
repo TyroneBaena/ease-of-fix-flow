@@ -26,10 +26,10 @@ export const ReactivationFlow: React.FC<ReactivationFlowProps> = ({ onComplete }
           title: "Subscription Reactivated!",
           description: "Welcome back! Your subscription is now active.",
         });
-        // Wait longer before calling onComplete to ensure UI updates
+        // Wait longer for UI to show success before closing
         setTimeout(() => {
           onComplete?.();
-        }, 1500);
+        }, 2000);
       } else {
         toast({
           title: "Reactivation Failed",

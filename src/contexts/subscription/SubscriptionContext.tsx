@@ -366,17 +366,22 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       console.log("Subscription reactivated successfully:", data);
       
-      // Wait briefly to ensure database transaction completes
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for database transaction to complete
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Refresh subscription data after reactivation
       await refresh();
+      
+      // Do a second refresh to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await refresh();
+      
       return { success: true };
     } catch (error) {
       console.error("Reactivate subscription exception:", error);
       return { success: false, error: "Failed to reactivate subscription" };
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refresh]);
 
   const calculateBilling = useCallback(async () => {
     if (!currentUser) {
