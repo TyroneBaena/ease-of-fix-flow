@@ -52,7 +52,7 @@ export const BillingManagePage: React.FC = () => {
           description: "Your subscription has been cancelled successfully",
         });
         await refresh();
-        navigate('/billing-security');
+        navigate('/settings');
       } else {
         toast({
           title: "Error",
@@ -66,7 +66,7 @@ export const BillingManagePage: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    navigate('/billing-security');
+    navigate('/settings');
   };
 
   return (
