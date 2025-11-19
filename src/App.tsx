@@ -1120,6 +1120,8 @@ import NewRequest from "@/pages/NewRequest";
 import RequestDetail from "@/pages/RequestDetail";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
+import PublicPropertyRequests from "@/pages/PublicPropertyRequests";
+import QRCodeRedirect from "@/components/QRCodeRedirect";
 
 // React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
@@ -1168,6 +1170,10 @@ const AppRoutes = () => {
         />
         <Route path="/email-confirm" element={<EmailConfirm />} />
         <Route path="/onboarding" element={<Onboarding />} />
+
+        {/* QR code routes - public access */}
+        <Route path="/qr/:token" element={<QRCodeRedirect />} />
+        <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
 
         <Route
           path="/dashboard"
