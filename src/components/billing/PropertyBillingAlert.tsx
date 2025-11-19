@@ -121,7 +121,7 @@ export const PropertyBillingAlert: React.FC = () => {
             </Alert>
             
             <Button 
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/settings?tab=billing')}
               size="sm"
               className="flex items-center gap-1"
             >
