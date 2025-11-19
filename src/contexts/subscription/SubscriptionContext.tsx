@@ -431,7 +431,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       console.log("Session found, calling upgrade-trial-to-paid function");
       // End trial and create paid subscription
-      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid");
+      const { data, error } = await supabase.functions.invoke("upgrade-trial-to-paid", {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
       
       if (error) {
         console.error("Upgrade to paid error:", error);
@@ -446,7 +448,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error("Upgrade to paid exception:", error);
       return { success: false, error: "Failed to upgrade to paid subscription" };
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshPropertyCount, refresh]);
 
   // Track previous values to prevent unnecessary refreshes on tab revisit
   const prevUserIdRef = React.useRef<string | undefined>();
