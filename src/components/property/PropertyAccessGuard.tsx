@@ -89,7 +89,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
           <div className="flex gap-3 justify-center">
             {isAdmin && (
               <Button 
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate('/settings?tab=billing')}
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -98,7 +98,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             )}
             <Button 
               variant={isAdmin ? "outline" : "default"}
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/settings?tab=billing')}
             >
               {isAdmin ? 'Back to Dashboard' : 'View Billing Details'}
             </Button>
@@ -136,7 +136,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             <div className="flex gap-3 justify-center">
             {isAdmin && (
               <Button 
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate('/settings?tab=billing')}
                 className="flex items-center gap-2"
               >
                 <CreditCard className="h-4 w-4" />
@@ -145,7 +145,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
             )}
               <Button 
                 variant={isAdmin ? "outline" : "default"}
-                onClick={() => navigate(isAdmin ? '/dashboard' : '/settings')}
+                onClick={() => navigate(isAdmin ? '/dashboard' : '/settings?tab=billing')}
               >
                 {isAdmin ? 'Back to Dashboard' : 'View Billing Details'}
               </Button>
@@ -170,7 +170,7 @@ export const PropertyAccessGuard: React.FC<PropertyAccessGuardProps> = ({
       </CardHeader>
       <CardContent className="text-center">
         <Button 
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/settings?tab=billing')}
           className="flex items-center gap-2 mx-auto"
         >
           <Eye className="h-4 w-4" />

@@ -74,7 +74,7 @@ export const FailedPaymentBanner: React.FC = () => {
         </div>
         <Button
           size="sm"
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/settings?tab=billing')}
           className={
             isUrgent
               ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800'
