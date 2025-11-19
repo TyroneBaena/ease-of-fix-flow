@@ -240,34 +240,14 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     console.log("PropertyForm: Form submit triggered");
     console.log("PropertyForm: Current form state:", form);
 
-    // Enforce 1-property limit for trial users without payment method
-    console.log("🟡 PropertyForm - Property Limit Check:", {
+    // Trial users can add unlimited properties - they'll be charged at the end
+    console.log("🟡 PropertyForm - Property Count:", {
       existingProperty: !!existingProperty,
       isTrialActive,
       hasPaymentMethod,
       propertyCount,
       propertiesLength: properties?.length,
     });
-
-    if (!existingProperty && isTrialActive && !hasPaymentMethod) {
-      const currentPropertyCount = propertyCount || properties?.length || 0;
-
-      if (currentPropertyCount >= 1) {
-        console.log("PropertyForm: Trial property limit reached", {
-          currentCount: currentPropertyCount,
-          limit: 1,
-        });
-
-        toast.error("Trial accounts are limited to 1 property. Add a payment method to add unlimited properties.", {
-          action: {
-            label: "Add Payment Method",
-            onClick: () => (window.location.href = "/settings?tab=billing"),
-          },
-          duration: 10000,
-        });
-        return;
-      }
-    }
 
     const requiredFields = ["name", "address", "contactNumber", "email"];
     const missingFields = requiredFields.filter((field) => {
