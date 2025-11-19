@@ -26,7 +26,10 @@ export const ReactivationFlow: React.FC<ReactivationFlowProps> = ({ onComplete }
           title: "Subscription Reactivated!",
           description: "Welcome back! Your subscription is now active.",
         });
-        setTimeout(() => onComplete?.(), 2000);
+        // Wait longer before calling onComplete to ensure UI updates
+        setTimeout(() => {
+          onComplete?.();
+        }, 1500);
       } else {
         toast({
           title: "Reactivation Failed",
@@ -34,6 +37,12 @@ export const ReactivationFlow: React.FC<ReactivationFlowProps> = ({ onComplete }
           variant: "destructive",
         });
       }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
