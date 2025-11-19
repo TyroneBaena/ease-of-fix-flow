@@ -83,7 +83,20 @@ serve(async (req: Request) => {
       // Don't fail if this doesn't exist
     }
     
-    // 4. Now delete the auth user
+    // 4. Delete from subscribers (CRITICAL: prevents duplicate email constraint issues)
+    const { error: subscriberError } = await supabaseClient
+      .from('subscribers')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (subscriberError) {
+      console.warn("Warning deleting subscribers:", subscriberError);
+      // Don't fail if this doesn't exist
+    }
+    
+    console.log(`Subscriber deleted for user ${userId}`);
+    
+    // 5. Now delete the auth user
     const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
     
     if (authError) {
