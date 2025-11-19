@@ -17,7 +17,7 @@ export const STRIPE_CONFIG = {
   // Trial configuration
   trial: {
     durationDays: 30,
-    maxProperties: 1, // Maximum properties allowed during trial
+    maxProperties: null, // Unlimited properties during trial - users charged at trial end
   },
 } as const;
 
