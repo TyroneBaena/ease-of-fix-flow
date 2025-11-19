@@ -122,21 +122,49 @@ serve(async (req) => {
 
     // SECURITY FIX: Require payment method before upgrade
     const customer = await stripe.customers.retrieve(stripeCustomerId);
-    
-    // Check if customer has a payment method
+
+    // Check if customer has at least one payment method or default
     const paymentMethods = await stripe.paymentMethods.list({
       customer: stripeCustomerId,
       type: 'card',
-      limit: 1,
+      limit: 5,
     });
 
-    if (paymentMethods.data.length === 0 && !customer.invoice_settings?.default_payment_method && !customer.default_source) {
+    const hasDefaultPaymentMethod = Boolean(
+      customer.invoice_settings?.default_payment_method ||
+      customer.default_source,
+    );
+
+    if (paymentMethods.data.length === 0 && !hasDefaultPaymentMethod) {
       log("No payment method found - upgrade blocked");
-      throw new Error('Payment method required. Please add a payment method before upgrading.');
+      throw new Error(
+        "Payment method required. Please add a payment method before upgrading.",
+      );
     }
 
-    // Customer has a payment method, create immediate subscription
-    log("Payment method found, creating immediate subscription");
+    // Ensure we have an explicit default payment method ID for billing
+    let defaultPaymentMethodId: string | undefined;
+
+    if (customer.invoice_settings?.default_payment_method) {
+      const defaultPm = customer.invoice_settings
+        .default_payment_method as string | Stripe.PaymentMethod;
+      defaultPaymentMethodId =
+        typeof defaultPm === "string" ? defaultPm : defaultPm.id;
+    } else if (paymentMethods.data.length > 0) {
+      defaultPaymentMethodId = paymentMethods.data[0].id;
+
+      // Set this card as the default for future automatic charges
+      await stripe.customers.update(stripeCustomerId, {
+        invoice_settings: {
+          default_payment_method: defaultPaymentMethodId,
+        },
+      });
+    }
+
+    // Customer has a usable payment method, create immediate subscription
+    log("Payment method found, creating immediate subscription", {
+      defaultPaymentMethodId,
+    });
 
     // First create a product for this subscription
     const product = await stripe.products.create({
@@ -153,17 +181,18 @@ serve(async (req) => {
           product: product.id,
           unit_amount: monthlyAmount,
           recurring: {
-            interval: 'month'
-          }
+            interval: 'month',
+          },
         },
-        quantity: 1
+        quantity: 1,
       }],
       collection_method: 'charge_automatically',
+      default_payment_method: defaultPaymentMethodId,
       metadata: {
         property_count: propertyCount.toString(),
         supabase_user_id: user.id,
-        upgrade_from_trial: 'true'
-      }
+        upgrade_from_trial: 'true',
+      },
     });
 
     log("Created paid subscription", { 
