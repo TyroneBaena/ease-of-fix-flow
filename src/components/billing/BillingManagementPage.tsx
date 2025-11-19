@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
   Calendar, 
   CreditCard, 
@@ -579,18 +580,28 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
         </div>
 
         {/* Modals */}
-        {showCancellation && (
-          <CancellationFlow 
-            onBack={() => setShowCancellation(false)}
-            onComplete={() => setShowCancellation(false)} 
-          />
-        )}
+        <Dialog open={showCancellation} onOpenChange={setShowCancellation}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <CancellationFlow 
+              onBack={() => setShowCancellation(false)}
+              onComplete={() => {
+                setShowCancellation(false);
+                refresh();
+              }} 
+            />
+          </DialogContent>
+        </Dialog>
 
-        {showReactivation && (
-          <ReactivationFlow 
-            onComplete={() => setShowReactivation(false)} 
-          />
-        )}
+        <Dialog open={showReactivation} onOpenChange={setShowReactivation}>
+          <DialogContent className="max-w-2xl">
+            <ReactivationFlow 
+              onComplete={() => {
+                setShowReactivation(false);
+                refresh();
+              }} 
+            />
+          </DialogContent>
+        </Dialog>
 
         <PaymentSetupModal
           isOpen={showPaymentSetup}
