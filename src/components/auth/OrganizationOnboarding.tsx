@@ -473,13 +473,11 @@ export const OrganizationOnboarding: React.FC<OrganizationOnboardingProps> = ({ 
           organizationId={createdOrgId || undefined}
           onComplete={(success) => {
             if (success) {
-              console.log('✅ Payment completed successfully - redirecting to dashboard');
+              console.log('✅ Payment completed successfully - calling parent onComplete');
               toast.success('Account setup complete!');
               
-              // Redirect directly to dashboard after brief delay
-              setTimeout(() => {
-                window.location.href = '/dashboard';
-              }, 1000);
+              // Call parent's onComplete to trigger proper polling and verification
+              onComplete();
             }
           }}
           onError={(error) => {

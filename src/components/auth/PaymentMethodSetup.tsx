@@ -135,14 +135,39 @@ export const PaymentMethodSetup: React.FC<PaymentMethodSetupProps> = ({
     }
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = async () => {
     setSuccess(true);
-    toast.success('Payment method added successfully');
+    console.log('✅ Payment method setup successful, confirming with backend...');
     
-    // Notify parent component of successful payment
-    setTimeout(() => {
-      onComplete(true);
-    }, 1500);
+    try {
+      // Call the backend to confirm payment method is attached
+      const { data, error } = await supabase.functions.invoke('confirm-payment-method');
+      
+      if (error) {
+        console.error('❌ Failed to confirm payment method:', error);
+        toast.error('Payment method confirmation failed. Please try again.');
+        setSuccess(false);
+        if (onError) {
+          onError('Failed to confirm payment method');
+        }
+        return;
+      }
+      
+      console.log('✅ Payment method confirmed by backend:', data);
+      toast.success('Payment method added successfully!');
+      
+      // Notify parent component after backend confirmation
+      setTimeout(() => {
+        onComplete(true);
+      }, 1500);
+    } catch (error) {
+      console.error('❌ Error confirming payment method:', error);
+      toast.error('Payment method confirmation failed. Please try again.');
+      setSuccess(false);
+      if (onError) {
+        onError('Failed to confirm payment method');
+      }
+    }
   };
 
   return (

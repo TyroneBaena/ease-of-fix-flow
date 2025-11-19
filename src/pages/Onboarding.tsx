@@ -14,22 +14,51 @@ const Onboarding = () => {
   const invitationCode = searchParams.get('code') || undefined;
   const [isPolling, setIsPolling] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [pollStartTime, setPollStartTime] = useState<number | null>(null);
 
-  // Poll to check if user has completed onboarding
+  // Poll to check if user has completed onboarding (both org AND payment method)
   useEffect(() => {
     if (!currentUser?.id || !isPolling) return;
 
+    // Set poll start time
+    if (!pollStartTime) {
+      setPollStartTime(Date.now());
+    }
+
     const pollInterval = setInterval(async () => {
       try {
-        console.log('🔄 Polling for organization completion...');
+        // Check for timeout (30 seconds)
+        if (pollStartTime && Date.now() - pollStartTime > 30000) {
+          console.error('⏰ Polling timeout - onboarding incomplete');
+          clearInterval(pollInterval);
+          setIsPolling(false);
+          return;
+        }
+
+        console.log('🔄 Polling for organization AND payment method completion...');
+        
+        // Check profile has organization_id
         const { data: profile } = await supabase
           .from('profiles')
           .select('organization_id')
           .eq('id', currentUser.id)
           .single();
 
-        if (profile?.organization_id) {
-          console.log('✅ Organization setup detected!');
+        // Check subscriber has payment_method_id
+        const { data: subscriber } = await supabase
+          .from('subscribers')
+          .select('payment_method_id')
+          .eq('user_id', currentUser.id)
+          .single();
+
+        console.log('📊 Poll results:', { 
+          hasOrgId: !!profile?.organization_id,
+          hasPaymentMethod: !!subscriber?.payment_method_id 
+        });
+
+        // Only complete when BOTH are present
+        if (profile?.organization_id && subscriber?.payment_method_id) {
+          console.log('✅ Both organization AND payment method confirmed!');
           clearInterval(pollInterval);
           setIsPolling(false);
           setShowSuccessMessage(true);
@@ -40,7 +69,7 @@ const Onboarding = () => {
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
-  }, [currentUser?.id, isPolling]);
+  }, [currentUser?.id, isPolling, pollStartTime]);
 
   const handleComplete = () => {
     console.log('✅ Onboarding complete - starting polling');
