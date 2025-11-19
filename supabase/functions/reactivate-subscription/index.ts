@@ -149,14 +149,22 @@ serve(async (req) => {
         .eq('user_id', user.id);
     }
 
-    // PHASE 4: Reset failed payment count and restore access
+    // PHASE 4: Reset failed payment count and fully restore subscription access
     const { error: updateError } = await supabase
       .from('subscribers')
       .update({
+        // Core billing/payment fields
         payment_status: 'active',
         failed_payment_count: 0,
         payment_method_id: paymentMethod.id,
         updated_at: new Date().toISOString(),
+        // Ensure subscription is marked active in app logic
+        subscribed: true,
+        is_cancelled: false,
+        is_trial_active: false,
+        subscription_status: 'active',
+        cancellation_date: null,
+        subscription_end: null,
       })
       .eq('user_id', user.id);
 
