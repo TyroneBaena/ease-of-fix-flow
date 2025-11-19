@@ -365,6 +365,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       console.log("Subscription reactivated successfully:", data);
+      
+      // Wait briefly to ensure database transaction completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Refresh subscription data after reactivation
       await refresh();
       return { success: true };

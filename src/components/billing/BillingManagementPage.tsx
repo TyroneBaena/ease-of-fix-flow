@@ -595,9 +595,12 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
         <Dialog open={showReactivation} onOpenChange={setShowReactivation}>
           <DialogContent className="max-w-2xl">
             <ReactivationFlow 
-              onComplete={() => {
+              onComplete={async () => {
                 setShowReactivation(false);
-                refresh();
+                // Force a fresh data fetch after modal closes
+                await refresh();
+                // Reload page to ensure clean state
+                window.location.reload();
               }} 
             />
           </DialogContent>
