@@ -254,6 +254,7 @@
 // export default Settings;
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -276,11 +277,16 @@ import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
 
 const Settings = () => {
+  const [searchParams] = useSearchParams();
   const { currentUser, loading } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
+
+  // Get tab from URL parameter, default based on user role
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
@@ -307,7 +313,7 @@ const Settings = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-        <Tabs defaultValue={isAdmin ? "users" : "account"}>
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="mb-4">
             {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
             {/* Only show contractor management to admins, not managers */}

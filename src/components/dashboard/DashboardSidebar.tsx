@@ -94,7 +94,7 @@ const DashboardSidebar = () => {
         <Card className="p-6">
           <h2 className="font-semibold mb-4">Admin Actions</h2>
           <div className="space-y-2">
-            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/settings")}>
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/settings?tab=billing")}>
               <CreditCard className="mr-2 h-4 w-4" />
               Billing
             </Button>

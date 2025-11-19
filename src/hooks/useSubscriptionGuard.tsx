@@ -104,7 +104,7 @@ export const useSubscriptionGuard = (requirePaymentMethod: boolean = false): Sub
           description: 'Please upgrade to continue using the platform.',
           action: {
             label: 'Go to Billing',
-            onClick: () => navigate('/settings'),
+            onClick: () => navigate('/settings?tab=billing'),
           },
           duration: 10000,
         });
