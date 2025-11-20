@@ -253,7 +253,7 @@
 
 // export default Settings;
 
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
@@ -293,7 +293,7 @@ const Settings = () => {
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
   // Fetch profile data on mount and tab revisit (via sessionVersion + visibility)
-  useLayoutEffect(() => {
+  useEffect(() => {
     let isCancelled = false;
 
     const fetchProfile = async () => {
