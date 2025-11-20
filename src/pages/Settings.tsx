@@ -253,7 +253,7 @@
 
 // export default Settings;
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
@@ -275,6 +275,7 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -289,6 +290,37 @@ const Settings = () => {
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
+
+  // Fetch profile data on mount using dynamic user ID
+  useLayoutEffect(() => {
+    const fetchProfile = async () => {
+      if (!currentUser?.id) {
+        console.log("Settings: No user ID available for profile fetch");
+        return;
+      }
+
+      console.log("Settings: Fetching profile for user:", currentUser.id);
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (error) {
+          console.error("Settings: Error fetching profile:", error);
+          return;
+        }
+
+        console.log("Settings: Profile data fetched successfully:", data);
+      } catch (err) {
+        console.error("Settings: Exception fetching profile:", err);
+      }
+    };
+
+    fetchProfile();
+  }, [currentUser?.id]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
