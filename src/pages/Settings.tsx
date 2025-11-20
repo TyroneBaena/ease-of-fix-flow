@@ -291,7 +291,7 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Fetch profile data on mount using dynamic user ID
+  // Fetch profile data on mount and tab revisit using dynamic user ID
   useLayoutEffect(() => {
     const fetchProfile = async () => {
       if (!currentUser?.id) {
@@ -319,7 +319,22 @@ const Settings = () => {
       }
     };
 
+    // Fetch on mount
     fetchProfile();
+
+    // Fetch on tab revisit
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Settings: Tab became visible, refetching profile");
+        fetchProfile();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [currentUser?.id]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
