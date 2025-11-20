@@ -260,7 +260,7 @@ import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
 import ContractorManagement from "@/components/settings/ContractorManagement";
 import { Card } from "@/components/ui/card";
-import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
+import { useSimpleAuth, useUnifiedAuth, waitForSessionReady } from "@/contexts/UnifiedAuthContext";
 import { useUserContext } from "@/contexts/UserContext";
 import AdminRoleUpdater from "@/components/AdminRoleUpdater";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -280,6 +280,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Settings = () => {
   const [searchParams] = useSearchParams();
   const { currentUser, loading } = useSimpleAuth();
+  const { sessionVersion } = useUnifiedAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
@@ -291,11 +292,27 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Fetch profile data on mount and tab revisit using dynamic user ID
+  // Fetch profile data on mount and tab revisit (via sessionVersion)
   useLayoutEffect(() => {
+    let isCancelled = false;
+
     const fetchProfile = async () => {
       if (!currentUser?.id) {
         console.log("Settings: No user ID available for profile fetch");
+        return;
+      }
+
+      console.log("Settings: Waiting for session ready before fetching profile...");
+      
+      // Wait for session to be ready (handles tab revisit case)
+      const isReady = await waitForSessionReady(sessionVersion, 10000);
+      if (!isReady) {
+        console.warn("Settings: Session not ready within timeout, skipping profile fetch");
+        return;
+      }
+
+      if (isCancelled) {
+        console.log("Settings: Fetch cancelled (component unmounted)");
         return;
       }
 
@@ -306,7 +323,9 @@ const Settings = () => {
           .from('profiles')
           .select('*')
           .eq('id', currentUser.id)
-          .single();
+          .maybeSingle();
+
+        if (isCancelled) return;
 
         if (error) {
           console.error("Settings: Error fetching profile:", error);
@@ -315,27 +334,18 @@ const Settings = () => {
 
         console.log("Settings: Profile data fetched successfully:", data);
       } catch (err) {
-        console.error("Settings: Exception fetching profile:", err);
+        if (!isCancelled) {
+          console.error("Settings: Exception fetching profile:", err);
+        }
       }
     };
 
-    // Fetch on mount
     fetchProfile();
 
-    // Fetch on tab revisit
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("Settings: Tab became visible, refetching profile");
-        fetchProfile();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      isCancelled = true;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, sessionVersion]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
