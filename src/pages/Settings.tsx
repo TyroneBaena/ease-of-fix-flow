@@ -292,7 +292,7 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Fetch profile data on mount and tab revisit (via sessionVersion)
+  // Fetch profile data on mount and tab revisit (via sessionVersion + visibility)
   useLayoutEffect(() => {
     let isCancelled = false;
 
@@ -302,8 +302,8 @@ const Settings = () => {
         return;
       }
 
-      console.log("Settings: Waiting for session ready before fetching profile...");
-      
+      console.log(`Settings: Waiting for session (version ${sessionVersion}) before fetching profile...`);
+
       // Wait for session to be ready (handles tab revisit case)
       const isReady = await waitForSessionReady(sessionVersion, 10000);
       if (!isReady) {
@@ -317,7 +317,7 @@ const Settings = () => {
       }
 
       console.log("Settings: Fetching profile for user:", currentUser.id);
-      
+
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -340,10 +340,22 @@ const Settings = () => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Settings: Tab became visible, refetching profile");
+        fetchProfile();
+      }
+    };
+
+    // Fetch on mount
     fetchProfile();
+
+    // And on tab revisit
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       isCancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [currentUser?.id, sessionVersion]);
 
