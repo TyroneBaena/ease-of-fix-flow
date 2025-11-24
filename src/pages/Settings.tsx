@@ -320,25 +320,32 @@ const Settings = () => {
     },
     enabled: !!currentUser?.id,
     refetchOnWindowFocus: false, // ✅ Disabled automatic refetch - using manual reload button instead
+    refetchOnMount: false, // Don't refetch on component mount
     staleTime: 0,
   });
 
   // Handle manual data reload
   const handleReloadData = async () => {
+    console.log("Settings: Manual reload triggered");
     setIsReloading(true);
     dismissReloadPrompt();
     
     try {
-      const result = await refetch();
+      console.log("Settings: Calling refetch()");
+      const result = await refetch({ cancelRefetch: true });
+      console.log("Settings: Refetch result:", result);
+      
       if (result.isSuccess) {
         toast.success("Settings data reloaded successfully");
-      } else {
+      } else if (result.isError) {
+        console.error("Settings: Refetch error:", result.error);
         toast.error("Failed to reload settings data");
       }
     } catch (error) {
       console.error("Error reloading settings data:", error);
       toast.error("Failed to reload settings data");
     } finally {
+      console.log("Settings: Reload complete, resetting loading state");
       setIsReloading(false);
     }
   };
