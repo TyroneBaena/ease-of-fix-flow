@@ -1100,7 +1100,6 @@ import { Loader2 } from "lucide-react";
 // Supabase - use singleton instance only
 import { getSupabaseClient, supabase } from "@/integrations/supabase/client";
 import { cleanupOldAuthStorage } from "@/utils/cleanupOldAuthStorage";
-import { rehydrateSessionFromServer } from "@/utils/sessionRehydration";
 import { useUnifiedAuth } from "@/contexts/UnifiedAuthContext";
 import { useLocation } from "react-router-dom";
 import { toast } from "@/lib/toast";
@@ -1313,34 +1312,12 @@ const AppRoutes = () => {
 };
 
 const App: React.FC = () => {
-  const [rehydrating, setRehydrating] = useState(true);
-
+  // v96.2 - Removed tab visibility handler - relying on Supabase's native session management
+  // Supabase's onAuthStateChange automatically handles session expiration and token refresh
   useEffect(() => {
-    console.log(
-      "🔧 v98.0 - App initialization - cookie-based session rehydration (HttpOnly cookies + /session endpoint)",
-    );
+    console.log("🔧 v96.2 - App initialization - using native Supabase session management (no manual refresh)");
     cleanupOldAuthStorage();
-
-    rehydrateSessionFromServer()
-      .then((result) => {
-        console.log("✅ v98.0 - Initial session rehydration result:", result);
-      })
-      .catch((error) => {
-        console.error("❌ v98.0 - Initial session rehydration error:", error);
-      })
-      .finally(() => {
-        setRehydrating(false);
-      });
   }, []);
-
-  if (rehydrating) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="ml-3 text-lg text-muted-foreground">Restoring your session...</p>
-      </div>
-    );
-  }
 
   return (
     <ErrorBoundary>
