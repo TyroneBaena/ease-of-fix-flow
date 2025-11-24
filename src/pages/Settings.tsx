@@ -255,7 +255,6 @@
 
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -276,7 +275,6 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -291,31 +289,6 @@ const Settings = () => {
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
-
-  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
-  useQuery({
-    queryKey: ["settings-profile", currentUser?.id],
-    queryFn: async () => {
-      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser!.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Settings/useQuery: Error fetching profile:", error);
-        throw error;
-      }
-
-      console.log("Settings/useQuery: Profile data fetched successfully:", data);
-      return data;
-    },
-    enabled: !!currentUser?.id,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
