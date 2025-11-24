@@ -290,7 +290,7 @@ const Settings = () => {
   
   // State for reload functionality
   const [isReloading, setIsReloading] = useState(false);
-  const { showReloadPrompt, dismissReloadPrompt } = useTabRevisit(30000); // 30 seconds
+  const { showReloadPrompt, dismissReloadPrompt } = useTabRevisit(7000); // 7 seconds
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
@@ -326,10 +326,15 @@ const Settings = () => {
   // Handle manual data reload
   const handleReloadData = async () => {
     setIsReloading(true);
+    dismissReloadPrompt();
+    
     try {
-      await refetch();
-      dismissReloadPrompt();
-      toast.success("Settings data reloaded successfully");
+      const result = await refetch();
+      if (result.isSuccess) {
+        toast.success("Settings data reloaded successfully");
+      } else {
+        toast.error("Failed to reload settings data");
+      }
     } catch (error) {
       console.error("Error reloading settings data:", error);
       toast.error("Failed to reload settings data");
