@@ -218,7 +218,11 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
                   <DialogTitle>Create landlord</DialogTitle>
                 </DialogHeader>
                 <Form {...createForm}>
-                  <form onSubmit={createForm.handleSubmit(submitCreate)} className="space-y-3">
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    createForm.handleSubmit(submitCreate)(e);
+                  }} className="space-y-3">
                     <FormField
                       control={createForm.control}
                       name="name"
@@ -303,7 +307,11 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
             <DialogTitle>Edit landlord</DialogTitle>
           </DialogHeader>
           <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(submitEdit)} className="space-y-3">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              editForm.handleSubmit(submitEdit)(e);
+            }} className="space-y-3">
               <FormField
                 control={editForm.control}
                 name="name"
