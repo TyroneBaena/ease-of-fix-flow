@@ -48,6 +48,15 @@ export const useContractorManagement = () => {
   const loadContractors = useCallback(async () => {
     console.log("🔄 v57.0 - loadContractors - Starting");
     
+    // Add timeout protection to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.error('❌ v57.0 - Contractor fetch timeout after 10s');
+      setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
+      setFetchError(new Error('Contractor fetch timed out'));
+      toast.error('Loading contractors timed out. Please refresh the page.');
+    }, 10000);
+
     try {
       setLoading(true);
       console.log("Fetching contractors in useContractorManagement...");
@@ -61,6 +70,7 @@ export const useContractorManagement = () => {
           .select('*', { count: 'exact' });
         
         if (error) {
+          clearTimeout(timeoutId);
           console.error("Supabase query error:", error);
           throw error;
         }
@@ -69,6 +79,7 @@ export const useContractorManagement = () => {
         console.log("Raw data from contractors table:", rawData);
         
         const data = await fetchContractors();
+        clearTimeout(timeoutId);
         console.log("Contractors after mapping:", data);
         
         setContractors(data);
@@ -79,19 +90,22 @@ export const useContractorManagement = () => {
           console.log("No contractors were returned after fetching");
         }
       } catch (fetchErr) {
+        clearTimeout(timeoutId);
         throw fetchErr;
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("❌ loadContractors - Error:", err);
       setFetchError(err instanceof Error ? err : new Error('Failed to fetch contractors'));
       
       if (err instanceof Error && (err.message.includes('aborted') || err.message.includes('timeout'))) {
         toast.error('Loading contractors timed out. Please refresh the page.');
       }
-      } finally {
-        setLoading(false);
-        hasCompletedInitialLoadRef.current = true;
-      }
+    } finally {
+      clearTimeout(timeoutId);
+      setLoading(false);
+      hasCompletedInitialLoadRef.current = true;
+    }
   }, []); // CRITICAL: Empty dependencies to prevent recreation
 
   // Initialize the contractor actions after loadContractors is defined
