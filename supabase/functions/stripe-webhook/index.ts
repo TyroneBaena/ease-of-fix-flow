@@ -11,18 +11,39 @@ function log(step: string, details?: unknown) {
 }
 
 Deno.serve(async (req) => {
+  // Log immediately to confirm webhook is being called
+  console.log('[STRIPE-WEBHOOK] ===== Webhook request received =====');
+  console.log('[STRIPE-WEBHOOK] Method:', req.method);
+  console.log('[STRIPE-WEBHOOK] URL:', req.url);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Check environment variables with detailed logging
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    console.log('[STRIPE-WEBHOOK] Environment check:', {
+      hasStripeKey: !!stripeSecretKey,
+      hasWebhookSecret: !!webhookSecret,
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      webhookSecretPrefix: webhookSecret ? webhookSecret.substring(0, 7) + '...' : 'missing'
+    });
 
     if (!stripeSecretKey || !webhookSecret || !supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing required environment variables');
+      const missing = [];
+      if (!stripeSecretKey) missing.push('STRIPE_SECRET_KEY');
+      if (!webhookSecret) missing.push('STRIPE_WEBHOOK_SECRET');
+      if (!supabaseUrl) missing.push('SUPABASE_URL');
+      if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+      
+      log('Missing environment variables', { missing });
+      throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
     }
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
@@ -30,17 +51,32 @@ Deno.serve(async (req) => {
 
     // Verify webhook signature
     const signature = req.headers.get('stripe-signature');
+    console.log('[STRIPE-WEBHOOK] Signature present:', !!signature);
+    console.log('[STRIPE-WEBHOOK] Signature value:', signature?.substring(0, 20) + '...');
+    
     if (!signature) {
-      throw new Error('No signature provided');
+      log('No signature provided in request');
+      throw new Error('No stripe-signature header provided');
     }
 
     const body = await req.text();
+    console.log('[STRIPE-WEBHOOK] Request body length:', body.length);
+    
     let event: Stripe.Event;
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log('[STRIPE-WEBHOOK] ✅ Signature verification successful');
     } catch (err) {
-      log('Webhook signature verification failed', { error: err });
+      console.error('[STRIPE-WEBHOOK] ❌ Signature verification failed');
+      console.error('[STRIPE-WEBHOOK] Error details:', err);
+      console.error('[STRIPE-WEBHOOK] Webhook secret prefix:', webhookSecret.substring(0, 7) + '...');
+      
+      log('Webhook signature verification failed', { 
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : typeof err
+      });
+      
       throw new Error(`Webhook signature verification failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
@@ -194,8 +230,23 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log('Webhook error', { error: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('[STRIPE-WEBHOOK] ❌❌❌ Fatal error ❌❌❌');
+    console.error('[STRIPE-WEBHOOK] Error message:', errorMessage);
+    console.error('[STRIPE-WEBHOOK] Error stack:', errorStack);
+    
+    log('Webhook fatal error', { 
+      error: errorMessage,
+      stack: errorStack,
+      errorType: error instanceof Error ? error.constructor.name : typeof error
+    });
+    
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+      hint: 'Check edge function logs for details'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });
