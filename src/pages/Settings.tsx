@@ -279,44 +279,57 @@ import { Users, Activity } from "lucide-react";
 import { User } from "@/types/user";
 
 // Settings-specific visibility handler to refresh profile on tab revisit
-const useSettingsVisibility = (currentUser: User | null) => {
+const useSettingsVisibility = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const isRefreshingRef = useRef(false);
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (document.hidden || !currentUser?.id || isRefreshingRef.current) return;
-      
+      if (document.hidden || isRefreshingRef.current) return;
+
       isRefreshingRef.current = true;
       console.log('⚡ Settings: Tab visible, refreshing profile...');
-      
+
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .maybeSingle();
+        // Get current authenticated user directly
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
         
-        if (data) {
-          console.log('✅ Settings: Profile refreshed');
+        if (authError || !user) {
+          console.warn('⚠️ Settings: No authenticated user found:', authError?.message);
         } else {
-          console.warn('⚠️ Settings: Profile refresh returned no data');
+          // Query profile with authenticated user ID
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          if (profileData) {
+            console.log('✅ Settings: Profile refreshed for user:', user.id);
+          } else {
+            console.warn('⚠️ Settings: Profile refresh returned no data for user:', user.id);
+          }
         }
       } catch (err) {
         console.error('❌ Settings: Profile refresh failed:', err);
       } finally {
         isRefreshingRef.current = false;
-        // Signal Settings that a tab revisit happened
+        // Always signal Settings that a refresh happened
         setRefreshTrigger(prev => prev + 1);
+        console.log('🔄 Settings: refreshTrigger incremented');
       }
     };
 
+    // Call immediately on mount to trigger initial refresh
+    handleVisibilityChange();
+
+    // Listen for tab visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [currentUser?.id]);
+  }, []); // No dependencies - runs once on mount
 
   return refreshTrigger;
 };
@@ -330,7 +343,7 @@ const Settings = () => {
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
   
   // Refresh profile on tab revisit to wake up session
-  const refreshTrigger = useSettingsVisibility(currentUser);
+  const refreshTrigger = useSettingsVisibility();
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
