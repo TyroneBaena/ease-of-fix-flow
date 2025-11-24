@@ -260,7 +260,7 @@ import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
 import ContractorManagement from "@/components/settings/ContractorManagement";
 import { Card } from "@/components/ui/card";
-import { useSimpleAuth, useUnifiedAuth, waitForSessionReady } from "@/contexts/UnifiedAuthContext";
+import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 import { useUserContext } from "@/contexts/UserContext";
 import AdminRoleUpdater from "@/components/AdminRoleUpdater";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -280,7 +280,6 @@ import { supabase } from "@/integrations/supabase/client";
 const Settings = () => {
   const [searchParams] = useSearchParams();
   const { currentUser, loading } = useSimpleAuth();
-  const { sessionVersion } = useUnifiedAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
@@ -302,21 +301,24 @@ const Settings = () => {
         return;
       }
 
-      console.log(`Settings: Waiting for session (version ${sessionVersion}) before fetching profile...`);
+      console.log(`Settings: Fetching profile for user:`, currentUser.id);
 
-      // Wait for session to be ready (handles tab revisit case)
-      const isReady = await waitForSessionReady(sessionVersion, 10000);
-      if (!isReady) {
-        console.warn("Settings: Session not ready within timeout, skipping profile fetch");
-        return;
-      }
+      // Small delay to let session propagate from UnifiedAuth on tab revisit
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       if (isCancelled) {
         console.log("Settings: Fetch cancelled (component unmounted)");
         return;
       }
 
-      console.log("Settings: Fetching profile for user:", currentUser.id);
+      // Verify we have a valid session before making the API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn("Settings: No active session, skipping profile fetch");
+        return;
+      }
+
+      console.log("Settings: Session verified, proceeding with profile fetch");
 
       try {
         const { data, error } = await supabase
@@ -357,7 +359,7 @@ const Settings = () => {
       isCancelled = true;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [currentUser?.id, sessionVersion]);
+  }, [currentUser?.id]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
