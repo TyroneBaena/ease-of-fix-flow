@@ -268,7 +268,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from "@/components/settings/AccountSettings";
 import NotificationSettings from "@/components/settings/NotificationSettings";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { TeamManagement } from "@/pages/TeamManagement";
 import { GoogleMapsSettings } from "@/components/maps/GoogleMapsSettings";
 import { BillingManagementPage } from "@/components/billing/BillingManagementPage";
@@ -277,6 +277,8 @@ import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTabRevisit } from "@/hooks/useTabRevisit";
+import { ReloadDataBanner } from "@/components/ui/ReloadDataBanner";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -285,6 +287,10 @@ const Settings = () => {
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
+  
+  // State for reload functionality
+  const [isReloading, setIsReloading] = useState(false);
+  const { showReloadPrompt, dismissReloadPrompt } = useTabRevisit(30000); // 30 seconds
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
@@ -292,8 +298,8 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
-  useQuery({
+  // React Query based profile fetch with manual refetch control
+  const { refetch } = useQuery({
     queryKey: ["settings-profile", currentUser?.id],
     queryFn: async () => {
       console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
@@ -313,9 +319,24 @@ const Settings = () => {
       return data;
     },
     enabled: !!currentUser?.id,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // ✅ Disabled automatic refetch - using manual reload button instead
     staleTime: 0,
   });
+
+  // Handle manual data reload
+  const handleReloadData = async () => {
+    setIsReloading(true);
+    try {
+      await refetch();
+      dismissReloadPrompt();
+      toast.success("Settings data reloaded successfully");
+    } catch (error) {
+      console.error("Error reloading settings data:", error);
+      toast.error("Failed to reload settings data");
+    } finally {
+      setIsReloading(false);
+    }
+  };
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
@@ -335,6 +356,12 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ReloadDataBanner 
+        show={showReloadPrompt}
+        onReload={handleReloadData}
+        onDismiss={dismissReloadPrompt}
+        loading={isReloading}
+      />
       <Navbar />
       <Toaster position="bottom-right" richColors />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
