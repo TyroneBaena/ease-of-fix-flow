@@ -181,7 +181,17 @@ export const LandlordFields: React.FC<LandlordFieldsProps> = ({ landlordId, onCh
         ) : (
           <div className="mt-2 space-y-2">
             <div className="flex gap-2">
-              <Input placeholder="Search name or email" value={term} onChange={(e) => setTerm(e.target.value)} />
+              <Input 
+                placeholder="Search name or email" 
+                value={term} 
+                onChange={(e) => setTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+              />
               <Button type="button" onClick={handleSearch} disabled={loading}>
                 <Search className="h-4 w-4 mr-1" /> {loading ? 'Searching...' : 'Search'}
               </Button>
