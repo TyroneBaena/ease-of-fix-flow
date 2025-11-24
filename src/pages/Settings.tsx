@@ -253,8 +253,9 @@
 
 // export default Settings;
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -275,6 +276,49 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
+import { User } from "@/types/user";
+
+// Settings-specific visibility handler to refresh profile on tab revisit
+const useSettingsVisibility = (currentUser: User | null) => {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const isRefreshingRef = useRef(false);
+
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.hidden || !currentUser?.id || isRefreshingRef.current) return;
+      
+      isRefreshingRef.current = true;
+      console.log('⚡ Settings: Tab visible, refreshing profile...');
+      
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+        
+        if (data) {
+          console.log('✅ Settings: Profile refreshed');
+          setRefreshTrigger(prev => prev + 1);
+        }
+      } catch (err) {
+        console.error('❌ Settings: Profile refresh failed:', err);
+      } finally {
+        isRefreshingRef.current = false;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [currentUser?.id]);
+
+  return refreshTrigger;
+};
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -283,6 +327,9 @@ const Settings = () => {
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
+  
+  // Refresh profile on tab revisit to wake up session
+  useSettingsVisibility(currentUser);
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
