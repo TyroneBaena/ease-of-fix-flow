@@ -308,6 +308,7 @@ const Settings = () => {
         hasUser: !!userId,
         inFlight: inFlightFetchRef.current,
         lastFetchedUserId: lastFetchedUserIdRef.current,
+        hasProfileData: !!profileData,
       });
 
       // Guard: No user
@@ -320,14 +321,15 @@ const Settings = () => {
       }
 
       // Guard: Already fetching for this user
-      if (inFlightFetchRef.current && lastFetchedUserIdRef.current === userId) {
-        console.log("Settings: Already fetching profile for this user, skipping");
+      if (inFlightFetchRef.current) {
+        console.log("Settings: Already fetching, skipping");
         return;
       }
 
-      // Guard: Already fetched for this user
+      // Guard: Already fetched for this user (and we have data)
       if (lastFetchedUserIdRef.current === userId && profileData) {
         console.log("Settings: Profile already fetched for this user, skipping");
+        setProfileLoading(false); // Ensure loading is false
         return;
       }
 
@@ -335,6 +337,7 @@ const Settings = () => {
       inFlightFetchRef.current = true;
       lastFetchedUserIdRef.current = userId;
       setProfileLoading(true);
+      console.log("Settings: Starting profile fetch for user:", userId);
 
       try {
         // Wait for session to be ready (matching working pages pattern)
@@ -343,8 +346,10 @@ const Settings = () => {
 
         if (!sessionReady) {
           console.warn("Settings: Session not ready after timeout");
-          inFlightFetchRef.current = false;
-          setProfileLoading(false);
+          if (!isCancelled) {
+            inFlightFetchRef.current = false;
+            setProfileLoading(false);
+          }
           return;
         }
 
@@ -380,6 +385,7 @@ const Settings = () => {
         }
       } finally {
         if (!isCancelled) {
+          console.log("Settings: Fetch complete, clearing loading state");
           inFlightFetchRef.current = false;
           setProfileLoading(false);
         }
@@ -391,7 +397,7 @@ const Settings = () => {
     return () => {
       isCancelled = true;
     };
-  }, [currentUser?.id, profileData]);
+  }, [currentUser?.id]); // Removed profileData from deps to prevent re-trigger loops
 
   // Listen for tab visibility changes to refetch profile
   useEffect(() => {
@@ -403,11 +409,47 @@ const Settings = () => {
         return;
       }
 
-      console.log("Settings: Tab became visible, clearing profile cache to trigger refetch");
+      console.log("Settings: Tab became visible, triggering refetch");
       
-      // Clear the profile data to force a refetch on next render
+      // Clear the cache to force a refetch
       setProfileData(null);
       lastFetchedUserIdRef.current = null;
+      inFlightFetchRef.current = false; // Reset in-flight flag
+      
+      // Directly trigger a new fetch by creating a small state change
+      setProfileLoading(true);
+      
+      setTimeout(async () => {
+        try {
+          console.log("Settings: Visibility refetch - waiting for session");
+          const sessionReady = await waitForSessionReady(undefined, 10000);
+          
+          if (!sessionReady) {
+            console.warn("Settings: Session not ready on tab revisit");
+            setProfileLoading(false);
+            return;
+          }
+          
+          console.log("Settings: Visibility refetch - fetching profile");
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", currentUser.id)
+            .maybeSingle();
+          
+          if (error) {
+            console.error("Settings: Visibility refetch error:", error);
+          } else {
+            console.log("Settings: Visibility refetch success:", data);
+            setProfileData(data);
+            lastFetchedUserIdRef.current = currentUser.id;
+          }
+        } catch (error) {
+          console.error("Settings: Visibility refetch exception:", error);
+        } finally {
+          setProfileLoading(false);
+        }
+      }, 100);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
