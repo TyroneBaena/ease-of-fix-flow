@@ -255,7 +255,7 @@
 
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -268,7 +268,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from "@/components/settings/AccountSettings";
 import NotificationSettings from "@/components/settings/NotificationSettings";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
 import { TeamManagement } from "@/pages/TeamManagement";
 import { GoogleMapsSettings } from "@/components/maps/GoogleMapsSettings";
 import { BillingManagementPage } from "@/components/billing/BillingManagementPage";
@@ -276,21 +276,15 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
-
-import { useTabRevisit } from "@/hooks/useTabRevisit";
-import { ReloadDataBanner } from "@/components/ui/ReloadDataBanner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
-  const { currentUser, loading, refreshUser } = useSimpleAuth();
+  const { currentUser, loading } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
-  
-  // State for reload functionality
-  const [isReloading, setIsReloading] = useState(false);
-  const { showReloadPrompt, dismissReloadPrompt } = useTabRevisit(7000); // 7 seconds
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
@@ -298,26 +292,30 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // React Query based profile fetch with manual refetch control
-  // Profile data reload is handled via useSimpleAuth.refreshUser() for consistency
+  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
+  useQuery({
+    queryKey: ["settings-profile", currentUser?.id],
+    queryFn: async () => {
+      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser!.id)
+        .maybeSingle();
 
+      if (error) {
+        console.error("Settings/useQuery: Error fetching profile:", error);
+        throw error;
+      }
 
-  // Handle manual data reload
-  const handleReloadData = async () => {
-    console.log("Settings: Manual reload triggered");
-    setIsReloading(true);
-    dismissReloadPrompt();
-    
-    try {
-      await refreshUser();
-      toast.success("Settings data reloaded successfully");
-    } catch (error) {
-      console.error("Error reloading settings data via refreshUser:", error);
-      toast.error("Failed to reload settings data");
-    } finally {
-      setIsReloading(false);
-    }
-  };
+      console.log("Settings/useQuery: Profile data fetched successfully:", data);
+      return data;
+    },
+    enabled: !!currentUser?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
@@ -337,12 +335,6 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ReloadDataBanner 
-        show={showReloadPrompt}
-        onReload={handleReloadData}
-        onDismiss={dismissReloadPrompt}
-        loading={isReloading}
-      />
       <Navbar />
       <Toaster position="bottom-right" richColors />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
