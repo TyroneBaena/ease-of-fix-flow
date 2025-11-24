@@ -72,12 +72,23 @@ export const useUserProvider = () => {
     fetchInProgress.current = true;
     setLoading(true);
 
+    // Add timeout protection to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.error('❌ v78.0 - User fetch timeout after 10s');
+      setLoading(false);
+      fetchInProgress.current = false;
+      setLoadingError(new Error('User fetch timed out'));
+      toast.error('Loading users timed out. Please refresh the page.');
+    }, 10000);
+
     try {
       const allUsers = await userService.getAllUsers();
+      clearTimeout(timeoutId);
       console.log("👥 v78.0 - Fetched users:", allUsers.length);
       setUsers(allUsers);
       setLoadingError(null);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('❌ v78.0 - Error fetching users:', error);
       setLoadingError(error as Error);
       
@@ -89,6 +100,7 @@ export const useUserProvider = () => {
         toast.error(`Failed to load users: ${error.message}`);
       }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
       fetchInProgress.current = false;
     }

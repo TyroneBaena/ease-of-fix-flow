@@ -278,7 +278,7 @@ import { Users, Activity } from "lucide-react";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
-  const { currentUser, loading } = useSimpleAuth();
+  const { currentUser, loading, refreshUser } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
@@ -289,6 +289,26 @@ const Settings = () => {
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
+
+  // Tab visibility listener: refresh user data on tab revisit
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentUser?.id) {
+        console.log('👁️ Settings - Tab visible, refreshing user data');
+        refreshUser().catch(err => {
+          console.error('❌ Settings - Failed to refresh on tab visible:', err);
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [currentUser?.id, refreshUser]);
 
   // Show loading state only while auth is initializing
   if (loading) {
