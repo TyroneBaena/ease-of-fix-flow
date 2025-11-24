@@ -255,7 +255,7 @@
 
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -276,13 +276,13 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useTabRevisit } from "@/hooks/useTabRevisit";
 import { ReloadDataBanner } from "@/components/ui/ReloadDataBanner";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
-  const { currentUser, loading } = useSimpleAuth();
+  const { currentUser, loading, refreshUser } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
@@ -299,69 +299,20 @@ const Settings = () => {
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
   // React Query based profile fetch with manual refetch control
-  const { refetch } = useQuery({
-    queryKey: ["settings-profile", currentUser?.id],
-    queryFn: async () => {
-      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser!.id)
-        .maybeSingle();
+  // Profile data reload is handled via useSimpleAuth.refreshUser() for consistency
 
-      if (error) {
-        console.error("Settings/useQuery: Error fetching profile:", error);
-        throw error;
-      }
-
-      console.log("Settings/useQuery: Profile data fetched successfully:", data);
-      return data;
-    },
-    enabled: !!currentUser?.id,
-    refetchOnWindowFocus: false, // ✅ Disabled automatic refetch - using manual reload button instead
-    refetchOnMount: false, // Don't refetch on component mount
-    staleTime: 0,
-  });
 
   // Handle manual data reload
   const handleReloadData = async () => {
     console.log("Settings: Manual reload triggered");
     setIsReloading(true);
     dismissReloadPrompt();
-
-    if (!currentUser?.id) {
-      console.warn("Settings: Cannot reload data, currentUser is missing");
-      toast.error("Unable to reload settings data");
-      setIsReloading(false);
-      return;
-    }
     
     try {
-      // Try to refresh React Query cache (if any components are using it)
-      try {
-        console.log("Settings: Calling React Query refetch()");
-        await refetch();
-      } catch (err) {
-        console.warn("Settings: React Query refetch failed, continuing with direct Supabase fetch", err);
-      }
-
-      console.log("Settings: Calling Supabase directly to reload profile");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Settings: Direct profile reload error:", error);
-        toast.error("Failed to reload settings data");
-      } else {
-        console.log("Settings: Direct profile reload success:", data);
-        toast.success("Settings data reloaded successfully");
-      }
+      await refreshUser();
+      toast.success("Settings data reloaded successfully");
     } catch (error) {
-      console.error("Error reloading settings data:", error);
+      console.error("Error reloading settings data via refreshUser:", error);
       toast.error("Failed to reload settings data");
     } finally {
       setIsReloading(false);
