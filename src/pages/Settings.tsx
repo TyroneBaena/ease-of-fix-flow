@@ -303,22 +303,15 @@ const Settings = () => {
 
       console.log(`Settings: Fetching profile for user:`, currentUser.id);
 
-      // Small delay to let session propagate from UnifiedAuth on tab revisit
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay to let session and Postgres context settle on tab revisit
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       if (isCancelled) {
         console.log("Settings: Fetch cancelled (component unmounted)");
         return;
       }
 
-      // Verify we have a valid session before making the API call
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn("Settings: No active session, skipping profile fetch");
-        return;
-      }
-
-      console.log("Settings: Session verified, proceeding with profile fetch");
+      console.log("Settings: Calling Supabase profiles API...");
 
       try {
         const { data, error } = await supabase
