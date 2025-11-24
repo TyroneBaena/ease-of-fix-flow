@@ -253,14 +253,14 @@
 
 // export default Settings;
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
 import ContractorManagement from "@/components/settings/ContractorManagement";
 import { Card } from "@/components/ui/card";
-import { useSimpleAuth, waitForSessionReady } from "@/contexts/UnifiedAuthContext";
+import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 import { useUserContext } from "@/contexts/UserContext";
 import AdminRoleUpdater from "@/components/AdminRoleUpdater";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -275,7 +275,6 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -285,184 +284,14 @@ const Settings = () => {
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
 
-  // Profile fetch state management
-  const [profileData, setProfileData] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const inFlightFetchRef = useRef<boolean>(false);
-  const lastFetchedUserIdRef = useRef<string | null>(null);
-
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Manual profile fetch matching the pattern of working pages
-  useEffect(() => {
-    let isCancelled = false;
-
-    const fetchProfile = async () => {
-      const userId = currentUser?.id;
-
-      console.log("Settings: useEffect triggered", {
-        hasUser: !!userId,
-        inFlight: inFlightFetchRef.current,
-        lastFetchedUserId: lastFetchedUserIdRef.current,
-        hasProfileData: !!profileData,
-      });
-
-      // Guard: No user
-      if (!userId) {
-        console.log("Settings: No user, clearing profile");
-        setProfileData(null);
-        setProfileLoading(false);
-        lastFetchedUserIdRef.current = null;
-        return;
-      }
-
-      // Guard: Already fetching for this user
-      if (inFlightFetchRef.current) {
-        console.log("Settings: Already fetching, skipping");
-        return;
-      }
-
-      // Guard: Already fetched for this user (and we have data)
-      if (lastFetchedUserIdRef.current === userId && profileData) {
-        console.log("Settings: Profile already fetched for this user, skipping");
-        setProfileLoading(false); // Ensure loading is false
-        return;
-      }
-
-      // Mark as in-flight
-      inFlightFetchRef.current = true;
-      lastFetchedUserIdRef.current = userId;
-      setProfileLoading(true);
-      console.log("Settings: Starting profile fetch for user:", userId);
-
-      try {
-        // Wait for session to be ready (matching working pages pattern)
-        console.log("Settings: Waiting for session to be ready...");
-        const sessionReady = await waitForSessionReady(undefined, 10000);
-
-        if (!sessionReady) {
-          console.warn("Settings: Session not ready after timeout");
-          if (!isCancelled) {
-            inFlightFetchRef.current = false;
-            setProfileLoading(false);
-          }
-          return;
-        }
-
-        if (isCancelled) {
-          console.log("Settings: Fetch cancelled (component unmounted)");
-          return;
-        }
-
-        console.log("Settings: Session ready, fetching profile for user:", userId);
-
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .maybeSingle();
-
-        if (isCancelled) {
-          console.log("Settings: Fetch completed but component unmounted, ignoring result");
-          return;
-        }
-
-        if (error) {
-          console.error("Settings: Error fetching profile:", error);
-          setProfileData(null);
-        } else {
-          console.log("Settings: Profile fetched successfully:", data);
-          setProfileData(data);
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Settings: Exception fetching profile:", error);
-          setProfileData(null);
-        }
-      } finally {
-        if (!isCancelled) {
-          console.log("Settings: Fetch complete, clearing loading state");
-          inFlightFetchRef.current = false;
-          setProfileLoading(false);
-        }
-      }
-    };
-
-    fetchProfile();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentUser?.id]); // Removed profileData from deps to prevent re-trigger loops
-
-  // Listen for tab visibility changes to refetch profile
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        console.log("Settings: Tab hidden, ignoring");
-        return;
-      }
-
-      console.log("Settings: Tab became visible, triggering refetch");
-      
-      // Clear the cache to force a refetch
-      setProfileData(null);
-      lastFetchedUserIdRef.current = null;
-      inFlightFetchRef.current = false; // Reset in-flight flag
-      
-      // Directly trigger a new fetch by creating a small state change
-      setProfileLoading(true);
-      
-      setTimeout(async () => {
-        try {
-          console.log("Settings: Visibility refetch - waiting for session");
-          const sessionReady = await waitForSessionReady(undefined, 10000);
-          
-          if (!sessionReady) {
-            console.warn("Settings: Session not ready on tab revisit");
-            setProfileLoading(false);
-            return;
-          }
-          
-          console.log("Settings: Visibility refetch - fetching profile");
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", currentUser.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error("Settings: Visibility refetch error:", error);
-          } else {
-            console.log("Settings: Visibility refetch success:", data);
-            setProfileData(data);
-            lastFetchedUserIdRef.current = currentUser.id;
-          }
-        } catch (error) {
-          console.error("Settings: Visibility refetch exception:", error);
-        } finally {
-          setProfileLoading(false);
-        }
-      }, 100);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleVisibilityChange);
-    };
-  }, [currentUser?.id]);
-
-  // v79.1: Simplified loading state - show loading if auth is loading OR profile is being fetched
-  if (loading || profileLoading) {
+  // Show loading state only while auth is initializing
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
