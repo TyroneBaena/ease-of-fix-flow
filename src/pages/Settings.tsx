@@ -253,9 +253,9 @@
 
 // export default Settings;
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -276,63 +276,7 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
-import { User } from "@/types/user";
-
-// Settings-specific visibility handler to refresh profile on tab revisit
-const useSettingsVisibility = () => {
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const isRefreshingRef = useRef(false);
-
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.hidden || isRefreshingRef.current) return;
-
-      isRefreshingRef.current = true;
-      console.log('⚡ Settings: Tab visible, refreshing profile...');
-
-      try {
-        // Get current authenticated user directly
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
-          console.warn('⚠️ Settings: No authenticated user found:', authError?.message);
-        } else {
-          // Query profile with authenticated user ID
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          if (profileData) {
-            console.log('✅ Settings: Profile refreshed for user:', user.id);
-          } else {
-            console.warn('⚠️ Settings: Profile refresh returned no data for user:', user.id);
-          }
-        }
-      } catch (err) {
-        console.error('❌ Settings: Profile refresh failed:', err);
-      } finally {
-        isRefreshingRef.current = false;
-        // Always signal Settings that a refresh happened
-        setRefreshTrigger(prev => prev + 1);
-        console.log('🔄 Settings: refreshTrigger incremented');
-      }
-    };
-
-    // Call immediately on mount to trigger initial refresh
-    handleVisibilityChange();
-
-    // Listen for tab visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []); // No dependencies - runs once on mount
-
-  return refreshTrigger;
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -341,15 +285,37 @@ const Settings = () => {
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
-  
-  // Refresh profile on tab revisit to wake up session
-  const refreshTrigger = useSettingsVisibility();
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
+
+  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
+  useQuery({
+    queryKey: ["settings-profile", currentUser?.id],
+    queryFn: async () => {
+      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser!.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Settings/useQuery: Error fetching profile:", error);
+        throw error;
+      }
+
+      console.log("Settings/useQuery: Profile data fetched successfully:", data);
+      return data;
+    },
+    enabled: !!currentUser?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
@@ -387,29 +353,29 @@ const Settings = () => {
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
-        {isAdmin && (
-          <TabsContent value="users">
-            <Card className="p-6">
-              <UserManagement key={`users-${refreshTrigger}`} />
-            </Card>
-          </TabsContent>
-        )}
+          {isAdmin && (
+            <TabsContent value="users">
+              <Card className="p-6">
+                <UserManagement />
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Contractor management is restricted to admins only */}
-        {isAdmin && (
-          <TabsContent value="contractors">
-            <Card className="p-6">
-              <ContractorManagement key={`contractors-${refreshTrigger}`} />
-            </Card>
-          </TabsContent>
-        )}
+          {isAdmin && (
+            <TabsContent value="contractors">
+              <Card className="p-6">
+                <ContractorManagement />
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Team management is restricted to admins only */}
-        {isAdmin && (
-          <TabsContent value="team">
-            <TeamManagement key={`team-${refreshTrigger}`} />
-          </TabsContent>
-        )}
+          {isAdmin && (
+            <TabsContent value="team">
+              <TeamManagement />
+            </TabsContent>
+          )}
 
           {/* App Settings - Google Maps etc. - Admin only */}
           {/* Commented out as per user request - not needed in UI
@@ -431,9 +397,9 @@ const Settings = () => {
                   <TabsTrigger value="security">Security</TabsTrigger>
                 </TabsList>
 
-              <TabsContent value="billing" className="mt-6">
-                <BillingManagementPage key={`billing-${refreshTrigger}`} embedded={true} />
-              </TabsContent>
+                <TabsContent value="billing" className="mt-6">
+                  <BillingManagementPage embedded={true} />
+                </TabsContent>
 
                 <TabsContent value="security" className="mt-6 space-y-6">
                   {securityError && (
@@ -491,16 +457,16 @@ const Settings = () => {
 
           <TabsContent value="account">
             <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
-          {!isAdmin && <AdminRoleUpdater />}
-          {currentUser && <AccountSettings key={`account-${refreshTrigger}`} user={currentUser} />}
+              <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
+              {!isAdmin && <AdminRoleUpdater />}
+              {currentUser && <AccountSettings user={currentUser} />}
             </Card>
           </TabsContent>
 
           <TabsContent value="notifications">
             <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
-          {currentUser && <NotificationSettings key={`notifications-${refreshTrigger}`} user={currentUser} />}
+              <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
+              {currentUser && <NotificationSettings user={currentUser} />}
             </Card>
           </TabsContent>
         </Tabs>
