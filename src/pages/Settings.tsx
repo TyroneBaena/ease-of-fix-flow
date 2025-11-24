@@ -329,23 +329,41 @@ const Settings = () => {
     console.log("Settings: Manual reload triggered");
     setIsReloading(true);
     dismissReloadPrompt();
+
+    if (!currentUser?.id) {
+      console.warn("Settings: Cannot reload data, currentUser is missing");
+      toast.error("Unable to reload settings data");
+      setIsReloading(false);
+      return;
+    }
     
     try {
-      console.log("Settings: Calling refetch()");
-      const result = await refetch({ cancelRefetch: true });
-      console.log("Settings: Refetch result:", result);
-      
-      if (result.isSuccess) {
-        toast.success("Settings data reloaded successfully");
-      } else if (result.isError) {
-        console.error("Settings: Refetch error:", result.error);
+      // Try to refresh React Query cache (if any components are using it)
+      try {
+        console.log("Settings: Calling React Query refetch()");
+        await refetch();
+      } catch (err) {
+        console.warn("Settings: React Query refetch failed, continuing with direct Supabase fetch", err);
+      }
+
+      console.log("Settings: Calling Supabase directly to reload profile");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Settings: Direct profile reload error:", error);
         toast.error("Failed to reload settings data");
+      } else {
+        console.log("Settings: Direct profile reload success:", data);
+        toast.success("Settings data reloaded successfully");
       }
     } catch (error) {
       console.error("Error reloading settings data:", error);
       toast.error("Failed to reload settings data");
     } finally {
-      console.log("Settings: Reload complete, resetting loading state");
       setIsReloading(false);
     }
   };
