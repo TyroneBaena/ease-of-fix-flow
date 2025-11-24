@@ -253,8 +253,9 @@
 
 // export default Settings;
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -291,68 +292,30 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Fetch profile data on mount and tab revisit (via sessionVersion + visibility)
-  useEffect(() => {
-    let isCancelled = false;
+  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
+  useQuery({
+    queryKey: ["settings-profile", currentUser?.id],
+    queryFn: async () => {
+      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser!.id)
+        .maybeSingle();
 
-    const fetchProfile = async () => {
-      if (!currentUser?.id) {
-        console.log("Settings: No user ID available for profile fetch");
-        return;
+      if (error) {
+        console.error("Settings/useQuery: Error fetching profile:", error);
+        throw error;
       }
 
-      console.log(`Settings: Fetching profile for user:`, currentUser.id);
-
-      // Small delay to let session and Postgres context settle on tab revisit
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      if (isCancelled) {
-        console.log("Settings: Fetch cancelled (component unmounted)");
-        return;
-      }
-
-      console.log("Settings: Calling Supabase profiles API...");
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-
-        if (isCancelled) return;
-
-        if (error) {
-          console.error("Settings: Error fetching profile:", error);
-          return;
-        }
-
-        console.log("Settings: Profile data fetched successfully:", data);
-      } catch (err) {
-        if (!isCancelled) {
-          console.error("Settings: Exception fetching profile:", err);
-        }
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("Settings: Tab became visible, refetching profile");
-        fetchProfile();
-      }
-    };
-
-    // Fetch on mount
-    fetchProfile();
-
-    // And on tab revisit
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      isCancelled = true;
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentUser?.id]);
+      console.log("Settings/useQuery: Profile data fetched successfully:", data);
+      return data;
+    },
+    enabled: !!currentUser?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
