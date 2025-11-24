@@ -299,21 +299,22 @@ const useSettingsVisibility = (currentUser: User | null) => {
         
         if (data) {
           console.log('✅ Settings: Profile refreshed');
-          setRefreshTrigger(prev => prev + 1);
+        } else {
+          console.warn('⚠️ Settings: Profile refresh returned no data');
         }
       } catch (err) {
         console.error('❌ Settings: Profile refresh failed:', err);
       } finally {
         isRefreshingRef.current = false;
+        // Signal Settings that a tab revisit happened
+        setRefreshTrigger(prev => prev + 1);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
     };
   }, [currentUser?.id]);
 
@@ -329,7 +330,7 @@ const Settings = () => {
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
   
   // Refresh profile on tab revisit to wake up session
-  useSettingsVisibility(currentUser);
+  const refreshTrigger = useSettingsVisibility(currentUser);
 
   // Get tab from URL parameter, default based on user role
   const tabParam = searchParams.get('tab');
@@ -373,29 +374,29 @@ const Settings = () => {
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
-          {isAdmin && (
-            <TabsContent value="users">
-              <Card className="p-6">
-                <UserManagement />
-              </Card>
-            </TabsContent>
-          )}
+        {isAdmin && (
+          <TabsContent value="users">
+            <Card className="p-6">
+              <UserManagement key={`users-${refreshTrigger}`} />
+            </Card>
+          </TabsContent>
+        )}
 
           {/* Contractor management is restricted to admins only */}
-          {isAdmin && (
-            <TabsContent value="contractors">
-              <Card className="p-6">
-                <ContractorManagement />
-              </Card>
-            </TabsContent>
-          )}
+        {isAdmin && (
+          <TabsContent value="contractors">
+            <Card className="p-6">
+              <ContractorManagement key={`contractors-${refreshTrigger}`} />
+            </Card>
+          </TabsContent>
+        )}
 
           {/* Team management is restricted to admins only */}
-          {isAdmin && (
-            <TabsContent value="team">
-              <TeamManagement />
-            </TabsContent>
-          )}
+        {isAdmin && (
+          <TabsContent value="team">
+            <TeamManagement key={`team-${refreshTrigger}`} />
+          </TabsContent>
+        )}
 
           {/* App Settings - Google Maps etc. - Admin only */}
           {/* Commented out as per user request - not needed in UI
@@ -417,9 +418,9 @@ const Settings = () => {
                   <TabsTrigger value="security">Security</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="billing" className="mt-6">
-                  <BillingManagementPage embedded={true} />
-                </TabsContent>
+              <TabsContent value="billing" className="mt-6">
+                <BillingManagementPage key={`billing-${refreshTrigger}`} embedded={true} />
+              </TabsContent>
 
                 <TabsContent value="security" className="mt-6 space-y-6">
                   {securityError && (
@@ -477,16 +478,16 @@ const Settings = () => {
 
           <TabsContent value="account">
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
-              {!isAdmin && <AdminRoleUpdater />}
-              {currentUser && <AccountSettings user={currentUser} />}
+          <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
+          {!isAdmin && <AdminRoleUpdater />}
+          {currentUser && <AccountSettings key={`account-${refreshTrigger}`} user={currentUser} />}
             </Card>
           </TabsContent>
 
           <TabsContent value="notifications">
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
-              {currentUser && <NotificationSettings user={currentUser} />}
+          <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
+          {currentUser && <NotificationSettings key={`notifications-${refreshTrigger}`} user={currentUser} />}
             </Card>
           </TabsContent>
         </Tabs>
