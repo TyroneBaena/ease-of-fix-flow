@@ -1126,6 +1126,7 @@ import PublicRequestDetail from "@/pages/PublicRequestDetail";
 import QRCodeRedirect from "@/components/QRCodeRedirect";
 import AdminSyncTest from "@/pages/AdminSyncTest";
 import AdminSettings from "@/pages/AdminSettings";
+import { PublicPropertyWrapper } from "@/components/PublicPropertyWrapper";
 
 // React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
@@ -1229,7 +1230,14 @@ const AppRoutes = () => {
       />
 
       {/* New Request - supports both public (via QR) and protected access */}
-      <Route path="/new-request" element={<NewRequest />} />
+      <Route 
+        path="/new-request" 
+        element={
+          <PublicPropertyWrapper>
+            <NewRequest />
+          </PublicPropertyWrapper>
+        } 
+      />
 
       <Route
         path="/requests/:id"
