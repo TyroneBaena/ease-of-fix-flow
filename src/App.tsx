@@ -1122,6 +1122,7 @@ import RequestDetail from "@/pages/RequestDetail";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 import PublicPropertyRequests from "@/pages/PublicPropertyRequests";
+import PublicRequestDetail from "@/pages/PublicRequestDetail";
 import QRCodeRedirect from "@/components/QRCodeRedirect";
 import AdminSyncTest from "@/pages/AdminSyncTest";
 import AdminSettings from "@/pages/AdminSettings";
@@ -1182,6 +1183,7 @@ const AppRoutes = () => {
       {/* QR code routes - public access */}
       <Route path="/qr/:token" element={<QRCodeRedirect />} />
       <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
+      <Route path="/public-request/:id" element={<PublicRequestDetail />} />
 
       {/* Organization-protected routes */}
       <Route
@@ -1226,17 +1228,8 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Alias for backward compatibility */}
-      <Route
-        path="/new-request"
-        element={
-          <ProtectedRoute>
-            <OrganizationGuard>
-              <NewRequest />
-            </OrganizationGuard>
-          </ProtectedRoute>
-        }
-      />
+      {/* New Request - supports both public (via QR) and protected access */}
+      <Route path="/new-request" element={<NewRequest />} />
 
       <Route
         path="/requests/:id"
