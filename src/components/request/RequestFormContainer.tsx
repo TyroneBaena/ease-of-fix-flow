@@ -214,7 +214,10 @@ export const RequestFormContainer = () => {
 
           console.log('✅ [DEBUG] RequestForm - Public submission successful:', result);
           toast.success("Your maintenance request has been submitted successfully!");
-          navigate('/requests');
+          
+          // Redirect to public property page so users can see their submitted request
+          console.log('🔄 [DEBUG] RequestForm - Redirecting to public property page:', `/property-requests/${propertyId}`);
+          navigate(`/property-requests/${propertyId}`);
         } catch (error) {
           console.error('❌ [DEBUG] RequestForm - Public submission error:', error);
           console.error('❌ [DEBUG] RequestForm - Error details:', error instanceof Error ? error.message : 'Unknown error');
