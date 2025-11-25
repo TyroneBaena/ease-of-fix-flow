@@ -227,30 +227,25 @@ export const useMaintenanceRequestProvider = () => {
       setLoading(true);
 
       try {
-        // v101.0 FIX: Bounded retry to prevent infinite hangs
-        // Keep retrying with exponential backoff but cap at 3 attempts
-        const maxAttempts = 3;
+        // v84.1 FIX: Infinite retry until session settles
+        // Keep retrying with exponential backoff until we get a successful session
         let attempt = 1;
         let isReady = false;
 
-        while (!isReady && attempt <= maxAttempts) {
+        while (!isReady) {
           const delay = Math.min(500 * Math.pow(2, attempt - 1), 5000); // Cap at 5s
-          console.log(`🔧 v101.0 - MaintenanceRequest: Attempt ${attempt}/${maxAttempts} for version ${targetVersion}`);
+          console.log(`🔧 v84.1 - MaintenanceRequest: Attempt ${attempt} for version ${targetVersion}`);
 
           isReady = await waitForSessionReady(targetVersion, 10000);
 
-          if (!isReady && attempt < maxAttempts) {
-            console.log(`🔧 v101.0 - MaintenanceRequest: Retry ${attempt} failed, waiting ${delay}ms...`);
+          if (!isReady) {
+            console.log(`🔧 v84.1 - MaintenanceRequest: Retry ${attempt} failed, waiting ${delay}ms...`);
             await new Promise((resolve) => setTimeout(resolve, delay));
             attempt++;
           }
         }
 
-        if (!isReady) {
-          console.warn(`⚠️ v101.0 - MaintenanceRequest: Session ready timeout after ${maxAttempts} attempts - proceeding anyway`);
-        } else {
-          console.log(`🔧 v101.0 - MaintenanceRequest: Session ready after ${attempt} attempts, fetching...`);
-        }
+        console.log(`🔧 v84.1 - MaintenanceRequest: Session ready after ${attempt} attempts, fetching...`);
         const fetchedRequests = await fetchRequests();
 
         console.log(`✅ v84.1 - Maintenance requests fetched: ${fetchedRequests?.length || 0}`);

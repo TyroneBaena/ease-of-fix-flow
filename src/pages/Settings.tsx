@@ -255,11 +255,13 @@
 
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
 import ContractorManagement from "@/components/settings/ContractorManagement";
 import { Card } from "@/components/ui/card";
+import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 import { useUserContext } from "@/contexts/UserContext";
 import AdminRoleUpdater from "@/components/AdminRoleUpdater";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -274,15 +276,11 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
-import { User } from "@/types/user";
+import { supabase } from "@/integrations/supabase/client";
 
-interface SettingsProps {
-  currentUser: User | null;
-  loading: boolean;
-}
-
-const Settings: React.FC<SettingsProps> = ({ currentUser, loading }) => {
+const Settings = () => {
   const [searchParams] = useSearchParams();
+  const { currentUser, loading } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
@@ -294,8 +292,33 @@ const Settings: React.FC<SettingsProps> = ({ currentUser, loading }) => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Profile data comes from props (via SettingsWrapper → UnifiedAuthProvider)
-  // No duplicate API call needed - currentUser prop already contains profile data
+  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
+  useQuery({
+    queryKey: ["settings-profile", currentUser?.id],
+    queryFn: async () => {
+      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser!.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Settings/useQuery: Error fetching profile:", error);
+        throw error;
+      }
+
+      console.log("Settings/useQuery: Profile data fetched successfully:", data);
+      return data;
+    },
+    enabled: !!currentUser?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  // v79.1: Simplified loading state - no timeout hacks needed
+  // React Query configuration prevents aggressive refetching
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
