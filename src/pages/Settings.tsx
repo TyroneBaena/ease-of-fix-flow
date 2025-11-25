@@ -287,47 +287,34 @@ const Settings = () => {
   const { metrics, loading: securityLoading, error: securityError } = useSecurityAnalytics();
 
   // Get tab from URL parameter, default based on user role
-  const tabParam = searchParams.get("tab");
+  const tabParam = searchParams.get('tab');
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
   // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
-  // useQuery({
-  //   queryKey: ["settings-profile", currentUser?.id],
-  //   queryFn: async () => {
-  //     console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
-
-  //     const { data, error } = await supabase
-  //       .from("profiles")
-  //       .select("*")
-  //       .eq("id", currentUser!.id)
-  //       .maybeSingle();
-
-  //     if (error) {
-  //       console.error("Settings/useQuery: Error fetching profile:", error);
-  //       throw error;
-  //     }
-
-  //     console.log("Settings/useQuery: Profile data fetched successfully:", data);
-  //     return data;
-  //   },
-  //   enabled: !!currentUser?.id,
-  //   refetchOnWindowFocus: true,
-  //   staleTime: 0,
-  // });
-
   useQuery({
     queryKey: ["settings-profile", currentUser?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", currentUser!.id).maybeSingle();
+      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser!.id)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Settings/useQuery: Error fetching profile:", error);
+        throw error;
+      }
+
+      console.log("Settings/useQuery: Profile data fetched successfully:", data);
       return data;
     },
     enabled: !!currentUser?.id,
-    refetchOnWindowFocus: false, // ✅ FOLLOW GLOBAL CONFIG
-    staleTime: 5 * 60 * 1000, // ✅ PREVENT INSTANT REFETCH STORMS
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   // v79.1: Simplified loading state - no timeout hacks needed
