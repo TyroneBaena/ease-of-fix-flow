@@ -221,22 +221,24 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
                       <FormLabel>Assigned Properties</FormLabel>
                       <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
                         {properties.length > 0 ? (
-                          properties.map(property => (
-                            <div key={property.id} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`property-${property.id}`}
-                                checked={assignedProperties.includes(property.id)}
-                                onCheckedChange={() => handlePropertyToggle(property.id)}
-                                disabled={isLoading}
-                              />
-                              <label 
-                                htmlFor={`property-${property.id}`}
-                                className="text-sm cursor-pointer"
-                              >
-                                {property.name}
-                              </label>
-                            </div>
-                          ))
+                          [...properties]
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(property => (
+                              <div key={property.id} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`property-${property.id}`}
+                                  checked={assignedProperties.includes(property.id)}
+                                  onCheckedChange={() => handlePropertyToggle(property.id)}
+                                  disabled={isLoading}
+                                />
+                                <label 
+                                  htmlFor={`property-${property.id}`}
+                                  className="text-sm cursor-pointer"
+                                >
+                                  {property.name}
+                                </label>
+                              </div>
+                            ))
                         ) : (
                           <p className="text-sm text-gray-500 p-2">No properties available</p>
                         )}
