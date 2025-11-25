@@ -28,14 +28,18 @@ export const useUserActions = (
   const [copied, setCopied] = useState(false);
 
   const handleSaveUser = useCallback(async (userData?: NewUserFormState) => {
+    console.log('💾 handleSaveUser called with isEditMode:', isEditMode);
+    console.log('📧 userData parameter:', userData);
+    console.log('📧 userData.assignedProperties:', userData?.assignedProperties);
+    console.log('📧 newUser state:', newUser);
+    console.log('📧 newUser.assignedProperties:', newUser.assignedProperties);
+    
     // Use provided userData or fallback to state
     const userToSave = userData || newUser;
     
-    console.log('💾 handleSaveUser called', { 
-      isEditMode, 
-      hasSelectedUser: !!selectedUser,
-      userData: { email: userToSave.email, name: userToSave.name, role: userToSave.role }
-    });
+    console.log('📧 userToSave final:', userToSave);
+    console.log('📧 userToSave.assignedProperties:', userToSave.assignedProperties);
+    console.log('📧 assignedProperties count:', userToSave.assignedProperties?.length || 0);
     
     // Validation is already handled by react-hook-form, no need for additional checks
     try {
@@ -71,8 +75,10 @@ export const useUserActions = (
           email: userToSave.email,
           name: userToSave.name,
           role: userToSave.role,
-          assignedPropertiesCount: userToSave.assignedProperties.length
+          assignedProperties: userToSave.assignedProperties,
+          assignedPropertiesCount: userToSave.assignedProperties?.length || 0
         });
+        console.log("📧 Full userToSave before addUser:", JSON.stringify(userToSave, null, 2));
         
         try {
           // Clear any previous form state that might be cached 

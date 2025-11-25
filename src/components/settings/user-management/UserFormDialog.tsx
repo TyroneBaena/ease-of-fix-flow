@@ -101,6 +101,10 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
 
   const handleSubmit = form.handleSubmit(async (data) => {
     // Pass form data directly to onSave to avoid state timing issues
+    console.log('🔍 Form submission - Full data:', data);
+    console.log('🔍 Form submission - Assigned properties:', data.assignedProperties);
+    console.log('🔍 Form submission - Assigned properties count:', data.assignedProperties?.length || 0);
+    
     try {
       await onSave(data);
     } catch (error) {
