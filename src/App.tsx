@@ -1113,7 +1113,7 @@ import SetupPassword from "@/pages/SetupPassword";
 import EmailConfirm from "@/pages/EmailConfirm";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
-import Settings from "@/pages/Settings";
+import SettingsWrapper from "@/components/settings/SettingsWrapper";
 import Properties from "@/pages/Properties";
 import PropertyDetail from "@/pages/PropertyDetail";
 import AllRequests from "@/pages/AllRequests";
@@ -1288,7 +1288,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <OrganizationGuard>
-              <Settings />
+              <SettingsWrapper />
             </OrganizationGuard>
           </ProtectedRoute>
         }
