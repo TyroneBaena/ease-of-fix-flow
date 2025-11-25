@@ -320,12 +320,14 @@ const Settings = () => {
   // Window focus handler - refetch profile on every tab revisit (no time threshold)
   useEffect(() => {
     const handleFocus = () => {
-      console.log('Settings: Tab gained focus - triggering profile refetch');
-      refetchProfile();
+      if (document.visibilityState === 'visible') {
+        console.log('Settings: Tab gained focus - triggering profile refetch');
+        refetchProfile();
+      }
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return () => document.removeEventListener('visibilitychange', handleFocus);
   }, [refetchProfile]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
