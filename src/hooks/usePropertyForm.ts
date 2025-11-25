@@ -188,35 +188,75 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
   });
 
   useEffect(() => {
-    console.log("PropertyForm: All users:", users);
-    console.log(
-      "PropertyForm: Users with roles:",
-      users.map((u) => ({ name: u.name, role: u.role })),
-    );
-
-    // Get all users who can be practice leaders (managers and admins)
-    let managerUsers = users.filter((user) => user.role === "manager" || user.role === "admin");
-    
-    // If editing an existing property, filter to show only managers assigned to this property
-    if (existingProperty?.id) {
-      const propertyId = existingProperty.id;
-      managerUsers = managerUsers.filter((user) => {
-        const isAssigned = user.assignedProperties?.includes(propertyId) || false;
-        console.log(`Manager ${user.name}: assigned properties:`, user.assignedProperties, `includes ${propertyId}:`, isAssigned);
-        return isAssigned;
-      });
+    const fetchAssignedManagers = async () => {
+      console.log("PropertyForm: All users:", users);
       console.log(
-        "PropertyForm: Filtered practice leaders (assigned to this property):",
-        managerUsers.map((u) => ({ name: u.name, role: u.role, assignedProperties: u.assignedProperties })),
+        "PropertyForm: Users with roles:",
+        users.map((u) => ({ name: u.name, role: u.role })),
       );
-    } else {
-      console.log(
-        "PropertyForm: All practice leader candidates (new property):",
-        managerUsers.map((u) => ({ name: u.name, role: u.role })),
-      );
-    }
 
-    setManagers(managerUsers);
+      // Get all users who can be practice leaders (managers and admins)
+      let managerUsers = users.filter((user) => user.role === "manager" || user.role === "admin");
+      
+      // If editing an existing property, fetch fresh data from DB to get assigned managers
+      if (existingProperty?.id) {
+        const propertyId = existingProperty.id;
+        console.log("PropertyForm: Fetching fresh assigned managers for property:", propertyId);
+        
+        try {
+          // Import supabase dynamically to avoid circular dependencies
+          const { supabase } = await import("@/integrations/supabase/client");
+          
+          // Fetch users who have this property in their assigned_properties
+          const { data: assignedProfiles, error } = await supabase
+            .from('profiles')
+            .select('id, name, email, role, assigned_properties')
+            .in('role', ['admin', 'manager'])
+            .contains('assigned_properties', [propertyId]);
+          
+          if (error) {
+            console.error("PropertyForm: Error fetching assigned managers:", error);
+            // Fall back to cached data
+            managerUsers = managerUsers.filter((user) => {
+              const isAssigned = user.assignedProperties?.includes(propertyId) || false;
+              return isAssigned;
+            });
+          } else {
+            console.log("PropertyForm: Fresh assigned managers from DB:", assignedProfiles);
+            // Use fresh data from database
+            managerUsers = (assignedProfiles || []).map(profile => ({
+              id: profile.id,
+              name: profile.name || '',
+              email: profile.email || '',
+              role: profile.role as "admin" | "manager",
+              assignedProperties: profile.assigned_properties || [],
+              createdAt: '',
+            }));
+          }
+          
+          console.log(
+            "PropertyForm: Filtered practice leaders (assigned to this property):",
+            managerUsers.map((u) => ({ name: u.name, role: u.role, assignedProperties: u.assignedProperties })),
+          );
+        } catch (error) {
+          console.error("PropertyForm: Exception fetching assigned managers:", error);
+          // Fall back to cached data
+          managerUsers = managerUsers.filter((user) => {
+            const isAssigned = user.assignedProperties?.includes(propertyId) || false;
+            return isAssigned;
+          });
+        }
+      } else {
+        console.log(
+          "PropertyForm: All practice leader candidates (new property):",
+          managerUsers.map((u) => ({ name: u.name, role: u.role })),
+        );
+      }
+
+      setManagers(managerUsers);
+    };
+
+    fetchAssignedManagers();
   }, [users, existingProperty?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
