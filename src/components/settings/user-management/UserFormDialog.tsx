@@ -121,6 +121,18 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
     form.setValue('assignedProperties', newProperties, { shouldValidate: true });
   };
 
+  const handleSelectAllProperties = () => {
+    const currentProperties = form.getValues('assignedProperties');
+    const allPropertyIds = properties.map(p => p.id);
+    
+    // If all are selected, deselect all; otherwise select all
+    const newProperties = currentProperties.length === allPropertyIds.length
+      ? []
+      : allPropertyIds;
+    
+    form.setValue('assignedProperties', newProperties, { shouldValidate: true });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -221,9 +233,24 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
                       <FormLabel>Assigned Properties</FormLabel>
                       <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
                         {properties.length > 0 ? (
-                          [...properties]
-                            .sort((a, b) => a.name.localeCompare(b.name))
-                            .map(property => (
+                          <>
+                            <div className="flex items-center space-x-2 pb-2 border-b mb-2">
+                              <Checkbox 
+                                id="select-all-properties"
+                                checked={assignedProperties.length === properties.length && properties.length > 0}
+                                onCheckedChange={handleSelectAllProperties}
+                                disabled={isLoading}
+                              />
+                              <label 
+                                htmlFor="select-all-properties"
+                                className="text-sm font-medium cursor-pointer"
+                              >
+                                Select All ({assignedProperties.length}/{properties.length})
+                              </label>
+                            </div>
+                            {[...properties]
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(property => (
                               <div key={property.id} className="flex items-center space-x-2">
                                 <Checkbox 
                                   id={`property-${property.id}`}
@@ -238,7 +265,8 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
                                   {property.name}
                                 </label>
                               </div>
-                            ))
+                            ))}
+                          </>
                         ) : (
                           <p className="text-sm text-gray-500 p-2">No properties available</p>
                         )}
