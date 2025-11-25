@@ -117,6 +117,10 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
+                console.log('🖱️ Edit button clicked for user:', user);
+                console.log('🖱️ User object:', user);
+                console.log('🖱️ User assignedProperties:', user.assignedProperties);
+                console.log('🖱️ User assignedProperties count:', user.assignedProperties?.length || 0);
                 onEditUser(user);
                 setDropdownOpen(false);
               }}

@@ -103,7 +103,7 @@ export async function fetchAllUsers(): Promise<User[]> {
 
   console.log("📋 Found users in organization:", profiles?.length || 0);
   
-  return (profiles || []).map(profile => ({
+  const mappedUsers = (profiles || []).map(profile => ({
     id: profile.id,
     name: profile.name || '',
     email: profile.email || '',
@@ -112,6 +112,13 @@ export async function fetchAllUsers(): Promise<User[]> {
     organization_id: profile.organization_id || undefined,
     createdAt: profile.created_at || ''
   }));
+  
+  console.log("📋 Mapped users with assigned properties:");
+  mappedUsers.forEach(user => {
+    console.log(`   - ${user.email}: ${user.assignedProperties?.length || 0} properties`, user.assignedProperties);
+  });
+  
+  return mappedUsers;
 }
 
 export async function checkExistingUser(email: string): Promise<boolean> {
