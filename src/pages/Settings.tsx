@@ -255,7 +255,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -280,6 +280,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const { currentUser, loading } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
@@ -317,18 +318,21 @@ const Settings = () => {
     staleTime: 0,
   });
 
-  // Window focus handler - refetch profile on every tab revisit (no time threshold)
+  // Window focus handler - invalidate global profiles query on every tab revisit
   useEffect(() => {
-    const handleFocus = () => {
+    const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('Settings: Tab gained focus - triggering profile refetch');
+        console.log('Settings: Tab gained focus - invalidating profiles queries');
+        // Invalidate all profile-related queries to trigger refetch
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        queryClient.invalidateQueries({ queryKey: ['profiles'] });
         refetchProfile();
       }
     };
 
-    document.addEventListener('visibilitychange', handleFocus);
-    return () => document.removeEventListener('visibilitychange', handleFocus);
-  }, [refetchProfile]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refetchProfile, queryClient]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
