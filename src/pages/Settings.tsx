@@ -253,7 +253,7 @@
 
 // export default Settings;
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -292,8 +292,8 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
-  useQuery({
+  // React Query based profile fetch with manual window focus handler for tab revisit
+  const { refetch: refetchProfile } = useQuery({
     queryKey: ["settings-profile", currentUser?.id],
     queryFn: async () => {
       console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
@@ -313,9 +313,20 @@ const Settings = () => {
       return data;
     },
     enabled: !!currentUser?.id,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disabled - using manual handler below
     staleTime: 0,
   });
+
+  // Window focus handler - refetch profile on every tab revisit (no time threshold)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('Settings: Tab gained focus - triggering profile refetch');
+      refetchProfile();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refetchProfile]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
