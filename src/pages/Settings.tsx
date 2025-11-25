@@ -255,6 +255,7 @@
 
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -275,6 +276,7 @@ import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import { Users, Activity } from "lucide-react";
 import { User } from "@/types/user";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsProps {
   currentUser: User | null;
@@ -294,7 +296,31 @@ const Settings: React.FC<SettingsProps> = ({ currentUser, loading }) => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // Profile data is now provided via props from SettingsWrapper (no duplicate API call)
+  // Fetch profile with refetchOnWindowFocus for tab revisit behavior
+  // Uses currentUser from props as initial data to avoid loading state
+  useQuery({
+    queryKey: ["settings-profile", currentUser?.id],
+    queryFn: async () => {
+      console.log("Settings/useQuery: Fetching profile on tab revisit for user:", currentUser?.id);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser!.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Settings/useQuery: Error fetching profile:", error);
+        throw error;
+      }
+
+      console.log("Settings/useQuery: Profile data fetched successfully:", data);
+      return data;
+    },
+    enabled: !!currentUser?.id,
+    refetchOnWindowFocus: true, // ✅ Refetch when tab becomes visible
+    staleTime: 0, // Always consider data stale to trigger refetch on focus
+  });
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
