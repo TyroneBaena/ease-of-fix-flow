@@ -114,6 +114,9 @@ export const useUserManagement = () => {
 
   // CRITICAL FIX: Memoize callbacks to prevent unnecessary re-renders
   const handleEditUser = useCallback((user: User) => {
+    console.log('✏️ handleEditUser called with user:', user);
+    console.log('✏️ User assignedProperties:', user.assignedProperties);
+    console.log('✏️ User assignedProperties count:', user.assignedProperties?.length || 0);
     handleOpenDialog(true, user);
   }, [handleOpenDialog]);
 
