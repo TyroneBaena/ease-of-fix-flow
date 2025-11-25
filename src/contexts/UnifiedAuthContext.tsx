@@ -2695,35 +2695,36 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [currentUser?.id, session, sessionVersion]); // Re-subscribe if user changes
 
   // Tab visibility listener - refetch profile when user returns to tab
+  // v101.0 FIX: Use ref to persist lastHiddenTime across re-renders, remove sessionVersion from deps
+  const lastHiddenTimeRef = useRef<number | null>(null);
+  
   useEffect(() => {
     if (!currentUser?.id || !session) return;
-
-    let lastHiddenTime: number | null = null;
     
     const handleVisibilityChange = async () => {
       if (document.hidden) {
         // Tab hidden - record timestamp
-        lastHiddenTime = Date.now();
-        console.log('🔄 v100.0 - Tab hidden, will refetch profile on return');
+        lastHiddenTimeRef.current = Date.now();
+        console.log('🔄 v101.0 - Tab hidden, will refetch profile on return');
       } else {
         // Tab visible - check if we should refetch
-        const hiddenDuration = lastHiddenTime ? Date.now() - lastHiddenTime : 0;
+        const hiddenDuration = lastHiddenTimeRef.current ? Date.now() - lastHiddenTimeRef.current : 0;
         
         if (hiddenDuration > 5000) {
-          console.log(`🔄 v100.0 - Tab visible after ${hiddenDuration}ms, refetching profile`);
+          console.log(`🔄 v101.0 - Tab visible after ${hiddenDuration}ms, refetching profile`);
           
           try {
             const refreshedUser = await convertSupabaseUser(session.user, sessionVersion);
             setCurrentUser(refreshedUser);
-            console.log('✅ v100.0 - Profile refreshed from tab visibility change');
+            console.log('✅ v101.0 - Profile refreshed from tab visibility change');
           } catch (err) {
-            console.error('❌ v100.0 - Error refetching profile on tab return:', err);
+            console.error('❌ v101.0 - Error refetching profile on tab return:', err);
           }
         } else {
-          console.log(`🔄 v100.0 - Tab visible but only hidden for ${hiddenDuration}ms, skipping refetch`);
+          console.log(`🔄 v101.0 - Tab visible but only hidden for ${hiddenDuration}ms, skipping refetch`);
         }
         
-        lastHiddenTime = null;
+        lastHiddenTimeRef.current = null;
       }
     };
 
@@ -2732,7 +2733,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [currentUser?.id, session, sessionVersion]);
+  }, [currentUser?.id, session]); // v101.0: Removed sessionVersion to prevent listener reset
 
   // Fetch users when user becomes admin - ONCE per session
   useEffect(() => {
