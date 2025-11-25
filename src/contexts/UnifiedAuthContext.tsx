@@ -2638,6 +2638,62 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []); // Empty deps - let Supabase handle session refresh internally
 
+  // v99.0: Realtime subscription to profile changes for automatic updates on tab revisit
+  useEffect(() => {
+    if (!currentUser?.id) {
+      console.log("🔔 v99.0 - No currentUser, skipping realtime profile subscription");
+      return;
+    }
+
+    console.log("🔔 v99.0 - Setting up realtime profile subscription for user:", currentUser.email);
+
+    const channel = supabase
+      .channel(`profile-changes-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${currentUser.id}`
+        },
+        async (payload) => {
+          console.log('🔔 v99.0 - Profile changed for current user, refetching:', payload);
+          
+          // Refetch the profile data and update currentUser
+          try {
+            const { data: updatedProfile, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentUser.id)
+              .maybeSingle();
+
+            if (error) {
+              console.error('🔔 v99.0 - Error refetching profile:', error);
+              return;
+            }
+
+            if (updatedProfile && session?.user) {
+              console.log('🔔 v99.0 - Profile refetched, converting to User object');
+              const refreshedUser = await convertSupabaseUser(session.user, sessionVersion);
+              setCurrentUser(refreshedUser);
+              console.log('✅ v99.0 - CurrentUser updated from realtime profile change');
+            }
+          } catch (err) {
+            console.error('🔔 v99.0 - Error in profile change handler:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 v99.0 - Profile subscription status:', status);
+      });
+
+    return () => {
+      console.log("🔔 v99.0 - Cleaning up profile realtime subscription");
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, session, sessionVersion]); // Re-subscribe if user changes
+
   // Fetch users when user becomes admin - ONCE per session
   useEffect(() => {
     console.log("UnifiedAuth - useEffect triggered:", {
