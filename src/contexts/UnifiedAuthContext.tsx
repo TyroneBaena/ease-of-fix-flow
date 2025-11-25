@@ -2694,6 +2694,46 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, [currentUser?.id, session, sessionVersion]); // Re-subscribe if user changes
 
+  // Tab visibility listener - refetch profile when user returns to tab
+  useEffect(() => {
+    if (!currentUser?.id || !session) return;
+
+    let lastHiddenTime: number | null = null;
+    
+    const handleVisibilityChange = async () => {
+      if (document.hidden) {
+        // Tab hidden - record timestamp
+        lastHiddenTime = Date.now();
+        console.log('🔄 v100.0 - Tab hidden, will refetch profile on return');
+      } else {
+        // Tab visible - check if we should refetch
+        const hiddenDuration = lastHiddenTime ? Date.now() - lastHiddenTime : 0;
+        
+        if (hiddenDuration > 5000) {
+          console.log(`🔄 v100.0 - Tab visible after ${hiddenDuration}ms, refetching profile`);
+          
+          try {
+            const refreshedUser = await convertSupabaseUser(session.user, sessionVersion);
+            setCurrentUser(refreshedUser);
+            console.log('✅ v100.0 - Profile refreshed from tab visibility change');
+          } catch (err) {
+            console.error('❌ v100.0 - Error refetching profile on tab return:', err);
+          }
+        } else {
+          console.log(`🔄 v100.0 - Tab visible but only hidden for ${hiddenDuration}ms, skipping refetch`);
+        }
+        
+        lastHiddenTime = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser?.id, session, sessionVersion]);
+
   // Fetch users when user becomes admin - ONCE per session
   useEffect(() => {
     console.log("UnifiedAuth - useEffect triggered:", {
