@@ -45,14 +45,23 @@ export const useUserDialog = (session: Session | null) => {
       // Proceed with opening dialog
       if (edit && user) {
         console.log('📝 Opening in EDIT mode for user:', user.email);
-        setIsEditMode(true);
-        setSelectedUser(user);
-        setNewUser({
+        console.log('📝 User object received:', user);
+        console.log('📝 User assignedProperties:', user.assignedProperties);
+        console.log('📝 User assignedProperties count:', user.assignedProperties?.length || 0);
+        
+        const newUserData = {
           name: user.name,
           email: user.email,
           role: user.role,
           assignedProperties: user.assignedProperties || []
-        });
+        };
+        
+        console.log('📝 Setting newUser state to:', newUserData);
+        console.log('📝 newUser.assignedProperties:', newUserData.assignedProperties);
+        
+        setIsEditMode(true);
+        setSelectedUser(user);
+        setNewUser(newUserData);
       } else {
         console.log('➕ Opening in INVITE mode');
         setIsEditMode(false);

@@ -90,14 +90,28 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
   // Update form values when dialog opens
   useEffect(() => {
     if (isOpen) {
-      form.reset({
+      console.log('🎨 UserFormDialog - Dialog opened, resetting form');
+      console.log('🎨 user prop:', user);
+      console.log('🎨 user.assignedProperties:', user.assignedProperties);
+      console.log('🎨 user.assignedProperties count:', user.assignedProperties?.length || 0);
+      console.log('🎨 isEditMode:', isEditMode);
+      
+      const formData = {
         name: user.name,
         email: user.email,
         role: user.role,
         assignedProperties: user.assignedProperties || []
-      });
+      };
+      
+      console.log('🎨 Resetting form with data:', formData);
+      console.log('🎨 formData.assignedProperties:', formData.assignedProperties);
+      
+      form.reset(formData);
+      
+      console.log('🎨 Form reset complete. Current form values:', form.getValues());
+      console.log('🎨 Form assignedProperties after reset:', form.getValues('assignedProperties'));
     }
-  }, [isOpen, user.name, user.email, user.role, user.assignedProperties, form]);
+  }, [isOpen, user, isEditMode, form]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
     // Pass form data directly to onSave to avoid state timing issues
@@ -228,10 +242,19 @@ const UserFormDialog: React.FC<UserFormDialogProps> = ({
                 name="assignedProperties"
                 render={() => {
                   const assignedProperties = form.watch('assignedProperties') || [];
+                  console.log('🔄 Form render - assignedProperties from watch:', assignedProperties);
+                  console.log('🔄 Form render - assignedProperties count:', assignedProperties.length);
                   return (
                     <FormItem>
                       <FormLabel>Assigned Properties</FormLabel>
                       <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-2">
+                        {(() => {
+                          console.log('🏠 Properties list render');
+                          console.log('🏠 Total properties available:', properties.length);
+                          console.log('🏠 Properties:', properties.map(p => ({ id: p.id, name: p.name })));
+                          console.log('🏠 Currently assigned:', assignedProperties);
+                          return null;
+                        })()}
                         {properties.length > 0 ? (
                           <>
                             <div className="flex items-center space-x-2 pb-2 border-b mb-2">
