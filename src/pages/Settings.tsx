@@ -253,9 +253,8 @@
 
 // export default Settings;
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -280,7 +279,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
-  const { currentUser, loading } = useSimpleAuth();
+  const { currentUser, loading, isSessionReady } = useSimpleAuth();
+  const sessionReadyHandledRef = useRef(false);
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
   const [billingSecurityTab, setBillingSecurityTab] = useState("billing");
@@ -292,30 +292,39 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
-  useQuery({
-    queryKey: ["settings-profile", currentUser?.id],
-    queryFn: async () => {
-      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
+  // Fetch profile data with proper session readiness handling
+  useEffect(() => {
+    // Only proceed if session is ready and we have a current user
+    if (!isSessionReady || !currentUser?.id) {
+      return;
+    }
+
+    // Prevent duplicate fetches
+    if (sessionReadyHandledRef.current) {
+      return;
+    }
+
+    sessionReadyHandledRef.current = true;
+
+    const fetchProfile = async () => {
+      console.log("Settings/useEffect: Fetching profile for user:", currentUser.id);
       
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", currentUser!.id)
+        .eq("id", currentUser.id)
         .maybeSingle();
 
       if (error) {
-        console.error("Settings/useQuery: Error fetching profile:", error);
-        throw error;
+        console.error("Settings/useEffect: Error fetching profile:", error);
+        return;
       }
 
-      console.log("Settings/useQuery: Profile data fetched successfully:", data);
-      return data;
-    },
-    enabled: !!currentUser?.id,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
+      console.log("Settings/useEffect: Profile data fetched successfully:", data);
+    };
+
+    fetchProfile();
+  }, [isSessionReady, currentUser?.id]);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
