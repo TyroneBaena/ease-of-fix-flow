@@ -318,21 +318,26 @@ const Settings = () => {
     staleTime: 0,
   });
 
-  // Window focus handler - invalidate global profiles query on every tab revisit
+  // Window focus handler - trigger auth refresh on every tab revisit
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        console.log('Settings: Tab gained focus - invalidating profiles queries');
-        // Invalidate all profile-related queries to trigger refetch
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-        queryClient.invalidateQueries({ queryKey: ['profiles'] });
-        refetchProfile();
+        console.log('Settings: Tab gained focus - triggering full session refresh');
+        
+        // Force Supabase to refresh the session which will cascade to profile fetch
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error) {
+          console.error('Settings: Session refresh error:', error);
+        } else {
+          console.log('Settings: Session refreshed successfully');
+        }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refetchProfile, queryClient]);
+  }, []);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
