@@ -22,17 +22,27 @@ export async function updateUserProfile(user: User): Promise<void> {
   const assignedPropertiesArray = user.role === 'manager' ? user.assignedProperties : [];
   console.log('Final assigned_properties to save:', assignedPropertiesArray);
   
-  const { error } = await supabase
+  // Prepare the update object
+  const updateData = {
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    assigned_properties: assignedPropertiesArray,
+    updated_at: new Date().toISOString()
+  };
+  
+  console.log('🔧 Full update object being sent to Supabase:', updateData);
+  console.log('🔧 Type of assigned_properties:', typeof updateData.assigned_properties);
+  console.log('🔧 Is array:', Array.isArray(updateData.assigned_properties));
+  
+  const { data: updateResult, error } = await supabase
     .from('profiles')
-    .update({
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      assigned_properties: assignedPropertiesArray,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', user.id);
+    .update(updateData)
+    .eq('id', user.id)
+    .select('assigned_properties');
+    
+  console.log('🔧 Supabase UPDATE response:', { updateResult, error });
     
   if (error) {
     console.error("Error updating user profile:", error);
