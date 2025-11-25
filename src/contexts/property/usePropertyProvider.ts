@@ -82,6 +82,36 @@ export const usePropertyProvider = (): PropertyContextType => {
     fetchAndSetProperties();
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
 
+  // Set up realtime subscription to properties table
+  useEffect(() => {
+    if (!currentUser?.id || !isSessionReady) {
+      return;
+    }
+
+    console.log('PropertyProvider: Setting up realtime subscription');
+    
+    const channel = supabase
+      .channel('properties-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'properties'
+        },
+        (payload) => {
+          console.log('PropertyProvider: Properties changed, refetching', payload);
+          fetchAndSetProperties();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('PropertyProvider: Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
+
   const addProperty = useCallback(async (property: Omit<Property, 'id' | 'createdAt'>) => {
     try {
       if (!currentUser) {
