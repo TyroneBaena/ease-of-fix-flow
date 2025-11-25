@@ -38,6 +38,23 @@ export async function updateUserProfile(user: User): Promise<void> {
     console.error("Error updating user profile:", error);
     throw error;
   }
+  
+  // Verify the update was successful by reading back
+  const { data: updatedProfile, error: fetchError } = await supabase
+    .from('profiles')
+    .select('assigned_properties')
+    .eq('id', user.id)
+    .single();
+  
+  console.log('✅ Update complete. Verifying saved data:');
+  console.log('   - User ID:', user.id);
+  console.log('   - Sent to database:', assignedPropertiesArray);
+  console.log('   - Actually saved in database:', updatedProfile?.assigned_properties);
+  console.log('   - Match:', JSON.stringify(assignedPropertiesArray) === JSON.stringify(updatedProfile?.assigned_properties));
+  
+  if (fetchError) {
+    console.error('Error fetching updated profile:', fetchError);
+  }
 }
 
 export async function sendPasswordReset(email: string): Promise<{success: boolean; message: string}> {
