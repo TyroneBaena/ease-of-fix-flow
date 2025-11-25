@@ -195,14 +195,29 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     );
 
     // Get all users who can be practice leaders (managers and admins)
-    const managerUsers = users.filter((user) => user.role === "manager" || user.role === "admin");
-    console.log(
-      "PropertyForm: Practice leader candidates:",
-      managerUsers.map((u) => ({ name: u.name, role: u.role })),
-    );
+    let managerUsers = users.filter((user) => user.role === "manager" || user.role === "admin");
+    
+    // If editing an existing property, filter to show only managers assigned to this property
+    if (existingProperty?.id) {
+      const propertyId = existingProperty.id;
+      managerUsers = managerUsers.filter((user) => {
+        const isAssigned = user.assignedProperties?.includes(propertyId) || false;
+        console.log(`Manager ${user.name}: assigned properties:`, user.assignedProperties, `includes ${propertyId}:`, isAssigned);
+        return isAssigned;
+      });
+      console.log(
+        "PropertyForm: Filtered practice leaders (assigned to this property):",
+        managerUsers.map((u) => ({ name: u.name, role: u.role, assignedProperties: u.assignedProperties })),
+      );
+    } else {
+      console.log(
+        "PropertyForm: All practice leader candidates (new property):",
+        managerUsers.map((u) => ({ name: u.name, role: u.role })),
+      );
+    }
 
     setManagers(managerUsers);
-  }, [users]);
+  }, [users, existingProperty?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
