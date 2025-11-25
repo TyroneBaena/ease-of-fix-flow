@@ -253,9 +253,9 @@
 
 // export default Settings;
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import UserManagement from "@/components/settings/UserManagement";
@@ -280,7 +280,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
-  const queryClient = useQueryClient();
   const { currentUser, loading } = useSimpleAuth();
   const { users } = useUserContext();
   const isAdmin = currentUser?.role === "admin";
@@ -293,8 +292,8 @@ const Settings = () => {
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
 
-  // React Query based profile fetch with manual window focus handler for tab revisit
-  const { refetch: refetchProfile } = useQuery({
+  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
+  useQuery({
     queryKey: ["settings-profile", currentUser?.id],
     queryFn: async () => {
       console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
@@ -314,30 +313,9 @@ const Settings = () => {
       return data;
     },
     enabled: !!currentUser?.id,
-    refetchOnWindowFocus: false, // Disabled - using manual handler below
+    refetchOnWindowFocus: true,
     staleTime: 0,
   });
-
-  // Window focus handler - trigger auth refresh on every tab revisit
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        console.log('Settings: Tab gained focus - triggering full session refresh');
-        
-        // Force Supabase to refresh the session which will cascade to profile fetch
-        const { data, error } = await supabase.auth.refreshSession();
-        
-        if (error) {
-          console.error('Settings: Session refresh error:', error);
-        } else {
-          console.log('Settings: Session refreshed successfully');
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
 
   // v79.1: Simplified loading state - no timeout hacks needed
   // React Query configuration prevents aggressive refetching
