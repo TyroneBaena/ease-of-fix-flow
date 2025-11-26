@@ -32,8 +32,11 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
 
   const generateQrCode = async () => {
     try {
-      setLoading(true);
+      // Reset state first to ensure UI updates
+      setQrUrl('');
+      setToken('');
       setError('');
+      setLoading(true);
       
       console.log('🔄 Generating QR code for property:', propertyId);
       
