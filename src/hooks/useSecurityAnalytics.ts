@@ -30,6 +30,17 @@ export const useSecurityAnalytics = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSecurityMetrics = useCallback(async () => {
+    console.log('🔐 [useSecurityAnalytics] Starting fetchSecurityMetrics...');
+    
+    // Prevent rapid-fire calls - debounce with 5 second minimum interval
+    const now = Date.now();
+    const lastFetch = (fetchSecurityMetrics as any).lastFetchTime || 0;
+    if (now - lastFetch < 5000) {
+      console.log('🔐 [useSecurityAnalytics] Skipping fetch - too soon (debounced)');
+      return;
+    }
+    (fetchSecurityMetrics as any).lastFetchTime = now;
+    
     try {
       setLoading(true);
       setError(null);
@@ -118,59 +129,8 @@ export const useSecurityAnalytics = () => {
     }
   }, [fetchSecurityMetrics]);
 
-  // Auto-log auth events
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 [Security Analytics] Auth state changed:', event);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        try {
-          await supabase.rpc('log_security_event', {
-            p_event_type: 'login_success',
-            p_user_id: session.user.id,
-            p_user_email: session.user.email || '',
-            p_ip_address: null,
-            p_user_agent: navigator.userAgent || null,
-            p_session_id: null,
-            p_metadata: {
-              provider: 'email',
-              browser: navigator.userAgent.split(' ').pop(),
-              timestamp: new Date().toISOString(),
-              action: 'user_login'
-            }
-          });
-          
-          console.log('🔐 [Security Analytics] Logged login_success event');
-          
-          // Refresh metrics after a short delay
-          setTimeout(fetchSecurityMetrics, 1000);
-        } catch (error) {
-          console.error('❌ [Security Analytics] Failed to log login event:', error);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        try {
-          await supabase.rpc('log_security_event', {
-            p_event_type: 'logout',
-            p_user_id: null,
-            p_user_email: '',
-            p_ip_address: null,
-            p_user_agent: navigator.userAgent || null,
-            p_session_id: null,
-            p_metadata: {
-              timestamp: new Date().toISOString(),
-              action: 'user_logout'
-            }
-          });
-          
-          console.log('🔐 [Security Analytics] Logged logout event');
-        } catch (error) {
-          console.error('❌ [Security Analytics] Failed to log logout event:', error);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []); // Remove logSecurityEvent dependency
+  // Removed duplicate auth listener - UnifiedAuthProvider handles auth state changes
+  // Security events are logged only on explicit user actions, not on every SIGNED_IN event
 
   useEffect(() => {
     fetchSecurityMetrics();

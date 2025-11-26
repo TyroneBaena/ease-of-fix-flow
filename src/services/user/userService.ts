@@ -7,10 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { tenantService } from './tenantService';
 
 export const userService: UserService = {
-  getAllUsers: async () => {
+  getAllUsers: async (isSessionReady: boolean = true) => {
     try {
       console.log("Fetching all users from profiles");
-      return await fetchAllUsers();
+      return await fetchAllUsers(isSessionReady);
     } catch (error) {
       console.error("Error in getAllUsers:", error);
       throw error;

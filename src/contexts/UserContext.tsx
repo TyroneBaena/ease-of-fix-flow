@@ -26,7 +26,7 @@ export const useUserContext = () => {
 };
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, isAdmin } = useSimpleAuth();
+  const { currentUser, isAdmin, isSessionReady } = useSimpleAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<Error | null>(null);
@@ -40,22 +40,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔧 UserContext - Not fetching users (not admin)');
       return;
     }
+    
+    if (!isSessionReady) {
+      console.log('🔧 UserContext - Not fetching users (session not ready)');
+      return;
+    }
 
     try {
       setLoading(true);
       setLoadingError(null);
-      console.log('🔧 v79.0 - UserContext: Fetching users');
+      console.log('🔧 v79.3 - UserContext: Fetching users (session ready)');
       
-      const userData = await userService.getAllUsers();
+      const userData = await userService.getAllUsers(isSessionReady);
       setUsers(userData);
-      console.log('✅ v79.0 - UserContext: Users fetched:', userData.length);
+      console.log('✅ v79.3 - UserContext: Users fetched:', userData.length);
     } catch (error) {
-      console.error('❌ v79.0 - UserContext: Error:', error);
+      console.error('❌ v79.3 - UserContext: Error:', error);
       setLoadingError(error as Error);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, isSessionReady]);
 
   const addUser = useCallback(async (
     email: string, 

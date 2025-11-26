@@ -16,7 +16,7 @@ export interface InviteUserResult {
 }
 
 export interface UserService {
-  getAllUsers: () => Promise<User[]>;
+  getAllUsers: (isSessionReady?: boolean) => Promise<User[]>;
   checkUserExists: (email: string) => Promise<boolean>;
   inviteUser: (email: string, name: string, role: UserRole, assignedProperties?: string[]) => Promise<InviteUserResult>;
   updateUser: (user: User) => Promise<void>;

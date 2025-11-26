@@ -2,8 +2,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/user';
 
-export async function fetchAllUsers(): Promise<User[]> {
-  console.log("📋 v79.2 - fetchAllUsers: Getting current user's organization");
+export async function fetchAllUsers(isSessionReady: boolean = true): Promise<User[]> {
+  console.log("📋 v79.3 - fetchAllUsers: Getting current user's organization");
+  
+  // Wait for session to be ready before making auth calls
+  if (!isSessionReady) {
+    console.log("⏳ fetchAllUsers: Waiting for session to be ready...");
+    throw new Error("Session not ready");
+  }
   
   // First, get the current user's organization ID
   const { data: { user }, error: authError } = await supabase.auth.getUser();

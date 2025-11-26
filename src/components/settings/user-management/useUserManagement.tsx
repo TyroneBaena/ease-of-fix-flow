@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 export const useUserManagement = () => {
   const { users, fetchUsers: fetchUsersFromContext, loadingError: userContextError } = useUserContext();
-  const { currentUser, isAdmin, session } = useSimpleAuth();
+  const { currentUser, isAdmin, session, isSessionReady } = useSimpleAuth();
   const { properties } = usePropertyContext();
   const [fetchedOnce, setFetchedOnce] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -92,14 +92,14 @@ export const useUserManagement = () => {
   
   // Clean form error management - no need for window object
 
-  // Fetch users when component mounts - ONLY ONCE
+  // Fetch users when component mounts - ONLY ONCE, wait for session ready
   useEffect(() => {
-    if (isAdmin && !fetchedOnce && !isLoadingUsers) {
-      console.log("Initial fetch for admin user");
+    if (isAdmin && !fetchedOnce && !isLoadingUsers && isSessionReady) {
+      console.log("Initial fetch for admin user (session ready)");
       fetchUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]); // Only run when isAdmin changes
+  }, [isAdmin, isSessionReady]); // Wait for both admin status and session readiness
 
   // Set ready once we have basic data - don't block on session checks
   useEffect(() => {
