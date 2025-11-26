@@ -52,10 +52,8 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
     }
     
     try {
-      // CRITICAL: Only set loading on first fetch to prevent flash on tab switches
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(true);
-      }
+      // ALWAYS set loading when fetching so UI updates properly
+      setLoading(true);
       setFetchError(null);
       isFetchingRef.current = true;
       console.log("Loading contractors...");
@@ -86,14 +84,12 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
         toast.error('Failed to load contractors');
       }
     } finally {
-      // CRITICAL: Only reset loading on first load, keep it false after
-      if (!hasCompletedInitialLoadRef.current) {
-        setLoading(false);
-      }
+      // Always reset loading after fetch completes
+      setLoading(false);
       hasCompletedInitialLoadRef.current = true;
       isFetchingRef.current = false;
     }
-  }, [currentUser, isAdmin]);
+  }, []);
 
   // Load contractors on initial mount and when user changes
   // CRITICAL FIX: Only refetch if user ID actually changed
@@ -154,14 +150,12 @@ export const ContractorManagementProvider: React.FC<{ children: React.ReactNode 
 
   const value: ContractorManagementContextType = useMemo(() => ({
     contractors,
-    // CRITICAL: Override loading to false after initial load completes
-    // This prevents loading flashes on tab switches
-    loading: hasCompletedInitialLoadRef.current ? false : loading,
+    loading,
     fetchError,
     loadContractors,
     isAdmin,
     currentUser
-  }), [contractors, loading, fetchError, loadContractors, isAdmin, currentUser?.id]); // Use ID to prevent re-render on object recreation
+  }), [contractors, loading, fetchError, loadContractors, isAdmin, currentUser?.id]);
 
   return (
     <ContractorManagementContext.Provider value={value}>
