@@ -291,34 +291,6 @@ const Settings = () => {
   const defaultTab = tabParam || (isAdmin ? "users" : "account");
 
   const hasSecurityConcerns = metrics && metrics.failedLoginsToday > 5;
-
-  // React Query based profile fetch with reliable refetchOnWindowFocus for tab revisit
-  useQuery({
-    queryKey: ["settings-profile", currentUser?.id],
-    queryFn: async () => {
-      console.log("Settings/useQuery: Fetching profile for user:", currentUser?.id);
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser!.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Settings/useQuery: Error fetching profile:", error);
-        throw error;
-      }
-
-      console.log("Settings/useQuery: Profile data fetched successfully:", data);
-      return data;
-    },
-    enabled: !!currentUser?.id,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
-
-  // v79.1: Simplified loading state - no timeout hacks needed
-  // React Query configuration prevents aggressive refetching
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
