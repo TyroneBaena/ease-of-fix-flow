@@ -42,7 +42,8 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
       
       // Generate QR code URL with simple property requests format (no token needed)
       const baseUrl = window.location.origin;
-      const qrCodeUrl = `${baseUrl}/property-requests/${propertyId}`;
+      const timestamp = Date.now(); // ensure a unique URL each time for a fresh QR image
+      const qrCodeUrl = `${baseUrl}/property-requests/${propertyId}?v=${timestamp}`;
       setQrUrl(qrCodeUrl);
       
       console.log('✅ QR URL:', qrCodeUrl);
