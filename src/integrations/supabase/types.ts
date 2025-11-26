@@ -24,7 +24,7 @@ export type Database = {
           id: string
           metadata: Json | null
           organization_id: string
-          request_id: string
+          request_id: string | null
         }
         Insert: {
           action_type: string
@@ -35,7 +35,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           organization_id: string
-          request_id: string
+          request_id?: string | null
         }
         Update: {
           action_type?: string
@@ -46,7 +46,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           organization_id?: string
-          request_id?: string
+          request_id?: string | null
         }
         Relationships: [
           {
