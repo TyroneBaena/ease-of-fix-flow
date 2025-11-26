@@ -1883,7 +1883,7 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { fetchAllUsers } = await import("@/services/user/userQueries");
 
       try {
-        const userData = await fetchAllUsers();
+        const userData = await fetchAllUsers(isSessionReady);
 
         console.log("UnifiedAuth - Raw user data received:", userData.length, "users");
 
