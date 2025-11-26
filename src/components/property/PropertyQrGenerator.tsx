@@ -28,7 +28,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
     if (isOpen && !qrUrl && !loading) {
       generateQrCode();
     }
-  }, [isOpen]);
+  }, [isOpen, qrUrl, loading]);
 
   const generateQrCode = async () => {
     try {
@@ -95,7 +95,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" onClick={resetForm} className="flex items-center">
+        <Button variant="outline" className="flex items-center">
           <QrCode className="h-4 w-4 mr-2" />
           View QR Code
         </Button>
@@ -146,7 +146,7 @@ const PropertyQrGenerator = ({ propertyId, propertyName }: PropertyQrGeneratorPr
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
-              <Button onClick={resetForm} variant="outline" className="flex-1">
+              <Button onClick={generateQrCode} variant="outline" className="flex-1">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Generate New
               </Button>
