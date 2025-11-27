@@ -1144,6 +1144,27 @@ const queryClient = new QueryClient({
   },
 });
 
+// Helper component for setup-password route
+const SetupPasswordRoute = () => {
+  const { currentUser } = useSimpleAuth();
+  const location = useLocation();
+  
+  // Check if user arrived via password reset link
+  const hasResetToken = location.hash && location.hash.includes("access_token");
+  const hasPasswordResetPending = sessionStorage.getItem('password_reset_pending') === 'true';
+  
+  // Allow access to SetupPassword if:
+  // 1. No currentUser, OR
+  // 2. User has reset token in URL, OR
+  // 3. Password reset is pending
+  if (!currentUser || hasResetToken || hasPasswordResetPending) {
+    return <SetupPassword />;
+  }
+  
+  // Only redirect to dashboard if truly logged in without reset in progress
+  return <Navigate to="/dashboard" replace />;
+};
+
 const AppRoutes = () => {
   const { currentUser, loading, isInitialized } = useSimpleAuth();
 
@@ -1176,7 +1197,7 @@ const AppRoutes = () => {
       />
       <Route
         path="/setup-password"
-        element={currentUser ? <Navigate to="/dashboard" replace /> : <SetupPassword />}
+        element={<SetupPasswordRoute />}
       />
       <Route path="/email-confirm" element={<EmailConfirm />} />
       <Route path="/onboarding" element={<Onboarding />} />

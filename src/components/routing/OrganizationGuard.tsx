@@ -18,7 +18,8 @@ const ALLOWED_PATHS_WITHOUT_ORG = [
   '/login',
   '/signup',
   '/forgot-password',
-  '/reset-password'
+  '/reset-password',
+  '/setup-password'
 ];
 
 export const OrganizationGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
