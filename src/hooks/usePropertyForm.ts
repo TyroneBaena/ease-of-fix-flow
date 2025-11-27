@@ -201,50 +201,65 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
       // If editing an existing property, fetch fresh data from DB to get assigned managers
       if (existingProperty?.id) {
         const propertyId = existingProperty.id;
-        console.log("PropertyForm: Fetching fresh assigned managers for property:", propertyId);
+        console.log("PropertyForm: Fetching practice leaders for property:", propertyId);
         
         try {
           // Import supabase dynamically to avoid circular dependencies
           const { supabase } = await import("@/integrations/supabase/client");
           
-          // Fetch users who have this property in their assigned_properties
-          const { data: assignedProfiles, error } = await supabase
+          // Fetch ALL admins (admins have implicit access to all properties)
+          const { data: adminProfiles, error: adminError } = await supabase
             .from('profiles')
-            .select('id, name, email, role, assigned_properties')
-            .in('role', ['admin', 'manager'])
+            .select('id, name, email, role, phone, assigned_properties')
+            .eq('role', 'admin');
+          
+          // Fetch managers who have this property assigned
+          const { data: managerProfiles, error: managerError } = await supabase
+            .from('profiles')
+            .select('id, name, email, role, phone, assigned_properties')
+            .eq('role', 'manager')
             .contains('assigned_properties', [propertyId]);
           
-          if (error) {
-            console.error("PropertyForm: Error fetching assigned managers:", error);
-            // Fall back to cached data
-            managerUsers = managerUsers.filter((user) => {
-              const isAssigned = user.assignedProperties?.includes(propertyId) || false;
-              return isAssigned;
-            });
+          if (adminError || managerError) {
+            console.error("PropertyForm: Error fetching practice leaders:", adminError || managerError);
+            // Fall back to cached data: all admins + assigned managers
+            const allAdmins = users.filter(user => user.role === 'admin');
+            const assignedManagers = users.filter(user => 
+              user.role === 'manager' && user.assignedProperties?.includes(propertyId)
+            );
+            managerUsers = [...allAdmins, ...assignedManagers];
           } else {
-            console.log("PropertyForm: Fresh assigned managers from DB:", assignedProfiles);
-            // Use fresh data from database
-            managerUsers = (assignedProfiles || []).map(profile => ({
+            console.log("PropertyForm: Fresh practice leaders from DB - Admins:", adminProfiles?.length, "Assigned Managers:", managerProfiles?.length);
+            
+            // Combine admins and assigned managers
+            const allPracticeLeaders = [
+              ...(adminProfiles || []),
+              ...(managerProfiles || [])
+            ];
+            
+            managerUsers = allPracticeLeaders.map(profile => ({
               id: profile.id,
               name: profile.name || '',
               email: profile.email || '',
               role: profile.role as "admin" | "manager",
+              phone: profile.phone || undefined,
               assignedProperties: profile.assigned_properties || [],
               createdAt: '',
             }));
           }
           
           console.log(
-            "PropertyForm: Filtered practice leaders (assigned to this property):",
-            managerUsers.map((u) => ({ name: u.name, role: u.role, assignedProperties: u.assignedProperties })),
+            "PropertyForm: Practice leaders (all admins + assigned managers):",
+            managerUsers.map((u) => ({ name: u.name, role: u.role })),
           );
         } catch (error) {
-          console.error("PropertyForm: Exception fetching assigned managers:", error);
-          // Fall back to cached data
-          managerUsers = managerUsers.filter((user) => {
-            const isAssigned = user.assignedProperties?.includes(propertyId) || false;
-            return isAssigned;
-          });
+          console.error("PropertyForm: Exception fetching practice leaders:", error);
+          // Fall back to cached data: all admins + assigned managers
+          const allAdmins = users.filter(user => user.role === 'admin');
+          const assignedManagers = users.filter(user => 
+            user.role === 'manager' && user.assignedProperties?.includes(propertyId)
+          );
+          managerUsers = [...allAdmins, ...assignedManagers];
         }
       } else {
         console.log(
