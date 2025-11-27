@@ -195,10 +195,9 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
         users.map((u) => ({ name: u.name, role: u.role })),
       );
 
-      // Get all users who can be practice leaders (managers and admins)
-      let managerUsers = users.filter((user) => user.role === "manager" || user.role === "admin");
+      let managerUsers: User[] = [];
       
-      // If editing an existing property, fetch fresh data from DB to get assigned managers
+      // If editing an existing property, fetch fresh data from DB
       if (existingProperty?.id) {
         const propertyId = existingProperty.id;
         console.log("PropertyForm: Fetching practice leaders for property:", propertyId);
@@ -262,6 +261,8 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
           managerUsers = [...allAdmins, ...assignedManagers];
         }
       } else {
+        // For new properties, use cached users from context
+        managerUsers = users.filter((user) => user.role === "manager" || user.role === "admin");
         console.log(
           "PropertyForm: All practice leader candidates (new property):",
           managerUsers.map((u) => ({ name: u.name, role: u.role })),
