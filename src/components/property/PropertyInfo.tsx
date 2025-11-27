@@ -107,15 +107,6 @@ export const PropertyInfo: React.FC<PropertyInfoProps> = ({ property }) => {
                 )}
               </div>
             </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">QR Code</h3>
-              <div className="mt-2">
-                <p className="text-sm text-gray-600 mb-2">
-                  Scan this QR code to create a maintenance request for this property.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </CardContent>
