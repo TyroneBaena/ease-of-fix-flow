@@ -262,20 +262,26 @@ export const RequestFormContainer = () => {
           throw new Error('Failed to create maintenance request');
         }
         
-        // Send email notifications (non-blocking - happens in background during redirect)
+        // Send email notifications - await to ensure they complete before redirect
         try {
           const { data: session } = await supabase.auth.getSession();
           const accessToken = session.session?.access_token;
           
           if (accessToken && newRequest?.id) {
             console.log('Sending email notifications for request:', newRequest.id);
-            // Fire and forget - don't await, let it happen during redirect
-            supabase.functions.invoke('send-maintenance-request-notification', {
+            // AWAIT the function call to ensure it completes
+            const { data, error } = await supabase.functions.invoke('send-maintenance-request-notification', {
               body: { request_id: newRequest.id },
               headers: {
                 Authorization: `Bearer ${accessToken}`,
               },
             });
+            
+            if (error) {
+              console.error('Notification function error:', error);
+            } else {
+              console.log('Notification function result:', data);
+            }
           }
         } catch (emailError) {
           console.error('Failed to send email notifications:', emailError);
