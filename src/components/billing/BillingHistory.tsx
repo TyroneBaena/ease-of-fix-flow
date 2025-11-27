@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, ExternalLink, Receipt } from 'lucide-react';
+import { Download, ExternalLink, Receipt, RefreshCw } from 'lucide-react';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,6 +24,8 @@ export const BillingHistory: React.FC = () => {
   const { currentUser } = useUserContext();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -82,7 +84,39 @@ export const BillingHistory: React.FC = () => {
     };
 
     fetchInvoices();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshKey]);
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    toast.info('Refreshing invoice history...');
+  };
+
+  const handleOpenStripePortal = async () => {
+    setIsOpeningPortal(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please log in to access billing portal');
+        return;
+      }
+      
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      
+      if (error || !data?.url) {
+        toast.error('Failed to open billing portal');
+        return;
+      }
+      
+      window.open(data.url, '_blank');
+    } catch (error) {
+      console.error('Error opening Stripe portal:', error);
+      toast.error('An error occurred opening the billing portal');
+    } finally {
+      setIsOpeningPortal(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-AU', {
@@ -114,14 +148,37 @@ export const BillingHistory: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
             Billing History
           </CardTitle>
-        </CardHeader>
+          {invoices.length > 0 && (
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleOpenStripePortal}
+                disabled={isOpeningPortal}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                {isOpeningPortal ? 'Opening...' : 'Stripe Portal'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -143,12 +200,32 @@ export const BillingHistory: React.FC = () => {
       </CardHeader>
       <CardContent>
         {invoices.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <div className="text-center py-8">
+            <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
             <p className="font-medium">No billing history yet</p>
-            <p className="text-sm mt-1">
-              Your invoices will appear here once you have an active subscription
+            <p className="text-sm text-muted-foreground mt-1 mb-4">
+              Your invoices will appear here after your first billing cycle completes
             </p>
+            <div className="flex justify-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={handleOpenStripePortal}
+                disabled={isOpeningPortal}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                {isOpeningPortal ? 'Opening...' : 'View in Stripe Portal'}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="rounded-md border">
