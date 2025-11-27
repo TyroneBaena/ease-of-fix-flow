@@ -108,6 +108,29 @@ serve(async (req) => {
 
     console.log('✅ Maintenance request submitted successfully:', newRequest.id);
 
+    // Send email notifications (practice leader, property contact, and create in-app notifications)
+    try {
+      console.log('📧 Triggering email notifications for request:', newRequest.id);
+      
+      const notificationResponse = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-maintenance-request-notification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({ request_id: newRequest.id }),
+        }
+      );
+
+      const notificationResult = await notificationResponse.json();
+      console.log('📧 Notification result:', notificationResult);
+    } catch (notificationError) {
+      // Log error but don't fail the submission
+      console.error('⚠️ Failed to send notifications (non-blocking):', notificationError);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
