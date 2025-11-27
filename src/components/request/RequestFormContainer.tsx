@@ -199,7 +199,8 @@ export const RequestFormContainer = () => {
               submittedBy: submittedBy,
               attemptedFix: attemptedFix || 'None attempted',
               priority: priority || 'medium', // Use default if empty
-              budgetCategoryId: budgetCategoryId || null
+              budgetCategoryId: budgetCategoryId || null,
+              attachments: attachments
             })
           });
 

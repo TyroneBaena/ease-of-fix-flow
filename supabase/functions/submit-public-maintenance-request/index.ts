@@ -27,7 +27,8 @@ serve(async (req) => {
       submittedBy,
       attemptedFix,
       priority,
-      budgetCategoryId
+      budgetCategoryId,
+      attachments
     } = requestData;
 
     // Validate required fields - category is optional for public submissions
@@ -87,6 +88,7 @@ serve(async (req) => {
         site: location,
         submitted_by: submittedBy,
         budget_category_id: budgetCategoryId,
+        attachments: attachments || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
