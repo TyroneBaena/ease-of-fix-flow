@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,6 +103,21 @@ Deno.serve(async (req) => {
     }
 
     log("Found existing subscriber", { subscriberId: subscriber.id });
+
+    // Cancel Stripe subscription if it exists
+    if (subscriber.stripe_subscription_id) {
+      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+      if (stripeKey) {
+        try {
+          const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+          await stripe.subscriptions.cancel(subscriber.stripe_subscription_id);
+          log("Cancelled Stripe subscription", { subscriptionId: subscriber.stripe_subscription_id });
+        } catch (stripeError) {
+          log("Error cancelling Stripe subscription", { stripeError });
+          // Continue with database update even if Stripe cancellation fails
+        }
+      }
+    }
 
     // Update subscriber to mark as cancelled
     const { data: updatedSubscriber, error: updateError } = await adminSupabase
