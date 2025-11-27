@@ -1127,6 +1127,10 @@ import QRCodeRedirect from "@/components/QRCodeRedirect";
 import AdminSyncTest from "@/pages/AdminSyncTest";
 import AdminSettings from "@/pages/AdminSettings";
 import { PublicPropertyWrapper } from "@/components/PublicPropertyWrapper";
+import Notifications from "@/pages/Notifications";
+import ContractorNotifications from "@/pages/ContractorNotifications";
+import { ContractorAuthProvider } from "@/contexts/contractor/ContractorAuthContext";
+import { ContractorRouteGuard } from "@/components/contractor/ContractorRouteGuard";
 
 // React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
@@ -1311,6 +1315,30 @@ const AppRoutes = () => {
             <OrganizationGuard>
               <Settings />
             </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <OrganizationGuard>
+              <Notifications />
+            </OrganizationGuard>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor-notifications"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorNotifications />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
           </ProtectedRoute>
         }
       />
