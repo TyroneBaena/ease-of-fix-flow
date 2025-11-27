@@ -23,88 +23,85 @@ interface Invoice {
 export const BillingHistory: React.FC = () => {
   const { currentUser } = useUserContext();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      if (!currentUser?.id) {
+  const fetchInvoices = async () => {
+    if (!currentUser?.id) {
+      console.log('No current user, skipping invoice fetch');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Get session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        toast.error('Authentication error. Please log in again.');
+        setInvoices([]);
+        setLoading(false);
+        return;
+      }
+      
+      if (!session) {
+        console.log('No session found');
+        toast.error('Please log in to view billing history');
+        setInvoices([]);
         setLoading(false);
         return;
       }
 
-      try {
-        // Get session for authentication
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          toast.error('Authentication error. Please log in again.');
-          setInvoices([]);
-          setLoading(false);
-          return;
-        }
-        
-        if (!session) {
-          console.log('No session found');
-          toast.info('Please log in to view billing history');
-          setInvoices([]);
-          setLoading(false);
-          return;
-        }
+      console.log('Fetching invoices with session:', { 
+        hasAccessToken: !!session.access_token,
+        userId: currentUser?.id 
+      });
 
-        console.log('Fetching invoices with session:', { 
-          hasAccessToken: !!session.access_token,
-          userId: currentUser?.id 
-        });
+      // Fetch invoices from Stripe via edge function
+      const { data, error } = await supabase.functions.invoke('get-invoice-history', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
 
-        // Fetch invoices from Stripe via edge function
-        const { data, error } = await supabase.functions.invoke('get-invoice-history', {
-          headers: { Authorization: `Bearer ${session.access_token}` }
-        });
-
-        if (error) {
-          console.error('Error fetching invoices:', error);
-          toast.error(`Failed to load invoices: ${error.message || 'Please try refreshing'}`);
-          setInvoices([]);
-          setLoading(false);
-          return;
-        }
-
-        if (data?.success && data.invoices) {
-          // Map Stripe invoice data to our Invoice interface
-          const mappedInvoices: Invoice[] = data.invoices.map((inv: any) => ({
-            id: inv.id,
-            amount: inv.amount,
-            status: inv.status,
-            date: inv.date,
-            period_start: inv.line_items?.[0]?.period_start || inv.date,
-            period_end: inv.line_items?.[0]?.period_end || inv.date,
-            invoice_url: inv.pdf_url || inv.hosted_url,
-            property_count: inv.line_items?.[0]?.quantity || 0,
-          }));
-
-          setInvoices(mappedInvoices);
-        } else {
-          setInvoices([]);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching billing history:', error);
-        toast.error('Failed to load billing history');
+      if (error) {
+        console.error('Error fetching invoices:', error);
+        toast.error(`Failed to load invoices: ${error.message || 'Please try refreshing'}`);
         setInvoices([]);
         setLoading(false);
+        return;
       }
-    };
 
-    fetchInvoices();
-  }, [currentUser?.id, refreshKey]);
+      if (data?.success && data.invoices) {
+        // Map Stripe invoice data to our Invoice interface
+        const mappedInvoices: Invoice[] = data.invoices.map((inv: any) => ({
+          id: inv.id,
+          amount: inv.amount,
+          status: inv.status,
+          date: inv.date,
+          period_start: inv.line_items?.[0]?.period_start || inv.date,
+          period_end: inv.line_items?.[0]?.period_end || inv.date,
+          invoice_url: inv.pdf_url || inv.hosted_url,
+          property_count: inv.line_items?.[0]?.quantity || 0,
+        }));
+
+        setInvoices(mappedInvoices);
+        toast.success(`Loaded ${mappedInvoices.length} invoice(s)`);
+      } else {
+        setInvoices([]);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching billing history:', error);
+      toast.error('Failed to load billing history');
+      setInvoices([]);
+      setLoading(false);
+    }
+  };
 
   const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-    toast.info('Refreshing invoice history...');
+    fetchInvoices();
   };
 
   const handleOpenStripePortal = async () => {
@@ -164,6 +161,23 @@ export const BillingHistory: React.FC = () => {
   };
 
   if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            Billing History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -194,25 +208,6 @@ export const BillingHistory: React.FC = () => {
             </div>
           )}
         </div>
-      </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Receipt className="h-5 w-5" />
-          Billing History
-        </CardTitle>
       </CardHeader>
       <CardContent>
         {invoices.length === 0 ? (
