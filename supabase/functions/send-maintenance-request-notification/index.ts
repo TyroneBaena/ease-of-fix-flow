@@ -179,32 +179,68 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailPromises = [];
 
-    // Send to property contact email
+    // Helper function to check if user has email notifications enabled
+    const hasEmailNotificationsEnabled = async (email: string): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('notification_settings')
+          .eq('email', email)
+          .single();
+        
+        if (error || !data) {
+          console.log(`No profile found for ${email}, defaulting to enabled`);
+          return true; // Default to enabled if profile not found
+        }
+        
+        const settings = data.notification_settings as any;
+        const isEnabled = settings?.emailNotifications !== false;
+        console.log(`Email notifications for ${email}: ${isEnabled ? 'enabled' : 'disabled'}`);
+        return isEnabled;
+      } catch (error) {
+        console.error(`Error checking notification preferences for ${email}:`, error);
+        return true; // Default to enabled on error
+      }
+    };
+
+    // Send to property contact email (check preferences first)
     if (propertyData.email) {
-      console.log('Sending email to property contact:', propertyData.email);
-      const emailResult = await resend.emails.send({
-        from: 'Property Manager <noreply@housinghub.app>',
-        to: [propertyData.email],
-        subject: emailSubject,
-        html: createEmailHtml('property contact'),
-      });
+      const hasPreference = await hasEmailNotificationsEnabled(propertyData.email);
       
-      console.log('Email send result:', emailResult);
-      emailPromises.push(emailResult);
+      if (hasPreference) {
+        console.log('Sending email to property contact:', propertyData.email);
+        const emailResult = await resend.emails.send({
+          from: 'Property Manager <noreply@housinghub.app>',
+          to: [propertyData.email],
+          subject: emailSubject,
+          html: createEmailHtml('property contact'),
+        });
+        
+        console.log('Email send result:', emailResult);
+        emailPromises.push(emailResult);
+      } else {
+        console.log('Property contact has email notifications disabled:', propertyData.email);
+      }
     }
 
-    // Send to practice leader if provided
+    // Send to practice leader if provided (check preferences first)
     if (propertyData.practice_leader_email) {
-      console.log('Sending email to practice leader:', propertyData.practice_leader_email);
-      const practiceLeaderResult = await resend.emails.send({
-        from: 'Property Manager <noreply@housinghub.app>',
-        to: [propertyData.practice_leader_email],
-        subject: emailSubject,
-        html: createEmailHtml('practice leader'),
-      });
+      const hasPreference = await hasEmailNotificationsEnabled(propertyData.practice_leader_email);
       
-      console.log('Practice leader email send result:', practiceLeaderResult);
-      emailPromises.push(practiceLeaderResult);
+      if (hasPreference) {
+        console.log('Sending email to practice leader:', propertyData.practice_leader_email);
+        const practiceLeaderResult = await resend.emails.send({
+          from: 'Property Manager <noreply@housinghub.app>',
+          to: [propertyData.practice_leader_email],
+          subject: emailSubject,
+          html: createEmailHtml('practice leader'),
+        });
+        
+        console.log('Practice leader email send result:', practiceLeaderResult);
+        emailPromises.push(practiceLeaderResult);
+      } else {
+        console.log('Practice leader has email notifications disabled:', propertyData.practice_leader_email);
+      }
     }
 
     if (emailPromises.length === 0) {
