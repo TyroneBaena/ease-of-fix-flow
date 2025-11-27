@@ -2,6 +2,7 @@
 // Deno imports for Edge Functions
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
 interface RequestBody {
   userId: string;
@@ -45,8 +46,29 @@ serve(async (req: Request) => {
     
     console.log(`Deleting user with ID: ${userId}`);
     
-    // CRITICAL: Delete all related data FIRST before deleting auth user
-    // This prevents foreign key constraint errors
+    // CRITICAL: Cancel Stripe subscription FIRST before deleting database records
+    // This prevents orphaned billing
+    
+    // 0. Get subscriber data and cancel Stripe subscription if exists
+    const { data: subscriber } = await supabaseClient
+      .from('subscribers')
+      .select('stripe_subscription_id, stripe_customer_id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (subscriber?.stripe_subscription_id) {
+      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+      if (stripeKey) {
+        try {
+          const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+          await stripe.subscriptions.cancel(subscriber.stripe_subscription_id);
+          console.log(`Cancelled Stripe subscription: ${subscriber.stripe_subscription_id}`);
+        } catch (stripeError) {
+          console.error("Error cancelling Stripe subscription:", stripeError);
+          // Continue with deletion even if Stripe cancellation fails
+        }
+      }
+    }
     
     // 1. Delete from profiles (cascades to most other tables via user_id FK)
     const { error: profileError } = await supabaseClient
