@@ -21,15 +21,47 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    log('Auth header received', { hasHeader: !!authHeader });
+    
+    if (!authHeader) {
+      log('No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'No authorization header provided' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }
     });
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('Unauthorized');
+    
+    if (userError) {
+      log('User auth error', { error: userError.message });
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed', details: userError.message }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      );
+    }
+    
+    if (!user) {
+      log('No user found after auth');
+      return new Response(
+        JSON.stringify({ error: 'User not authenticated' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      );
     }
 
     log('Fetching invoice history', { userId: user.id });

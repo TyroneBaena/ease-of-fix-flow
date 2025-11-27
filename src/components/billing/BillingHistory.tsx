@@ -36,13 +36,28 @@ export const BillingHistory: React.FC = () => {
 
       try {
         // Get session for authentication
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.log('No session found');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          toast.error('Authentication error. Please log in again.');
           setInvoices([]);
           setLoading(false);
           return;
         }
+        
+        if (!session) {
+          console.log('No session found');
+          toast.info('Please log in to view billing history');
+          setInvoices([]);
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching invoices with session:', { 
+          hasAccessToken: !!session.access_token,
+          userId: currentUser?.id 
+        });
 
         // Fetch invoices from Stripe via edge function
         const { data, error } = await supabase.functions.invoke('get-invoice-history', {
@@ -51,6 +66,7 @@ export const BillingHistory: React.FC = () => {
 
         if (error) {
           console.error('Error fetching invoices:', error);
+          toast.error(`Failed to load invoices: ${error.message || 'Please try refreshing'}`);
           setInvoices([]);
           setLoading(false);
           return;
