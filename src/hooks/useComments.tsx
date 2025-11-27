@@ -617,6 +617,44 @@ export function useComments(requestId: string) {
           }
         }
 
+        // Send email to managers assigned to the property (check preferences for each)
+        if (requestData.property_id) {
+          console.log("📋 Fetching managers assigned to property:", requestData.property_id);
+          const { data: managerProfiles } = await supabase
+            .from("profiles")
+            .select("id, name, email, notification_settings, assigned_properties")
+            .eq("role", "manager")
+            .not("email", "is", null);
+
+          // Filter managers who have this property assigned
+          const assignedManagers = (managerProfiles || []).filter((manager) =>
+            manager.assigned_properties?.includes(requestData.property_id),
+          );
+
+          console.log("📋 Assigned managers:", assignedManagers);
+
+          if (assignedManagers.length > 0) {
+            for (const manager of assignedManagers) {
+              const notificationSettings = manager.notification_settings as any;
+              const emailEnabled = notificationSettings?.emailNotifications ?? true;
+
+              if (emailEnabled) {
+                console.log("📬 Sending email to manager:", manager.email);
+                const { data, error } = await supabase.functions.invoke("send-comment-notification", {
+                  body: {
+                    recipient_email: manager.email,
+                    recipient_name: manager.name || "",
+                    notification_data: notificationData,
+                  },
+                });
+                console.log("📧 Manager email result:", { data, error });
+              } else {
+                console.log("⏭️ Skipping manager email - notifications disabled by user:", manager.email);
+              }
+            }
+          }
+        }
+
         console.log("✅ Email notifications completed");
       } catch (error) {
         console.error("❌ Error sending email notifications:", error);
