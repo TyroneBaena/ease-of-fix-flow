@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import { NotificationClient } from '@/types/notification';
 import { toast } from 'sonner';
-import { checkNotificationPreference } from '@/utils/notificationUtils';
+import { checkNotificationPreference, sendPushNotification } from '@/utils/notificationUtils';
 
 /**
  * Service for handling real-time notification updates
@@ -65,6 +65,20 @@ class NotificationService {
               });
             } else {
               console.log('In-app notifications disabled for user, skipping toast');
+            }
+
+            // Check if user has push notifications enabled
+            const hasPushNotifications = await checkNotificationPreference(userId, 'pushNotifications');
+            
+            if (hasPushNotifications) {
+              try {
+                await sendPushNotification(userId, notification.title, notification.message);
+                console.log('Push notification sent for:', notification.title);
+              } catch (pushError) {
+                console.error('Failed to send push notification:', pushError);
+              }
+            } else {
+              console.log('Push notifications disabled for user, skipping push');
             }
 
             // Always call the callback to update the notification list
