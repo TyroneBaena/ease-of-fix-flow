@@ -225,7 +225,7 @@ export const BillingHistory: React.FC = () => {
                 disabled={loading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                Get Invoices
               </Button>
               <Button 
                 variant="default" 
