@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import { NotificationClient } from '@/types/notification';
 import { toast } from 'sonner';
+import { checkNotificationPreference } from '@/utils/notificationUtils';
 
 /**
  * Service for handling real-time notification updates
@@ -39,7 +40,7 @@ class NotificationService {
           table: 'notifications',
           filter: `user_id=eq.${userId}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('New notification received:', payload);
           
           if (payload.new) {
@@ -54,13 +55,19 @@ class NotificationService {
               user_id: payload.new.user_id
             };
 
-            // Show toast notification
-            toast.info(notification.title, {
-              description: notification.message,
-              duration: 5000,
-            });
+            // Check if user has in-app notifications enabled before showing toast
+            const hasAppNotifications = await checkNotificationPreference(userId, 'appNotifications');
+            
+            if (hasAppNotifications) {
+              toast.info(notification.title, {
+                description: notification.message,
+                duration: 5000,
+              });
+            } else {
+              console.log('In-app notifications disabled for user, skipping toast');
+            }
 
-            // Call the callback with the new notification
+            // Always call the callback to update the notification list
             onNewNotification(notification);
           }
         }
