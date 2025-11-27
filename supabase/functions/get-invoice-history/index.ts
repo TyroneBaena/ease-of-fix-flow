@@ -18,7 +18,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 
     const authHeader = req.headers.get('Authorization');
@@ -35,12 +35,13 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } }
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false }
     });
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
     
     if (userError) {
       log('User auth error', { error: userError.message });
@@ -53,6 +54,7 @@ serve(async (req) => {
       );
     }
     
+    const user = userData.user;
     if (!user) {
       log('No user found after auth');
       return new Response(
@@ -64,6 +66,7 @@ serve(async (req) => {
       );
     }
 
+    log('User authenticated successfully', { userId: user.id, email: user.email });
     log('Fetching invoice history', { userId: user.id });
 
     // Get subscriber
