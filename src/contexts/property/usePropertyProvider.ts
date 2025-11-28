@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast';
 import { useUnifiedAuth } from '../UnifiedAuthContext';
 import { PropertyContextType } from './PropertyContextTypes';
 import { fetchProperties } from './propertyOperations';
+import { canUserAccessProperty } from '@/utils/userRoles';
 
 /**
  * v78.0: SIMPLIFIED - Pure data fetching, no complex refresh logic
@@ -44,8 +45,15 @@ export const usePropertyProvider = (): PropertyContextType => {
     try {
       console.log('v78.0 - PropertyProvider: Fetching properties...');
       const formattedProperties = await fetchProperties();
-      console.log('✅ v78.0 - Properties fetched:', formattedProperties.length);
-      setProperties(formattedProperties);
+      
+      // Filter properties based on user role and assigned properties
+      const filteredProperties = formattedProperties.filter(property => 
+        canUserAccessProperty(user, property.id)
+      );
+      
+      console.log('✅ v78.0 - Properties fetched:', formattedProperties.length, 
+                  'Visible to user:', filteredProperties.length);
+      setProperties(filteredProperties);
     } catch (err) {
       console.error('❌ v78.0 - Error fetching properties:', err);
       toast.error('Failed to load properties');
