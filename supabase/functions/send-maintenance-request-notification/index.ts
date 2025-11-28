@@ -102,28 +102,21 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('role', 'admin')
       .eq('organization_id', requestData.organization_id);
 
-    const { data: managerUsers, error: managerError } = await supabase
-      .from('profiles')
-      .select('id, organization_id')
-      .eq('role', 'manager')
-      .eq('organization_id', requestData.organization_id);
-
     // Find managers specifically assigned to this property
     const { data: assignedManagers, error: assignedManagersError } = await supabase
       .from('profiles')
-      .select('id, email, name, notification_settings')
+      .select('id, email, name, notification_settings, organization_id')
       .eq('role', 'manager')
       .eq('organization_id', requestData.organization_id)
       .contains('assigned_properties', [requestData.property_id]);
 
     if (adminError) console.error('Error fetching admin users:', adminError);
-    if (managerError) console.error('Error fetching manager users:', managerError);
     if (assignedManagersError) console.error('Error fetching assigned managers:', assignedManagersError);
 
     console.log(`Found ${assignedManagers?.length || 0} managers assigned to this property`);
 
-    // Create notifications for all admin and manager users
-    const notificationUsers = [...(adminUsers || []), ...(managerUsers || [])];
+    // Create notifications for admins and assigned managers only
+    const notificationUsers = [...(adminUsers || []), ...(assignedManagers || [])];
     const notificationTitle = 'New Maintenance Request';
     const notificationMessage = `New request "${requestData.title}" submitted for ${propertyData.name}`;
     const notificationLink = `/requests/${request_id}`;
