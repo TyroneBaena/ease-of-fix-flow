@@ -40,9 +40,10 @@ const SetupPassword = () => {
     const hasResetToken = location.hash && location.hash.includes("access_token");
     setIsResetMode(hasResetToken);
 
-    // CRITICAL: If user arrives via password reset link, mark that they MUST complete setup
-    if (hasResetToken) {
-      console.log("🔐 Password reset link detected - user MUST complete password setup");
+    // FALLBACK: If user arrives via password reset link and flag isn't set yet, set it
+    // Primary setting is now in UnifiedAuthContext PASSWORD_RECOVERY handler
+    if (hasResetToken && !sessionStorage.getItem('password_reset_pending')) {
+      console.log("🔐 Password reset link detected (fallback) - setting pending flag");
       sessionStorage.setItem('password_reset_pending', 'true');
       sessionStorage.setItem('password_reset_email', emailParam || '');
     }

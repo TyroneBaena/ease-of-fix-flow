@@ -2294,6 +2294,24 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // v97.4: Start new session refresh cycle for this auth event
       startSessionRefresh(sessionVersion);
 
+      // CRITICAL PASSWORD RESET FIX: Handle PASSWORD_RECOVERY event BEFORE SIGNED_IN
+      // This sets the sessionStorage flag early so SetupPasswordRoute can detect it
+      if (event === "PASSWORD_RECOVERY" && session?.user) {
+        console.log("🔐 UnifiedAuth - PASSWORD_RECOVERY event detected for:", session.user.email);
+        
+        // CRITICAL: Set the flag IMMEDIATELY - before any redirects can happen
+        sessionStorage.setItem('password_reset_pending', 'true');
+        sessionStorage.setItem('password_reset_email', session.user.email || '');
+        
+        // Set session but DON'T set currentUser yet - let SetupPassword handle the flow
+        setSession(session);
+        setLoading(false);
+        
+        console.log("🔐 UnifiedAuth - Password reset pending flag set, NOT setting currentUser");
+        // Don't convert user or set isSessionReady - keep user in "pending" state
+        return; // Exit early - don't fall through to SIGNED_IN handling
+      }
+
       if (event === "SIGNED_IN" && session?.user) {
         console.log("🚀 UnifiedAuth v85.0 - SIGNED_IN event, user email:", session.user.email);
 
