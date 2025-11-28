@@ -108,8 +108,19 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('role', 'manager')
       .eq('organization_id', requestData.organization_id);
 
+    // Find managers specifically assigned to this property
+    const { data: assignedManagers, error: assignedManagersError } = await supabase
+      .from('profiles')
+      .select('id, email, name, notification_settings')
+      .eq('role', 'manager')
+      .eq('organization_id', requestData.organization_id)
+      .contains('assigned_properties', [requestData.property_id]);
+
     if (adminError) console.error('Error fetching admin users:', adminError);
     if (managerError) console.error('Error fetching manager users:', managerError);
+    if (assignedManagersError) console.error('Error fetching assigned managers:', assignedManagersError);
+
+    console.log(`Found ${assignedManagers?.length || 0} managers assigned to this property`);
 
     // Create notifications for all admin and manager users
     const notificationUsers = [...(adminUsers || []), ...(managerUsers || [])];
@@ -178,6 +189,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailPromises = [];
+    const sentEmails = new Set<string>(); // Track sent emails to avoid duplicates
 
     // Helper function to check if user has email notifications enabled
     const hasEmailNotificationsEnabled = async (email: string): Promise<boolean> => {
@@ -218,6 +230,7 @@ const handler = async (req: Request): Promise<Response> => {
         
         console.log('Email send result:', emailResult);
         emailPromises.push(emailResult);
+        sentEmails.add(propertyData.email);
       } else {
         console.log('Property contact has email notifications disabled:', propertyData.email);
       }
@@ -238,8 +251,40 @@ const handler = async (req: Request): Promise<Response> => {
         
         console.log('Practice leader email send result:', practiceLeaderResult);
         emailPromises.push(practiceLeaderResult);
+        sentEmails.add(propertyData.practice_leader_email);
       } else {
         console.log('Practice leader has email notifications disabled:', propertyData.practice_leader_email);
+      }
+    }
+
+    // Send to assigned managers (check preferences and avoid duplicates)
+    if (assignedManagers && assignedManagers.length > 0) {
+      console.log(`Processing ${assignedManagers.length} assigned manager(s) for email notifications`);
+      
+      for (const manager of assignedManagers) {
+        // Skip if already sent (e.g., manager is also property contact or practice leader)
+        if (sentEmails.has(manager.email)) {
+          console.log(`Skipping duplicate email for manager ${manager.email}`);
+          continue;
+        }
+        
+        const hasPreference = await hasEmailNotificationsEnabled(manager.email);
+        
+        if (hasPreference) {
+          console.log(`Sending email to assigned manager: ${manager.email} (${manager.name})`);
+          const managerEmailResult = await resend.emails.send({
+            from: 'Property Manager <noreply@housinghub.app>',
+            to: [manager.email],
+            subject: emailSubject,
+            html: createEmailHtml('assigned property manager'),
+          });
+          
+          console.log('Manager email send result:', managerEmailResult);
+          emailPromises.push(managerEmailResult);
+          sentEmails.add(manager.email);
+        } else {
+          console.log(`Manager ${manager.email} has email notifications disabled`);
+        }
       }
     }
 
