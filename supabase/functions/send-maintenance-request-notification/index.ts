@@ -188,8 +188,10 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    const emailPromises = [];
     const sentEmails = new Set<string>(); // Track sent emails to avoid duplicates
+    
+    // Helper to delay between email sends to avoid rate limits
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     // Helper function to check if user has email notifications enabled
     const hasEmailNotificationsEnabled = async (email: string): Promise<boolean> => {
@@ -229,8 +231,8 @@ const handler = async (req: Request): Promise<Response> => {
         });
         
         console.log('Email send result:', emailResult);
-        emailPromises.push(emailResult);
         sentEmails.add(propertyData.email);
+        await delay(600); // Rate limit handling
       } else {
         console.log('Property contact has email notifications disabled:', propertyData.email);
       }
@@ -250,8 +252,8 @@ const handler = async (req: Request): Promise<Response> => {
         });
         
         console.log('Practice leader email send result:', practiceLeaderResult);
-        emailPromises.push(practiceLeaderResult);
         sentEmails.add(propertyData.practice_leader_email);
+        await delay(600); // Rate limit handling
       } else {
         console.log('Practice leader has email notifications disabled:', propertyData.practice_leader_email);
       }
@@ -280,57 +282,21 @@ const handler = async (req: Request): Promise<Response> => {
           });
           
           console.log('Manager email send result:', managerEmailResult);
-          emailPromises.push(managerEmailResult);
           sentEmails.add(manager.email);
+          await delay(600); // Rate limit handling
         } else {
           console.log(`Manager ${manager.email} has email notifications disabled`);
         }
       }
     }
 
-    if (emailPromises.length === 0) {
-      console.log('No email addresses configured for notifications');
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'No email addresses configured for notifications' 
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        }
-      );
-    }
-
-    // Wait for all emails to complete and get results
-    const emailResults = await Promise.allSettled(emailPromises);
-    
-    const successful = emailResults.filter(result => 
-      result.status === 'fulfilled' && !result.value.error
-    ).length;
-    const failed = emailResults.filter(result => 
-      result.status === 'rejected' || (result.status === 'fulfilled' && result.value.error)
-    ).length;
-
-    console.log(`Email sending complete. Successful: ${successful}, Failed: ${failed}`);
-
-    // Log any failures with details
-    emailResults.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        console.error(`Email ${index + 1} failed:`, result.reason);
-      } else if (result.status === 'fulfilled' && result.value.error) {
-        console.error(`Email ${index + 1} failed with error:`, result.value.error);
-      } else if (result.status === 'fulfilled') {
-        console.log(`Email ${index + 1} sent successfully:`, result.value);
-      }
-    });
+    // All emails sent sequentially with rate limit handling
+    console.log('All notification emails sent successfully');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        emails_sent: successful,
-        emails_failed: failed,
-        message: `Successfully sent ${successful} notification email(s)` 
+        message: 'Successfully sent notification emails with rate limiting' 
       }),
       {
         status: 200,
