@@ -16,7 +16,8 @@ export const useUserActions = (
   currentPage: number,
   setCurrentPage: (page: number) => void,
   usersPerPage: number,
-  fetchUsers: () => Promise<void>
+  fetchUsers: () => Promise<void>,
+  users: User[]
 ) => {
   const { addUser, updateUser, removeUser, resetPassword, adminResetPassword } = useUserContext();
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +72,18 @@ export const useUserActions = (
           }
         }, 1000);
       } else {
+        // Frontend pre-check: Check if email already exists in loaded users list
+        const existingUser = users.find(u => u.email.toLowerCase() === userToSave.email.toLowerCase().trim());
+        if (existingUser) {
+          toast.error(`A user with email ${userToSave.email} already exists.`, {
+            duration: 5000,
+            id: 'duplicate-email-error',
+            description: "Please use a different email address."
+          });
+          setIsLoading(false);
+          return; // Don't close dialog, let user correct the email
+        }
+        
         console.log("📧 Adding new user:", {
           email: userToSave.email,
           name: userToSave.name,
@@ -118,8 +131,23 @@ export const useUserActions = (
           } else {
             // This message is for failures like "user already exists"
             console.error("User creation failed:", result.message);
-            // Display the user-friendly message from the service
-            toast.error(result.message || "Unable to send invitation. Please try again.");
+            
+            // Check for specific duplicate email messages
+            const isDuplicateEmail = result.message?.toLowerCase().includes('already exists') || 
+                                     result.message?.toLowerCase().includes('already registered') ||
+                                     result.message?.toLowerCase().includes('already a member');
+            
+            if (isDuplicateEmail) {
+              toast.error(result.message, { 
+                duration: 5000,
+                id: 'duplicate-email-error',
+                description: "Please try with a different email address."
+              });
+            } else {
+              toast.error(result.message || "Unable to send invitation. Please try again.", {
+                duration: 5000
+              });
+            }
             // Do not close dialog on error so user can correct if needed
           }
         } catch (error: any) {
@@ -135,7 +163,7 @@ export const useUserActions = (
     } finally {
       setIsLoading(false);
     }
-  }, [isEditMode, selectedUser, newUser, updateUser, setIsDialogOpen, fetchUsers, addUser]);
+  }, [isEditMode, selectedUser, newUser, updateUser, setIsDialogOpen, fetchUsers, addUser, users]);
   
   const handleResetPassword = useCallback(async (userId: string, email: string) => {
     try {
