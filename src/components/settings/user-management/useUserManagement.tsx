@@ -78,7 +78,8 @@ export const useUserManagement = () => {
     currentPage,
     handlePageChange,
     USERS_PER_PAGE,
-    fetchUsers // Pass the fetchUsers function to the actions hook
+    fetchUsers,
+    users // Pass users array for duplicate email detection
   );
   
   // Clean form error management - no need for window object
