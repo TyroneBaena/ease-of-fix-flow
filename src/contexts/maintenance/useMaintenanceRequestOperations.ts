@@ -85,6 +85,13 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       return null;
     }
 
+    // Validate attachments - photos are mandatory
+    if (!requestData.attachments || !Array.isArray(requestData.attachments) || requestData.attachments.length === 0) {
+      console.error('useMaintenanceRequestOperations - No attachments provided - photos are mandatory');
+      toast.error('At least one photo is required');
+      return null;
+    }
+
     try {
       // Get default budget category for organization
       const { data: defaultCategory } = await supabase
