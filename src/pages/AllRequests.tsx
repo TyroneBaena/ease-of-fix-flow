@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance';
@@ -14,7 +14,7 @@ const AllRequests = () => {
   const { requests, loading } = useMaintenanceRequestContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [propertyFilter, setPropertyFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ 
@@ -22,6 +22,12 @@ const AllRequests = () => {
     to: undefined 
   });
   const [filteredRequests, setFilteredRequests] = useState<MaintenanceRequest[]>([]);
+
+  // Sort properties alphabetically for the filter dropdown
+  const sortedProperties = useMemo(() => 
+    [...properties].sort((a, b) => a.name.localeCompare(b.name)),
+    [properties]
+  );
 
   // CRITICAL FIX: Track if we've loaded data at least once to prevent loading on tab switches
   const hasLoadedDataRef = React.useRef(false);
@@ -59,12 +65,9 @@ const AllRequests = () => {
       });
     }
     
-    if (categoryFilter !== 'all') {
-      const category = categoryFilter.toLowerCase();
-      result = result.filter(request => 
-        (request.category?.toLowerCase() === category) || 
-        (request.site?.toLowerCase() === category)
-      );
+    // Filter by property
+    if (propertyFilter !== 'all') {
+      result = result.filter(request => request.propertyId === propertyFilter);
     }
 
     // Date range filtering - using createdAt instead of created_at
@@ -105,16 +108,7 @@ const AllRequests = () => {
     
     console.log('Filtered requests count:', result.length);
     setFilteredRequests(result);
-  }, [searchTerm, statusFilter, categoryFilter, sortField, sortDirection, dateRange, requests]);
-
-  // Get unique categories from requests
-  const categories = Array.from(
-    new Set(
-      requests
-        .map(req => (req.category || req.site || '').toLowerCase())
-        .filter(Boolean)
-    )
-  );
+  }, [searchTerm, statusFilter, propertyFilter, sortField, sortDirection, dateRange, requests]);
 
   // CRITICAL FIX: Don't show loading message after first load completes
   const showLoading = loading && !hasLoadedDataRef.current;
@@ -123,7 +117,7 @@ const AllRequests = () => {
   const getEmptyMessage = () => {
     if (showLoading) return "Loading requests...";
     if (requests.length === 0) return "No maintenance requests found. Submit a new request to get started.";
-    if (searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || dateRange.from || dateRange.to) {
+    if (searchTerm || statusFilter !== 'all' || propertyFilter !== 'all' || dateRange.from || dateRange.to) {
       return "No requests match your filters. Try adjusting your search criteria.";
     }
     return "No maintenance requests found";
@@ -144,13 +138,13 @@ const AllRequests = () => {
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
+          propertyFilter={propertyFilter}
+          setPropertyFilter={setPropertyFilter}
+          properties={sortedProperties}
           sortField={sortField}
           setSortField={setSortField}
           sortDirection={sortDirection}
           setSortDirection={setSortDirection}
-          categories={categories}
           dateRange={dateRange}
           setDateRange={setDateRange}
         />
