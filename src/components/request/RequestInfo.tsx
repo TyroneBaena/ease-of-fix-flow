@@ -27,19 +27,13 @@ interface RequestInfoProps {
     propertyId?: string;
     attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
+  onAttachmentsAdded?: () => void;
+  canEdit?: boolean;
 }
 
-export const RequestInfo = ({ request }: RequestInfoProps) => {
+export const RequestInfo = ({ request, onAttachmentsAdded, canEdit = false }: RequestInfoProps) => {
   const { getProperty } = usePropertyContext();
   const propertyName = request.propertyId ? getProperty(request.propertyId)?.name : undefined;
-
-  console.log('RequestInfo - COMPONENT START');
-  console.log('RequestInfo - full request object:', request);
-  console.log('RequestInfo - attachments specifically:', request.attachments);
-  console.log('RequestInfo - attachments type:', typeof request.attachments);
-  console.log('RequestInfo - attachments is array?', Array.isArray(request.attachments));
-  console.log('RequestInfo - attachments length:', request.attachments?.length);
-  console.log('RequestInfo - ABOUT TO PASS TO RequestAttachments');
   
   return (
     <Card className="p-6">
@@ -69,8 +63,12 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         attemptedFix={request.attemptedFix}
       />
       
-      <RequestAttachments attachments={request.attachments} />
+      <RequestAttachments 
+        attachments={request.attachments}
+        requestId={request.id}
+        onAttachmentsAdded={onAttachmentsAdded}
+        canEdit={canEdit}
+      />
     </Card>
   );
 };
-
