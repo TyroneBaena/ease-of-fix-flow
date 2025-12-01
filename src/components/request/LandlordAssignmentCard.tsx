@@ -31,7 +31,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [property, setProperty] = useState<any>(null);
 
-  // Fetch property data when component mounts
+  // Fetch property data with landlord when component mounts
   useEffect(() => {
     const fetchProperty = async () => {
       if (!request.propertyId) return;
@@ -39,7 +39,17 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('*')
+          .select(`
+            *,
+            landlords!landlord_id (
+              id,
+              name,
+              email,
+              phone,
+              office_address,
+              postal_address
+            )
+          `)
           .eq('id', request.propertyId)
           .single();
         
@@ -173,6 +183,7 @@ export const LandlordAssignmentCard: React.FC<LandlordAssignmentCardProps> = ({
         }}
         request={request}
         property={property}
+        landlord={property?.landlords || null}
         onConfirm={handleConfirmAssignment}
         loading={loading}
       />

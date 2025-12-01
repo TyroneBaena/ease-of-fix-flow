@@ -24,6 +24,11 @@ interface LandlordAssignmentConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   request: MaintenanceRequest | null;
   property?: any;
+  landlord?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   onConfirm: (notes: string, landlordEmail: string, reportOptions: any) => Promise<void>;
   loading?: boolean;
 }
@@ -33,6 +38,7 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
   onOpenChange,
   request,
   property,
+  landlord,
   onConfirm,
   loading = false,
 }) => {
@@ -47,13 +53,13 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
     practiceLeader: false
   });
 
-  // Set default email when dialog opens
+  // Set default email when dialog opens - prioritize landlord email
   React.useEffect(() => {
-    if (open && property) {
-      const defaultEmail = property.practice_leader_email || property.email || '';
+    if (open) {
+      const defaultEmail = landlord?.email || property?.email || '';
       setLandlordEmail(defaultEmail);
     }
-  }, [open, property]);
+  }, [open, property, landlord]);
 
   const handleConfirm = async () => {
     if (!landlordEmail.trim()) {
@@ -224,9 +230,13 @@ export const LandlordAssignmentConfirmDialog: React.FC<LandlordAssignmentConfirm
               onChange={(e) => setLandlordEmail(e.target.value)}
               required
             />
-            {property?.practice_leader_email || property?.email ? (
+            {landlord?.email ? (
               <p className="text-xs text-muted-foreground">
-                Default email from property: {property.practice_leader_email || property.email}
+                Landlord email: {landlord.email}
+              </p>
+            ) : property?.email ? (
+              <p className="text-xs text-muted-foreground">
+                Default email from property: {property.email}
               </p>
             ) : null}
           </div>
