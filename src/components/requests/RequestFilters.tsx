@@ -9,19 +9,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Search, ArrowDown, ArrowUp, Calendar as CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { Property } from '@/types/property';
 
 interface RequestFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
-  categoryFilter: string;
-  setCategoryFilter: (category: string) => void;
+  propertyFilter: string;
+  setPropertyFilter: (propertyId: string) => void;
+  properties: Property[];
   sortField: string;
   setSortField: (field: string) => void;
   sortDirection: string;
   setSortDirection: (direction: string) => void;
-  categories: string[];
   dateRange?: { from: Date | undefined; to: Date | undefined };
   setDateRange?: (range: { from: Date | undefined; to: Date | undefined }) => void;
 }
@@ -31,13 +32,13 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
   setSearchTerm,
   statusFilter,
   setStatusFilter,
-  categoryFilter,
-  setCategoryFilter,
+  propertyFilter,
+  setPropertyFilter,
+  properties,
   sortField,
   setSortField,
   sortDirection,
   setSortDirection,
-  categories,
   dateRange,
   setDateRange
 }) => {
@@ -93,15 +94,15 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
         
         {/* Property Filter */}
         <div className="w-full lg:w-48">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Property: All" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white z-50 max-h-60">
               <SelectItem value="all">All Properties</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+              {properties.map(property => (
+                <SelectItem key={property.id} value={property.id}>
+                  {property.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -203,14 +204,14 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
           </Badge>
         )}
         
-        {categoryFilter !== 'all' && (
+        {propertyFilter !== 'all' && (
           <Badge variant="outline" className="bg-gray-100">
-            Property: {categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}
+            Property: {properties.find(p => p.id === propertyFilter)?.name || propertyFilter}
             <Button 
               variant="ghost" 
               size="sm" 
               className="h-4 w-4 ml-2 p-0" 
-              onClick={() => setCategoryFilter('all')}
+              onClick={() => setPropertyFilter('all')}
             >
               <X className="h-3 w-3" />
             </Button>
