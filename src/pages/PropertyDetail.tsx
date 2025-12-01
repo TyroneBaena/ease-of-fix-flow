@@ -12,6 +12,7 @@ import { PropertyHeader } from '@/components/property/PropertyHeader';
 import { PropertyInfo } from '@/components/property/PropertyInfo';
 import { PropertyRequests } from '@/components/property/PropertyRequests';
 import { PropertyQuickActions } from '@/components/property/PropertyQuickActions';
+import { LandlordInfoCard } from '@/components/property/LandlordInfoCard';
 import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { useBudgetData } from '@/hooks/useBudgetData';
@@ -240,6 +241,7 @@ const PropertyDetail = () => {
                   currentFinancialYear={currentFinancialYear}
                   budgetAnalysis={getBudgetAnalysis()}
                 />
+                <LandlordInfoCard landlordId={property?.landlordId} />
                 {id && (
                   <PropertyQuickActions
                     propertyId={id}
