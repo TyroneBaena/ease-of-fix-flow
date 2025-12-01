@@ -1129,6 +1129,13 @@ import AdminSettings from "@/pages/AdminSettings";
 import { PublicPropertyWrapper } from "@/components/PublicPropertyWrapper";
 import Notifications from "@/pages/Notifications";
 import ContractorNotifications from "@/pages/ContractorNotifications";
+import ContractorDashboard from "@/pages/ContractorDashboard";
+import ContractorJobs from "@/pages/contractor/ContractorJobs";
+import ContractorJobDetail from "@/pages/ContractorJobDetail";
+import ContractorProfile from "@/pages/contractor/ContractorProfile";
+import ContractorSchedule from "@/pages/contractor/ContractorSchedule";
+import ContractorSettings from "@/pages/contractor/ContractorSettings";
+import QuoteSubmission from "@/pages/contractor/QuoteSubmission";
 import { ContractorAuthProvider } from "@/contexts/contractor/ContractorAuthContext";
 import { ContractorRouteGuard } from "@/components/contractor/ContractorRouteGuard";
 
@@ -1338,6 +1345,85 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Contractor routes */}
+      <Route
+        path="/contractor-dashboard"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorDashboard />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor-jobs"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorJobs />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor-jobs/:id"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorJobDetail />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor-profile"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorProfile />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor-schedule"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorSchedule />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor-settings"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <ContractorSettings />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/contractor-notifications"
         element={
@@ -1345,6 +1431,19 @@ const AppRoutes = () => {
             <ContractorAuthProvider>
               <ContractorRouteGuard>
                 <ContractorNotifications />
+              </ContractorRouteGuard>
+            </ContractorAuthProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/contractor/quote-submission/:id"
+        element={
+          <ProtectedRoute>
+            <ContractorAuthProvider>
+              <ContractorRouteGuard>
+                <QuoteSubmission />
               </ContractorRouteGuard>
             </ContractorAuthProvider>
           </ProtectedRoute>
