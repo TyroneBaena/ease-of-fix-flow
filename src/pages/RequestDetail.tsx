@@ -4,7 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { RequestInfo } from '@/components/request/RequestInfo';
 import { CommentSection } from '@/components/request/CommentSection';
-// import { RequestHistory } from '@/components/request/RequestHistory';
 import { ActivityTimeline } from '@/components/request/ActivityTimeline';
 import { ContractorProvider } from '@/contexts/contractor';
 import { RequestQuoteDialog } from '@/components/contractor/RequestQuoteDialog';
@@ -48,6 +47,9 @@ const RequestDetail = () => {
     return <RequestDetailNotFound onBackClick={handleNavigateBack} />;
   }
 
+  // Allow editing if request is not completed or cancelled
+  const canEdit = request.status !== 'completed' && request.status !== 'cancelled';
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -57,18 +59,17 @@ const RequestDetail = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
-            <RequestInfo request={request} />
+            <RequestInfo 
+              request={request} 
+              onAttachmentsAdded={refreshData}
+              canEdit={canEdit}
+            />
             <ActivityTimeline 
               request={request} 
               comments={comments}
               activityLogs={activityLogs}
             />
             <CommentSection requestId={id || ''} />
-            {/* <RequestHistory 
-              request={request} 
-              comments={comments}
-              history={request.history} 
-            /> */}
           </div>
           
           <ContractorProvider>
@@ -95,7 +96,7 @@ const RequestDetail = () => {
               onOpenChange={setRequestQuoteDialogOpen}
               requestDetails={request}
               onSubmitQuote={refreshAfterQuoteSubmission}
-              onSuccess={refreshData} // Pass refresh callback to refresh page data
+              onSuccess={refreshData}
             />
           </ContractorProvider>
         </div>
