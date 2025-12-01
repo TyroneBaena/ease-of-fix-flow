@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RequestCard from '@/components/RequestCard';
 import { MaintenanceRequest } from '@/types/maintenance';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { 
   Pagination, 
   PaginationContent, 
@@ -23,6 +24,13 @@ interface RequestListProps {
 const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const { properties } = usePropertyContext();
+  
+  // Create property lookup map for efficiency
+  const propertyMap = useMemo(() => 
+    new Map(properties.map(p => [p.id, p.name])), 
+    [properties]
+  );
   
   const itemsPerPage = 5;
   
@@ -89,19 +97,20 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
             <RequestCard 
               key={request.id} 
               request={request} 
-              onClick={() => navigate(`/requests/${request.id}`)} 
+              onClick={() => navigate(`/requests/${request.id}`)}
+              propertyName={request.propertyId ? propertyMap.get(request.propertyId) : undefined}
             />
           ))
         ) : (
-          <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-            <Wrench className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No requests found</h3>
-            <p className="text-gray-500 mb-4">
+          <div className="text-center py-16 bg-background rounded-lg shadow-sm">
+            <Wrench className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-1">No requests found</h3>
+            <p className="text-muted-foreground mb-4">
               {emptyMessage || "Submit a new maintenance request to get started"}
             </p>
             <Button 
               onClick={() => navigate('/new-request')}
-              className="bg-blue-500 hover:bg-blue-600"
+              className="bg-primary hover:bg-primary/90"
             >
               <Plus className="mr-2 h-4 w-4" />
               New Request

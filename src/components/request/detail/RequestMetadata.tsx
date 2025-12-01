@@ -5,6 +5,7 @@ import { LocationInfo } from './metadata/LocationInfo';
 import { DateInfo } from './metadata/DateInfo';
 import { SiteInfo } from './metadata/SiteInfo';
 import { UserInfo } from './metadata/UserInfo';
+import { PropertyInfo } from './metadata/PropertyInfo';
 import { supabase } from '@/lib/supabase';
 
 interface RequestMetadataProps {
@@ -16,6 +17,8 @@ interface RequestMetadataProps {
   submittedBy: string;
   assignedTo?: string;
   contractorId?: string;
+  propertyId?: string;
+  propertyName?: string;
 }
 
 export const RequestMetadata = ({
@@ -26,7 +29,9 @@ export const RequestMetadata = ({
   site,
   submittedBy,
   assignedTo,
-  contractorId
+  contractorId,
+  propertyId,
+  propertyName
 }: RequestMetadataProps) => {
   const [contractorInfo, setContractorInfo] = useState<{
     companyName?: string;
@@ -65,6 +70,7 @@ export const RequestMetadata = ({
         participantName={participantName}
       />
 
+      <PropertyInfo propertyId={propertyId} propertyName={propertyName} />
       <LocationInfo location={location} />
       <DateInfo reportDate={reportDate} />
       <SiteInfo site={site} />
@@ -79,3 +85,4 @@ export const RequestMetadata = ({
     </div>
   );
 };
+

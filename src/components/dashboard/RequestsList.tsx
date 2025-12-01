@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatDistanceToNow } from 'date-fns';
-import { User, Clock } from 'lucide-react';
+import { User, Clock, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 
 interface RequestsListProps {
   allRequests: MaintenanceRequest[];
@@ -15,6 +16,13 @@ interface RequestsListProps {
 
 const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: RequestsListProps) => {
   const navigate = useNavigate();
+  const { properties } = usePropertyContext();
+
+  // Create property lookup map for efficiency
+  const propertyMap = useMemo(() => 
+    new Map(properties.map(p => [p.id, p.name])), 
+    [properties]
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -73,14 +81,14 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Recent Maintenance Requests</span>
-          <span className="text-sm font-normal text-gray-500">
+          <span className="text-sm font-normal text-muted-foreground">
             {allRequests.length} total requests
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {recentRequests.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             <p>No maintenance requests found</p>
             <p className="text-sm mt-1">Submit your first request to get started</p>
           </div>
@@ -90,14 +98,14 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
               <div 
                 key={request.id} 
                 className={`p-4 border rounded-lg cursor-pointer ${
-                  selectedRequest?.id === request.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                  selectedRequest?.id === request.id ? 'ring-2 ring-primary bg-primary/5' : ''
                 }`}
                 onClick={() => handleRequestClick(request)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium text-gray-900 truncate">
+                      <h3 className="font-medium text-foreground truncate">
                         {request.title}
                       </h3>
                       <Badge className={getStatusColor(request.status)}>
@@ -110,17 +118,24 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                       )}
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                       {request.description || request.explanation}
                     </p>
                     
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatCreatedDate(request.createdAt)}
                       </span>
                       
                       <span>{request.location}</span>
+                      
+                      {request.propertyId && propertyMap.get(request.propertyId) && (
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3" />
+                          {propertyMap.get(request.propertyId)}
+                        </span>
+                      )}
                       
                       {request.assignedTo && (
                         <span className="flex items-center gap-1">
@@ -133,11 +148,11 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                     {(request.contractorId || request.completionPercentage > 0) && (
                       <div className="mt-2 text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-500">Progress:</span>
+                          <span className="text-muted-foreground">Progress:</span>
                           <span className="font-medium">{request.completionPercentage || 0}%</span>
-                          <div className="w-16 h-1 bg-gray-200 rounded-full">
+                          <div className="w-16 h-1 bg-muted rounded-full">
                             <div 
-                              className="h-1 bg-blue-500 rounded-full transition-all"
+                              className="h-1 bg-primary rounded-full transition-all"
                               style={{ width: `${request.completionPercentage || 0}%` }}
                             />
                           </div>
