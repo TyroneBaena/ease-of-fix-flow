@@ -194,6 +194,9 @@ import { LandlordReportDialog } from "@/components/request/LandlordReportDialog"
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { updateRequestPriority } from "@/utils/statusTransitions";
+import { toast } from "sonner";
 
 interface RequestDetailSidebarProps {
   request: MaintenanceRequest;
@@ -215,6 +218,7 @@ export const RequestDetailSidebar = ({
   const navigate = useNavigate();
   const { currentUser, isAdmin } = useUserContext();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
 
   // Check if user can access contractor features (admins only, not managers)
   const canAccessContractorFeatures = isAdmin;
@@ -229,6 +233,27 @@ export const RequestDetailSidebar = ({
   const handleRequestUpdated = async () => {
     // Refresh detail page data
     await onRefreshData();
+  };
+
+  const handlePriorityChange = async (newPriority: string) => {
+    setIsUpdatingPriority(true);
+    try {
+      const success = await updateRequestPriority(
+        request.id,
+        newPriority as 'low' | 'medium' | 'high' | 'critical'
+      );
+      if (success) {
+        toast.success(`Priority updated to ${newPriority}`);
+        await onRefreshData();
+      } else {
+        toast.error('Failed to update priority');
+      }
+    } catch (error) {
+      console.error('Error updating priority:', error);
+      toast.error('Failed to update priority');
+    } finally {
+      setIsUpdatingPriority(false);
+    }
   };
 
   const isLandlordAssigned = (request as any).assigned_to_landlord ?? (request as any).assignedToLandlord ?? false;
@@ -254,6 +279,28 @@ export const RequestDetailSidebar = ({
         onEditRequest={canEditRequests ? handleEditRequest : undefined}
         onCancelSuccess={() => navigate("/dashboard")}
       />
+
+      {/* Priority Selector - Admin only */}
+      {isAdmin && (
+        <Card className="p-4">
+          <h3 className="font-semibold text-sm mb-2">Priority</h3>
+          <Select 
+            value={request.priority || 'medium'} 
+            onValueChange={handlePriorityChange}
+            disabled={isUpdatingPriority}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+            </SelectContent>
+          </Select>
+        </Card>
+      )}
 
       {/* Landlord Assignment - Admins and Managers can assign */}
       {canEditRequests && (

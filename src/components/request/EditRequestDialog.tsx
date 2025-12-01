@@ -119,8 +119,7 @@ export const EditRequestDialog = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* COMMENTED OUT - Priority field hidden as per user request */}
-            {/* <div>
+            <div>
               <Label htmlFor="priority">Priority</Label>
               <Select 
                 value={formData.priority} 
@@ -136,7 +135,7 @@ export const EditRequestDialog = ({
                   <SelectItem value="critical">Critical</SelectItem>
                 </SelectContent>
               </Select>
-            </div> */}
+            </div>
             
             <div>
               <Label htmlFor="location">Location</Label>

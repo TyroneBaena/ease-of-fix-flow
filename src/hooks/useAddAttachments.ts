@@ -132,6 +132,34 @@ export const useAddAttachments = () => {
         uploaderName || 'Someone'
       ).catch(err => console.error('Photo notification error:', err));
 
+      // Auto-transition status to in-progress if admin/manager adds attachments to pending/open request
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+          
+          const { data: requestData } = await supabase
+            .from('maintenance_requests')
+            .select('status')
+            .eq('id', requestId)
+            .single();
+            
+          if (profile && requestData && (profile.role === 'admin' || profile.role === 'manager')) {
+            if (requestData.status === 'pending' || requestData.status === 'open') {
+              console.log('useAddAttachments - Auto-transitioning to in-progress');
+              const { autoTransitionToInProgress } = await import('@/utils/statusTransitions');
+              await autoTransitionToInProgress(requestId, requestData.status, profile.role);
+            }
+          }
+        }
+      } catch (transitionError) {
+        console.error('Error auto-transitioning status:', transitionError);
+      }
+
       toast.success(`Added ${uploadedFiles.length} attachment(s)`);
       return combinedAttachments;
     } catch (error) {

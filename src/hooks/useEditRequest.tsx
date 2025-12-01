@@ -105,6 +105,24 @@ export const useEditRequest = () => {
       console.log('useEditRequest - Update successful, updated fields:', Object.keys(dbUpdateData));
       console.log('useEditRequest - New title value:', data?.title);
       
+      // Auto-transition status to in-progress if admin/manager edits pending/open request
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && data?.status) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+          
+        if (profile && (profile.role === 'admin' || profile.role === 'manager')) {
+          if (data.status === 'pending' || data.status === 'open') {
+            console.log('useEditRequest - Auto-transitioning to in-progress');
+            const { autoTransitionToInProgress } = await import('@/utils/statusTransitions');
+            await autoTransitionToInProgress(requestId, data.status, profile.role);
+          }
+        }
+      }
+      
       // v85.0 SIMPLE FIX: Just refresh all requests from the API
       console.log('useEditRequest - Calling refreshRequests to update UI');
       await refreshRequests();

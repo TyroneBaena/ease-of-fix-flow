@@ -21,6 +21,7 @@ interface RequestInfoProps {
     site: string;
     submittedBy: string;
     status: string;
+    priority?: string;
     createdAt: string;
     assignedTo?: string;
     contractorId?: string;
@@ -39,7 +40,8 @@ export const RequestInfo = ({ request, onAttachmentsAdded, canEdit = false }: Re
     <Card className="p-6">
       <RequestHeader 
         id={request.id} 
-        status={request.status} 
+        status={request.status}
+        priority={request.priority}
         createdAt={request.createdAt}
         title={request.title}
       />
