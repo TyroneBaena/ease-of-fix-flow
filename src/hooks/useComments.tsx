@@ -548,6 +548,27 @@ export function useComments(requestId: string) {
           }
         }
 
+        // Send email to property email address (if available)
+        if (requestData.property_id) {
+          const { data: propertyData } = await supabase
+            .from("properties")
+            .select("email, name")
+            .eq("id", requestData.property_id)
+            .single();
+
+          if (propertyData?.email) {
+            console.log("📬 Sending email to property contact:", propertyData.email);
+            const { data, error } = await supabase.functions.invoke("send-comment-notification", {
+              body: {
+                recipient_email: propertyData.email,
+                recipient_name: propertyData.name || "Property Contact",
+                notification_data: notificationData,
+              },
+            });
+            console.log("📧 Property email result:", { data, error });
+          }
+        }
+
         // Send email to assigned contractor (check preferences first)
         if (requestData.contractor_id) {
           console.log("🔧 Checking contractor for contractor_id:", requestData.contractor_id);
@@ -586,36 +607,7 @@ export function useComments(requestId: string) {
           }
         }
 
-        // Send email to all admin users (check preferences for each)
-        console.log("👑 Fetching admin users...");
-        const { data: adminProfiles } = await supabase
-          .from("profiles")
-          .select("id, name, email, notification_settings")
-          .eq("role", "admin")
-          .not("email", "is", null);
-
-        console.log("👑 Admin profiles:", adminProfiles);
-
-        if (adminProfiles && adminProfiles.length > 0) {
-          for (const admin of adminProfiles) {
-            const notificationSettings = admin.notification_settings as any;
-            const emailEnabled = notificationSettings?.emailNotifications ?? true;
-
-            if (emailEnabled) {
-              console.log("📬 Sending email to admin:", admin.email);
-              const { data, error } = await supabase.functions.invoke("send-comment-notification", {
-                body: {
-                  recipient_email: admin.email,
-                  recipient_name: admin.name || "",
-                  notification_data: notificationData,
-                },
-              });
-              console.log("📧 Admin email result:", { data, error });
-            } else {
-              console.log("⏭️ Skipping admin email - notifications disabled by user:", admin.email);
-            }
-          }
-        }
+        // NOTE: Admin email notifications removed - admins should not receive comment emails
 
         // Send email to managers assigned to the property (check preferences for each)
         if (requestData.property_id) {

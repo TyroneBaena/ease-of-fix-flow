@@ -10,6 +10,88 @@ interface Attachment {
   type: string;
 }
 
+const sendPhotoUploadNotifications = async (
+  requestId: string,
+  uploadCount: number,
+  uploaderName: string
+) => {
+  try {
+    // Get request details with property info
+    const { data: request } = await supabase
+      .from('maintenance_requests')
+      .select(`
+        *,
+        properties:property_id (
+          id,
+          name,
+          practice_leader_email
+        )
+      `)
+      .eq('id', requestId)
+      .single();
+
+    if (!request) {
+      console.error('Request not found for photo upload notification');
+      return;
+    }
+
+    const notificationTitle = 'New Photos Added to Request';
+    const notificationMessage = `${uploaderName} added ${uploadCount} photo(s) to "${request.title}"`;
+    const notificationLink = `/requests/${requestId}`;
+
+    // Get admins and managers assigned to this property
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
+      .eq('organization_id', request.organization_id);
+
+    const { data: managers } = await supabase
+      .from('profiles')
+      .select('id, assigned_properties')
+      .eq('role', 'manager')
+      .eq('organization_id', request.organization_id);
+
+    // Filter managers who have this property assigned
+    const assignedManagers = (managers || []).filter(manager =>
+      manager.assigned_properties?.includes(request.property_id)
+    );
+
+    // Combine recipients (deduplicated)
+    const notifyUserIds = new Set<string>();
+    
+    // Add all admins
+    (admins || []).forEach(admin => notifyUserIds.add(admin.id));
+    
+    // Add assigned managers (practice leaders)
+    assignedManagers.forEach(manager => notifyUserIds.add(manager.id));
+
+    console.log(`📸 Sending photo upload notifications to ${notifyUserIds.size} users`);
+
+    // Create notifications
+    for (const userId of notifyUserIds) {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'info',
+          link: notificationLink,
+          organization_id: request.organization_id
+        });
+
+      if (error) {
+        console.error('Error creating notification for user:', userId, error);
+      }
+    }
+
+    console.log(`✅ Sent photo upload notifications to ${notifyUserIds.size} users`);
+  } catch (error) {
+    console.error('Error sending photo upload notifications:', error);
+  }
+};
+
 export const useAddAttachments = () => {
   const [isAdding, setIsAdding] = useState(false);
   const { uploadFiles, isUploading } = useFileUpload();
@@ -17,7 +99,8 @@ export const useAddAttachments = () => {
   const addAttachments = async (
     requestId: string, 
     files: File[], 
-    existingAttachments: Attachment[] | null
+    existingAttachments: Attachment[] | null,
+    uploaderName?: string
   ): Promise<Attachment[] | null> => {
     setIsAdding(true);
     try {
@@ -41,6 +124,13 @@ export const useAddAttachments = () => {
         .eq('id', requestId);
 
       if (error) throw error;
+
+      // Send in-app notifications (async, don't block)
+      sendPhotoUploadNotifications(
+        requestId,
+        uploadedFiles.length,
+        uploaderName || 'Someone'
+      ).catch(err => console.error('Photo notification error:', err));
 
       toast.success(`Added ${uploadedFiles.length} attachment(s)`);
       return combinedAttachments;
