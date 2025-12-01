@@ -5,6 +5,7 @@ import { RequestHeader } from './detail/RequestHeader';
 import { RequestMetadata } from './detail/RequestMetadata';
 import { RequestIssueDetails } from './detail/RequestIssueDetails';
 import { RequestAttachments } from './detail/RequestAttachments';
+import { usePropertyContext } from '@/contexts/property/PropertyContext';
 
 interface RequestInfoProps {
   request: {
@@ -23,11 +24,15 @@ interface RequestInfoProps {
     createdAt: string;
     assignedTo?: string;
     contractorId?: string;
+    propertyId?: string;
     attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
 }
 
 export const RequestInfo = ({ request }: RequestInfoProps) => {
+  const { getProperty } = usePropertyContext();
+  const propertyName = request.propertyId ? getProperty(request.propertyId)?.name : undefined;
+
   console.log('RequestInfo - COMPONENT START');
   console.log('RequestInfo - full request object:', request);
   console.log('RequestInfo - attachments specifically:', request.attachments);
@@ -54,6 +59,8 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
         submittedBy={request.submittedBy}
         assignedTo={request.assignedTo}
         contractorId={request.contractorId}
+        propertyId={request.propertyId}
+        propertyName={propertyName}
       />
       
       <RequestIssueDetails 
@@ -66,3 +73,4 @@ export const RequestInfo = ({ request }: RequestInfoProps) => {
     </Card>
   );
 };
+

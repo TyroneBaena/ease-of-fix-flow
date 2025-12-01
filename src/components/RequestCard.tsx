@@ -6,13 +6,15 @@ import {
   MapPin, 
   Calendar, 
   User,
-  ChevronRight
+  ChevronRight,
+  Building2
 } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 interface RequestCardProps {
   request: MaintenanceRequest;
   onClick: () => void;
+  propertyName?: string;
 }
 
 // Custom comparison function to prevent unnecessary re-renders
@@ -35,11 +37,13 @@ const arePropsEqual = (prevProps: RequestCardProps, nextProps: RequestCardProps)
     prevRequest.location === nextRequest.location &&
     prevRequest.dueDate === nextRequest.dueDate &&
     prevRequest.assignedTo === nextRequest.assignedTo &&
+    prevRequest.propertyId === nextRequest.propertyId &&
+    prevProps.propertyName === nextProps.propertyName &&
     prevProps.onClick === nextProps.onClick
   );
 };
 
-const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
+const RequestCard: React.FC<RequestCardProps> = ({ request, onClick, propertyName }) => {
   // Debug logging to track renders
   console.log(`🎨 RequestCard re-rendered for request: ${request.id?.substring(0, 8)}`);
   
@@ -112,12 +116,12 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
               {/* Priority badge removed */}
             </div>
             <h3 className="font-semibold text-lg">{displayTitle}</h3>
-            <p className="text-gray-600 line-clamp-2">{displayDescription}</p>
+            <p className="text-muted-foreground line-clamp-2">{displayDescription}</p>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-400" />
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </div>
         
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 text-sm text-gray-500">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 text-sm text-muted-foreground">
           <div className="flex items-center">
             <Clock className="h-3.5 w-3.5 mr-1.5" />
             <span>{request.reportDate || request.createdAt}</span>
@@ -126,6 +130,12 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
             <MapPin className="h-3.5 w-3.5 mr-1.5" />
             <span className="truncate">{request.location}</span>
           </div>
+          {propertyName && (
+            <div className="flex items-center">
+              <Building2 className="h-3.5 w-3.5 mr-1.5" />
+              <span className="truncate">{propertyName}</span>
+            </div>
+          )}
           {request.dueDate && (
             <div className="flex items-center">
               <Calendar className="h-3.5 w-3.5 mr-1.5" />
