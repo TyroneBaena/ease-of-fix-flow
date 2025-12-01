@@ -705,6 +705,21 @@ export function useComments(requestId: string) {
         console.log("🚀 Triggering email notifications...");
         sendEmailNotifications(data).catch((error) => console.error("❌ Email notification failed:", error));
 
+        // Auto-transition status to in-progress if admin/manager comments on pending/open request
+        if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
+          const { data: requestData } = await supabase
+            .from('maintenance_requests')
+            .select('status')
+            .eq('id', requestId)
+            .single();
+          
+          if (requestData && (requestData.status === 'pending' || requestData.status === 'open')) {
+            console.log('Auto-transitioning request to in-progress after admin/manager comment');
+            const { autoTransitionToInProgress } = await import('@/utils/statusTransitions');
+            await autoTransitionToInProgress(requestId, requestData.status, currentUser.role);
+          }
+        }
+
         // Refresh comments to get the new one
         await fetchComments();
         toast.success("Comment added");
