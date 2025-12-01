@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, X, Loader2, ImagePlus } from 'lucide-react';
 import { useAddAttachments } from '@/hooks/useAddAttachments';
+import { useUserContext } from '@/contexts/UnifiedAuthContext';
 
 interface Attachment {
   url: string;
@@ -30,6 +31,7 @@ export const AddAttachmentsDialog = ({
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addAttachments, isAdding, isUploading } = useAddAttachments();
+  const { currentUser } = useUserContext();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -57,7 +59,9 @@ export const AddAttachmentsDialog = ({
       type: a.type || ''
     })) || null;
 
-    const result = await addAttachments(requestId, files, normalizedAttachments);
+    // Pass uploader name for notifications
+    const uploaderName = currentUser?.name || currentUser?.email || 'User';
+    const result = await addAttachments(requestId, files, normalizedAttachments, uploaderName);
     
     if (result) {
       // Cleanup
