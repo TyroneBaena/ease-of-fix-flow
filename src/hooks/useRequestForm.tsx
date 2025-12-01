@@ -1,5 +1,5 @@
 
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useCallback } from 'react';
 
 interface FormState {
   propertyId: string;
@@ -95,10 +95,11 @@ export const useRequestForm = () => {
     console.log('useRequestForm - Preview URLs after removal:', newPreviewUrls);
   };
 
-  // Add validation function for photos
-  const validatePhotos = () => {
+  // Add validation function for photos - use useCallback to ensure fresh files state
+  const validatePhotos = useCallback(() => {
+    console.log('validatePhotos called - files.length:', files.length);
     return files.length > 0;
-  };
+  }, [files]);
 
   return {
     formState,

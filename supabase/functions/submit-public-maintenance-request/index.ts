@@ -43,6 +43,18 @@ serve(async (req) => {
       );
     }
 
+    // Validate attachments - photos are mandatory for public submissions
+    if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+      console.log('❌ Missing required attachments - photos are mandatory');
+      return new Response(
+        JSON.stringify({ error: 'At least one photo is required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Create Supabase client with service role key (bypasses RLS)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

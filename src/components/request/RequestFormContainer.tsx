@@ -185,6 +185,15 @@ export const RequestFormContainer = () => {
               budgetCategoryId: budgetCategoryId || null
           });
           
+          // Double-check files exist before calling API (safety net for race conditions)
+          if (files.length === 0) {
+            console.error('RequestForm - No files at submission time - validation bypass detected');
+            setShowPhotoError(true);
+            toast.error("Please upload at least one photo before submitting the request");
+            setIsSubmitting(false);
+            return;
+          }
+          
           const response = await fetch('https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/submit-public-maintenance-request', {
             method: 'POST',
             headers: {
