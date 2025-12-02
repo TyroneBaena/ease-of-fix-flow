@@ -8,7 +8,7 @@ import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent, CalendarEventFormData } from '@/types/calendar';
 import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Loader2, CalendarCheck } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 interface CalendarPopupProps {
@@ -35,7 +35,9 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(initialPropertyId || null);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>(
+    initialPropertyId ? [initialPropertyId] : []
+  );
   const [selectedEventType, setSelectedEventType] = useState<EventTypeFilter>('all');
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -49,12 +51,11 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
     createEvent,
     updateEvent,
     deleteEvent,
-    setPropertyFilter,
   } = useCalendarEvents({
     initialFilter: {
       startDate,
       endDate,
-      propertyId: selectedPropertyId,
+      propertyId: null,
     },
     propertyId: initialPropertyId || undefined,
     contractorId,
@@ -62,10 +63,11 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
     assignedProperties,
   });
 
-  // Filter events by selected property
-  const propertyFilteredEvents = selectedPropertyId
-    ? events.filter(e => e.propertyId === selectedPropertyId)
-    : events;
+  // Filter events by selected properties (multi-select)
+  const propertyFilteredEvents = useMemo(() => {
+    if (selectedPropertyIds.length === 0) return events;
+    return events.filter(e => e.propertyId && selectedPropertyIds.includes(e.propertyId));
+  }, [events, selectedPropertyIds]);
 
   // Filter events by type (jobs vs manual events)
   const filteredEvents = useMemo(() => {
@@ -88,9 +90,13 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
     setCurrentMonth(prev => addMonths(prev, 1));
   };
 
-  const handlePropertyChange = (propertyId: string | null) => {
-    setSelectedPropertyId(propertyId);
-    setPropertyFilter(propertyId);
+  const handleToday = () => {
+    setCurrentMonth(new Date());
+    setSelectedDate(new Date());
+  };
+
+  const handlePropertyIdsChange = (propertyIds: string[]) => {
+    setSelectedPropertyIds(propertyIds);
   };
 
   const handleAddEvent = () => {
@@ -137,12 +143,13 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
             {showFilters && (
               <div className="mt-4">
                 <CalendarFilters
-                  selectedPropertyId={selectedPropertyId}
-                  onPropertyChange={handlePropertyChange}
+                  selectedPropertyIds={selectedPropertyIds}
+                  onPropertyIdsChange={handlePropertyIdsChange}
                   selectedEventType={selectedEventType}
                   onEventTypeChange={setSelectedEventType}
                   showPropertyFilter={true}
                   showEventTypeFilter={true}
+                  multiSelect={true}
                 />
               </div>
             )}
@@ -156,9 +163,20 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
                 <Button variant="ghost" size="sm" onClick={handlePrevMonth}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <h3 className="font-medium">
-                  {format(currentMonth, 'MMMM yyyy')}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleToday}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <CalendarCheck className="h-3 w-3 mr-1" />
+                    Today
+                  </Button>
+                  <h3 className="font-medium">
+                    {format(currentMonth, 'MMMM yyyy')}
+                  </h3>
+                </div>
                 <Button variant="ghost" size="sm" onClick={handleNextMonth}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -197,7 +215,7 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
         onOpenChange={setEventDialogOpen}
         event={selectedEvent}
         initialDate={selectedDate}
-        initialPropertyId={selectedPropertyId}
+        initialPropertyId={selectedPropertyIds.length === 1 ? selectedPropertyIds[0] : null}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
         isLoading={loading}
