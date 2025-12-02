@@ -1163,20 +1163,23 @@ const SetupPasswordRoute = () => {
   // Check if user arrived via password reset link
   const hasResetToken = location.hash && location.hash.includes("access_token");
   const hasPasswordResetPending = sessionStorage.getItem('password_reset_pending') === 'true';
+  const hasForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
   
   // Debug logging to trace password reset flow
   console.log("🔐 SetupPasswordRoute check:", {
     hasCurrentUser: !!currentUser,
     hasResetToken,
     hasPasswordResetPending,
+    hasForcePasswordChange,
     hash: location.hash
   });
   
   // Allow access to SetupPassword if:
   // 1. No currentUser, OR
   // 2. User has reset token in URL, OR
-  // 3. Password reset is pending
-  if (!currentUser || hasResetToken || hasPasswordResetPending) {
+  // 3. Password reset is pending, OR
+  // 4. Force password change required (new invited users)
+  if (!currentUser || hasResetToken || hasPasswordResetPending || hasForcePasswordChange) {
     return <SetupPassword />;
   }
   
