@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
-
 import { logActivity } from "./helpers/activityHelpers";
+import { getUserDisplayName } from "@/utils/userNameLookup";
 
 // Send email notifications for status changes (cancelled/reopened)
 const sendStatusChangeNotification = async (
@@ -223,20 +223,9 @@ export const updateJobProgressStatus = async (
   const { data: userData } = await supabase.auth.getUser();
   console.log("updateJobProgressStatus - Current user:", userData.user?.id);
 
-  const { data: profileData, error: profileError } = await supabase
-    .from("profiles")
-    .select("name, role")
-    .eq("id", userData.user?.id)
-    .single();
-
-  if (profileError) {
-    console.error("updateJobProgressStatus - Error fetching profile data:", profileError);
-  }
-  console.log("updateJobProgressStatus - Profile data:", profileData);
-
-  // Get the user's name and role from profiles table
-  const completerName = profileData?.name || "Unknown User";
-  const completerRole = profileData?.role || "user";
+  // Get user's display name using the utility that checks multiple sources
+  const { name: completerName, role: completerRole } = await getUserDisplayName(userData.user?.id || "");
+  console.log("updateJobProgressStatus - User display name:", completerName, "Role:", completerRole);
 
   // Log activity based on progress
   console.log("updateJobProgressStatus - Logging activity for progress:", progress);
