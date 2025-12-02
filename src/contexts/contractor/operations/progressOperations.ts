@@ -6,7 +6,8 @@ import { logActivity } from "./helpers/activityHelpers";
 const sendStatusChangeNotification = async (
   requestId: string,
   newStatus: 'cancelled' | 'reopened',
-  actorName: string
+  actorName: string,
+  actorRole: string
 ) => {
   try {
     console.log(`📧 Sending ${newStatus} status notification for request:`, requestId);
@@ -43,7 +44,7 @@ const sendStatusChangeNotification = async (
       property_address: request.properties.address || "",
       comment_text: `Request has been ${newStatus} by ${actorName}`,
       commenter_name: actorName,
-      commenter_role: "contractor",
+      commenter_role: actorRole,
       comment_date: new Date().toISOString(),
       direct_link: `${window.location.origin}/requests/${requestId}`,
     };
@@ -186,21 +187,25 @@ export const updateJobProgressStatus = async (
     `🚀 VERIFICATION - Actual status in DB: ${verifyData?.status}, Actual progress: ${verifyData?.completion_percentage}%`,
   );
 
-  // Get contractor information for activity logging
-  console.log("updateJobProgressStatus - Getting contractor information for activity logging");
+  // Get current user's profile for their name and role (works for admin, manager, or contractor)
+  console.log("updateJobProgressStatus - Getting user profile for activity logging");
   const { data: userData } = await supabase.auth.getUser();
   console.log("updateJobProgressStatus - Current user:", userData.user?.id);
 
-  const { data: contractorData, error: contractorError } = await supabase
-    .from("contractors")
-    .select("contact_name")
-    .eq("user_id", userData.user?.id)
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("name, role")
+    .eq("id", userData.user?.id)
     .single();
 
-  if (contractorError) {
-    console.error("updateJobProgressStatus - Error fetching contractor data:", contractorError);
+  if (profileError) {
+    console.error("updateJobProgressStatus - Error fetching profile data:", profileError);
   }
-  console.log("updateJobProgressStatus - Contractor data:", contractorData);
+  console.log("updateJobProgressStatus - Profile data:", profileData);
+
+  // Get the user's name and role from profiles table
+  const completerName = profileData?.name || "Unknown User";
+  const completerRole = profileData?.role || "user";
 
   // Log activity based on progress
   console.log("updateJobProgressStatus - Logging activity for progress:", progress);
@@ -210,8 +215,8 @@ export const updateJobProgressStatus = async (
       requestId,
       actionType: "job_completed",
       description: `Job marked as completed with ${completionPhotos?.length || 0} completion photos`,
-      actorName: contractorData?.contact_name || "Unknown Contractor",
-      actorRole: "contractor",
+      actorName: completerName,
+      actorRole: completerRole,
       metadata: {
         progress_percentage: progress,
         completion_photos_count: completionPhotos?.length || 0,
@@ -224,7 +229,7 @@ export const updateJobProgressStatus = async (
     console.log("updateJobProgressStatus - Sending job completion notification");
     await sendJobCompletionNotification(
       requestId,
-      contractorData?.contact_name || "Unknown Contractor",
+      completerName,
       completionPhotos,
     );
   } else if (action === "cancel") {
@@ -234,8 +239,8 @@ export const updateJobProgressStatus = async (
       requestId,
       actionType: "job_cancelled",
       description: `Job has been cancelled${notes ? `: ${notes}` : ""}`,
-      actorName: contractorData?.contact_name || "Unknown Contractor",
-      actorRole: "contractor",
+      actorName: completerName,
+      actorRole: completerRole,
       metadata: {
         progress_percentage: progress,
         notes: notes,
@@ -247,7 +252,8 @@ export const updateJobProgressStatus = async (
     await sendStatusChangeNotification(
       requestId,
       "cancelled",
-      contractorData?.contact_name || "Unknown Contractor"
+      completerName,
+      completerRole
     );
   } else if (action === "reopen") {
     // Log reopening activity
@@ -256,8 +262,8 @@ export const updateJobProgressStatus = async (
       requestId,
       actionType: "job_reopened",
       description: `Job has been reopened${notes ? `: ${notes}` : ""}`,
-      actorName: contractorData?.contact_name || "Unknown Contractor",
-      actorRole: "contractor",
+      actorName: completerName,
+      actorRole: completerRole,
       metadata: {
         progress_percentage: progress,
         notes: notes,
@@ -269,7 +275,8 @@ export const updateJobProgressStatus = async (
     await sendStatusChangeNotification(
       requestId,
       "reopened",
-      contractorData?.contact_name || "Unknown Contractor"
+      completerName,
+      completerRole
     );
   } else {
     console.log("updateJobProgressStatus - Logging progress update activity");
@@ -277,8 +284,8 @@ export const updateJobProgressStatus = async (
       requestId,
       actionType: "progress_updated",
       description: `Progress updated to ${progress}%${notes ? ` with notes: ${notes}` : ""}`,
-      actorName: contractorData?.contact_name || "Unknown Contractor",
-      actorRole: "contractor",
+      actorName: completerName,
+      actorRole: completerRole,
       metadata: {
         progress_percentage: progress,
         notes: notes,
@@ -292,7 +299,7 @@ export const updateJobProgressStatus = async (
 
 const sendJobCompletionNotification = async (
   requestId: string,
-  contractorName: string,
+  completerName: string,
   completionPhotos?: Array<{ url: string }>,
 ) => {
   try {
@@ -326,21 +333,19 @@ const sendJobCompletionNotification = async (
     console.log("📧 Property email:", request.properties?.email);
     console.log("📧 Practice leader email:", request.properties?.practice_leader_email);
 
+    // Use the correct notification data structure for send-job-completion-notification
     const notificationData = {
       request_id: requestId,
       request_title: request.title || "",
       request_description: request.description || "",
       request_location: request.location || "",
       request_priority: request.priority || "",
-      request_status: "completed",
       property_name: request.properties?.name || "",
       property_address: request.properties?.address || "",
-      comment_text: `Job has been completed by ${contractorName}${completionPhotos?.length ? ` with ${completionPhotos.length} completion photos` : ""}`,
-      commenter_name: contractorName,
-      commenter_role: "contractor",
-      comment_date: new Date().toISOString(),
-      direct_link: `${window.location.origin}/requests/${requestId}`,
+      contractor_name: completerName, // Will show actual user's name (admin, manager, or contractor)
       completion_photos: completionPhotos,
+      completion_date: new Date().toISOString(),
+      direct_link: `${window.location.origin}/requests/${requestId}`,
     };
 
     // Build recipients list - NO admins, only property contacts and assigned managers
@@ -403,7 +408,8 @@ const sendJobCompletionNotification = async (
 
       console.log(`📬 Sending job completion notification to: ${recipient.email}`);
       
-      const { data, error } = await supabase.functions.invoke("send-comment-notification", {
+      // Use the correct edge function for job completion emails
+      const { data, error } = await supabase.functions.invoke("send-job-completion-notification", {
         body: {
           recipient_email: recipient.email,
           recipient_name: recipient.name,
