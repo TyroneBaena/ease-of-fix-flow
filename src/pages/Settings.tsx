@@ -263,7 +263,7 @@ import ContractorManagement from "@/components/settings/ContractorManagement";
 import { Card } from "@/components/ui/card";
 import { useSimpleAuth } from "@/contexts/UnifiedAuthContext";
 import { useUserContext } from "@/contexts/UserContext";
-import AdminRoleUpdater from "@/components/AdminRoleUpdater";
+
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import AccountSettings from "@/components/settings/AccountSettings";
@@ -430,7 +430,6 @@ const Settings = () => {
           <TabsContent value="account">
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
-              {!isAdmin && <AdminRoleUpdater />}
               {currentUser && <AccountSettings user={currentUser} />}
             </Card>
           </TabsContent>
