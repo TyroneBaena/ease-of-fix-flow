@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Clock, User, Settings, CheckCircle, AlertCircle, FileText, DollarSign, Calendar } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatTimestamp } from './detail/utils/dateUtils';
+import { format, parseISO } from 'date-fns';
 import type { Json } from '@/integrations/supabase/types';
 
 interface ActivityLog {
@@ -29,6 +30,35 @@ interface ActivityTimelineProps {
   }>;
   activityLogs?: ActivityLog[];
 }
+
+// Helper function to format time from HH:MM:SS to 12-hour format
+const formatTime = (time: string): string => {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minutes} ${ampm}`;
+};
+
+// Helper function to format scheduled dates from metadata
+const formatScheduledDates = (metadata: Json | null): string => {
+  if (!metadata || typeof metadata !== 'object') return '';
+  
+  const scheduledDates = (metadata as Record<string, unknown>)?.scheduledDates;
+  if (!Array.isArray(scheduledDates) || scheduledDates.length === 0) return '';
+  
+  return scheduledDates.map(sd => {
+    try {
+      const date = format(parseISO(sd.date), 'MMM d, yyyy');
+      const startTime = formatTime(sd.startTime);
+      const endTime = formatTime(sd.endTime);
+      return `${date} (${startTime} - ${endTime})`;
+    } catch {
+      return sd.date || 'Invalid date';
+    }
+  }).join(', ');
+};
 
 export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: ActivityTimelineProps) => {
   // Generate timeline items from request history and activity logs (excluding comments)
@@ -73,6 +103,7 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
     activityLogs.forEach((log) => {
       let icon = <Settings className="h-4 w-4 text-gray-500" />;
       let title = 'Activity';
+      let description = log.description;
       
       // Set specific icons and titles based on action type
       switch (log.action_type) {
@@ -98,6 +129,11 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
         case 'job_scheduled':
           icon = <Calendar className="h-4 w-4 text-purple-500" />;
           title = 'Job Scheduled';
+          // Enhance description with actual scheduled dates
+          const formattedDates = formatScheduledDates(log.metadata);
+          if (formattedDates) {
+            description = `Job scheduled for: ${formattedDates}`;
+          }
           break;
         case 'job_completed':
           icon = <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -127,7 +163,7 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
         id: `activity-${log.id}`,
         type: 'activity',
         title,
-        description: log.description,
+        description,
         timestamp: log.created_at,
         user: log.actor_name || 'System',
         icon

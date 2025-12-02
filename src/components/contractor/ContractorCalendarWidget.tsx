@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, ChevronLeft, ChevronRight, Loader2, MapPin, Clock, Maximize2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Loader2, MapPin, Clock, Maximize2, CalendarCheck } from 'lucide-react';
 import { calendarService } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
 import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
@@ -77,6 +77,10 @@ export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> =
     setCurrentWeekStart(prev => addDays(prev, 7));
   };
 
+  const handleToday = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  };
+
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekLabel = `${format(currentWeekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
 
@@ -115,7 +119,18 @@ export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> =
           <Button variant="ghost" size="sm" onClick={handlePrevWeek}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium text-muted-foreground">{weekLabel}</span>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleToday}
+              className="h-6 px-2 text-xs"
+            >
+              <CalendarCheck className="h-3 w-3 mr-1" />
+              Today
+            </Button>
+            <span className="text-sm font-medium text-muted-foreground">{weekLabel}</span>
+          </div>
           <Button variant="ghost" size="sm" onClick={handleNextWeek}>
             <ChevronRight className="h-4 w-4" />
           </Button>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Plus, ChevronLeft, ChevronRight, Maximize2, Loader2 } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Maximize2, Loader2, CalendarCheck } from 'lucide-react';
 import { CalendarEventCard } from '@/components/calendar/CalendarEventCard';
 import { CalendarEventDialog } from '@/components/calendar/CalendarEventDialog';
 import { CalendarPopup } from '@/components/calendar/CalendarPopup';
@@ -73,6 +73,10 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
 
   const handleNextWeek = () => {
     setCurrentWeekStart(prev => addDays(prev, 7));
+  };
+
+  const handleToday = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   };
 
   const handleAddEvent = () => {
@@ -187,7 +191,18 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
             <Button variant="ghost" size="sm" onClick={handlePrevWeek}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium text-muted-foreground">{weekLabel}</span>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleToday}
+                className="h-6 px-2 text-xs"
+              >
+                <CalendarCheck className="h-3 w-3 mr-1" />
+                Today
+              </Button>
+              <span className="text-sm font-medium text-muted-foreground">{weekLabel}</span>
+            </div>
             <Button variant="ghost" size="sm" onClick={handleNextWeek}>
               <ChevronRight className="h-4 w-4" />
             </Button>
