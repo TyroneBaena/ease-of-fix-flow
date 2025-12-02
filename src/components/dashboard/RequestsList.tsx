@@ -88,77 +88,74 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
       </CardHeader>
       <CardContent>
         {recentRequests.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-6 text-muted-foreground">
             <p>No maintenance requests found</p>
             <p className="text-sm mt-1">Submit your first request to get started</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {recentRequests.map((request) => (
               <div 
                 key={request.id} 
-                className={`p-4 border rounded-lg cursor-pointer ${
+                className={`p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
                   selectedRequest?.id === request.id ? 'ring-2 ring-primary bg-primary/5' : ''
                 }`}
                 onClick={() => handleRequestClick(request)}
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium text-foreground truncate">
-                        {request.title}
-                      </h3>
-                      <Badge className={getStatusColor(request.status)}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Badge className={`${getStatusColor(request.status)} text-xs`}>
                         {request.status}
                       </Badge>
                       {request.priority && (
-                        <Badge variant="outline" className={getPriorityColor(request.priority)}>
+                        <Badge variant="outline" className={`${getPriorityColor(request.priority)} text-xs`}>
                           {request.priority}
                         </Badge>
                       )}
+                      <h3 className="font-medium text-sm text-foreground truncate">
+                        {request.title}
+                      </h3>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
                       {request.description || request.explanation}
                     </p>
                     
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatCreatedDate(request.createdAt)}
                       </span>
                       
-                      <span>{request.location}</span>
+                      <span className="truncate">{request.location}</span>
                       
                       {request.propertyId && propertyMap.get(request.propertyId) && (
                         <span className="flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
-                          {propertyMap.get(request.propertyId)}
+                          <span className="truncate">{propertyMap.get(request.propertyId)}</span>
                         </span>
                       )}
                       
                       {request.assignedTo && (
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
-                          {request.assignedTo}
+                          <span className="truncate">{request.assignedTo}</span>
                         </span>
                       )}
-                    </div>
-                    
-                    {(request.contractorId || request.completionPercentage > 0) && (
-                      <div className="mt-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Progress:</span>
-                          <span className="font-medium">{request.completionPercentage || 0}%</span>
-                          <div className="w-16 h-1 bg-muted rounded-full">
+                      
+                      {(request.contractorId || request.completionPercentage > 0) && (
+                        <span className="flex items-center gap-1">
+                          <span>{request.completionPercentage || 0}%</span>
+                          <div className="w-12 h-1 bg-muted rounded-full">
                             <div 
                               className="h-1 bg-primary rounded-full transition-all"
                               style={{ width: `${request.completionPercentage || 0}%` }}
                             />
                           </div>
-                        </div>
-                      </div>
-                    )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
