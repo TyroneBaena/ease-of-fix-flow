@@ -14,6 +14,7 @@ import { PropertyRequests } from '@/components/property/PropertyRequests';
 import { PropertyQuickActions } from '@/components/property/PropertyQuickActions';
 import { LandlordInfoCard } from '@/components/property/LandlordInfoCard';
 import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
+import { PropertyCalendarWidget } from '@/components/property/PropertyCalendarWidget';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import DeletePropertyDialog from '@/components/property/DeletePropertyDialog';
@@ -241,6 +242,12 @@ const PropertyDetail = () => {
                   currentFinancialYear={currentFinancialYear}
                   budgetAnalysis={getBudgetAnalysis()}
                 />
+                {id && !isTemporaryAccess && (
+                  <PropertyCalendarWidget 
+                    propertyId={id} 
+                    propertyName={property?.name}
+                  />
+                )}
                 <LandlordInfoCard landlordId={property?.landlordId} />
                 {id && (
                   <PropertyQuickActions

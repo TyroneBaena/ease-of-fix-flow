@@ -11,4 +11,5 @@ export { PropertyQuickActions } from './PropertyQuickActions';
 export { PropertyRequests } from './PropertyRequests';
 export { MaintenanceSpendCard } from './MaintenanceSpendCard';
 export { BudgetManagement } from './BudgetManagement';
+export { PropertyCalendarWidget } from './PropertyCalendarWidget';
 export { default as DeletePropertyDialog } from './DeletePropertyDialog';
