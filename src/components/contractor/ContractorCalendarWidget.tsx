@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, ChevronLeft, ChevronRight, Loader2, MapPin, Clock } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Loader2, MapPin, Clock, Maximize2 } from 'lucide-react';
 import { calendarService } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
 import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
@@ -9,6 +9,7 @@ import { format, addDays, startOfWeek, endOfWeek, isToday, isTomorrow, parseISO 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { CalendarPopup } from '@/components/calendar';
 
 interface ContractorCalendarWidgetProps {
   className?: string;
@@ -40,6 +41,7 @@ export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> =
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [calendarPopupOpen, setCalendarPopupOpen] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     if (!contractorId) {
@@ -97,6 +99,15 @@ export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> =
             <Calendar className="h-5 w-5 text-primary" />
             My Schedule
           </CardTitle>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={() => setCalendarPopupOpen(true)}
+            title="View full calendar"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
         </div>
         
         {/* Week navigation */}
@@ -175,6 +186,14 @@ export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> =
           </ScrollArea>
         )}
       </CardContent>
+      
+      <CalendarPopup
+        open={calendarPopupOpen}
+        onOpenChange={setCalendarPopupOpen}
+        contractorId={contractorId || undefined}
+        title="My Schedule"
+        showFilters={false}
+      />
     </Card>
   );
 };
