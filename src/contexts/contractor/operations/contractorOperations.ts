@@ -437,7 +437,7 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
           const { error: emailError } = await supabase.functions.invoke("send-quote-notification", {
             body: {
               quote_id: quoteData.id,
-              notification_type: "requested",
+              notification_type: "assigned",
               recipient_email: contractor.email,
               recipient_name: contractor.contact_name || "Contractor",
             },
