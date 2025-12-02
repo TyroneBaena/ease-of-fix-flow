@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface LandlordReportRequest {
   request_id: string;
-  landlord_email?: string; // Add the email from dialog
+  landlord_email?: string;
   options: {
     summary: boolean;
     property: boolean;
@@ -30,7 +30,6 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const resend = new Resend(Deno.env.get("NEW_RESEND_API_KEY"));
     
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -91,6 +90,21 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Fetch organization data
+    let organizationName = "Property Management";
+    if (request.organization_id) {
+      const { data: organization } = await supabase
+        .from("organizations")
+        .select("name")
+        .eq("id", request.organization_id)
+        .single();
+      
+      if (organization?.name) {
+        organizationName = organization.name;
+      }
+    }
+    console.log("Organization name:", organizationName);
+
     // Get landlord info separately if landlord_id exists
     let landlordData = null;
     if (request.properties?.landlord_id) {
@@ -113,12 +127,10 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Landlord data:", landlordData);
       console.log("Practice leader email:", request.properties?.practice_leader_email);
       
-      // First try the landlord relationship
       if (landlordData?.email) {
         landlordEmail = landlordData.email;
         console.log("Found landlord email:", landlordEmail);
       }
-      // Fallback to practice leader email
       else if (request.properties?.practice_leader_email) {
         landlordEmail = request.properties.practice_leader_email;
         console.log("Using practice leader email:", landlordEmail);
@@ -155,50 +167,32 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending report to landlord:", landlordEmail);
 
-    // Generate email HTML content based on selected options
-    let emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-          Maintenance Request Report
-        </h1>
-    `;
+    const propertyAddress = request.properties?.address || request.properties?.name || "Property";
 
-    // Report Configuration Section
-    emailContent += `
-      <div style="margin: 20px 0; padding: 20px; border: 2px solid #2196f3; border-radius: 8px; background-color: #e3f2fd !important;">
-        <h2 style="color: #1976d2; margin-top: 0; background-color: #bbdefb !important; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #2196f3;">⚙️ Report Configuration</h2>
-        <div style="font-size: 14px;">
-          <div style="margin-bottom: 8px; padding: 4px;">
-            <span style="display: inline-block; width: 20px;">${options.summary ? '✅' : '❌'}</span>
-            <strong>Request Summary:</strong> ${options.summary ? 'Included' : 'Not included'}
-          </div>
-          <div style="margin-bottom: 8px; padding: 4px;">
-            <span style="display: inline-block; width: 20px;">${options.property ? '✅' : '❌'}</span>
-            <strong>Property Details:</strong> ${options.property ? 'Included' : 'Not included'}
-          </div>
-          <div style="margin-bottom: 8px; padding: 4px;">
-            <span style="display: inline-block; width: 20px;">${options.issue ? '✅' : '❌'}</span>
-            <strong>Issue Details:</strong> ${options.issue ? 'Included' : 'Not included'}
-          </div>
-          <div style="margin-bottom: 8px; padding: 4px;">
-            <span style="display: inline-block; width: 20px;">${options.photos ? '✅' : '❌'}</span>
-            <strong>Photos:</strong> ${options.photos ? 'Included' : 'Not included'}
-          </div>
-          ${options.practiceLeader !== undefined ? `
-            <div style="margin-bottom: 8px; padding: 4px;">
-              <span style="display: inline-block; width: 20px;">${options.practiceLeader ? '✅' : '❌'}</span>
-              <strong>Practice Leader Details:</strong> ${options.practiceLeader ? 'Included' : 'Not included'}
-            </div>
-          ` : ''}
+    // Generate email HTML content with organization branding
+    let emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <!-- Organization Header -->
+        <div style="background-color: #1e3a5f; color: white; padding: 25px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: bold;">${organizationName}</h1>
+          <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Maintenance Report</p>
         </div>
-      </div>
+        
+        <!-- Property Address Banner -->
+        <div style="background-color: #374151; color: white; padding: 15px 25px;">
+          <p style="margin: 0; font-size: 16px;">
+            <strong>Property:</strong> ${propertyAddress}
+          </p>
+        </div>
+        
+        <div style="padding: 20px;">
     `;
 
     // Request Summary
     if (options.summary) {
       emailContent += `
-        <div style="margin: 20px 0; padding: 20px; border: 2px solid #dee2e6; border-radius: 8px; background-color: #f8f9fa !important;">
-          <h2 style="color: #495057; margin-top: 0; background-color: #e9ecef !important; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #6c757d;">📋 Request Summary</h2>
+        <div style="margin: 20px 0; padding: 20px; border: 2px solid #dee2e6; border-radius: 8px; background-color: #f8f9fa;">
+          <h2 style="color: #495057; margin-top: 0; background-color: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #6c757d;">📋 Request Summary</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
             <div style="padding: 8px;"><strong>Request ID:</strong> ${request.id}</div>
             <div style="padding: 8px;"><strong>Created:</strong> ${new Date(request.created_at).toLocaleDateString()}</div>
@@ -217,8 +211,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Property Details
     if (options.property) {
       emailContent += `
-        <div style="margin: 20px 0; padding: 20px; border: 2px solid #ffc107; border-radius: 8px; background-color: #fff8e1 !important;">
-          <h2 style="color: #f57c00; margin-top: 0; background-color: #ffecb3 !important; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #ff9800;">🏢 Property Details</h2>
+        <div style="margin: 20px 0; padding: 20px; border: 2px solid #ffc107; border-radius: 8px; background-color: #fff8e1;">
+          <h2 style="color: #f57c00; margin-top: 0; background-color: #ffecb3; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #ff9800;">🏢 Property Details</h2>
           <div style="font-size: 14px;">
             <div style="margin-bottom: 12px; padding: 8px;"><strong>Name:</strong> ${request.properties.name || 'N/A'}</div>
             <div style="margin-bottom: 12px; padding: 8px;"><strong>Address:</strong> ${request.properties.address || 'N/A'}</div>
@@ -235,8 +229,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Issue Details
     if (options.issue) {
       emailContent += `
-        <div style="margin: 20px 0; padding: 20px; border: 2px solid #9c27b0; border-radius: 8px; background-color: #f3e5f5 !important;">
-          <h2 style="color: #7b1fa2; margin-top: 0; background-color: #e1bee7 !important; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #9c27b0;">⚠️ Issue Details</h2>
+        <div style="margin: 20px 0; padding: 20px; border: 2px solid #9c27b0; border-radius: 8px; background-color: #f3e5f5;">
+          <h2 style="color: #7b1fa2; margin-top: 0; background-color: #e1bee7; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #9c27b0;">⚠️ Issue Details</h2>
           <div style="font-size: 14px;">
             ${request.issue_nature ? `<div style="margin-bottom: 12px; padding: 8px;"><strong>Issue Nature:</strong> ${request.issue_nature}</div>` : ''}
             ${request.description ? `<div style="margin-bottom: 12px; padding: 8px;"><strong>Description:</strong> ${request.description}</div>` : ''}
@@ -247,32 +241,54 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }
 
-    // Photos
+    // Photos - embed actual images
     if (options.photos && request.attachments) {
       const attachments = Array.isArray(request.attachments) ? request.attachments : [];
       if (attachments.length > 0) {
         emailContent += `
-          <div style="margin: 20px 0; padding: 20px; border: 2px solid #4caf50; border-radius: 8px; background-color: #e8f5e8 !important;">
-            <h2 style="color: #388e3c; margin-top: 0; background-color: #c8e6c9 !important; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #4caf50;">📸 Photos (${attachments.length})</h2>
-            <p style="margin: 10px 0; font-size: 14px; padding: 8px;">Photos are attached to this maintenance request. Please review them for additional context.</p>
+          <div style="margin: 20px 0; padding: 20px; border: 2px solid #4caf50; border-radius: 8px; background-color: #e8f5e9;">
+            <h2 style="color: #388e3c; margin-top: 0; background-color: #c8e6c9; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #4caf50;">📸 Photos (${attachments.length})</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+              ${attachments.map((att: any, idx: number) => `
+                <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; max-width: 350px;">
+                  <img 
+                    src="${att.url}" 
+                    alt="Maintenance photo ${idx + 1}" 
+                    style="width: 100%; height: auto; max-height: 300px; object-fit: cover; display: block;"
+                  />
+                  ${att.name ? `<p style="margin: 8px; font-size: 12px; color: #666;">${att.name}</p>` : ''}
+                </div>
+              `).join('')}
+            </div>
           </div>
         `;
       }
     }
 
+    // Footer with organization branding
     emailContent += `
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; color: #666; font-size: 12px;">
-          <p>This report was automatically generated from the Housing Maintenance System.</p>
-          <p>If you have any questions, please contact the property management team.</p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f3f4f6; padding: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 14px;">
+            <strong>Sent by ${organizationName}</strong>
+          </p>
+          <p style="margin: 0; color: #6b7280; font-size: 12px;">
+            Regarding property: ${propertyAddress}
+          </p>
+          <p style="margin: 12px 0 0 0; color: #9ca3af; font-size: 11px;">
+            If you have questions, please contact your property manager.
+          </p>
         </div>
       </div>
     `;
 
-    // Send email to landlord
+    // Send email to landlord with updated subject
     const emailResponse = await resend.emails.send({
       from: "Housing System <notifications@housinghub.app>",
       to: [landlordEmail],
-      subject: `Maintenance Request Report - ${request.properties.name}`,
+      subject: `[${organizationName}] Maintenance Report - ${propertyAddress}`,
       html: emailContent,
     });
 
