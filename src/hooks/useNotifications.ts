@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { NotificationClient } from '@/types/notification';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from 'sonner';
@@ -20,6 +21,7 @@ import {
 
 export const useNotifications = () => {
   const { currentUser } = useUserContext();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationClient[]>([]);
   const [markingAllRead, setMarkingAllRead] = useState(false);
@@ -157,10 +159,11 @@ export const useNotifications = () => {
       markAsRead(notification.id);
     }
     
-    // Simple navigation logging without actual navigation for now
+    // Navigate to the linked page if valid
     if (notification.link) {
       if (validateAppRoute(notification.link)) {
-        console.log(`Would navigate to valid route: ${notification.link}`);
+        console.log(`Navigating to: ${notification.link}`);
+        navigate(notification.link);
       } else {
         console.log(`Invalid route detected: ${notification.link}, staying on current page`);
       }
