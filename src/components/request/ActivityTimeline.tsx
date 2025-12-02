@@ -99,6 +99,26 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
           icon = <Calendar className="h-4 w-4 text-purple-500" />;
           title = 'Job Scheduled';
           break;
+        case 'job_completed':
+          icon = <CheckCircle className="h-4 w-4 text-green-600" />;
+          title = 'Job Completed';
+          break;
+        case 'job_cancelled':
+          icon = <AlertCircle className="h-4 w-4 text-red-500" />;
+          title = 'Job Cancelled';
+          break;
+        case 'job_reopened':
+          icon = <AlertCircle className="h-4 w-4 text-orange-500" />;
+          title = 'Job Reopened';
+          break;
+        case 'progress_updated':
+          icon = <Settings className="h-4 w-4 text-blue-500" />;
+          title = 'Progress Updated';
+          break;
+        case 'landlord_assignment':
+          icon = <User className="h-4 w-4 text-purple-500" />;
+          title = 'Landlord Assigned';
+          break;
         default:
           title = 'Activity Update';
       }
@@ -135,17 +155,25 @@ export const ActivityTimeline = ({ request, comments = [], activityLogs = [] }: 
       }
     }
 
-    // Add completion event if completed
+    // Add completion event if completed (with deduplication)
     if (request.status === 'completed') {
-      items.push({
-        id: `completion-${request.id}`,
-        type: 'status',
-        title: 'Request Completed',
-        description: 'Maintenance request marked as completed',
-        timestamp: request.updatedAt || request.createdAt,
-        user: 'System',
-        icon: <CheckCircle className="h-4 w-4 text-green-600" />
-      });
+      // Check if we already have this from activity logs
+      const hasCompletionLog = activityLogs.some(log => 
+        log.action_type === 'job_completed'
+      );
+      
+      // Only add system completion if no activity log exists
+      if (!hasCompletionLog) {
+        items.push({
+          id: `completion-${request.id}`,
+          type: 'status',
+          title: 'Request Completed',
+          description: 'Maintenance request marked as completed',
+          timestamp: request.updatedAt || request.createdAt,
+          user: 'System',
+          icon: <CheckCircle className="h-4 w-4 text-green-600" />
+        });
+      }
     }
 
     // Note: Comments are intentionally excluded from the timeline
