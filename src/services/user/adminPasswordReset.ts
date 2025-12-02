@@ -1,18 +1,18 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export interface AdminPasswordResetResult {
   success: boolean;
   message: string;
   userId?: string;
+  tempPassword?: string;
 }
 
 /**
  * Admin function to manually reset a user's password by generating a random temporary password
+ * This calls an edge function that uses service role key for the operation
  * @param userId - The ID of the user whose password should be reset
  * @param userEmail - The email of the user whose password should be reset
- * @returns Promise with reset result
+ * @returns Promise with reset result including temporary password
  */
 export async function adminResetUserPassword(
   userId: string,
@@ -21,30 +21,35 @@ export async function adminResetUserPassword(
   try {
     console.log(`Admin initiating password reset for user: ${userId} (${userEmail})`);
     
-    // Generate a random temporary password (12 characters)
-    const tempPassword = Math.random().toString(36).slice(2, 8) + 
-                        Math.random().toString(36).slice(2, 8);
-    
-    // Update the user's password using admin privileges
-    const { error } = await supabase.auth.admin.updateUserById(
-      userId,
-      { password: tempPassword }
-    );
-    
+    // Call the edge function which has access to service role key
+    const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+      body: { userId, userEmail }
+    });
+
     if (error) {
-      console.error("Error in admin password reset:", error);
+      console.error("Error calling admin-reset-password function:", error);
       return {
         success: false,
         message: `Failed to reset password: ${error.message}`,
         userId
       };
     }
-    
+
+    if (!data?.success) {
+      console.error("Admin password reset failed:", data?.message);
+      return {
+        success: false,
+        message: data?.message || "Failed to reset password",
+        userId
+      };
+    }
+
     // Success - return the temporary password
     return {
       success: true,
-      message: `Password has been reset to: ${tempPassword}`,
-      userId
+      message: data.message,
+      userId,
+      tempPassword: data.tempPassword
     };
   } catch (error: any) {
     console.error("Exception in adminResetUserPassword:", error);

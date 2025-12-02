@@ -19,9 +19,11 @@ serve(async (req: Request) => {
     console.log("Request received");
     
     // Initialize Resend early
-    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY_1");
     if (!resendApiKey) {
-      console.error("NEW_RESEND_API_KEY not found");
+      console.error("No Resend API key found (checked NEW_RESEND_API_KEY, RESEND_API_KEY, RESEND_API_KEY_1)");
       throw new Error("Email service not configured");
     }
     
