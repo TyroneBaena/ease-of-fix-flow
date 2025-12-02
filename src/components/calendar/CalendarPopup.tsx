@@ -20,6 +20,7 @@ interface CalendarPopupProps {
   title?: string;
   showFilters?: boolean;
   contractorId?: string;
+  assignedProperties?: string[] | null; // For manager filtering
 }
 
 export const CalendarPopup: React.FC<CalendarPopupProps> = ({
@@ -29,6 +30,7 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
   title = 'Calendar',
   showFilters = true,
   contractorId,
+  assignedProperties,
 }) => {
   const { currentUser } = useUserContext();
   const { currentOrganization } = useMultiOrganizationContext();
@@ -59,6 +61,7 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
     propertyId: initialPropertyId || undefined,
     contractorId,
     autoFetch: open,
+    assignedProperties,
   });
 
   // Filter events by selected property
