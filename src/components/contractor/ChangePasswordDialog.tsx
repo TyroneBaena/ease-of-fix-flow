@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Key, Eye, EyeOff } from 'lucide-react';
+import { validatePassword } from '@/utils/passwordValidation';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -33,8 +34,10 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
       return;
     }
 
-    if (formData.newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+    // Use standardized password validation
+    const validation = validatePassword(formData.newPassword);
+    if (!validation.isValid) {
+      validation.errors.forEach(error => toast.error(error));
       return;
     }
 
@@ -70,7 +73,7 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
             Change Password
           </DialogTitle>
           <DialogDescription>
-            Enter your new password below. Make sure it's at least 6 characters long.
+            Enter your new password below. Password must be at least 8 characters with uppercase, lowercase, and special characters.
           </DialogDescription>
         </DialogHeader>
         
@@ -84,7 +87,7 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
                 value={formData.newPassword}
                 onChange={(e) => handleInputChange('newPassword', e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="Enter new password"
               />
               <Button
@@ -112,7 +115,7 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="Confirm new password"
               />
               <Button

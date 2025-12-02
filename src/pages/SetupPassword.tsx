@@ -214,9 +214,21 @@ const SetupPassword = () => {
       setSuccess(true);
 
       // CRITICAL: Clear the password reset pending flag - user has completed setup
-      console.log("🔐 Password setup complete - clearing reset pending flag");
+      console.log("🔐 Password setup complete - clearing reset pending flags");
       sessionStorage.removeItem('password_reset_pending');
       sessionStorage.removeItem('password_reset_email');
+      sessionStorage.removeItem('force_password_change');
+
+      // Clear must_change_password flag in database
+      try {
+        await supabase
+          .from('profiles')
+          .update({ must_change_password: false })
+          .eq('id', data.user.id);
+        console.log("🔐 Cleared must_change_password flag in database");
+      } catch (flagError) {
+        console.warn("Warning: Could not clear must_change_password flag:", flagError);
+      }
 
       // Redirect after a short delay
       setTimeout(() => navigate(redirectPath), 2000);

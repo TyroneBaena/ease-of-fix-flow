@@ -190,3 +190,6 @@ verify_jwt = false
 
 [functions.auth-callback]
 verify_jwt = false
+
+[functions.admin-reset-password]
+verify_jwt = false

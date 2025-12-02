@@ -220,7 +220,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
           console.log("✅ Profile updated successfully:", profile?.id, "with organization:", profile?.organization_id);
         }
       } else {
-        // Profile doesn't exist, create it
+        // Profile doesn't exist, create it with must_change_password flag
         const { data: profile, error: profileError } = await supabaseClient
           .from('profiles')
           .insert([{
@@ -229,7 +229,8 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
             name: name,
             role: role,
             assigned_properties: role === 'manager' ? assignedProperties : [],
-            organization_id: targetOrganizationId
+            organization_id: targetOrganizationId,
+            must_change_password: true // New users must change their temporary password
           }])
           .select()
           .single();
@@ -238,7 +239,7 @@ export async function createNewUser(supabaseClient: any, email: string, name: st
           console.error("❌ Error creating user profile:", profileError);
           throw new Error(`Failed to create user profile: ${profileError.message}`);
         } else {
-          console.log("✅ Profile created successfully:", profile?.id, "with organization:", profile?.organization_id);
+          console.log("✅ Profile created successfully:", profile?.id, "with organization:", profile?.organization_id, "must_change_password: true");
         }
       }
     } catch (profileError) {

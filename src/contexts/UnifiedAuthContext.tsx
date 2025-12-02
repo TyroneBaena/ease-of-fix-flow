@@ -1215,6 +1215,23 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const user = await convertSupabaseUser(session.user, sessionVersion);
             console.log("🚀 UnifiedAuth v97.3 - User converted:", user.email, "org_id:", user.organization_id);
 
+            // Check if user must change password (new invited users)
+            try {
+              const { data: profileCheck } = await supabase
+                .from('profiles')
+                .select('must_change_password')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (profileCheck?.must_change_password === true) {
+                console.log("🔐 UnifiedAuth - User must change password, setting force_password_change flag");
+                sessionStorage.setItem('force_password_change', 'true');
+                sessionStorage.setItem('password_reset_email', session.user.email || '');
+              }
+            } catch (profileCheckError) {
+              console.warn("Could not check must_change_password flag:", profileCheckError);
+            }
+
             // CRITICAL: Set user first so components can start rendering
             setCurrentUser(user);
             // v79.4: Track authenticated user ID in ref to prevent redundant conversions
