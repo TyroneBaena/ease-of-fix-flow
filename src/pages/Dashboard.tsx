@@ -210,6 +210,7 @@ import { RequestDetailSidebar } from "@/components/dashboard/RequestDetailSideba
 import { TrialBillingAlert } from "@/components/dashboard/TrialBillingAlert";
 import { BillingWidgets } from "@/components/dashboard/BillingWidgets";
 import { PropertyManagementWidget } from "@/components/dashboard/PropertyManagementWidget";
+import { OrganizationCalendarWidget } from "@/components/dashboard/OrganizationCalendarWidget";
 import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 // REMOVED: useContractorProfileMonitoring causes network congestion on every dashboard mount
@@ -365,13 +366,18 @@ const Dashboard = () => {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <DashboardHeader title="Dashboard" />
 
-            {/* Property Management Widget */}
-            <div className="mb-6">
-              <PropertyManagementWidget />
+            {/* Top Row: Property Management & Calendar Widget */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="lg:col-span-2">
+                <PropertyManagementWidget />
+              </div>
+              <div className="lg:col-span-1">
+                <OrganizationCalendarWidget />
+              </div>
             </div>
 
             <div
-              className={`grid gap-6 mt-6 ${selectedRequest ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-4"}`}
+              className={`grid gap-6 ${selectedRequest ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-4"}`}
             >
               <div className={`space-y-6 ${selectedRequest ? "lg:col-span-3" : "lg:col-span-3"}`}>
                 <StatsOverview
@@ -389,7 +395,6 @@ const Dashboard = () => {
               {selectedRequest && (
                 <RequestDetailSidebar request={selectedRequest} onClose={() => setSelectedRequest(null)} />
               )}
-              {/* <DashboardSidebar /> */}
             </div>
           </main>
         </div>
