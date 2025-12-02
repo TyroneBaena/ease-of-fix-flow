@@ -18,6 +18,8 @@ interface RequestFiltersProps {
   setStatusFilter: (status: string) => void;
   propertyFilter: string;
   setPropertyFilter: (propertyId: string) => void;
+  priorityFilter?: string;
+  setPriorityFilter?: (priority: string) => void;
   properties: Property[];
   sortField: string;
   setSortField: (field: string) => void;
@@ -34,6 +36,8 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
   setStatusFilter,
   propertyFilter,
   setPropertyFilter,
+  priorityFilter,
+  setPriorityFilter,
   properties,
   sortField,
   setSortField,
@@ -108,6 +112,24 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Priority Filter */}
+        {setPriorityFilter && (
+          <div className="w-full lg:w-48">
+            <Select value={priorityFilter || 'all'} onValueChange={setPriorityFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Priority: All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Date Range Filter */}
         {setDateRange && (
@@ -218,10 +240,24 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
           </Badge>
         )}
 
+        {priorityFilter && priorityFilter !== 'all' && setPriorityFilter && (
+          <Badge variant="outline" className="bg-gray-100">
+            Priority: {priorityFilter.charAt(0).toUpperCase() + priorityFilter.slice(1)}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-4 w-4 ml-2 p-0" 
+              onClick={() => setPriorityFilter('all')}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        )}
+
         {dateRange?.from && setDateRange && (
           <Badge variant="outline" className="bg-gray-100">
             Date: {dateRange.to ? 
-              `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}` : 
+              `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}` :
               format(dateRange.from, "MMM d")
             }
             <Button 
