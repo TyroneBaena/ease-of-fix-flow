@@ -116,6 +116,49 @@
 
 ---
 
+## False Positive Findings (Verified Safe)
+
+### ℹ️ Admin User List "No RLS" Warning
+**Finding ID:** `admin_user_list_no_rls`  
+**Scanner:** `supabase_lov`  
+**Status:** FALSE POSITIVE ✅  
+**Verified:** 2025-12-02
+
+**Why This Is Safe:**
+
+1. **It's a VIEW, Not a Table**  
+   `admin_user_list` is a PostgreSQL VIEW, not a table. Views don't require direct RLS policies.
+
+2. **Security Invoker Enabled**  
+   The VIEW is created with `security_invoker=true`, which means it inherits RLS policies from the underlying `profiles` table when queried.
+
+3. **Underlying Table Has Proper RLS**  
+   The `profiles` table has comprehensive RLS policies:
+   - "Deny public access to profiles" - blocks anonymous access
+   - "Users can view only their own profile" - restricts to own data
+   - "Admins and managers can view organization profiles" - organization-scoped access
+   - "Users can update their own profile" - update restrictions
+
+4. **No Public Access Permissions**  
+   Verified via `pg_class.relacl` - no public access grants exist on this VIEW.
+
+5. **Limited Data Exposure**  
+   The VIEW only exposes non-PII fields: `id`, `name`, `role`, `organization_id`, `created_at`.  
+   Email and phone are NOT included.
+
+**Technical Details:**
+```sql
+-- VIEW definition (simplified)
+CREATE VIEW admin_user_list WITH (security_invoker=true) AS
+SELECT id, name, role, organization_id, created_at
+FROM profiles
+WHERE ... -- inherits RLS from profiles table
+```
+
+**Conclusion:** The security scanner flags this because it doesn't detect RLS policies directly on views. However, the `security_invoker=true` setting ensures all queries against this VIEW are evaluated against the underlying `profiles` table's RLS policies, providing equivalent protection.
+
+---
+
 ## Remaining Non-Critical Warnings
 
 ### ⚠️ 1. Function Search Path Mutable (4 functions)
