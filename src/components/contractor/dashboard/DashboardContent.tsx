@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ContractorMetrics } from '@/components/contractor/dashboard/ContractorMetrics';
 import { RequestsTable } from '@/components/contractor/requests/RequestsTable';
 import QuickActionsCard from './QuickActionsCard';
+import { ContractorCalendarWidget } from '@/components/contractor/ContractorCalendarWidget';
 import { MaintenanceRequest } from '@/types/maintenance';
 
 interface DashboardContentProps {
@@ -141,6 +142,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       </div>
       
       <div className="space-y-6">
+        <ContractorCalendarWidget />
         <QuickActionsCard />
       </div>
     </div>
