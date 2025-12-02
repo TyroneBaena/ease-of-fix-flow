@@ -15,6 +15,13 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RequestListProps {
   requests: MaintenanceRequest[];
@@ -24,6 +31,7 @@ interface RequestListProps {
 const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { properties } = usePropertyContext();
   
   // Create property lookup map for efficiency
@@ -31,8 +39,6 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
     new Map(properties.map(p => [p.id, p.name])), 
     [properties]
   );
-  
-  const itemsPerPage = 5;
   
   // Use the already filtered requests from parent component
   const totalItems = requests.length;
@@ -84,14 +90,18 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
     return pages;
   };
   
-  // Reset pagination when requests change (due to filtering)
+  // Reset pagination when requests change (due to filtering) or items per page changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [requests.length]);
+  }, [requests.length, itemsPerPage]);
+  
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+  };
   
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
+    <div className="space-y-4">
+      <div className="space-y-2">
         {totalItems > 0 ? (
           paginatedRequests.map(request => (
             <RequestCard 
@@ -102,58 +112,77 @@ const RequestList: React.FC<RequestListProps> = ({ requests, emptyMessage }) => 
             />
           ))
         ) : (
-          <div className="text-center py-16 bg-background rounded-lg shadow-sm">
-            <Wrench className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-1">No requests found</h3>
-            <p className="text-muted-foreground mb-4">
+          <div className="text-center py-12 bg-background rounded-lg shadow-sm">
+            <Wrench className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <h3 className="text-base font-medium text-foreground mb-1">No requests found</h3>
+            <p className="text-sm text-muted-foreground mb-3">
               {emptyMessage || "Submit a new maintenance request to get started"}
             </p>
             <Button 
               onClick={() => navigate('/new-request')}
               className="bg-primary hover:bg-primary/90"
+              size="sm"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1.5 h-4 w-4" />
               New Request
             </Button>
           </div>
         )}
       </div>
       
-      {totalPages > 1 && (
-        <div className="mt-6">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} 
-                />
-              </PaginationItem>
-              
-              {getPageRange().map((page, index) => (
-                <PaginationItem key={index}>
-                  {page === 'ellipsis-start' || page === 'ellipsis-end' ? (
-                    <PaginationEllipsis />
-                  ) : (
-                    <PaginationLink 
-                      isActive={currentPage === page}
-                      onClick={() => handlePageChange(page as number)}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  )}
+      {totalItems > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Show</span>
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+              <SelectTrigger className="w-[70px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground">of {totalItems} requests</span>
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} 
+                  />
                 </PaginationItem>
-              ))}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                
+                {getPageRange().map((page, index) => (
+                  <PaginationItem key={index}>
+                    {page === 'ellipsis-start' || page === 'ellipsis-end' ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink 
+                        isActive={currentPage === page}
+                        onClick={() => handlePageChange(page as number)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
     </div>

@@ -106,45 +106,44 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick, propertyNam
       className="hover:shadow-md transition-shadow cursor-pointer"
       onClick={onClick}
     >
-      <CardContent className="p-5">
+      <CardContent className="p-3">
         <div className="flex justify-between items-start">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className={getStatusColor(request.status)}>
+          <div className="space-y-0.5 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge className={`${getStatusColor(request.status)} text-xs`}>
                 {getStatusDisplay(request.status)}
               </Badge>
-              {/* Priority badge removed */}
+              <h3 className="font-semibold text-sm truncate">{displayTitle}</h3>
             </div>
-            <h3 className="font-semibold text-lg">{displayTitle}</h3>
-            <p className="text-muted-foreground line-clamp-2">{displayDescription}</p>
+            <p className="text-muted-foreground text-xs line-clamp-1">{displayDescription}</p>
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
         </div>
         
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-2 text-sm text-muted-foreground">
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <div className="flex items-center">
-            <Clock className="h-3.5 w-3.5 mr-1.5" />
-            <span>{request.reportDate || request.createdAt}</span>
+            <Clock className="h-3 w-3 mr-1" />
+            <span className="truncate">{request.reportDate || request.createdAt}</span>
           </div>
           <div className="flex items-center">
-            <MapPin className="h-3.5 w-3.5 mr-1.5" />
+            <MapPin className="h-3 w-3 mr-1" />
             <span className="truncate">{request.location}</span>
           </div>
           {propertyName && (
             <div className="flex items-center">
-              <Building2 className="h-3.5 w-3.5 mr-1.5" />
+              <Building2 className="h-3 w-3 mr-1" />
               <span className="truncate">{propertyName}</span>
             </div>
           )}
           {request.dueDate && (
             <div className="flex items-center">
-              <Calendar className="h-3.5 w-3.5 mr-1.5" />
-              <span>{request.dueDate}</span>
+              <Calendar className="h-3 w-3 mr-1" />
+              <span className="truncate">{request.dueDate}</span>
             </div>
           )}
           {request.assignedTo && (
             <div className="flex items-center">
-              <User className="h-3.5 w-3.5 mr-1.5" />
+              <User className="h-3 w-3 mr-1" />
               <span className="truncate">{request.assignedTo}</span>
             </div>
           )}
