@@ -167,7 +167,7 @@ const handler = async (req: Request): Promise<Response> => {
               </span>
             </p>
             <p><strong>Location:</strong> ${requestData.location}</p>
-            <p><strong>Submitted by:</strong> ${profileData?.name || 'Unknown'}</p>
+            <p><strong>Submitted by:</strong> ${profileData?.name || requestData.submitted_by || 'Unknown'}</p>
             <p><strong>Date:</strong> ${new Date(requestData.created_at).toLocaleDateString()}</p>
           </div>
 
