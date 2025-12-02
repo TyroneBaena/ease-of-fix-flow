@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Maximize2, Loader2 } from 'lucide-react';
@@ -11,6 +11,8 @@ import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedA
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EventTypeFilter } from '@/components/calendar/CalendarFilters';
 
 interface PropertyCalendarWidgetProps {
   propertyId: string;
@@ -31,6 +33,7 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
   const [calendarPopupOpen, setCalendarPopupOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>('all');
 
   const fetchEvents = useCallback(async () => {
     if (!propertyId) return;
@@ -54,6 +57,15 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Filter events by type
+  const filteredEvents = useMemo(() => {
+    if (eventTypeFilter === 'all') return upcomingEvents;
+    if (eventTypeFilter === 'jobs') {
+      return upcomingEvents.filter(e => e.sourceType === 'job_schedule');
+    }
+    return upcomingEvents.filter(e => e.sourceType === 'manual' || !e.sourceType);
+  }, [upcomingEvents, eventTypeFilter]);
 
   const handlePrevWeek = () => {
     setCurrentWeekStart(prev => addDays(prev, -7));
@@ -84,7 +96,6 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
           description: 'The event has been updated successfully.',
         });
       } else {
-        // Set the property ID for new events
         await calendarService.createEvent(
           { ...data, propertyId },
           currentOrganization.id,
@@ -139,6 +150,19 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
               Site Calendar
             </CardTitle>
             <div className="flex items-center gap-1">
+              <Select
+                value={eventTypeFilter}
+                onValueChange={(value) => setEventTypeFilter(value as EventTypeFilter)}
+              >
+                <SelectTrigger className="h-8 w-[100px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="events">Events</SelectItem>
+                  <SelectItem value="jobs">Jobs</SelectItem>
+                </SelectContent>
+              </Select>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -175,10 +199,12 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : upcomingEvents.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <div className="text-center py-6">
               <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-              <p className="text-sm text-muted-foreground">No events this week</p>
+              <p className="text-sm text-muted-foreground">
+                {eventTypeFilter === 'all' ? 'No events this week' : `No ${eventTypeFilter} this week`}
+              </p>
               <Button 
                 variant="link" 
                 size="sm" 
@@ -191,7 +217,7 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
           ) : (
             <ScrollArea className="max-h-[280px]">
               <div className="space-y-2">
-                {upcomingEvents.map(event => (
+                {filteredEvents.map(event => (
                   <CalendarEventCard
                     key={event.id}
                     event={event}

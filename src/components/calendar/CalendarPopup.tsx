@@ -1,17 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EventCalendar } from './EventCalendar';
 import { CalendarDayEvents } from './CalendarDayEvents';
 import { CalendarEventDialog } from './CalendarEventDialog';
-import { CalendarFilters } from './CalendarFilters';
-import { CalendarEventCard } from './CalendarEventCard';
+import { CalendarFilters, EventTypeFilter } from './CalendarFilters';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent, CalendarEventFormData } from '@/types/calendar';
 import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CalendarPopupProps {
   open: boolean;
@@ -20,7 +18,7 @@ interface CalendarPopupProps {
   title?: string;
   showFilters?: boolean;
   contractorId?: string;
-  assignedProperties?: string[] | null; // For manager filtering
+  assignedProperties?: string[] | null;
 }
 
 export const CalendarPopup: React.FC<CalendarPopupProps> = ({
@@ -38,10 +36,10 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(initialPropertyId || null);
+  const [selectedEventType, setSelectedEventType] = useState<EventTypeFilter>('all');
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  // Calculate date range for current month view (with buffer for surrounding weeks)
   const startDate = format(startOfMonth(subMonths(currentMonth, 1)), 'yyyy-MM-dd');
   const endDate = format(endOfMonth(addMonths(currentMonth, 1)), 'yyyy-MM-dd');
 
@@ -65,9 +63,18 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
   });
 
   // Filter events by selected property
-  const filteredEvents = selectedPropertyId
+  const propertyFilteredEvents = selectedPropertyId
     ? events.filter(e => e.propertyId === selectedPropertyId)
     : events;
+
+  // Filter events by type (jobs vs manual events)
+  const filteredEvents = useMemo(() => {
+    if (selectedEventType === 'all') return propertyFilteredEvents;
+    if (selectedEventType === 'jobs') {
+      return propertyFilteredEvents.filter(e => e.sourceType === 'job_schedule');
+    }
+    return propertyFilteredEvents.filter(e => e.sourceType === 'manual' || !e.sourceType);
+  }, [propertyFilteredEvents, selectedEventType]);
 
   const handleMonthChange = useCallback((date: Date) => {
     setCurrentMonth(date);
@@ -132,6 +139,10 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
                 <CalendarFilters
                   selectedPropertyId={selectedPropertyId}
                   onPropertyChange={handlePropertyChange}
+                  selectedEventType={selectedEventType}
+                  onEventTypeChange={setSelectedEventType}
+                  showPropertyFilter={true}
+                  showEventTypeFilter={true}
                 />
               </div>
             )}
