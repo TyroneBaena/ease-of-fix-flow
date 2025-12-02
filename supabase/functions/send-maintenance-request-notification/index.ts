@@ -139,38 +139,60 @@ const handler = async (req: Request): Promise<Response> => {
     const directLink = `${Deno.env.get('APPLICATION_URL') || 'https://housinghub.app'}/requests/${request_id}`;
 
     const createEmailHtml = (recipientType: string) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
-          New Maintenance Request Submitted
-        </h2>
-        
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="color: #007bff; margin-top: 0;">Request Details</h3>
-          <p><strong>Title:</strong> ${requestData.title}</p>
-          <p><strong>Description:</strong> ${requestData.description}</p>
-          <p><strong>Category:</strong> ${requestData.category}</p>
-          <p><strong>Priority:</strong> ${requestData.priority}</p>
-          <p><strong>Location:</strong> ${requestData.location}</p>
-           <p><strong>Submitted by:</strong> ${profileData?.name || 'Unknown'}</p>
-           <p><strong>Date:</strong> ${new Date(requestData.created_at).toLocaleDateString()}</p>
-         </div>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Maintenance Request</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #2563eb; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">🔧 New Maintenance Request</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">A new request has been submitted</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">Request Details</h3>
+            <p><strong>Title:</strong> ${requestData.title}</p>
+            <p><strong>Description:</strong> ${requestData.description}</p>
+            <p><strong>Category:</strong> ${requestData.category}</p>
+            <p><strong>Priority:</strong> 
+              <span style="background-color: ${requestData.priority === 'high' || requestData.priority === 'critical' ? '#fee2e2' : requestData.priority === 'medium' ? '#fef3c7' : '#ecfdf5'}; 
+                          color: ${requestData.priority === 'high' || requestData.priority === 'critical' ? '#dc2626' : requestData.priority === 'medium' ? '#d97706' : '#059669'}; 
+                          padding: 2px 8px; border-radius: 4px; text-transform: capitalize;">
+                ${requestData.priority}
+              </span>
+            </p>
+            <p><strong>Location:</strong> ${requestData.location}</p>
+            <p><strong>Submitted by:</strong> ${profileData?.name || 'Unknown'}</p>
+            <p><strong>Date:</strong> ${new Date(requestData.created_at).toLocaleDateString()}</p>
+          </div>
 
-         <div style="background-color: #e9ecef; padding: 20px; border-radius: 5px; margin: 20px 0;">
-           <h3 style="color: #007bff; margin-top: 0;">Property Information</h3>
-           <p><strong>Property:</strong> ${propertyData.name}</p>
-           <p><strong>Address:</strong> ${propertyData.address}</p>
-        </div>
+          <div style="background-color: #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">Property Information</h3>
+            <p><strong>Property:</strong> ${propertyData.name}</p>
+            <p><strong>Address:</strong> ${propertyData.address}</p>
+          </div>
 
-        <p style="color: #666; font-size: 14px; margin-top: 30px;">
-          You are receiving this email as the ${recipientType} for this property. 
-          Please log in to the system to review and manage this maintenance request.
-        </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${directLink}" 
+               style="display: inline-block; background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View Maintenance Request
+            </a>
+          </div>
 
-        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-        <p style="color: #999; font-size: 12px;">
-          This is an automated notification from the Property Management System.
-        </p>
-      </div>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">
+            You are receiving this email as the ${recipientType} for this property.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <div style="text-align: center; color: #6b7280; font-size: 12px;">
+            <p>HousingHub - Property Management Made Simple</p>
+            <p>This is an automated notification from your maintenance management system.</p>
+          </div>
+        </body>
+      </html>
     `;
 
     const sentEmails = new Set<string>(); // Track sent emails to avoid duplicates
@@ -209,7 +231,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (hasPreference) {
         console.log('Sending email to property contact:', propertyData.email);
         const emailResult = await resend.emails.send({
-          from: 'Property Manager <noreply@housinghub.app>',
+          from: 'HousingHub <notifications@housinghub.app>',
           to: [propertyData.email],
           subject: emailSubject,
           html: createEmailHtml('property contact'),
@@ -230,7 +252,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (hasPreference) {
         console.log('Sending email to practice leader:', propertyData.practice_leader_email);
         const practiceLeaderResult = await resend.emails.send({
-          from: 'Property Manager <noreply@housinghub.app>',
+          from: 'HousingHub <notifications@housinghub.app>',
           to: [propertyData.practice_leader_email],
           subject: emailSubject,
           html: createEmailHtml('practice leader'),
@@ -260,7 +282,7 @@ const handler = async (req: Request): Promise<Response> => {
         if (hasPreference) {
           console.log(`Sending email to assigned manager: ${manager.email} (${manager.name})`);
           const managerEmailResult = await resend.emails.send({
-            from: 'Property Manager <noreply@housinghub.app>',
+            from: 'HousingHub <notifications@housinghub.app>',
             to: [manager.email],
             subject: emailSubject,
             html: createEmailHtml('assigned property manager'),
