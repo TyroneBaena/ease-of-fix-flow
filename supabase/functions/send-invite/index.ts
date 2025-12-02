@@ -5,7 +5,7 @@ import { corsHeaders } from "./lib/cors.ts";
 import { createEmailHtml } from "./lib/email-templates.ts";
 import { validateRequest, validateEnvironment } from "./lib/validation-service.ts";
 import { findExistingUser, createNewUser, generateTemporaryPassword } from "./lib/user-service.ts";
-import { sendInvitationEmail } from "./lib/email-service.ts";
+import { sendInvitationEmail } from "./lib/email-sender.ts";
 import { cleanApplicationUrl } from "./lib/validation.ts";
 import type { InviteRequest } from "./lib/types.ts";
 
@@ -116,6 +116,53 @@ serve(async (req: Request) => {
     const { resendApiKey, applicationUrl, ownerEmail } = envConfig;
     const normalizedEmail = body.email.toLowerCase().trim();
     
+    // Get inviting user info (organization and name)
+    let invitingUserOrgId: string | null = null;
+    let invitingUserId: string | null = null;
+    let organizationName: string | null = null;
+    let inviterName: string | null = null;
+    
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+        if (!error && user) {
+          invitingUserId = user.id;
+          console.log(`Inviting user ID: ${invitingUserId}`);
+          
+          // Get inviting user's profile (name) and organization
+          const { data: invitingUserProfile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('organization_id, name')
+            .eq('id', user.id)
+            .single();
+          
+          if (!profileError && invitingUserProfile) {
+            invitingUserOrgId = invitingUserProfile.organization_id;
+            inviterName = invitingUserProfile.name;
+            console.log(`Inviting user: ${inviterName}, organization: ${invitingUserOrgId}`);
+            
+            // Get organization name
+            if (invitingUserOrgId) {
+              const { data: orgData, error: orgError } = await supabaseClient
+                .from('organizations')
+                .select('name')
+                .eq('id', invitingUserOrgId)
+                .single();
+              
+              if (!orgError && orgData) {
+                organizationName = orgData.name;
+                console.log(`Organization name: ${organizationName}`);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.log("Could not get inviting user info from token:", error);
+      }
+    }
+    
     // Don't allow current user to invite themselves
     if (body.bypassExistingCheck !== true) {
       // Check for existing user
@@ -126,119 +173,99 @@ serve(async (req: Request) => {
       
       // Handle existing non-placeholder user - BUT CHECK ORGANIZATION MEMBERSHIP FIRST!
       if (existingUserResult?.exists && !existingUserResult.isPlaceholder) {
-        // Get the inviting user's organization ID first
-        let invitingUserOrgId = null;
-        const authHeader = req.headers.get('Authorization');
-        
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          try {
-            const token = authHeader.replace('Bearer ', '');
-            const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-            if (!error && user) {
-              const { data: invitingUserProfile, error: profileError } = await supabaseClient
-                .from('profiles')
-                .select('organization_id')
-                .eq('id', user.id)
-                .single();
-              
-              if (!profileError && invitingUserProfile?.organization_id) {
-                invitingUserOrgId = invitingUserProfile.organization_id;
-                console.log(`Inviting user's organization: ${invitingUserOrgId}`);
-                
-                // Check if existing user is already a member of THIS organization
-                const { data: membership, error: membershipError } = await supabaseClient
-                  .from('user_organizations')
-                  .select('*')
-                  .eq('user_id', existingUserResult.user.id)
-                  .eq('organization_id', invitingUserOrgId)
-                  .eq('is_active', true);
-                
-                if (!membershipError && membership && membership.length > 0) {
-                  console.log(`User ${normalizedEmail} is already a member of organization ${invitingUserOrgId}`);
-                  return new Response(
-                    JSON.stringify({
-                      success: false,
-                      message: `User ${normalizedEmail} is already a member of your organization.`,
-                      userId: existingUserResult.user?.id,
-                      email: normalizedEmail
-                    }),
-                    { 
-                      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-                      status: 200
-                    }
-                  );
-                } else {
-                  // User exists but NOT in this organization - ADD THEM TO THIS ORGANIZATION!
-                  console.log(`Adding existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
-                  
-                  // Create user organization membership
-                  const { error: membershipInsertError } = await supabaseClient
-                    .from('user_organizations')
-                    .insert({
-                      user_id: existingUserResult.user.id,
-                      organization_id: invitingUserOrgId,
-                      role: body.role,
-                      is_active: true,
-                      is_default: false // Don't change their default organization
-                    });
-                  
-                  if (membershipInsertError) {
-                    console.error("Error adding user to organization:", membershipInsertError);
-                    return new Response(
-                      JSON.stringify({
-                        success: false,
-                        message: `Failed to add existing user to organization: ${membershipInsertError.message}`,
-                        email: normalizedEmail
-                      }),
-                      { 
-                        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-                        status: 200
-                      }
-                    );
-                  }
-                  
-                  console.log(`Successfully added existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
-                  
-
-                  // Send them an email about being added to the new organization
-                  const cleanAppUrl = cleanApplicationUrl(applicationUrl);
-                  const loginUrl = `${cleanAppUrl}/login`;
-                  const emailHtml = createEmailHtml({
-                    to: normalizedEmail,
-                    name: existingUserResult.profile?.name || body.name,
-                    role: body.role,
-                    temporaryPassword: undefined, // Use undefined instead of null
-                    loginUrl,
-                    isNewUser: false // Existing user
-                  });
-
-                  // Send notification email
-                  const emailData = await sendInvitationEmail(
-                    resendApiKey,
-                    normalizedEmail,
-                    normalizedEmail,
-                    emailHtml,
-                    false
-                  );
-
-                  return new Response(
-                    JSON.stringify({
-                      success: true,
-                      message: `Existing user ${normalizedEmail} has been successfully added to your organization`,
-                      userId: existingUserResult.user.id,
-                      emailSent: true,
-                      emailId: emailData?.id,
-                      isNewUser: false,
-                      email: normalizedEmail,
-                      isExistingUserAddedToOrg: true
-                    }),
-                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                  );
-                }
+        if (invitingUserOrgId) {
+          // Check if existing user is already a member of THIS organization
+          const { data: membership, error: membershipError } = await supabaseClient
+            .from('user_organizations')
+            .select('*')
+            .eq('user_id', existingUserResult.user.id)
+            .eq('organization_id', invitingUserOrgId)
+            .eq('is_active', true);
+          
+          if (!membershipError && membership && membership.length > 0) {
+            console.log(`User ${normalizedEmail} is already a member of organization ${invitingUserOrgId}`);
+            return new Response(
+              JSON.stringify({
+                success: false,
+                message: `User ${normalizedEmail} is already a member of your organization.`,
+                userId: existingUserResult.user?.id,
+                email: normalizedEmail
+              }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                status: 200
               }
+            );
+          } else {
+            // User exists but NOT in this organization - ADD THEM TO THIS ORGANIZATION!
+            console.log(`Adding existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
+            
+            // Create user organization membership
+            const { error: membershipInsertError } = await supabaseClient
+              .from('user_organizations')
+              .insert({
+                user_id: existingUserResult.user.id,
+                organization_id: invitingUserOrgId,
+                role: body.role,
+                is_active: true,
+                is_default: false // Don't change their default organization
+              });
+            
+            if (membershipInsertError) {
+              console.error("Error adding user to organization:", membershipInsertError);
+              return new Response(
+                JSON.stringify({
+                  success: false,
+                  message: `Failed to add existing user to organization: ${membershipInsertError.message}`,
+                  email: normalizedEmail
+                }),
+                { 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                  status: 200
+                }
+              );
             }
-          } catch (error) {
-            console.log("Could not get inviting user's organization, treating as new user invite");
+            
+            console.log(`Successfully added existing user ${normalizedEmail} to organization ${invitingUserOrgId}`);
+            
+            // Send them an email about being added to the new organization
+            const cleanAppUrl = cleanApplicationUrl(applicationUrl);
+            const loginUrl = `${cleanAppUrl}/login`;
+            const emailHtml = createEmailHtml({
+              to: normalizedEmail,
+              name: existingUserResult.profile?.name || body.name,
+              role: body.role,
+              temporaryPassword: undefined,
+              loginUrl,
+              isNewUser: false,
+              organizationName: organizationName || undefined,
+              inviterName: inviterName || undefined
+            });
+
+            // Send notification email
+            const emailData = await sendInvitationEmail(
+              resendApiKey,
+              normalizedEmail,
+              normalizedEmail,
+              emailHtml,
+              false,
+              organizationName || undefined,
+              false
+            );
+
+            return new Response(
+              JSON.stringify({
+                success: true,
+                message: `Existing user ${normalizedEmail} has been successfully added to your organization`,
+                userId: existingUserResult.user.id,
+                emailSent: true,
+                emailId: emailData?.id,
+                isNewUser: false,
+                email: normalizedEmail,
+                isExistingUserAddedToOrg: true
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
           }
         }
         
@@ -284,23 +311,6 @@ serve(async (req: Request) => {
       console.log("Bypassing existing user check as requested");
     }
 
-    // Get the current user (inviting user) to pass their organization
-    const authHeader = req.headers.get('Authorization');
-    let invitingUserId = null;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-        if (!error && user) {
-          invitingUserId = user.id;
-          console.log(`Inviting user ID: ${invitingUserId}`);
-        }
-      } catch (error) {
-        console.log("Could not get inviting user from token:", error);
-      }
-    }
-
     // Create new user
     const temporaryPassword = generateTemporaryPassword();
     const newUser = await createNewUser(
@@ -313,7 +323,6 @@ serve(async (req: Request) => {
       invitingUserId || undefined
     );
 
-
     // Send email
     const cleanAppUrl = cleanApplicationUrl(applicationUrl);
     const loginUrl = `${cleanAppUrl}/login`;
@@ -323,7 +332,9 @@ serve(async (req: Request) => {
       role: body.role,
       temporaryPassword,
       loginUrl,
-      isNewUser: true
+      isNewUser: true,
+      organizationName: organizationName || undefined,
+      inviterName: inviterName || undefined
     });
 
     // Send email directly to the invited user (Pro account - no test mode restrictions)
@@ -335,7 +346,9 @@ serve(async (req: Request) => {
       emailRecipient,
       normalizedEmail,
       emailHtml,
-      isTestMode
+      isTestMode,
+      organizationName || undefined,
+      true
     );
 
     return new Response(

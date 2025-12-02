@@ -3,7 +3,7 @@ export interface InviteRequest {
   name: string;
   role: string;
   assignedProperties?: string[];
-  bypassExistingCheck?: boolean; // Add this property
+  bypassExistingCheck?: boolean;
 }
 
 export interface EmailData {
@@ -13,6 +13,8 @@ export interface EmailData {
   temporaryPassword?: string;
   loginUrl: string;
   isNewUser: boolean;
+  organizationName?: string;
+  inviterName?: string;
 }
 
 export interface Environment {
