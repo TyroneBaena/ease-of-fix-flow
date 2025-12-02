@@ -3,10 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
-import { RequestInfo } from '@/components/request/RequestInfo';
+import { PublicRequestInfo } from '@/components/request/PublicRequestInfo';
 import { ActivityTimeline } from '@/components/request/ActivityTimeline';
 import { PublicCommentSection } from '@/components/request/PublicCommentSection';
-
 import { Toaster } from "sonner";
 
 /**
@@ -20,11 +19,10 @@ const PublicRequestDetail = () => {
   const [request, setRequest] = useState<MaintenanceRequest | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const [propertyName, setPropertyName] = useState<string | undefined>();
+  const [contractorInfo, setContractorInfo] = useState<{ companyName?: string; contactName?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const [requestQuoteDialogOpen, setRequestQuoteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -65,6 +63,29 @@ const PublicRequestDetail = () => {
       console.log('✅ [DEBUG] Request loaded successfully:', requestResult.request.issueNature || requestResult.request.title);
       setRequest(requestResult.request);
       
+      // Set property name from response
+      if (requestResult.property?.name) {
+        setPropertyName(requestResult.property.name);
+        console.log('✅ [DEBUG] Property name set:', requestResult.property.name);
+      }
+      
+      // Set contractor info from response
+      if (requestResult.contractor) {
+        setContractorInfo({
+          companyName: requestResult.contractor.company_name,
+          contactName: requestResult.contractor.contact_name
+        });
+        console.log('✅ [DEBUG] Contractor info set:', requestResult.contractor.company_name);
+      }
+      
+      // Set activity logs from response
+      if (requestResult.activityLogs && requestResult.activityLogs.length > 0) {
+        setActivityLogs(requestResult.activityLogs);
+        console.log('✅ [DEBUG] Activity logs set:', requestResult.activityLogs.length, 'logs');
+      } else {
+        setActivityLogs([]);
+      }
+      
       // Fetch comments for the request
       console.log('🔍 [DEBUG] Fetching comments for request:', id);
       const commentsUrl = `https://ltjlswzrdgtoddyqmydo.supabase.co/functions/v1/get-public-request-comments?requestId=${encodeURIComponent(id!)}`;
@@ -88,10 +109,6 @@ const PublicRequestDetail = () => {
         console.error('❌ [DEBUG] Error fetching comments:', commentsError);
         setComments([]);
       }
-      
-      // Mock data for other features that require authentication context
-      setActivityLogs([]);
-      setQuotes([]);
 
     } catch (error) {
       console.error('💥 [DEBUG] Unexpected error:', error);
@@ -104,12 +121,6 @@ const PublicRequestDetail = () => {
   const refreshData = useCallback(() => {
     fetchRequestData();
   }, []);
-
-  const refreshAfterQuoteSubmission = useCallback(() => {
-    setTimeout(() => {
-      refreshData();
-    }, 500);
-  }, [refreshData]);
 
   const handleNavigateBack = useCallback(() => navigate(-1), [navigate]);
 
@@ -166,7 +177,11 @@ const PublicRequestDetail = () => {
       {/* Main Content - Public view without sidebar */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          <RequestInfo request={request} />
+          <PublicRequestInfo 
+            request={request} 
+            propertyName={propertyName}
+            contractorInfo={contractorInfo}
+          />
           <ActivityTimeline 
             request={request} 
             comments={comments}
