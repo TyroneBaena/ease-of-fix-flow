@@ -8,6 +8,7 @@ interface UseCalendarEventsOptions {
   propertyId?: string;
   contractorId?: string;
   autoFetch?: boolean;
+  assignedProperties?: string[] | null; // For manager filtering
 }
 
 export const useCalendarEvents = (options: UseCalendarEventsOptions = {}) => {
@@ -56,7 +57,7 @@ export const useCalendarEvents = (options: UseCalendarEventsOptions = {}) => {
           filter.endDate
         );
       } else {
-        data = await calendarService.getOrganizationEvents(filter);
+        data = await calendarService.getOrganizationEvents(filter, options.assignedProperties);
       }
 
       setEvents(data);
@@ -67,7 +68,7 @@ export const useCalendarEvents = (options: UseCalendarEventsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [filter, options.propertyId, options.contractorId]);
+  }, [filter, options.propertyId, options.contractorId, options.assignedProperties]);
 
   /**
    * Create a new event

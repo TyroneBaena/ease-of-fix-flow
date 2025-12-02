@@ -30,9 +30,12 @@ const transformEvent = (row: any): CalendarEvent => ({
 export const calendarService = {
   /**
    * Get all calendar events for the organization within a date range
-   * Optionally filter by property
+   * Optionally filter by property and/or assigned properties (for managers)
    */
-  async getOrganizationEvents(filter: CalendarFilter): Promise<CalendarEvent[]> {
+  async getOrganizationEvents(
+    filter: CalendarFilter, 
+    assignedProperties?: string[] | null
+  ): Promise<CalendarEvent[]> {
     let query = supabase
       .from('calendar_events')
       .select(`
@@ -61,7 +64,21 @@ export const calendarService = {
       throw error;
     }
 
-    return (data || []).map(transformEvent);
+    let events = (data || []).map(transformEvent);
+    
+    // Filter by assigned properties for managers (if provided)
+    // null = admin (see all), empty array = no access, array = filter by those properties
+    if (assignedProperties !== undefined && assignedProperties !== null) {
+      if (assignedProperties.length === 0) {
+        return []; // No property access
+      }
+      events = events.filter(e => 
+        e.propertyId === null || // Include org-wide events without property
+        assignedProperties.includes(e.propertyId || '')
+      );
+    }
+    
+    return events;
   },
 
   /**
@@ -289,8 +306,14 @@ export const calendarService = {
 
   /**
    * Get upcoming events (next N days)
+   * Optionally filter by assigned properties (for managers)
    */
-  async getUpcomingEvents(days: number = 7, propertyId?: string, limit: number = 10): Promise<CalendarEvent[]> {
+  async getUpcomingEvents(
+    days: number = 7, 
+    propertyId?: string, 
+    limit: number = 10,
+    assignedProperties?: string[] | null
+  ): Promise<CalendarEvent[]> {
     const today = new Date();
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + days);
@@ -323,6 +346,19 @@ export const calendarService = {
       throw error;
     }
 
-    return (data || []).map(transformEvent);
+    let events = (data || []).map(transformEvent);
+    
+    // Filter by assigned properties for managers (if provided)
+    if (assignedProperties !== undefined && assignedProperties !== null) {
+      if (assignedProperties.length === 0) {
+        return [];
+      }
+      events = events.filter(e => 
+        e.propertyId === null || 
+        assignedProperties.includes(e.propertyId || '')
+      );
+    }
+    
+    return events;
   },
 };

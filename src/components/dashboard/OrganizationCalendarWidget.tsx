@@ -22,12 +22,18 @@ export const OrganizationCalendarWidget: React.FC = () => {
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
+  // Determine assigned properties based on user role
+  // Admins see all (null), managers see only their assigned properties
+  const assignedProperties = currentUser?.role === 'admin' 
+    ? null 
+    : currentUser?.assignedProperties || [];
+
   // Fetch upcoming events
   useEffect(() => {
     const fetchUpcoming = async () => {
       try {
         setLoading(true);
-        const events = await calendarService.getUpcomingEvents(14, undefined, 5);
+        const events = await calendarService.getUpcomingEvents(14, undefined, 5, assignedProperties);
         setUpcomingEvents(events);
       } catch (error) {
         console.error('Error fetching upcoming events:', error);
@@ -37,7 +43,7 @@ export const OrganizationCalendarWidget: React.FC = () => {
     };
 
     fetchUpcoming();
-  }, []);
+  }, [currentUser?.role, currentUser?.assignedProperties]);
 
   const handleAddEvent = () => {
     setSelectedEvent(null);
@@ -62,7 +68,7 @@ export const OrganizationCalendarWidget: React.FC = () => {
       }
       
       // Refresh upcoming events
-      const events = await calendarService.getUpcomingEvents(14, undefined, 5);
+      const events = await calendarService.getUpcomingEvents(14, undefined, 5, assignedProperties);
       setUpcomingEvents(events);
       setEventDialogOpen(false);
       setSelectedEvent(null);
@@ -81,7 +87,7 @@ export const OrganizationCalendarWidget: React.FC = () => {
       toast({ title: 'Event deleted' });
       
       // Refresh upcoming events
-      const events = await calendarService.getUpcomingEvents(14, undefined, 5);
+      const events = await calendarService.getUpcomingEvents(14, undefined, 5, assignedProperties);
       setUpcomingEvents(events);
       setEventDialogOpen(false);
       setSelectedEvent(null);
@@ -176,6 +182,7 @@ export const OrganizationCalendarWidget: React.FC = () => {
         onOpenChange={setCalendarPopupOpen}
         title="Organization Calendar"
         showFilters={true}
+        assignedProperties={assignedProperties}
       />
 
       {/* Event Dialog */}
