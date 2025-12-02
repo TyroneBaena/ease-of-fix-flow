@@ -296,7 +296,9 @@ const sendJobCompletionNotification = async (
   completionPhotos?: Array<{ url: string }>,
 ) => {
   try {
-    // Get request details for email notification
+    console.log("📧 sendJobCompletionNotification - Starting for request:", requestId);
+
+    // Get request details with property info including email fields
     const { data: request } = await supabase
       .from("maintenance_requests")
       .select(
@@ -304,28 +306,25 @@ const sendJobCompletionNotification = async (
         *,
         properties:property_id (
           name,
-          address
+          address,
+          email,
+          practice_leader,
+          practice_leader_email
         )
       `,
       )
       .eq("id", requestId)
       .single();
 
-    if (!request) return;
+    if (!request) {
+      console.log("📧 No request found for job completion notification");
+      return;
+    }
 
-    // Get admin and manager users
-    const { data: adminUsers } = await supabase
-      .from("profiles")
-      .select("id, email, name")
-      .in("role", ["admin", "manager"])
-      .not("email", "is", null);
-
-    // Get request owner
-    const { data: requestOwner } = await supabase
-      .from("profiles")
-      .select("id, email, name")
-      .eq("id", request.user_id)
-      .single();
+    console.log("📧 Request found:", request.title);
+    console.log("📧 Property:", request.properties?.name);
+    console.log("📧 Property email:", request.properties?.email);
+    console.log("📧 Practice leader email:", request.properties?.practice_leader_email);
 
     const notificationData = {
       request_id: requestId,
@@ -344,31 +343,90 @@ const sendJobCompletionNotification = async (
       completion_photos: completionPhotos,
     };
 
-    // Send notifications to admin/manager users
-    if (adminUsers) {
-      for (const user of adminUsers) {
-        if (user.email) {
-          await supabase.functions.invoke("send-comment-notification", {
-            body: {
-              recipient_email: user.email,
-              recipient_name: user.name || "",
-              notification_data: notificationData,
-            },
-          });
+    // Build recipients list - NO admins, only property contacts and assigned managers
+    const recipients: { email: string; name: string }[] = [];
+
+    // 1. Add property email (site contact)
+    if (request.properties?.email) {
+      recipients.push({
+        email: request.properties.email,
+        name: request.properties.name || "Property Contact"
+      });
+      console.log("📧 Added property email:", request.properties.email);
+    }
+
+    // 2. Add practice leader email
+    if (request.properties?.practice_leader_email) {
+      recipients.push({
+        email: request.properties.practice_leader_email,
+        name: request.properties.practice_leader || "Practice Leader"
+      });
+      console.log("📧 Added practice leader email:", request.properties.practice_leader_email);
+    }
+
+    // 3. Get managers assigned to this specific property (NOT admins)
+    if (request.property_id) {
+      const { data: managersWithAssignments } = await supabase
+        .from("profiles")
+        .select("id, email, name, assigned_properties, notification_settings")
+        .eq("role", "manager")
+        .not("email", "is", null)
+        .contains("assigned_properties", [request.property_id]);
+
+      if (managersWithAssignments) {
+        for (const manager of managersWithAssignments) {
+          // Check email notification preference (default to true if not set)
+          const notificationSettings = manager.notification_settings as Record<string, any> | null;
+          const emailEnabled = notificationSettings?.emailNotifications !== false;
+          
+          if (emailEnabled && manager.email) {
+            recipients.push({
+              email: manager.email,
+              name: manager.name || "Manager"
+            });
+            console.log("📧 Added assigned manager:", manager.email);
+          }
         }
       }
     }
 
-    // Send notification to request owner
-    if (requestOwner?.email) {
-      await supabase.functions.invoke("send-comment-notification", {
+    // Send emails with deduplication and rate limiting
+    const sentEmails = new Set<string>();
+    let emailsSent = 0;
+
+    for (const recipient of recipients) {
+      const emailLower = recipient.email.toLowerCase();
+      if (sentEmails.has(emailLower)) {
+        console.log("📧 Skipping duplicate email:", recipient.email);
+        continue;
+      }
+
+      console.log(`📬 Sending job completion notification to: ${recipient.email}`);
+      
+      const { data, error } = await supabase.functions.invoke("send-comment-notification", {
         body: {
-          recipient_email: requestOwner.email,
-          recipient_name: requestOwner.name || "",
+          recipient_email: recipient.email,
+          recipient_name: recipient.name,
           notification_data: notificationData,
         },
       });
+
+      if (error) {
+        console.error(`❌ Error sending email to ${recipient.email}:`, error);
+      } else {
+        console.log(`✅ Email sent to ${recipient.email}:`, data);
+      }
+
+      sentEmails.add(emailLower);
+      emailsSent++;
+
+      // Rate limiting: 600ms delay between emails (Resend allows 2 req/sec)
+      if (emailsSent < recipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
     }
+
+    console.log(`✅ Job completion notifications sent to ${sentEmails.size} recipients`);
   } catch (error) {
     console.error("Error sending job completion notification:", error);
     // Don't throw here to prevent breaking the main operation
