@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -29,6 +28,7 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") ?? "";
   const inboundReplyBase = Deno.env.get("INBOUND_REPLY_ADDRESS_NEW") ?? "";
+  const applicationUrl = Deno.env.get("APPLICATION_URL") || "https://housinghub.app";
 
   log("Environment check", { 
     hasResendKey: !!resendApiKey, 
@@ -75,7 +75,7 @@ serve(async (req) => {
     // Fetch request + property metadata for a nicer email
     const { data: request, error: reqErr } = await supabase
       .from("maintenance_requests")
-      .select("id, title, description, location, site, property_id, created_at")
+      .select("id, title, description, location, site, property_id, created_at, priority")
       .eq("id", request_id)
       .single();
     if (reqErr || !request) throw new Error(`Request not found: ${reqErr?.message || "unknown"}`);
@@ -108,37 +108,77 @@ serve(async (req) => {
 
     // Compose email
     const title = request.title || "Maintenance Request";
-    const preview = (request.description || "").slice(0, 160);
-    const propertyBlock = property
-      ? `
-        <p><strong>Property:</strong> ${property.name || ""}</p>
-        <p><strong>Address:</strong> ${property.address || ""}</p>
-        ${property.practice_leader ? `<p><strong>Practice Leader:</strong> ${property.practice_leader}</p>` : ""}
-        ${property.practice_leader_phone ? `<p><strong>Practice Leader Phone:</strong> ${property.practice_leader_phone}</p>` : ""}
-        ${property.practice_leader_email ? `<p><strong>Practice Leader Email:</strong> ${property.practice_leader_email}</p>` : ""}
-        ${property.contact_number ? `<p><strong>Site Contact:</strong> ${property.contact_number}</p>` : ""}
-      `
-      : "";
+    const preview = (request.description || "").slice(0, 200);
+    const directLink = `${applicationUrl}/requests/${request_id}`;
 
     const html = `
-      <div style="font-family: Inter, Arial, sans-serif; line-height: 1.6;">
-        <h2>New Maintenance Request Assigned</h2>
-        <p>Hi ${landlord_name || "there"},</p>
-        <p>You have been assigned the following maintenance request:</p>
-        <p><strong>${title}</strong></p>
-        <p>${preview}</p>
-        <p><strong>Location:</strong> ${request.location || "N/A"}</p>
-        <p><strong>Site:</strong> ${request.site || "N/A"}</p>
-        ${propertyBlock}
-        <hr />
-        <p><strong>Reply to this email</strong> to leave a note that will be added to the request's activity.</p>
-        <p>Request ID: ${request_id}</p>
-      </div>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Maintenance Request Assigned</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #16a34a; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">🏠 Maintenance Request Assigned</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">A maintenance issue requires your attention</p>
+          </div>
+          
+          <p>Hi ${landlord_name || "there"},</p>
+          <p>You have been assigned the following maintenance request:</p>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">${title}</h3>
+            <p style="color: #4b5563;">${preview}${preview.length >= 200 ? '...' : ''}</p>
+            <p><strong>Location:</strong> ${request.location || "N/A"}</p>
+            <p><strong>Site:</strong> ${request.site || "N/A"}</p>
+            ${request.priority ? `
+              <p><strong>Priority:</strong> 
+                <span style="background-color: ${request.priority === 'high' || request.priority === 'critical' ? '#fee2e2' : request.priority === 'medium' ? '#fef3c7' : '#ecfdf5'}; 
+                            color: ${request.priority === 'high' || request.priority === 'critical' ? '#dc2626' : request.priority === 'medium' ? '#d97706' : '#059669'}; 
+                            padding: 2px 8px; border-radius: 4px; text-transform: capitalize;">
+                  ${request.priority}
+                </span>
+              </p>
+            ` : ''}
+          </div>
+          
+          ${property ? `
+            <div style="background-color: #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1f2937; margin-top: 0;">Property Information</h3>
+              <p><strong>Property:</strong> ${property.name || ""}</p>
+              <p><strong>Address:</strong> ${property.address || ""}</p>
+              ${property.practice_leader ? `<p><strong>Practice Leader:</strong> ${property.practice_leader}</p>` : ""}
+              ${property.practice_leader_phone ? `<p><strong>Practice Leader Phone:</strong> ${property.practice_leader_phone}</p>` : ""}
+              ${property.practice_leader_email ? `<p><strong>Practice Leader Email:</strong> ${property.practice_leader_email}</p>` : ""}
+              ${property.contact_number ? `<p><strong>Site Contact:</strong> ${property.contact_number}</p>` : ""}
+            </div>
+          ` : ""}
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${directLink}" 
+               style="display: inline-block; background-color: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View Request Details
+            </a>
+          </div>
+          
+          <div style="background-color: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #0c4a6e;"><strong>Reply to this email</strong> to leave a note that will be added to the request's activity.</p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <div style="text-align: center; color: #6b7280; font-size: 12px;">
+            <p>HousingHub - Property Management Made Simple</p>
+            <p>Request ID: ${request_id}</p>
+          </div>
+        </body>
+      </html>
     `;
 
     const resend = new Resend(resendApiKey);
-    const from = "Property Manager <noreply@housinghub.app>";
-    const subject = `Assigned: ${title}`;
+    const from = "HousingHub <notifications@housinghub.app>";
+    const subject = `Maintenance Request Assigned: ${title}`;
 
     const sendResult = await resend.emails.send({
       from,

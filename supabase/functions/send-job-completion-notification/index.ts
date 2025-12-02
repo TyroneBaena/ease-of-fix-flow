@@ -130,15 +130,15 @@ const handler = async (req: Request): Promise<Response> => {
               <tr>
                 <td style="padding: 8px 0; font-weight: bold;">Priority:</td>
                 <td style="padding: 8px 0;">
-                  <span style="background-color: ${notification_data.request_priority === 'high' ? '#fee2e2' : notification_data.request_priority === 'medium' ? '#fef3c7' : '#ecfdf5'}; 
-                               color: ${notification_data.request_priority === 'high' ? '#dc2626' : notification_data.request_priority === 'medium' ? '#d97706' : '#059669'}; 
+                  <span style="background-color: ${notification_data.request_priority === 'high' || notification_data.request_priority === 'critical' ? '#fee2e2' : notification_data.request_priority === 'medium' ? '#fef3c7' : '#ecfdf5'}; 
+                               color: ${notification_data.request_priority === 'high' || notification_data.request_priority === 'critical' ? '#dc2626' : notification_data.request_priority === 'medium' ? '#d97706' : '#059669'}; 
                                padding: 2px 8px; border-radius: 4px; text-transform: capitalize;">
                     ${notification_data.request_priority}
                   </span>
                 </td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; font-weight: bold;">Contractor:</td>
+                <td style="padding: 8px 0; font-weight: bold;">Completed by:</td>
                 <td style="padding: 8px 0;">${notification_data.contractor_name}</td>
               </tr>
               <tr>
@@ -168,14 +168,15 @@ const handler = async (req: Request): Promise<Response> => {
 
           <div style="text-align: center; margin: 30px 0;">
             <a href="${notification_data.direct_link}" 
-               style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+               style="display: inline-block; background-color: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
               View Completed Job
             </a>
           </div>
 
-          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <div style="text-align: center; color: #6b7280; font-size: 12px;">
+            <p>HousingHub - Property Management Made Simple</p>
             <p>This is an automated notification from your maintenance management system.</p>
-            <p>Please do not reply to this email.</p>
           </div>
         </body>
       </html>
@@ -183,7 +184,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email using verified domain
     const emailResponse = await resend.emails.send({
-      from: "Property Manager <notifications@housinghub.app>",
+      from: "HousingHub <notifications@housinghub.app>",
       to: [recipient_email],
       subject: emailSubject,
       html: emailHtml,

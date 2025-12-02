@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -19,13 +17,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // CRITICAL: Use NEW_RESEND_API_KEY for production email sending
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
+    
+    if (!resendApiKey) {
+      console.error("[SEND-REACTIVATION] CRITICAL: NEW_RESEND_API_KEY not configured");
+      throw new Error("Email service not configured - missing NEW_RESEND_API_KEY");
+    }
+    
+    const resend = new Resend(resendApiKey);
     const applicationUrl = Deno.env.get('APPLICATION_URL') || 'https://housinghub.app';
     const { recipient_email, recipient_name }: ReactivationEmailRequest = await req.json();
 
     console.log("Sending reactivation confirmation to:", recipient_email);
 
     const emailResponse = await resend.emails.send({
-      from: "Property Manager <noreply@yourdomain.com>",
+      from: "HousingHub <notifications@housinghub.app>",
       to: [recipient_email],
       subject: "Welcome Back! Your Account Has Been Reactivated",
       html: `
@@ -89,8 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
 
             <div style="text-align: center; margin-top: 20px; padding: 20px; color: #9ca3af; font-size: 12px;">
-              <p style="margin: 5px 0;">Property Manager Platform</p>
-              <p style="margin: 5px 0;">© 2025 All rights reserved</p>
+              <p style="margin: 5px 0;">HousingHub - Property Management Made Simple</p>
+              <p style="margin: 5px 0;">© 2025 HousingHub. All rights reserved.</p>
             </div>
 
           </body>

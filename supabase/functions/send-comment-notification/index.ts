@@ -51,45 +51,62 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending comment notification email to ${recipient_email}`);
 
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">New Comment on Maintenance Request</h2>
-        
-        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #334155;">Request Details</h3>
-          <p><strong>Title:</strong> ${notification_data.request_title}</p>
-          <p><strong>Location:</strong> ${notification_data.request_location}</p>
-          <p><strong>Priority:</strong> ${notification_data.request_priority}</p>
-          <p><strong>Status:</strong> ${notification_data.request_status}</p>
-          ${notification_data.property_name ? `<p><strong>Property:</strong> ${notification_data.property_name}</p>` : ''}
-        </div>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Comment</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #2563eb; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">💬 New Comment Added</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">by ${notification_data.commenter_name}</p>
+          </div>
+          
+          <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+            <h3 style="margin-top: 0; color: #065f46;">Comment</h3>
+            <p><strong>From:</strong> ${notification_data.commenter_name} (${notification_data.commenter_role})</p>
+            <blockquote style="border-left: 3px solid #d1d5db; padding-left: 15px; margin: 10px 0; font-style: italic; color: #374151;">
+              ${notification_data.comment_text}
+            </blockquote>
+          </div>
 
-        <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
-          <h3 style="margin-top: 0; color: #065f46;">New Comment</h3>
-          <p><strong>From:</strong> ${notification_data.commenter_name} (${notification_data.commenter_role})</p>
-          <p><strong>Comment:</strong></p>
-          <blockquote style="border-left: 3px solid #d1d5db; padding-left: 15px; margin: 10px 0; font-style: italic;">
-            ${notification_data.comment_text}
-          </blockquote>
-        </div>
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #334155;">Request Details</h3>
+            <p><strong>Title:</strong> ${notification_data.request_title}</p>
+            <p><strong>Location:</strong> ${notification_data.request_location}</p>
+            <p><strong>Priority:</strong> 
+              <span style="background-color: ${notification_data.request_priority === 'high' || notification_data.request_priority === 'critical' ? '#fee2e2' : notification_data.request_priority === 'medium' ? '#fef3c7' : '#ecfdf5'}; 
+                          color: ${notification_data.request_priority === 'high' || notification_data.request_priority === 'critical' ? '#dc2626' : notification_data.request_priority === 'medium' ? '#d97706' : '#059669'}; 
+                          padding: 2px 8px; border-radius: 4px; text-transform: capitalize;">
+                ${notification_data.request_priority}
+              </span>
+            </p>
+            <p><strong>Status:</strong> ${notification_data.request_status}</p>
+            ${notification_data.property_name ? `<p><strong>Property:</strong> ${notification_data.property_name}</p>` : ''}
+          </div>
 
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${notification_data.direct_link}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            View Request
-          </a>
-        </div>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${notification_data.direct_link}" 
+               style="display: inline-block; background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View Request & Respond
+            </a>
+          </div>
 
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px; font-size: 14px; color: #64748b;">
-          <p>This is an automated notification from your Property Management System.</p>
-          <p>If you have any questions, please contact your system administrator.</p>
-        </div>
-      </div>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <div style="text-align: center; color: #6b7280; font-size: 12px;">
+            <p>HousingHub - Property Management Made Simple</p>
+            <p>This is an automated notification from your maintenance management system.</p>
+          </div>
+        </body>
+      </html>
     `;
 
     const { data, error } = await resend.emails.send({
-      from: 'Property Management <noreply@housinghub.app>',
+      from: 'HousingHub <notifications@housinghub.app>',
       to: [recipient_email],
-      subject: `New Comment: ${notification_data.request_title}`,
+      subject: `New Comment from ${notification_data.commenter_name}: ${notification_data.request_title}`,
       html: emailHtml,
     });
 
