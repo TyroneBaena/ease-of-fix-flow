@@ -67,6 +67,37 @@ const sendStatusChangeNotification = async (
       });
     }
 
+    // Check if there are any recipients configured
+    if (recipients.length === 0) {
+      console.warn(`⚠️ WARNING: No notification recipients configured for property "${request.properties?.name}" (Property ID: ${request.property_id})`);
+      console.warn('Missing: property email and practice leader email');
+      
+      // Alert admins about the configuration gap
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin")
+        .eq("organization_id", request.organization_id);
+      
+      if (admins && admins.length > 0) {
+        console.log(`📢 Creating configuration alert for ${admins.length} admin(s)`);
+        
+        for (const admin of admins) {
+          await supabase.from("notifications").insert({
+            user_id: admin.id,
+            title: "⚠️ Property Configuration Alert",
+            message: `Status change notification (${newStatus}) could not be sent for "${request.properties?.name}". No recipients configured. Please configure a property email or practice leader.`,
+            type: "warning",
+            link: `/properties/${request.property_id}`,
+            organization_id: request.organization_id
+          });
+        }
+        console.log('✅ Configuration alert notifications created for admins');
+      }
+      
+      return; // Exit early since no emails to send
+    }
+
     // Send emails to all recipients (deduped)
     const sentEmails = new Set<string>();
     for (const recipient of recipients) {
@@ -393,6 +424,38 @@ const sendJobCompletionNotification = async (
           }
         }
       }
+    }
+    // Check if there are any recipients configured
+    if (recipients.length === 0) {
+      console.warn(`⚠️ WARNING: No notification recipients configured for property "${request.properties?.name}" (Property ID: ${request.property_id})`);
+      console.warn('Missing: property email, practice leader email, and no assigned managers with email notifications enabled');
+      
+      // Alert admins about the configuration gap
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin")
+        .eq("organization_id", request.organization_id);
+      
+      if (admins && admins.length > 0) {
+        console.log(`📢 Creating configuration alert for ${admins.length} admin(s)`);
+        
+        for (const admin of admins) {
+          await supabase.from("notifications").insert({
+            user_id: admin.id,
+            title: "⚠️ Property Configuration Alert",
+            message: `Job completion notification could not be sent for "${request.properties?.name}". No recipients configured. Please configure a property email, practice leader, or assign managers.`,
+            type: "warning",
+            link: `/properties/${request.property_id}`,
+            organization_id: request.organization_id
+          });
+        }
+        console.log('✅ Configuration alert notifications created for admins');
+      } else {
+        console.warn('No admins found in organization to alert about unconfigured property');
+      }
+      
+      return; // Exit early since no emails to send
     }
 
     // Send emails with deduplication and rate limiting

@@ -296,9 +296,38 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
     }
-
-    // All emails sent sequentially with rate limit handling
-    console.log('All notification emails sent successfully');
+    // Check if any emails were sent - if not, alert admins about unconfigured property
+    if (sentEmails.size === 0) {
+      console.warn(`⚠️ WARNING: No notification recipients configured for property "${propertyData.name}" (ID: ${requestData.property_id})`);
+      console.warn('Missing: property email, practice leader email, and no assigned managers with email notifications enabled');
+      
+      // Fetch all admins in the organization to alert them
+      const { data: admins, error: adminsError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin')
+        .eq('organization_id', requestData.organization_id);
+      
+      if (!adminsError && admins && admins.length > 0) {
+        console.log(`📢 Creating configuration alert for ${admins.length} admin(s)`);
+        
+        for (const admin of admins) {
+          await supabase.from('notifications').insert({
+            user_id: admin.id,
+            title: '⚠️ Property Configuration Alert',
+            message: `No notification recipients configured for "${propertyData.name}". Maintenance requests may go unnoticed. Please configure a property email, practice leader, or assign managers.`,
+            type: 'warning',
+            link: `/properties/${requestData.property_id}`,
+            organization_id: requestData.organization_id
+          });
+        }
+        console.log('✅ Configuration alert notifications created for admins');
+      } else {
+        console.warn('No admins found in organization to alert about unconfigured property');
+      }
+    } else {
+      console.log(`All notification emails sent successfully (${sentEmails.size} recipients)`);
+    }
 
     return new Response(
       JSON.stringify({ 
