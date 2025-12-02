@@ -11,6 +11,8 @@ import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedA
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+const MAX_VISIBLE_EVENTS = 4;
+
 export const OrganizationCalendarWidget: React.FC = () => {
   const { currentUser } = useUserContext();
   const { currentOrganization } = useMultiOrganizationContext();
@@ -22,18 +24,15 @@ export const OrganizationCalendarWidget: React.FC = () => {
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  // Determine assigned properties based on user role
-  // Admins see all (null), managers see only their assigned properties
   const assignedProperties = currentUser?.role === 'admin' 
     ? null 
     : currentUser?.assignedProperties || [];
 
-  // Fetch upcoming events
   useEffect(() => {
     const fetchUpcoming = async () => {
       try {
         setLoading(true);
-        const events = await calendarService.getUpcomingEvents(14, undefined, 5, assignedProperties);
+        const events = await calendarService.getUpcomingEvents(14, undefined, 8, assignedProperties);
         setUpcomingEvents(events);
       } catch (error) {
         console.error('Error fetching upcoming events:', error);
@@ -67,8 +66,7 @@ export const OrganizationCalendarWidget: React.FC = () => {
         toast({ title: 'Event created' });
       }
       
-      // Refresh upcoming events
-      const events = await calendarService.getUpcomingEvents(14, undefined, 5, assignedProperties);
+      const events = await calendarService.getUpcomingEvents(14, undefined, 8, assignedProperties);
       setUpcomingEvents(events);
       setEventDialogOpen(false);
       setSelectedEvent(null);
@@ -86,8 +84,7 @@ export const OrganizationCalendarWidget: React.FC = () => {
       await calendarService.deleteEvent(eventId, deleteAllRecurring);
       toast({ title: 'Event deleted' });
       
-      // Refresh upcoming events
-      const events = await calendarService.getUpcomingEvents(14, undefined, 5, assignedProperties);
+      const events = await calendarService.getUpcomingEvents(14, undefined, 8, assignedProperties);
       setUpcomingEvents(events);
       setEventDialogOpen(false);
       setSelectedEvent(null);
@@ -99,6 +96,21 @@ export const OrganizationCalendarWidget: React.FC = () => {
       });
     }
   };
+
+  const showScrollArea = upcomingEvents.length > MAX_VISIBLE_EVENTS;
+
+  const renderEventsList = () => (
+    <div className="space-y-2">
+      {upcomingEvents.map(event => (
+        <CalendarEventCard
+          key={event.id}
+          event={event}
+          onClick={handleEventClick}
+          showDate
+        />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -148,19 +160,12 @@ export const OrganizationCalendarWidget: React.FC = () => {
                 Add Event
               </Button>
             </div>
-          ) : (
-            <ScrollArea className="h-[200px] pr-2">
-              <div className="space-y-2">
-                {upcomingEvents.map(event => (
-                  <CalendarEventCard
-                    key={event.id}
-                    event={event}
-                    onClick={handleEventClick}
-                    showDate
-                  />
-                ))}
-              </div>
+          ) : showScrollArea ? (
+            <ScrollArea className="max-h-[280px] pr-2">
+              {renderEventsList()}
             </ScrollArea>
+          ) : (
+            renderEventsList()
           )}
 
           {upcomingEvents.length > 0 && (
@@ -176,7 +181,6 @@ export const OrganizationCalendarWidget: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Full Calendar Popup */}
       <CalendarPopup
         open={calendarPopupOpen}
         onOpenChange={setCalendarPopupOpen}
@@ -185,7 +189,6 @@ export const OrganizationCalendarWidget: React.FC = () => {
         assignedProperties={assignedProperties}
       />
 
-      {/* Event Dialog */}
       <CalendarEventDialog
         open={eventDialogOpen}
         onOpenChange={setEventDialogOpen}
