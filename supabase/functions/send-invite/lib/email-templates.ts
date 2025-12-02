@@ -40,7 +40,7 @@ export function createEmailHtml(data: EmailData): string {
                   Set Up Your Password
                 </a>
               </p>
-              <p style="color: #64748b; font-size: 14px;">For security reasons, we recommend changing this temporary password immediately after logging in.</p>
+              <p style="color: #64748b; font-size: 14px;">You will be required to set a new password when you first log in.</p>
               <p style="color: #64748b; font-size: 12px;">If the button above doesn't work, copy and paste this URL into your browser:</p>
               <p style="word-break: break-all; font-size: 12px; color: #64748b;">${loginUrl}</p>
               <p>If you have any questions, please contact your administrator.</p>

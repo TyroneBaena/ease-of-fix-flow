@@ -28,7 +28,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resend = new Resend(Deno.env.get("NEW_RESEND_API_KEY"));
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY_1");
+    const resend = new Resend(resendApiKey);
     
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -286,7 +289,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to landlord with updated subject
     const emailResponse = await resend.emails.send({
-      from: "Housing System <notifications@housinghub.app>",
+      from: "HousingHub <notifications@housinghub.app>",
       to: [landlordEmail],
       subject: `[${organizationName}] Maintenance Report - ${propertyAddress}`,
       html: emailContent,

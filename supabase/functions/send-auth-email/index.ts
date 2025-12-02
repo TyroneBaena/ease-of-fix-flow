@@ -86,17 +86,17 @@ serve(async (req: Request) => {
           
           if (emailType === "recovery") {
             // Password Reset Email
-            subject = "Reset your Housing Hub password";
+            subject = "Reset your HousingHub password";
             html = `
               <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
                   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                       <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">Password Reset Request</h1>
-                      <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Reset your Housing Hub account password</p>
+                      <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Reset your HousingHub account password</p>
                       
                       <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
-                        We received a request to reset the password for your Housing Hub account.
+                        We received a request to reset the password for your HousingHub account.
                       </p>
                       
                       <p style="color: #333; font-size: 16px; margin-bottom: 30px;">
@@ -138,7 +138,7 @@ serve(async (req: Request) => {
                     </div>
                     
                     <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-                      <p>© ${new Date().getFullYear()} Housing Hub. All rights reserved.</p>
+                      <p>© ${new Date().getFullYear()} HousingHub. All rights reserved.</p>
                       <p>Making property management simple and efficient.</p>
                     </div>
                   </div>
@@ -147,13 +147,13 @@ serve(async (req: Request) => {
             `;
           } else {
             // Signup Confirmation Email (default)
-            subject = "Confirm your Housing Hub account";
+            subject = "Confirm your HousingHub account";
             html = `
               <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
                   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                      <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">Welcome to Housing Hub!</h1>
+                      <h1 style="color: #333; margin-bottom: 10px; font-size: 28px;">Welcome to HousingHub!</h1>
                       <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Your all-in-one property management solution</p>
                       
                       <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
@@ -161,7 +161,7 @@ serve(async (req: Request) => {
                       </p>
                       
                       <p style="color: #333; font-size: 16px; margin-bottom: 30px;">
-                        To get started and access all features of Housing Hub, please confirm your email address by clicking the button below:
+                        To get started and access all features of HousingHub, please confirm your email address by clicking the button below:
                       </p>
                       
                       <div style="text-align: center; margin: 35px 0;">
@@ -182,7 +182,7 @@ serve(async (req: Request) => {
                       <div style="background-color: #f9f9f9; border-left: 4px solid #4CAF50; padding: 15px; margin: 30px 0; border-radius: 4px;">
                         <p style="margin: 0; color: #666; font-size: 14px;">
                           <strong>What happens next?</strong><br/>
-                          Once you confirm your email, you'll be able to access your Housing Hub dashboard where you can manage properties, track maintenance requests, and communicate with tenants seamlessly.
+                          Once you confirm your email, you'll be able to access your HousingHub dashboard where you can manage properties, track maintenance requests, and communicate with tenants seamlessly.
                         </p>
                       </div>
                       
@@ -194,12 +194,12 @@ serve(async (req: Request) => {
                       </p>
                       
                       <p style="color: #999; font-size: 13px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                        If you didn't create an account with Housing Hub, please ignore this email.
+                        If you didn't create an account with HousingHub, please ignore this email.
                       </p>
                     </div>
                     
                     <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-                      <p>© ${new Date().getFullYear()} Housing Hub. All rights reserved.</p>
+                      <p>© ${new Date().getFullYear()} HousingHub. All rights reserved.</p>
                       <p>Making property management simple and efficient.</p>
                     </div>
                   </div>
@@ -209,7 +209,7 @@ serve(async (req: Request) => {
           }
           
           const emailPromise = resend.emails.send({
-            from: "Housing Hub <noreply@housinghub.app>",
+            from: "HousingHub <noreply@housinghub.app>",
             to: [userEmail],
             subject: subject,
             html: html,

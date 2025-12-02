@@ -60,7 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p>Each property is billed at $29 AUD per month once your trial period expires.</p>
             <p>You can manage your properties and billing settings in your dashboard.</p>
             
-            <p>Best regards,<br>The Property Management Team</p>
+            <p>Best regards,<br>The HousingHub Team</p>
           </div>
         `;
       } else if (is_subscribed) {
@@ -81,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p>The additional cost for ${properties_changed === 1 ? 'this property' : 'these properties'} will be included in your next billing cycle.</p>
             <p>You can manage your properties and billing settings in your dashboard.</p>
             
-            <p>Best regards,<br>The Property Management Team</p>
+            <p>Best regards,<br>The HousingHub Team</p>
           </div>
         `;
       }
@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p>Your billing after the trial period will reflect the updated property count.</p>
             <p>You can manage your properties and billing settings in your dashboard.</p>
             
-            <p>Best regards,<br>The Property Management Team</p>
+            <p>Best regards,<br>The HousingHub Team</p>
           </div>
         `;
       } else if (is_subscribed) {
@@ -126,21 +126,25 @@ const handler = async (req: Request): Promise<Response> => {
             <p>Your billing will decrease starting from your next billing cycle.</p>
             <p>You can manage your properties and billing settings in your dashboard.</p>
             
-            <p>Best regards,<br>The Property Management Team</p>
+            <p>Best regards,<br>The HousingHub Team</p>
           </div>
         `;
       }
     }
 
     // Use Resend API directly with fetch
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY_1");
+    
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${Deno.env.get("NEW_RESEND_API_KEY")}`,
+        "Authorization": `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Property Management <onboarding@housinghub.app>",
+        from: "HousingHub <notifications@housinghub.app>",
         to: [recipient_email],
         subject: subject!,
         html: htmlContent!,

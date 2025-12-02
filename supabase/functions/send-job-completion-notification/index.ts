@@ -52,13 +52,15 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
     
-    // Get Resend API key - use NEW_RESEND_API_KEY consistently
-    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
+    // Get Resend API key with fallback
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY_1");
     
     if (!resendApiKey) {
-      console.error("NEW_RESEND_API_KEY not found");
+      console.error("Resend API key not found (checked NEW_RESEND_API_KEY, RESEND_API_KEY, RESEND_API_KEY_1)");
       return new Response(JSON.stringify({ 
-        error: "Server configuration error: NEW_RESEND_API_KEY not configured"
+        error: "Server configuration error: Resend API key not configured"
       }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

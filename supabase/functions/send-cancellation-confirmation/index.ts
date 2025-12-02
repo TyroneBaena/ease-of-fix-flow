@@ -70,9 +70,9 @@ const handler = async (req: Request): Promise<Response> => {
         
         <div style="background-color: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <h4 style="margin-top: 0; color: #059669;">We'd Love to Have You Back!</h4>
-          <p>If you change your mind, you can reactivate your account from your billing dashboard at any time.</p>
+          <p>If you change your mind, you can reactivate your account from your settings at any time.</p>
           <div style="margin: 15px 0; text-align: center;">
-            <a href="https://your-app-url.com/billing" 
+            <a href="https://housinghub.app/settings" 
                style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Reactivate Account
             </a>
@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
           <h4 style="margin-top: 0;">Help Us Improve</h4>
           <p style="margin: 0;">We're sorry to see you go. If you have a moment, we'd love to hear your feedback about why you cancelled.</p>
           <div style="margin: 15px 0;">
-            <a href="https://your-app-url.com/feedback" 
+            <a href="mailto:support@housinghub.app?subject=Cancellation Feedback" 
                style="color: #2563eb; text-decoration: underline;">
               Share Your Feedback
             </a>
@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
         <p>If this cancellation was a mistake or you need any assistance, please contact our support team immediately.</p>
         
         <p>Thank you for trying our service!</p>
-        <p>Best regards,<br>The Property Management Team</p>
+        <p>Best regards,<br>The HousingHub Team</p>
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
         <p style="font-size: 12px; color: #6b7280;">
@@ -102,14 +102,18 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY_1");
+    
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${Deno.env.get("NEW_RESEND_API_KEY")}`,
+        "Authorization": `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Property Management <onboarding@housinghub.app>",
+        from: "HousingHub <notifications@housinghub.app>",
         to: [recipient_email],
         subject: subject,
         html: htmlContent,

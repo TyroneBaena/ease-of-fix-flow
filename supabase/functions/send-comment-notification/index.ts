@@ -35,9 +35,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY");
+    const resendApiKey = Deno.env.get("NEW_RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY") || 
+                         Deno.env.get("RESEND_API_KEY_1");
     if (!resendApiKey) {
-      console.error("Missing Resend API key");
+      console.error("Missing Resend API key (checked NEW_RESEND_API_KEY, RESEND_API_KEY, RESEND_API_KEY_1)");
       throw new Error("Email service configuration is missing");
     }
 
