@@ -167,10 +167,15 @@ WHERE ... -- inherits RLS from profiles table
 **Action:** Can be addressed in future maintenance  
 **Link:** https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable
 
-### ⚠️ 2. Extension in Public Schema
+### ✅ 2. Extension in Public Schema - RESOLVED
 **Severity:** Low  
-**Impact:** Common pattern, not a security risk  
-**Action:** No immediate action required  
+**Status:** FIXED ✅  
+**Fixed:** 2025-12-02  
+**Solution:** Moved `pg_net` extension from `public` schema to `extensions` schema via migration:
+```sql
+DROP EXTENSION IF EXISTS pg_net CASCADE;
+CREATE EXTENSION pg_net WITH SCHEMA extensions;
+```
 **Link:** https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public
 
 ### ⚠️ 3. Leaked Password Protection Disabled ⚠️ RECOMMENDED
