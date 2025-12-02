@@ -51,11 +51,26 @@ const SetupPassword = () => {
     // Check if there's an active session
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
+      const isForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
+      
+      console.log("🔍 SetupPassword session check:", {
+        hasSession: !!data.session,
+        userEmail: data.session?.user?.email,
+        expiresAt: data.session?.expires_at,
+        isForcePasswordChange,
+        isResetMode: hasResetToken
+      });
+      
       setHasSession(!!data.session);
 
       // If there's a session but navigated here via password reset
       if (data.session && hasResetToken) {
         console.log("Found session with reset token, ready to set new password");
+      }
+      
+      // Warn if no session but force_password_change is set - may need re-login
+      if (!data.session && isForcePasswordChange) {
+        console.warn("⚠️ No session found but force_password_change is set - user may need to re-login");
       }
     };
 
@@ -93,7 +108,14 @@ const SetupPassword = () => {
 
     try {
       setIsLoading(true);
-      console.log(`Setting up new password for email: ${email}, isResetMode: ${isResetMode}`);
+      const isForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
+      
+      console.log("🔐 Password change attempt:", {
+        isResetMode,
+        isForcePasswordChange,
+        hasSession,
+        email
+      });
 
       // Handle password reset flow - check for tokens in URL hash
       if (isResetMode) {
@@ -125,12 +147,41 @@ const SetupPassword = () => {
         }
       }
 
+      // CRITICAL: Verify session exists before updating password for ALL modes
+      const { data: sessionCheck } = await supabase.auth.getSession();
+      
+      console.log("🔐 Pre-updateUser session verification:", {
+        hasSession: !!sessionCheck?.session,
+        sessionUserEmail: sessionCheck?.session?.user?.email,
+        sessionExpiry: sessionCheck?.session?.expires_at
+      });
+
+      if (!sessionCheck?.session) {
+        console.error("❌ No active session found - cannot update password");
+        
+        // For new invited users (force password change), redirect to re-login
+        if (isForcePasswordChange) {
+          toast.error("Your session has expired. Please log in again with your temporary password.");
+          // Clear the flags so they can attempt login again
+          sessionStorage.removeItem('force_password_change');
+          sessionStorage.removeItem('password_reset_email');
+          navigate(`/login?email=${encodeURIComponent(email)}`);
+          return;
+        }
+        
+        toast.error("No valid session. Please use the link from your email or log in first.");
+        return;
+      }
+      
+      console.log("✅ Active session verified for:", sessionCheck.session.user.email);
+
       // Now update the password (session should be established at this point)
       const { error, data } = await supabase.auth.updateUser({
         password: password,
       });
 
       if (error) {
+        console.error("❌ Password update error:", error);
         // If not logged in, this could be a password reset flow
         if (error.message.includes("not logged in")) {
           toast.error("Please sign in with your temporary password or use the reset link from your email");
@@ -139,6 +190,15 @@ const SetupPassword = () => {
         }
 
         throw error;
+      }
+      
+      // Verify the update was successful
+      if (data?.user) {
+        console.log("✅ Password update confirmed for user:", data.user.id, data.user.email);
+      } else {
+        console.error("❌ Password update returned no user data");
+        toast.error("Password update may have failed. Please try again.");
+        return;
       }
 
       // Get user's role and organization to determine redirect
