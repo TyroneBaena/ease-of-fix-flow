@@ -29,9 +29,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY');
+    const resendApiKey = Deno.env.get('NEW_RESEND_API_KEY') || 
+                         Deno.env.get('RESEND_API_KEY') || 
+                         Deno.env.get('RESEND_API_KEY_1');
     if (!resendApiKey) {
-      throw new Error('NEW_RESEND_API_KEY not configured');
+      throw new Error('Resend API key not configured (checked NEW_RESEND_API_KEY, RESEND_API_KEY, RESEND_API_KEY_1)');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
