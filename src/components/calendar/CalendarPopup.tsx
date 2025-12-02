@@ -7,8 +7,7 @@ import { CalendarFilters } from './CalendarFilters';
 import { CalendarEventCard } from './CalendarEventCard';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEvent, CalendarEventFormData } from '@/types/calendar';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { useOrganizationContext } from '@/contexts/OrganizationContext';
+import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -32,7 +31,7 @@ export const CalendarPopup: React.FC<CalendarPopupProps> = ({
   contractorId,
 }) => {
   const { currentUser } = useUserContext();
-  const { currentOrganization } = useOrganizationContext();
+  const { currentOrganization } = useMultiOrganizationContext();
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
