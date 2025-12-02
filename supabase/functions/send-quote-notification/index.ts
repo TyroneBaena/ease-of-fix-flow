@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface QuoteNotificationRequest {
   quote_id: string;
-  notification_type: 'submitted' | 'approved' | 'rejected' | 'requested';
+  notification_type: 'submitted' | 'approved' | 'rejected' | 'requested' | 'assigned';
   recipient_email: string;
   recipient_name: string;
 }
@@ -55,6 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
           location,
           priority,
           organization_id,
+          attachments,
           properties (
             name,
             address
@@ -90,6 +91,10 @@ const handler = async (req: Request): Promise<Response> => {
     const directLink = `${Deno.env.get('APPLICATION_URL') || 'https://housinghub.app'}/requests/${request?.id}`;
 
     switch (notification_type) {
+      case 'assigned':
+        subject = `🛠️ Job Assignment: ${request?.title}`;
+        emailHtml = createJobAssignmentEmail(recipient_name, request, property, directLink);
+        break;
       case 'requested':
         subject = `Quote Request: ${request?.title}`;
         emailHtml = createQuoteRequestEmail(recipient_name, request, property, directLink);
@@ -147,6 +152,173 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 };
+
+// NEW: Job Assignment Email - sent when contractor is assigned to a job
+function createJobAssignmentEmail(recipientName: string, request: any, property: any, directLink: string): string {
+  // Parse attachments for photos
+  let attachments: any[] = [];
+  if (request?.attachments) {
+    try {
+      attachments = typeof request.attachments === 'string' 
+        ? JSON.parse(request.attachments) 
+        : request.attachments;
+    } catch (e) {
+      console.error('Error parsing attachments:', e);
+    }
+  }
+
+  // Filter for image attachments
+  const imageAttachments = attachments.filter(att => {
+    const url = att?.url || att;
+    return typeof url === 'string' && (
+      url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || 
+      url.includes('/object/public/')
+    );
+  });
+
+  // Generate photos HTML
+  let photosHtml = '';
+  if (imageAttachments.length > 0) {
+    const photoItems = imageAttachments.slice(0, 6).map(att => {
+      const url = att?.url || att;
+      return `
+        <td style="width: 50%; padding: 4px; vertical-align: top;">
+          <img src="${url}" alt="Job photo" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;" />
+        </td>
+      `;
+    });
+
+    // Create rows with 2 images each
+    const rows = [];
+    for (let i = 0; i < photoItems.length; i += 2) {
+      rows.push(`<tr>${photoItems[i]}${photoItems[i + 1] || '<td></td>'}</tr>`);
+    }
+
+    photosHtml = `
+      <div style="background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <h2 style="color: #1f2937; margin-top: 0;">📸 Job Photos</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          ${rows.join('')}
+        </table>
+        ${imageAttachments.length > 6 ? `<p style="color: #6b7280; font-size: 14px; margin-top: 10px;">+ ${imageAttachments.length - 6} more photos available in the system</p>` : ''}
+      </div>
+    `;
+  }
+
+  // Priority color mapping
+  const getPriorityStyle = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case 'critical':
+        return { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' };
+      case 'high':
+        return { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' };
+      case 'medium':
+        return { bg: '#fffbeb', color: '#d97706', border: '#fde68a' };
+      case 'low':
+      default:
+        return { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' };
+    }
+  };
+
+  const priorityStyle = getPriorityStyle(request?.priority);
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Job Assignment</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 24px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 26px;">🛠️ Job Assigned</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.95;">You've been assigned to a maintenance job</p>
+        </div>
+
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0 0 10px 0;">Hello <strong>${recipientName}</strong>,</p>
+          <p style="margin: 0;">You have been assigned to work on the following maintenance request. Please review the details below and proceed with the job.</p>
+        </div>
+
+        <!-- Priority Banner -->
+        <div style="background-color: ${priorityStyle.bg}; border: 1px solid ${priorityStyle.border}; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; text-align: center;">
+          <span style="color: ${priorityStyle.color}; font-weight: bold; font-size: 14px; text-transform: uppercase;">
+            ⚡ ${request?.priority || 'Normal'} Priority
+          </span>
+        </div>
+
+        <!-- Job Details -->
+        <div style="background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #1f2937; margin-top: 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">📋 Job Details</h2>
+          
+          <div style="margin-bottom: 16px;">
+            <p style="font-weight: bold; color: #374151; margin: 0 0 4px 0; font-size: 13px; text-transform: uppercase;">Nature of Request</p>
+            <p style="margin: 0; font-size: 18px; color: #1f2937; font-weight: 600;">${request?.title || 'N/A'}</p>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <p style="font-weight: bold; color: #374151; margin: 0 0 4px 0; font-size: 13px; text-transform: uppercase;">Description</p>
+            <p style="margin: 0; color: #4b5563; background-color: #f9fafb; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981;">${request?.description || 'No description provided'}</p>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <p style="font-weight: bold; color: #374151; margin: 0 0 4px 0; font-size: 13px; text-transform: uppercase;">Location</p>
+            <p style="margin: 0; color: #4b5563;">${request?.location || 'N/A'}</p>
+          </div>
+        </div>
+
+        <!-- Property Details -->
+        ${property ? `
+        <div style="background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #1f2937; margin-top: 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">🏠 Property Information</h2>
+          
+          ${property.name ? `
+          <div style="margin-bottom: 12px;">
+            <p style="font-weight: bold; color: #374151; margin: 0 0 4px 0; font-size: 13px; text-transform: uppercase;">Property Name</p>
+            <p style="margin: 0; color: #1f2937; font-size: 16px;">${property.name}</p>
+          </div>
+          ` : ''}
+          
+          ${property.address ? `
+          <div style="margin-bottom: 0;">
+            <p style="font-weight: bold; color: #374151; margin: 0 0 4px 0; font-size: 13px; text-transform: uppercase;">Address</p>
+            <p style="margin: 0; color: #1f2937; font-size: 16px;">📍 ${property.address}</p>
+          </div>
+          ` : ''}
+        </div>
+        ` : ''}
+
+        <!-- Photos Section -->
+        ${photosHtml}
+
+        <!-- CTA Button -->
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${directLink}" 
+             style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+            View Job Details
+          </a>
+        </div>
+
+        <!-- Next Steps -->
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="color: #166534; margin-top: 0;">✅ Next Steps</h3>
+          <ul style="margin: 0; padding-left: 20px; color: #15803d;">
+            <li style="margin-bottom: 8px;">Review the job details and photos</li>
+            <li style="margin-bottom: 8px;">Schedule your visit to the property</li>
+            <li style="margin-bottom: 8px;">Complete the work and update progress</li>
+            <li style="margin-bottom: 0;">Upload completion photos when finished</li>
+          </ul>
+        </div>
+
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
+          <p style="margin: 0 0 8px 0;">This is an automated notification from your maintenance management system.</p>
+          <p style="margin: 0;">If you have any questions, please contact the property manager.</p>
+        </div>
+      </body>
+    </html>
+  `;
+}
 
 function createQuoteRequestEmail(recipientName: string, request: any, property: any, directLink: string): string {
   return `
