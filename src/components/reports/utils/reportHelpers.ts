@@ -9,7 +9,8 @@ export function filterMaintenanceRequests(
   statusFilter: string,
   searchTerm: string,
   isAdmin: boolean,
-  assignedProperties?: string[]
+  assignedProperties?: string[],
+  priorityFilter?: string
 ): MaintenanceRequest[] {
   return requests.filter(request => {
     // Filter by property access
@@ -29,13 +30,18 @@ export function filterMaintenanceRequests(
       return false;
     }
     
+    // Filter by priority
+    if (priorityFilter && priorityFilter !== 'all' && request.priority !== priorityFilter) {
+      return false;
+    }
+    
     // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       return (
         request.title?.toLowerCase().includes(searchLower) || 
         request.description?.toLowerCase().includes(searchLower) ||
-        request.id?.toLowerCase().includes(searchLower) || // Changed from requestId to id
+        request.id?.toLowerCase().includes(searchLower) ||
         request.issueNature?.toLowerCase().includes(searchLower)
       );
     }

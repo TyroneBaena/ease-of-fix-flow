@@ -18,6 +18,8 @@ interface ReportFiltersProps {
   setPropertyFilter: (value: string) => void;
   statusFilter: string;
   setStatusFilter: (value: string) => void;
+  priorityFilter: string;
+  setPriorityFilter: (value: string) => void;
   accessibleProperties: Property[];
 }
 
@@ -28,6 +30,8 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
   setPropertyFilter,
   statusFilter,
   setStatusFilter,
+  priorityFilter,
+  setPriorityFilter,
   accessibleProperties
 }) => {
   return (
@@ -67,9 +71,26 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="in-progress">In Progress</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="w-full md:w-48">
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priorities</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="critical">Critical</SelectItem>
           </SelectContent>
         </Select>
       </div>

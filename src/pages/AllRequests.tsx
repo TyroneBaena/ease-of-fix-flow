@@ -15,6 +15,7 @@ const AllRequests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [propertyFilter, setPropertyFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ 
@@ -70,6 +71,11 @@ const AllRequests = () => {
       result = result.filter(request => request.propertyId === propertyFilter);
     }
 
+    // Filter by priority
+    if (priorityFilter !== 'all') {
+      result = result.filter(request => request.priority === priorityFilter);
+    }
+
     // Date range filtering - using createdAt instead of created_at
     if (dateRange.from || dateRange.to) {
       result = result.filter(request => {
@@ -108,7 +114,7 @@ const AllRequests = () => {
     
     console.log('Filtered requests count:', result.length);
     setFilteredRequests(result);
-  }, [searchTerm, statusFilter, propertyFilter, sortField, sortDirection, dateRange, requests]);
+  }, [searchTerm, statusFilter, propertyFilter, priorityFilter, sortField, sortDirection, dateRange, requests]);
 
   // CRITICAL FIX: Don't show loading message after first load completes
   const showLoading = loading && !hasLoadedDataRef.current;
@@ -117,7 +123,7 @@ const AllRequests = () => {
   const getEmptyMessage = () => {
     if (showLoading) return "Loading requests...";
     if (requests.length === 0) return "No maintenance requests found. Submit a new request to get started.";
-    if (searchTerm || statusFilter !== 'all' || propertyFilter !== 'all' || dateRange.from || dateRange.to) {
+    if (searchTerm || statusFilter !== 'all' || propertyFilter !== 'all' || priorityFilter !== 'all' || dateRange.from || dateRange.to) {
       return "No requests match your filters. Try adjusting your search criteria.";
     }
     return "No maintenance requests found";
@@ -140,6 +146,8 @@ const AllRequests = () => {
           setStatusFilter={setStatusFilter}
           propertyFilter={propertyFilter}
           setPropertyFilter={setPropertyFilter}
+          priorityFilter={priorityFilter}
+          setPriorityFilter={setPriorityFilter}
           properties={sortedProperties}
           sortField={sortField}
           setSortField={setSortField}
