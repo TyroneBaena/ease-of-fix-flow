@@ -396,14 +396,14 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
     }
 
     // STEP 5: Create a quote record for the contractor dashboard
-    const { error: quoteError } = await supabase.from("quotes").insert({
+    const { data: quoteData, error: quoteError } = await supabase.from("quotes").insert({
       request_id: requestId,
       contractor_id: contractorId,
       amount: 0,
       description: "Quote requested",
       status: "requested",
       organization_id: requestData.organization_id,
-    });
+    }).select().single();
 
     if (quoteError) {
       console.error("Error creating quote:", quoteError);
@@ -414,13 +414,47 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
 
     console.log("✅ Contractor assignment completed successfully");
 
-    // STEP 6: Create notification (with validation already complete)
+    // STEP 6: Create in-app notification (with validation already complete)
     const notificationSuccess = await createAssignmentNotificationWithPropertyDetails(contractorId, requestId);
 
     if (notificationSuccess) {
       console.log("✅ Assignment notification created successfully");
     } else {
       console.warn("⚠️ Assignment completed but notification creation failed");
+    }
+
+    // STEP 7: Send email notification to contractor
+    if (quoteData?.id) {
+      try {
+        // Fetch contractor email
+        const { data: contractor } = await supabase
+          .from("contractors")
+          .select("email, contact_name")
+          .eq("id", contractorId)
+          .single();
+
+        if (contractor?.email) {
+          const { error: emailError } = await supabase.functions.invoke("send-quote-notification", {
+            body: {
+              quote_id: quoteData.id,
+              notification_type: "requested",
+              recipient_email: contractor.email,
+              recipient_name: contractor.contact_name || "Contractor",
+            },
+          });
+
+          if (emailError) {
+            console.error("Error sending contractor assignment email:", emailError);
+          } else {
+            console.log("✅ Email notification sent to contractor:", contractor.email);
+          }
+        } else {
+          console.warn("⚠️ No contractor email found for notification");
+        }
+      } catch (emailErr) {
+        console.error("Failed to send contractor email notification:", emailErr);
+        // Don't throw - assignment is still valid
+      }
     }
 
     console.log(`=== CONTRACTOR ASSIGNMENT COMPLETED ===`);
