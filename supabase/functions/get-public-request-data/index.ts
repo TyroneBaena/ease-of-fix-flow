@@ -75,7 +75,57 @@ serve(async (req) => {
 
     console.log('✅ [GET-PUBLIC-REQUEST-DATA] Request found:', request.issue_nature || request.title);
 
-    // Return the request data
+    // Fetch activity logs for this request
+    console.log('📊 [GET-PUBLIC-REQUEST-DATA] Fetching activity logs...');
+    const { data: activityLogs, error: activityError } = await supabase
+      .from('activity_logs')
+      .select('id, action_type, description, actor_name, actor_role, metadata, created_at, request_id')
+      .eq('request_id', requestId)
+      .order('created_at', { ascending: false });
+
+    if (activityError) {
+      console.error('⚠️ [GET-PUBLIC-REQUEST-DATA] Error fetching activity logs:', activityError);
+    } else {
+      console.log('✅ [GET-PUBLIC-REQUEST-DATA] Activity logs found:', activityLogs?.length || 0);
+    }
+
+    // Fetch property data if request has a property_id
+    let propertyData = null;
+    if (request.property_id) {
+      console.log('📊 [GET-PUBLIC-REQUEST-DATA] Fetching property data...');
+      const { data: property, error: propertyError } = await supabase
+        .from('properties')
+        .select('id, name, address')
+        .eq('id', request.property_id)
+        .single();
+
+      if (propertyError) {
+        console.error('⚠️ [GET-PUBLIC-REQUEST-DATA] Error fetching property:', propertyError);
+      } else {
+        propertyData = property;
+        console.log('✅ [GET-PUBLIC-REQUEST-DATA] Property found:', property?.name);
+      }
+    }
+
+    // Fetch contractor data if request has a contractor_id
+    let contractorData = null;
+    if (request.contractor_id) {
+      console.log('📊 [GET-PUBLIC-REQUEST-DATA] Fetching contractor data...');
+      const { data: contractor, error: contractorError } = await supabase
+        .from('contractors')
+        .select('id, company_name, contact_name')
+        .eq('id', request.contractor_id)
+        .single();
+
+      if (contractorError) {
+        console.error('⚠️ [GET-PUBLIC-REQUEST-DATA] Error fetching contractor:', contractorError);
+      } else {
+        contractorData = contractor;
+        console.log('✅ [GET-PUBLIC-REQUEST-DATA] Contractor found:', contractor?.company_name);
+      }
+    }
+
+    // Return the request data with additional context
     const response = {
       request: {
         id: request.id,
@@ -99,11 +149,15 @@ serve(async (req) => {
         attemptedFix: request.attempted_fix,
         completionPercentage: request.completion_percentage || 0,
         contractorId: request.contractor_id,
-        userId: request.user_id
-      }
+        userId: request.user_id,
+        propertyId: request.property_id
+      },
+      activityLogs: activityLogs || [],
+      property: propertyData,
+      contractor: contractorData
     };
 
-    console.log('📦 [GET-PUBLIC-REQUEST-DATA] Returning response');
+    console.log('📦 [GET-PUBLIC-REQUEST-DATA] Returning response with', activityLogs?.length || 0, 'activity logs');
     
     return new Response(
       JSON.stringify(response),
