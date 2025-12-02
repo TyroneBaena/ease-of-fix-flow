@@ -43,12 +43,40 @@ export const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      // CRITICAL: Verify session exists before updating password
+      const { data: sessionCheck } = await supabase.auth.getSession();
+      
+      console.log("🔐 Contractor password change - session check:", {
+        hasSession: !!sessionCheck?.session,
+        userEmail: sessionCheck?.session?.user?.email
+      });
+
+      if (!sessionCheck?.session) {
+        console.error("❌ No active session found - cannot update password");
+        toast.error("Your session has expired. Please log out and log back in to change your password.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("✅ Active session verified for:", sessionCheck.session.user.email);
+
+      const { error, data } = await supabase.auth.updateUser({
         password: formData.newPassword
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Password update error:", error);
+        throw error;
+      }
 
+      // Verify the update was successful
+      if (!data?.user) {
+        console.error("❌ Password update returned no user data");
+        toast.error("Password update may have failed. Please try again.");
+        return;
+      }
+
+      console.log("✅ Password update confirmed for contractor:", data.user.email);
       toast.success('Password updated successfully');
       setFormData({ newPassword: '', confirmPassword: '' });
       onOpenChange(false);
