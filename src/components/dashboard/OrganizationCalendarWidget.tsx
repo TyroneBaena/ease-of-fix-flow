@@ -7,14 +7,13 @@ import { CalendarPopup } from '@/components/calendar/CalendarPopup';
 import { CalendarEventDialog } from '@/components/calendar/CalendarEventDialog';
 import { calendarService } from '@/services/calendarService';
 import { CalendarEvent, CalendarEventFormData } from '@/types/calendar';
-import { useUserContext } from '@/contexts/UnifiedAuthContext';
-import { useOrganizationContext } from '@/contexts/OrganizationContext';
+import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const OrganizationCalendarWidget: React.FC = () => {
   const { currentUser } = useUserContext();
-  const { currentOrganization } = useOrganizationContext();
+  const { currentOrganization } = useMultiOrganizationContext();
   const { toast } = useToast();
   
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
