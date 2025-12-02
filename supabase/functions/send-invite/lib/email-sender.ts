@@ -8,7 +8,9 @@ export async function sendInvitationEmail(
   emailRecipient: string,
   email: string,
   emailHtml: string,
-  isTestMode: boolean
+  isTestMode: boolean,
+  organizationName?: string,
+  isNewUser: boolean = true
 ) {
   if (!resendApiKey) {
     console.error("Missing Resend API key");
@@ -30,10 +32,16 @@ export async function sendInvitationEmail(
     console.log("Attempting to send email...");
     console.log(`Email will be sent to ${emailRecipient} (${isTestMode ? 'TEST MODE - redirected' : 'direct send'})`);
     
+    const orgDisplay = organizationName || 'HousingHub';
+    const fromName = orgDisplay;
+    const subject = isNewUser 
+      ? `${isTestMode ? '[TEST] ' : ''}${orgDisplay} - Invitation to join HousingHub`
+      : `${isTestMode ? '[TEST] ' : ''}${orgDisplay} - You've been added to a new organization`;
+    
     const { data, error } = await resend.emails.send({
-      from: 'Property Manager <onboarding@housinghub.app>',
+      from: `${fromName} <onboarding@housinghub.app>`,
       to: [emailRecipient],
-      subject: `${isTestMode ? '[TEST] ' : ''}Welcome to Property Manager`,
+      subject: subject,
       html: isTestMode 
         ? `<p><strong>TEST MODE:</strong> This email would normally be sent to ${email}</p>${emailHtml}` 
         : emailHtml,
