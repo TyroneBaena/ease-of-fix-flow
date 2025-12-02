@@ -121,6 +121,122 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          contractor_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_time: string
+          event_date: string
+          id: string
+          maintenance_request_id: string | null
+          organization_id: string
+          parent_event_id: string | null
+          property_id: string | null
+          recurrence_days: Json | null
+          recurrence_end_date: string | null
+          recurrence_type: string | null
+          source_id: string | null
+          source_type: string
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          contractor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time: string
+          event_date: string
+          id?: string
+          maintenance_request_id?: string | null
+          organization_id: string
+          parent_event_id?: string | null
+          property_id?: string | null
+          recurrence_days?: Json | null
+          recurrence_end_date?: string | null
+          recurrence_type?: string | null
+          source_id?: string | null
+          source_type?: string
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          contractor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time?: string
+          event_date?: string
+          id?: string
+          maintenance_request_id?: string | null
+          organization_id?: string
+          parent_event_id?: string | null
+          property_id?: string | null
+          recurrence_days?: Json | null
+          recurrence_end_date?: string | null
+          recurrence_type?: string | null
+          source_id?: string | null
+          source_type?: string
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_user_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_parent_event_id_fkey"
+            columns: ["parent_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           created_at: string | null
