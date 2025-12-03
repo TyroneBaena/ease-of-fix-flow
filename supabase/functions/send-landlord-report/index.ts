@@ -295,13 +295,27 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailContent,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Resend API response:", JSON.stringify(emailResponse));
+
+    // Verify email was actually sent by Resend
+    if (emailResponse.error) {
+      console.error("Resend returned error:", emailResponse.error);
+      throw new Error(`Email service error: ${emailResponse.error.message || 'Unknown error'}`);
+    }
+
+    if (!emailResponse.data?.id) {
+      console.error("Resend did not return email ID - possible silent failure");
+      throw new Error('Email sending failed: No confirmation from email service');
+    }
+
+    console.log("Email sent successfully with ID:", emailResponse.data.id);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Report sent to landlord successfully",
-        email: landlordEmail 
+        email: landlordEmail,
+        emailId: emailResponse.data.id
       }),
       {
         status: 200,

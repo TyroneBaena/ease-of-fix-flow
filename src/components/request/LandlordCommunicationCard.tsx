@@ -120,7 +120,13 @@ export const LandlordCommunicationCard: React.FC<LandlordCommunicationCardProps>
 
     setIsSendingEmail(true);
     try {
-      const { error } = await supabase.functions.invoke('send-landlord-report', {
+      console.log('[LandlordReport] Invoking send-landlord-report with:', {
+        request_id: request.id,
+        landlord_email: landlordEmail.trim(),
+        options: reportOptions,
+      });
+
+      const { data, error } = await supabase.functions.invoke('send-landlord-report', {
         body: {
           request_id: request.id,
           landlord_email: landlordEmail.trim(),
@@ -128,9 +134,36 @@ export const LandlordCommunicationCard: React.FC<LandlordCommunicationCardProps>
         },
       });
 
-      if (error) throw error;
+      console.log('[LandlordReport] Response:', { data, error });
 
-      toast.success('Report emailed to landlord successfully');
+      // Check for invoke error
+      if (error) {
+        console.error('[LandlordReport] Invoke error:', error);
+        throw error;
+      }
+
+      // Check for null/empty response (silent failure)
+      if (!data) {
+        console.error('[LandlordReport] No response data received');
+        throw new Error('No response from server - email may not have been sent');
+      }
+
+      // Check for error in response body
+      if (data.error) {
+        console.error('[LandlordReport] Response error:', data.error);
+        throw new Error(data.error);
+      }
+
+      // Verify explicit success flag
+      if (!data.success) {
+        console.error('[LandlordReport] Send failed - no success flag:', data);
+        throw new Error(data.message || 'Failed to send email to landlord');
+      }
+
+      console.log('[LandlordReport] Email sent successfully, ID:', data.emailId);
+      toast.success('Report sent successfully', {
+        description: `Email sent to ${data.email || landlordEmail}. Check spam folder if not received.`
+      });
       
       // Log activity
       if (currentUser) {
@@ -140,12 +173,14 @@ export const LandlordCommunicationCard: React.FC<LandlordCommunicationCardProps>
           description: `Report sent to landlord (${landlordEmail})`,
           actorName: currentUser.name,
           actorRole: currentUser.role,
-          metadata: { landlordEmail, reportOptions },
+          metadata: { landlordEmail, reportOptions, emailId: data.emailId },
         });
       }
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error('Failed to send email to landlord');
+    } catch (error: any) {
+      console.error('[LandlordReport] Error sending email:', error);
+      toast.error('Failed to send email to landlord', {
+        description: error.message || 'Unknown error occurred'
+      });
     } finally {
       setIsSendingEmail(false);
     }
@@ -164,8 +199,14 @@ export const LandlordCommunicationCard: React.FC<LandlordCommunicationCardProps>
 
     setLoading(true);
     try {
+      console.log('[LandlordReport] Invoking send-landlord-report for assignment with:', {
+        request_id: request.id,
+        landlord_email: landlordEmail.trim(),
+        options: reportOptions,
+      });
+
       // First send the email report
-      const { error: emailError } = await supabase.functions.invoke('send-landlord-report', {
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-landlord-report', {
         body: {
           request_id: request.id,
           landlord_email: landlordEmail.trim(),
@@ -173,10 +214,33 @@ export const LandlordCommunicationCard: React.FC<LandlordCommunicationCardProps>
         },
       });
 
+      console.log('[LandlordReport] Assignment email response:', { emailData, emailError });
+
+      // Check for invoke error
       if (emailError) {
-        console.error('Email error:', emailError);
+        console.error('[LandlordReport] Email invoke error:', emailError);
         throw emailError;
       }
+
+      // Check for null/empty response (silent failure)
+      if (!emailData) {
+        console.error('[LandlordReport] No email response data received');
+        throw new Error('No response from server - email may not have been sent');
+      }
+
+      // Check for error in response body
+      if (emailData.error) {
+        console.error('[LandlordReport] Email response error:', emailData.error);
+        throw new Error(emailData.error);
+      }
+
+      // Verify explicit success flag
+      if (!emailData.success) {
+        console.error('[LandlordReport] Email send failed - no success flag:', emailData);
+        throw new Error(emailData.message || 'Failed to send email to landlord');
+      }
+
+      console.log('[LandlordReport] Email sent successfully, ID:', emailData.emailId);
 
       // Then update the database
       const { error: updateError } = await supabase
@@ -198,14 +262,18 @@ export const LandlordCommunicationCard: React.FC<LandlordCommunicationCardProps>
         description: `Request assigned to landlord (${landlordEmail})`,
         actorName: currentUser.name,
         actorRole: currentUser.role,
-        metadata: { notes, landlordEmail, reportOptions },
+        metadata: { notes, landlordEmail, reportOptions, emailId: emailData.emailId },
       });
 
-      toast.success('Assigned to landlord and report sent successfully');
+      toast.success('Assigned to landlord and report sent successfully', {
+        description: `Email sent to ${emailData.email || landlordEmail}`
+      });
       onRefreshData?.();
-    } catch (error) {
-      console.error('Assign to landlord failed', error);
-      toast.error('Failed to assign to landlord');
+    } catch (error: any) {
+      console.error('[LandlordReport] Assign to landlord failed:', error);
+      toast.error('Failed to assign to landlord', {
+        description: error.message || 'Unknown error occurred'
+      });
     } finally {
       setLoading(false);
     }
