@@ -129,6 +129,7 @@ const UserManagement = () => {
       <UserManagementHeader 
         onInviteUser={() => handleOpenDialog()} 
         isPreparingDialog={isPreparingDialog}
+        onRefresh={fetchUsers}
       />
       
       <UserTable 
