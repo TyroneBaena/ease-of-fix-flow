@@ -57,20 +57,10 @@ export const useUserActions = (
         console.log("Updating user:", updatedUser);
         console.log("User assignedProperties being saved:", updatedUser.assignedProperties);
         await updateUser(updatedUser);
-        toast.success(`User ${updatedUser.name} updated successfully`);
+        toast.success(`User ${updatedUser.name} updated successfully`, {
+          description: "Changes will appear in the list shortly."
+        });
         setIsDialogOpen(false);
-        
-        // Wait a moment before refreshing to ensure the backend is updated
-        setTimeout(async () => {
-          console.log("User update successful, refreshing user list");
-          try {
-            await fetchUsers();
-            console.log("User list refreshed successfully after update");
-          } catch (refreshError) {
-            console.error("Error refreshing user list after update:", refreshError);
-            toast.warning("User updated but list may not be up to date. Please refresh the page.");
-          }
-        }, 1000);
       } else {
         // Frontend pre-check: Check if email already exists in loaded users list
         const existingUser = users.find(u => u.email.toLowerCase() === userToSave.email.toLowerCase().trim());
@@ -100,27 +90,20 @@ export const useUserActions = (
           
           if (result.success) {
             if (result.isNewUser) {
-              toast.success("User created successfully");
+              toast.success("Invitation sent successfully", {
+                description: "The user will appear in the list shortly."
+              });
             } else if (result.isExistingUserAddedToOrg) {
-              toast.success(`Existing user ${result.email} has been added to your organization`);
+              toast.success(`Existing user ${result.email} has been added to your organization`, {
+                description: "The user will appear in the list shortly."
+              });
             } else {
-              toast.success(result.message || "User processed successfully");
+              toast.success(result.message || "User processed successfully", {
+                description: "The user will appear in the list shortly."
+              });
             }
             
             setIsDialogOpen(false);
-            
-            // Wait a moment before refreshing to ensure the backend is updated
-            setTimeout(async () => {
-              console.log("User creation successful, refreshing user list");
-              try {
-                await fetchUsers();
-                console.log("User list refreshed successfully");
-              } catch (refreshError) {
-                console.error("Error refreshing user list:", refreshError);
-                // Still show success for the creation, just warn about refresh
-                toast.warning("User created but list may not be up to date. Please refresh the page.");
-              }
-            }, 1000); // Wait 1 second to ensure backend operations complete
             
             // For test mode emails, show additional information
             if (result.testMode && result.testModeInfo) {
