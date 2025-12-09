@@ -55,4 +55,7 @@ export interface MaintenanceRequest {
   userId: string;
   // For backward compatibility
   user_id?: string;
+  // Property info for display
+  propertyAddress?: string;
+  propertyName?: string;
 }

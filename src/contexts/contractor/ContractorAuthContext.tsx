@@ -158,11 +158,11 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('🔥 SIMPLE LOGIC - Starting fetchJobsData for contractor:', contractorIdParam?.substring(0, 8));
       setLoading(true);
 
-      // Step 1: Get ALL requests assigned to this contractor
+      // Step 1: Get ALL requests assigned to this contractor (with property data)
       console.log('🔥 STEP 1: Fetching ALL assigned requests...');
       const { data: assignedRequests, error: assignedError } = await supabase
         .from('maintenance_requests')
-        .select('*')
+        .select('*, properties(name, address)')
         .eq('contractor_id', contractorIdParam);
 
       if (assignedError) {
@@ -175,13 +175,13 @@ export const ContractorAuthProvider: React.FC<{ children: React.ReactNode }> = (
         console.log(`🔥 Assigned: ${req.id?.substring(0, 8)} - ${req.title} - Status: ${req.status}`);
       });
 
-      // Step 2: Get quotes for UNassigned requests only
+      // Step 2: Get quotes for UNassigned requests only (with property data)
       console.log('🔥 STEP 2: Fetching quotes for UNASSIGNED requests...');
       const { data: quotes, error: quotesError } = await supabase
         .from('quotes')
         .select(`
           *,
-          maintenance_requests!inner(*)
+          maintenance_requests!inner(*, properties(name, address))
         `)
         .eq('contractor_id', contractorIdParam)
         .is('maintenance_requests.contractor_id', null); // Only unassigned requests
