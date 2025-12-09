@@ -2,9 +2,9 @@
 import { MaintenanceRequest } from '@/types/maintenance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
 import { EmptyState } from './EmptyState';
 import { getStatusBadgeColor, getQuoteStatusBadgeColor } from '../utils/statusBadgeUtils';
+import { getPriorityClass } from '@/components/reports/utils/reportHelpers';
 import { useNavigate } from 'react-router-dom';
 
 interface RequestsTableProps {
@@ -126,8 +126,8 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
           <TableHead>Request ID</TableHead>
           <TableHead>Title</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Quote</TableHead>
-          <TableHead>Submitted</TableHead>
+          <TableHead>Property</TableHead>
+          <TableHead>Priority</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -144,24 +144,13 @@ export const RequestsTable = ({ requests, onSelectRequest, filterQuoteRequests =
                 {getDisplayStatus(request)}
               </Badge>
             </TableCell>
-            <TableCell>
-              {filterQuoteRequests ? (
-                // For quote requests, show quote amount if submitted, otherwise "Not quoted"
-                request.quote && typeof request.quote !== 'string' && request.quote.amount && request.quote.amount > 1
-                  ? `$${request.quote.amount}`
-                  : request.quotedAmount 
-                    ? `$${request.quotedAmount}`
-                    : 'Not quoted'
-              ) : (
-                request.quotedAmount 
-                  ? `$${request.quotedAmount}` 
-                  : request.quote && typeof request.quote !== 'string' && request.quote.amount
-                    ? `$${request.quote.amount}` 
-                    : 'Not quoted'
-              )}
+            <TableCell className="text-sm">
+              {request.propertyAddress || request.location || 'Unknown'}
             </TableCell>
-            <TableCell className="text-muted-foreground text-sm">
-              {request.date ? formatDistanceToNow(new Date(request.date), { addSuffix: true }) : 'Unknown'}
+            <TableCell>
+              <span className={`capitalize px-2 py-1 rounded-full text-xs ${getPriorityClass(request.priority)}`}>
+                {request.priority || 'Medium'}
+              </span>
             </TableCell>
           </TableRow>
         ))}

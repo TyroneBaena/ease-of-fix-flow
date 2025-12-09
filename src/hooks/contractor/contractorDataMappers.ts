@@ -44,7 +44,9 @@ export const mapRequestFromDb = (job: any): MaintenanceRequest => {
   progressNotes: job.progress_notes ? (Array.isArray(job.progress_notes) ? job.progress_notes : []) : [],
   quoteRequested: job.quote_requested || false,
   quotedAmount: job.quoted_amount,
-  userId: job.user_id || 'unknown-user'
+  userId: job.user_id || 'unknown-user',
+  propertyAddress: job.properties?.address || job.location || '',
+  propertyName: job.properties?.name || ''
   };
 };
 
@@ -100,6 +102,8 @@ export const mapRequestFromQuote = (quote: any): MaintenanceRequest => {
     progressNotes: request.progress_notes ? (Array.isArray(request.progress_notes) ? request.progress_notes : []) : [],
     quoteRequested: request.quote_requested || false,
     quotedAmount: request.quoted_amount,
-    userId: request.user_id || 'unknown-user'
+    userId: request.user_id || 'unknown-user',
+    propertyAddress: request.properties?.address || request.location || '',
+    propertyName: request.properties?.name || ''
   };
 };
