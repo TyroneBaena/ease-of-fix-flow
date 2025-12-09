@@ -50,11 +50,18 @@ import { assignContractorToRequest } from "../operations";
  * Hook for contractor assignment operations
  */
 export const useAssignmentOperations = () => {
-  // Assign contractor function
-  const handleAssignContractor = useCallback(async (requestId: string, contractorId: string) => {
+  // Assign contractor function with optional title update
+  const handleAssignContractor = useCallback(async (
+    requestId: string, 
+    contractorId: string,
+    updatedTitle?: string
+  ) => {
     console.log(`useAssignmentOperations - Assigning contractor ${contractorId} to request ${requestId}`);
+    if (updatedTitle) {
+      console.log(`useAssignmentOperations - With updated title: ${updatedTitle}`);
+    }
     try {
-      await assignContractorToRequest(requestId, contractorId);
+      await assignContractorToRequest(requestId, contractorId, updatedTitle);
       console.log("useAssignmentOperations - Contractor assigned successfully");
       return true;
     } catch (err) {
@@ -63,11 +70,18 @@ export const useAssignmentOperations = () => {
     }
   }, []);
 
-  // Change assignment function
-  const handleChangeAssignment = useCallback(async (requestId: string, contractorId: string) => {
+  // Change assignment function with optional title update
+  const handleChangeAssignment = useCallback(async (
+    requestId: string, 
+    contractorId: string,
+    updatedTitle?: string
+  ) => {
     console.log(`useAssignmentOperations - Changing assignment for request ${requestId} to contractor ${contractorId}`);
+    if (updatedTitle) {
+      console.log(`useAssignmentOperations - With updated title: ${updatedTitle}`);
+    }
     try {
-      await assignContractorToRequest(requestId, contractorId);
+      await assignContractorToRequest(requestId, contractorId, updatedTitle);
       console.log("useAssignmentOperations - Assignment changed successfully");
       return true;
     } catch (err) {

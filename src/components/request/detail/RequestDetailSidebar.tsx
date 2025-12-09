@@ -125,6 +125,7 @@ export const RequestDetailSidebar = ({
           {canAccessContractorFeatures && (
             <ContractorAssignment
               requestId={request.id}
+              requestTitle={request.title}
               isAssigned={!!request.contractorId}
               currentContractorId={request.contractorId}
               onOpenQuoteDialog={onOpenRequestQuoteDialog}

@@ -11,17 +11,20 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HardHat, Quote, RefreshCw } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { JobTitleConfirmationDialog } from './JobTitleConfirmationDialog';
 
 interface ContractorAssignmentProps {
   requestId: string;
+  requestTitle: string;
   isAssigned: boolean;
   currentContractorId?: string;
-  onOpenQuoteDialog: () => void; // This is now specifically for requesting quotes, not submitting them
-  onContractorAssigned?: () => void; // Callback for when a contractor is assigned
+  onOpenQuoteDialog: () => void;
+  onContractorAssigned?: () => void;
 }
 
 export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   requestId,
+  requestTitle,
   isAssigned,
   currentContractorId,
   onOpenQuoteDialog,
@@ -31,6 +34,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const [selectedContractor, setSelectedContractor] = useState<string>('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignmentComplete, setAssignmentComplete] = useState(false);
+  const [showTitleDialog, setShowTitleDialog] = useState(false);
   const isReassignment = isAssigned && currentContractorId;
   const hasCalledParentRef = React.useRef(false);
   
@@ -75,8 +79,20 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     }
   }, [contractors, isAssigned, loading, loadContractors, selectedContractor, currentContractorId, isReassignment]);
 
+  // Open the title confirmation dialog
+  const handleOpenTitleDialog = useCallback(() => {
+    if (!selectedContractor) {
+      toast.error("Please select a contractor first");
+      return;
+    }
+    setShowTitleDialog(true);
+  }, [selectedContractor]);
+
+  // Get the selected contractor name for the dialog
+  const selectedContractorName = contractors.find(c => c.id === selectedContractor)?.companyName || 'Selected Contractor';
+
   // Memoized assignment handler to prevent recreation on every render
-  const handleAssignment = useCallback(async () => {
+  const handleAssignment = useCallback(async (updatedTitle?: string) => {
     if (!selectedContractor) {
       toast.error("Please select a contractor first");
       return;
@@ -90,21 +106,18 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
     
     try {
       setIsAssigning(true);
+      setShowTitleDialog(false);
       
       if (isReassignment) {
         console.log("ContractorAssignment - Reassigning contractor:", selectedContractor);
-        await changeAssignment(requestId, selectedContractor);
+        await changeAssignment(requestId, selectedContractor, updatedTitle);
         console.log("ContractorAssignment - Reassignment successful");
-        // Toast is triggered from the context function
       } else {
         console.log("ContractorAssignment - Assigning contractor:", selectedContractor);
         console.log("ContractorAssignment - Request ID:", requestId);
-        console.log("ContractorAssignment - Full contractor list:", contractors);
-        const selectedContractorObj = contractors.find(c => c.id === selectedContractor);
-        console.log("ContractorAssignment - Selected contractor object:", selectedContractorObj);
-        await assignContractor(requestId, selectedContractor);
+        console.log("ContractorAssignment - Updated title:", updatedTitle);
+        await assignContractor(requestId, selectedContractor, updatedTitle);
         console.log("ContractorAssignment - Assignment successful");
-        // Toast is triggered from the context function
       }
       
       // Mark the assignment as complete to prevent multiple calls
@@ -126,7 +139,6 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       
     } catch (error) {
       console.error("Error assigning/reassigning contractor:", error);
-      // Toast for error is already shown in the context function
       setIsAssigning(false);
       setAssignmentComplete(false);
     }
@@ -172,7 +184,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
         <div className="grid grid-cols-1 gap-3">
           <Button
-            onClick={handleAssignment}
+            onClick={handleOpenTitleDialog}
             disabled={
               !selectedContractor || 
               loading || 
@@ -203,6 +215,15 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             </Button>
           )}
         </div>
+
+        <JobTitleConfirmationDialog
+          open={showTitleDialog}
+          onOpenChange={setShowTitleDialog}
+          currentTitle={requestTitle}
+          contractorName={selectedContractorName}
+          onConfirm={handleAssignment}
+          isAssigning={isAssigning}
+        />
       </CardContent>
     </Card>
   );

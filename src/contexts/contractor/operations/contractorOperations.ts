@@ -339,9 +339,16 @@ const createAssignmentNotificationWithPropertyDetails = async (contractorId: str
   }
 };
 
-export const assignContractorToRequest = async (requestId: string, contractorId: string) => {
+export const assignContractorToRequest = async (
+  requestId: string, 
+  contractorId: string,
+  updatedTitle?: string
+) => {
   console.log(`=== STARTING CONTRACTOR ASSIGNMENT ===`);
   console.log(`Assigning contractor ${contractorId} to request ${requestId}`);
+  if (updatedTitle) {
+    console.log(`With updated title: ${updatedTitle}`);
+  }
 
   try {
     // STEP 1: Validate organization consistency
@@ -379,15 +386,22 @@ export const assignContractorToRequest = async (requestId: string, contractorId:
       throw new Error("Request not found");
     }
 
-    // STEP 4: Perform the assignment with quote requested status
+    // STEP 4: Perform the assignment with quote requested status (and optional title update)
+    const updateFields: Record<string, any> = {
+      contractor_id: contractorId,
+      assigned_at: new Date().toISOString(),
+      status: "requested",
+      quote_requested: true,
+    };
+
+    // Include title update if provided
+    if (updatedTitle) {
+      updateFields.title = updatedTitle;
+    }
+
     const { error } = await supabase
       .from("maintenance_requests")
-      .update({
-        contractor_id: contractorId,
-        assigned_at: new Date().toISOString(),
-        status: "requested",
-        quote_requested: true,
-      })
+      .update(updateFields)
       .eq("id", requestId);
 
     if (error) {
