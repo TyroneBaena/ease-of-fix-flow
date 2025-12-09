@@ -20,6 +20,8 @@ interface ReportFiltersProps {
   setStatusFilter: (value: string) => void;
   priorityFilter: string;
   setPriorityFilter: (value: string) => void;
+  participantFilter: string;
+  setParticipantFilter: (value: string) => void;
   accessibleProperties: Property[];
 }
 
@@ -32,6 +34,8 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
   setStatusFilter,
   priorityFilter,
   setPriorityFilter,
+  participantFilter,
+  setParticipantFilter,
   accessibleProperties
 }) => {
   return (
@@ -91,6 +95,19 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
             <SelectItem value="critical">Critical</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="w-full md:w-48">
+        <Select value={participantFilter} onValueChange={setParticipantFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Participant Related" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="yes">Yes</SelectItem>
+            <SelectItem value="no">No</SelectItem>
           </SelectContent>
         </Select>
       </div>

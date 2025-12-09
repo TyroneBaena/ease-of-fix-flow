@@ -10,7 +10,8 @@ export function filterMaintenanceRequests(
   searchTerm: string,
   isAdmin: boolean,
   assignedProperties?: string[],
-  priorityFilter?: string
+  priorityFilter?: string,
+  participantFilter?: string
 ): MaintenanceRequest[] {
   return requests.filter(request => {
     // Filter by property access
@@ -33,6 +34,14 @@ export function filterMaintenanceRequests(
     // Filter by priority
     if (priorityFilter && priorityFilter !== 'all' && request.priority !== priorityFilter) {
       return false;
+    }
+    
+    // Filter by participant related
+    if (participantFilter && participantFilter !== 'all') {
+      const isParticipantRelated = participantFilter === 'yes';
+      if (request.isParticipantRelated !== isParticipantRelated) {
+        return false;
+      }
     }
     
     // Filter by search term
