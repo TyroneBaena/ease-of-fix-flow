@@ -105,9 +105,9 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
             <SelectValue placeholder="Participant Related" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="yes">Yes</SelectItem>
-            <SelectItem value="no">No</SelectItem>
+            <SelectItem value="all">Participant: All</SelectItem>
+            <SelectItem value="yes">Participant: Yes</SelectItem>
+            <SelectItem value="no">Participant: No</SelectItem>
           </SelectContent>
         </Select>
       </div>
