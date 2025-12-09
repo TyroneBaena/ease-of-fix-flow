@@ -46,7 +46,7 @@ const ContractorJobs = () => {
 
   // Separate filtered jobs back into active and completed
   const filteredActiveJobs = filteredJobs.filter(job => 
-    job.status === 'pending' || job.status === 'open' || job.status === 'in-progress'
+    job.status === 'requested' || job.status === 'pending' || job.status === 'open' || job.status === 'in-progress'
   );
   
   const filteredCompletedJobs = filteredJobs.filter(job => 
