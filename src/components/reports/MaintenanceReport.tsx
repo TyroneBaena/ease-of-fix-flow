@@ -18,6 +18,7 @@ const MaintenanceReport = () => {
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [participantFilter, setParticipantFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [stableLoadingState, setStableLoadingState] = useState(true);
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
@@ -182,7 +183,8 @@ const MaintenanceReport = () => {
     searchTerm,
     isAdmin,
     currentUser?.assignedProperties,
-    priorityFilter
+    priorityFilter,
+    participantFilter
   );
   
   const getPropertyName = (propertyId: string) => {
@@ -194,6 +196,7 @@ const MaintenanceReport = () => {
     propertyFilter,
     statusFilter,
     priorityFilter,
+    participantFilter,
     searchTerm
   };
   
@@ -214,6 +217,8 @@ const MaintenanceReport = () => {
         setStatusFilter={setStatusFilter}
         priorityFilter={priorityFilter}
         setPriorityFilter={setPriorityFilter}
+        participantFilter={participantFilter}
+        setParticipantFilter={setParticipantFilter}
         accessibleProperties={accessibleProperties}
       />
       
