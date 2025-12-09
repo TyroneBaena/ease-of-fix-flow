@@ -8,6 +8,7 @@ function getCorsHeaders(origin: string | null) {
     /^https:\/\/preview--housinghub\.lovable\.app$/,
     /^https:\/\/preview-[a-z0-9]+-housinghub\.lovable\.app$/,
     /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
+    /^https:\/\/id-preview--[a-z0-9-]+\.lovable\.app$/,
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:8080'
