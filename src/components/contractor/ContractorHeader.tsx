@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Menu, ClipboardList, Calendar, UserCog, Loader2 } from "lucide-react";
+import { LogOut, Menu, Home, ClipboardList, Calendar, UserCog, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,7 +71,6 @@ export const ContractorHeader = () => {
             onClick={() => currentUser && navigate("/contractor-dashboard")}
           >
             <img src={logoSrc} alt="HousingHub Logo" className="h-10 w-auto" />
-            <h1 className="text-xl font-semibold text-gray-900">Contractor Portal</h1>
           </div>
 
           {/* Desktop Navigation */}
@@ -88,6 +87,10 @@ export const ContractorHeader = () => {
                 </SheetTrigger>
                 <SheetContent side="right">
                   <div className="flex flex-col space-y-4 mt-8">
+                    <Button variant="ghost" className="justify-start" onClick={() => navigate("/contractor-dashboard")}>
+                      <Home className="h-5 w-5 mr-2" />
+                      Contractor Dashboard
+                    </Button>
                     <Button variant="ghost" className="justify-start" onClick={() => navigate("/contractor-jobs")}>
                       <ClipboardList className="h-5 w-5 mr-2" />
                       Jobs

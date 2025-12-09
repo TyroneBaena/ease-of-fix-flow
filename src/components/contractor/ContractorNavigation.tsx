@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
+  Home,
   ClipboardList, 
   UserCog,
   Calendar
@@ -18,6 +19,11 @@ export const ContractorNavigation: React.FC = () => {
   const location = useLocation();
   
   const navItems: NavItem[] = [
+    { 
+      name: 'Contractor Dashboard', 
+      path: '/contractor-dashboard', 
+      icon: <Home className="h-5 w-5" /> 
+    },
     { 
       name: 'Jobs', 
       path: '/contractor-jobs', 
