@@ -24,6 +24,7 @@ interface PublicRequestInfoProps {
     assignedTo?: string;
     contractorId?: string;
     propertyId?: string;
+    assignedToLandlord?: boolean;
     attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
   propertyName?: string;
@@ -59,6 +60,7 @@ export const PublicRequestInfo = ({ request, propertyName, contractorInfo }: Pub
         contractorId={request.contractorId}
         propertyId={request.propertyId}
         propertyName={propertyName}
+        assignedToLandlord={request.assignedToLandlord}
         contractorInfo={contractorInfo}
       />
       

@@ -59,6 +59,7 @@ export const RequestInfo = ({ request, onAttachmentsAdded, canEdit = false }: Re
         contractorId={request.contractorId}
         propertyId={request.propertyId}
         propertyName={propertyName}
+        assignedToLandlord={request.assignedToLandlord}
       />
       
       <RequestIssueDetails 
