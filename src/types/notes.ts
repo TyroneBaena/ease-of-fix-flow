@@ -1,3 +1,9 @@
+export interface NoteAttachment {
+  url: string;
+  name: string;
+  type: string;
+}
+
 export interface PropertyNote {
   id: string;
   propertyId: string;
@@ -9,6 +15,7 @@ export interface PropertyNote {
   createdByName?: string;
   createdAt: string;
   updatedAt: string;
+  attachments?: NoteAttachment[];
 }
 
 export const NOTE_TYPES = [

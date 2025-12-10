@@ -236,7 +236,7 @@ const PropertyDetail = () => {
               <div className="lg:col-span-2 space-y-6">
                 <PropertyInfo property={property} />
                 {id && !isTemporaryAccess && (currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
-                  <PropertyNotesWidget propertyId={id} />
+                  <PropertyNotesWidget propertyId={id} propertyName={property?.name || 'Property'} />
                 )}
               </div>
               

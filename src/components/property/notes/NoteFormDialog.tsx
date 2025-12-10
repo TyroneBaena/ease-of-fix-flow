@@ -18,19 +18,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PropertyNote, NOTE_TYPES } from '@/types/notes';
+import { PropertyNote, NOTE_TYPES, NoteAttachment } from '@/types/notes';
+import { AttachmentUploader } from './AttachmentUploader';
 
 interface NoteFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { noteType: string; title: string; content: string }) => Promise<void>;
+  onSubmit: (data: { noteType: string; title: string; content: string; attachments?: NoteAttachment[] }) => Promise<void>;
   editingNote?: PropertyNote | null;
+  propertyId: string;
 }
 
-export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote }: NoteFormDialogProps) {
+export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote, propertyId }: NoteFormDialogProps) {
   const [noteType, setNoteType] = useState<string>('General');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [attachments, setAttachments] = useState<NoteAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -38,10 +41,12 @@ export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote }: No
       setNoteType(editingNote.noteType);
       setTitle(editingNote.title);
       setContent(editingNote.content);
+      setAttachments(editingNote.attachments || []);
     } else {
       setNoteType('General');
       setTitle('');
       setContent('');
+      setAttachments([]);
     }
   }, [editingNote, open]);
 
@@ -52,7 +57,12 @@ export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote }: No
 
     setIsSubmitting(true);
     try {
-      await onSubmit({ noteType, title: title.trim(), content: content.trim() });
+      await onSubmit({ 
+        noteType, 
+        title: title.trim(), 
+        content: content.trim(),
+        attachments,
+      });
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -61,7 +71,7 @@ export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote }: No
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingNote ? 'Edit Note' : 'Add Note'}</DialogTitle>
           <DialogDescription>
@@ -106,6 +116,14 @@ export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote }: No
                 placeholder="Enter note content"
                 rows={4}
                 required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Attachments</Label>
+              <AttachmentUploader
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                propertyId={propertyId}
               />
             </div>
           </div>
