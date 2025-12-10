@@ -94,6 +94,21 @@ serve(async (req) => {
 
     console.log('📋 [DEBUG] Maintenance requests query result:', { data: requestsData, error: requestsError });
 
+    // Fetch non-archived housemates for this property
+    const { data: housematesData, error: housematesError } = await supabase
+      .from('housemates')
+      .select('id, first_name, last_name')
+      .eq('property_id', propertyId)
+      .eq('is_archived', false)
+      .order('last_name');
+
+    console.log('👥 [DEBUG] Housemates query result:', { data: housematesData, error: housematesError });
+
+    if (housematesError) {
+      console.error('❌ [DEBUG] Error fetching housemates:', housematesError);
+      // Don't fail the whole request for housemates error
+    }
+
     // Transform property data (excluding sensitive rent information for public access)
     const transformedProperty = {
       id: propertyData.id,
@@ -135,18 +150,27 @@ serve(async (req) => {
       site: request.site || request.location
     }));
 
-    console.log('✅ [DEBUG] Property and budget categories loaded successfully');
+    // Transform housemates
+    const transformedHousemates = (housematesData || []).map((housemate: any) => ({
+      id: housemate.id,
+      firstName: housemate.first_name,
+      lastName: housemate.last_name
+    }));
+
+    console.log('✅ [DEBUG] Property, budget categories, and housemates loaded successfully');
     console.log('📊 [DEBUG] Returning data:', {
       property: transformedProperty.name,
       budgetCategoriesCount: transformedBudgetCategories.length,
-      requestsCount: transformedRequests.length
+      requestsCount: transformedRequests.length,
+      housematesCount: transformedHousemates.length
     });
 
     return new Response(
       JSON.stringify({
         property: transformedProperty,
         budgetCategories: transformedBudgetCategories,
-        requests: transformedRequests
+        requests: transformedRequests,
+        housemates: transformedHousemates
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

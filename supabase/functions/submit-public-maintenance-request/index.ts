@@ -28,7 +28,9 @@ serve(async (req) => {
       attemptedFix,
       priority,
       budgetCategoryId,
-      attachments
+      attachments,
+      isParticipantRelated,
+      participantName
     } = requestData;
 
     // Validate required fields - category is optional for public submissions
@@ -48,6 +50,18 @@ serve(async (req) => {
       console.log('❌ Missing required attachments - photos are mandatory');
       return new Response(
         JSON.stringify({ error: 'At least one photo is required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate participant name if participant-related
+    if (isParticipantRelated && (!participantName || participantName === 'N/A')) {
+      console.log('❌ Missing participant name for participant-related request');
+      return new Response(
+        JSON.stringify({ error: 'Participant name is required for participant-related requests' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -91,8 +105,8 @@ serve(async (req) => {
         location: location,
         priority: priority,
         status: 'pending',
-        is_participant_related: false,
-        participant_name: 'N/A',
+        is_participant_related: isParticipantRelated || false,
+        participant_name: isParticipantRelated ? participantName : 'N/A',
         attempted_fix: attemptedFix || '',
         issue_nature: issueNature,
         explanation: explanation,

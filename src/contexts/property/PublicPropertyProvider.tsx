@@ -3,9 +3,16 @@ import { Property } from '@/types/property';
 import { BudgetCategory } from '@/types/budget';
 import { useSearchParams } from 'react-router-dom';
 
+interface PublicHousemate {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
 interface PublicPropertyContextType {
   properties: Property[];
   budgetCategories: BudgetCategory[];
+  housemates: PublicHousemate[];
   loading: boolean;
   error: string | null;
 }
@@ -18,6 +25,7 @@ export const PublicPropertyProvider: React.FC<{ children: React.ReactNode }> = (
   
   const [properties, setProperties] = useState<Property[]>([]);
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
+  const [housemates, setHousemates] = useState<PublicHousemate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +62,7 @@ export const PublicPropertyProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('✅ [DEBUG] PublicPropertyProvider: Data loaded successfully');
       console.log('🏠 [DEBUG] PublicPropertyProvider: Property:', result.property);
       console.log('📊 [DEBUG] PublicPropertyProvider: Budget categories count:', result.budgetCategories?.length || 0);
+      console.log('👥 [DEBUG] PublicPropertyProvider: Housemates count:', result.housemates?.length || 0);
 
       if (result.property) {
         console.log('✅ [DEBUG] PublicPropertyProvider: Setting property:', result.property.name);
@@ -71,6 +80,14 @@ export const PublicPropertyProvider: React.FC<{ children: React.ReactNode }> = (
         setBudgetCategories([]);
       }
 
+      if (result.housemates) {
+        console.log('✅ [DEBUG] PublicPropertyProvider: Setting housemates:', result.housemates.length);
+        setHousemates(result.housemates);
+      } else {
+        console.log('❌ [DEBUG] PublicPropertyProvider: No housemates in result');
+        setHousemates([]);
+      }
+
     } catch (error) {
       console.error('❌ [DEBUG] PublicPropertyProvider: Unexpected error:', error);
       console.error('❌ [DEBUG] PublicPropertyProvider: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
@@ -84,6 +101,7 @@ export const PublicPropertyProvider: React.FC<{ children: React.ReactNode }> = (
     <PublicPropertyContext.Provider value={{
       properties,
       budgetCategories,
+      housemates,
       loading,
       error
     }}>

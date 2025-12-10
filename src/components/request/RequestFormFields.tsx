@@ -1,17 +1,22 @@
-
 import React from 'react';
 import { Property } from '@/types/property';
 import { RequestFormProperty } from "./RequestFormProperty";
 import { RequestFormAttachments } from "./RequestFormAttachments";
 import { CategorySelectionField } from "./CategorySelectionField";
 import { ParticipantRelatedField } from './ParticipantRelatedField';
-import { ParticipantNameField } from './ParticipantNameField';
+import { ParticipantHousemateField } from './ParticipantHousemateField';
 import { AttemptedFixField } from './AttemptedFixField';
 import { IssueNatureField } from './IssueNatureField';
 import { ExplanationField } from './ExplanationField';
 import { LocationField } from './LocationField';
 import { ReportDateField } from './ReportDateField';
 import { SubmittedByField } from './SubmittedByField';
+
+interface PublicHousemate {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
 
 interface FormState {
   propertyId: string;
@@ -39,6 +44,7 @@ interface RequestFormFieldsProps {
   isUploading: boolean;
   showPhotoError?: boolean;
   propertyId?: string; // For public access via QR code
+  publicHousemates?: PublicHousemate[]; // Housemates for public access
 }
 
 export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
@@ -51,7 +57,8 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
   removeFile,
   isUploading,
   showPhotoError = false,
-  propertyId
+  propertyId,
+  publicHousemates
 }) => {
   return (
     <>
@@ -74,10 +81,12 @@ export const RequestFormFields: React.FC<RequestFormFieldsProps> = ({
         onChange={(value) => updateFormState('isParticipantRelated', value)}
       />
       
-      <ParticipantNameField
+      <ParticipantHousemateField
         value={formState.participantName || ''}
         onChange={(value) => updateFormState('participantName', value)}
         isParticipantRelated={formState.isParticipantRelated || false}
+        propertyId={formState.propertyId}
+        publicHousemates={publicHousemates}
       />
       
       <AttemptedFixField
