@@ -1285,6 +1285,7 @@ export type Database = {
       }
       property_notes: {
         Row: {
+          attachments: Json | null
           content: string
           created_at: string | null
           created_by_name: string | null
@@ -1297,6 +1298,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json | null
           content: string
           created_at?: string | null
           created_by_name?: string | null
@@ -1309,6 +1311,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json | null
           content?: string
           created_at?: string | null
           created_by_name?: string | null

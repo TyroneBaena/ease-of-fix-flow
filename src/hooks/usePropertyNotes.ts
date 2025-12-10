@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PropertyNote } from '@/types/notes';
+import { PropertyNote, NoteAttachment } from '@/types/notes';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
 
@@ -8,8 +8,8 @@ interface UsePropertyNotesResult {
   notes: PropertyNote[];
   loading: boolean;
   error: string | null;
-  addNote: (note: Omit<PropertyNote, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'organizationId' | 'createdByName'>) => Promise<void>;
-  updateNote: (id: string, updates: Partial<Pick<PropertyNote, 'noteType' | 'title' | 'content'>>) => Promise<void>;
+  addNote: (note: { noteType: string; title: string; content: string; propertyId: string; attachments?: NoteAttachment[] }) => Promise<void>;
+  updateNote: (id: string, updates: { noteType?: string; title?: string; content?: string; attachments?: NoteAttachment[] }) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   refreshNotes: () => Promise<void>;
 }
@@ -50,6 +50,7 @@ export function usePropertyNotes(propertyId: string): UsePropertyNotesResult {
         createdByName: note.created_by_name,
         createdAt: note.created_at,
         updatedAt: note.updated_at,
+        attachments: (note.attachments as unknown as NoteAttachment[]) || [],
       }));
 
       setNotes(transformedNotes);
@@ -65,24 +66,27 @@ export function usePropertyNotes(propertyId: string): UsePropertyNotesResult {
     fetchNotes();
   }, [fetchNotes]);
 
-  const addNote = useCallback(async (note: Omit<PropertyNote, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'organizationId' | 'createdByName'>) => {
+  const addNote = useCallback(async (note: { noteType: string; title: string; content: string; propertyId: string; attachments?: NoteAttachment[] }) => {
     if (!currentUser) {
       toast.error('You must be logged in to add notes');
       return;
     }
 
     try {
+      const insertData = {
+        property_id: note.propertyId,
+        organization_id: currentUser.organization_id,
+        user_id: currentUser.id,
+        note_type: note.noteType,
+        title: note.title,
+        content: note.content,
+        created_by_name: currentUser.name,
+        attachments: JSON.stringify(note.attachments || []),
+      };
+
       const { error: insertError } = await supabase
         .from('property_notes')
-        .insert({
-          property_id: note.propertyId,
-          organization_id: currentUser.organization_id,
-          user_id: currentUser.id,
-          note_type: note.noteType,
-          title: note.title,
-          content: note.content,
-          created_by_name: currentUser.name,
-        });
+        .insert(insertData);
 
       if (insertError) throw insertError;
 
@@ -95,12 +99,13 @@ export function usePropertyNotes(propertyId: string): UsePropertyNotesResult {
     }
   }, [currentUser, fetchNotes]);
 
-  const updateNote = useCallback(async (id: string, updates: Partial<Pick<PropertyNote, 'noteType' | 'title' | 'content'>>) => {
+  const updateNote = useCallback(async (id: string, updates: { noteType?: string; title?: string; content?: string; attachments?: NoteAttachment[] }) => {
     try {
       const updateData: Record<string, unknown> = {};
       if (updates.noteType !== undefined) updateData.note_type = updates.noteType;
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.content !== undefined) updateData.content = updates.content;
+      if (updates.attachments !== undefined) updateData.attachments = JSON.stringify(updates.attachments);
 
       const { error: updateError } = await supabase
         .from('property_notes')

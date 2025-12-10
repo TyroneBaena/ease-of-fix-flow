@@ -2,33 +2,36 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StickyNote, Plus, ChevronRight } from 'lucide-react';
+import { StickyNote, Plus, ChevronRight, Paperclip } from 'lucide-react';
 import { usePropertyNotes } from '@/hooks/usePropertyNotes';
 import { PropertyNotesDialog } from './notes/PropertyNotesDialog';
 import { NoteFormDialog } from './notes/NoteFormDialog';
 import { format } from 'date-fns';
+import { NoteAttachment } from '@/types/notes';
 
 interface PropertyNotesWidgetProps {
   propertyId: string;
+  propertyName: string;
 }
 
-export function PropertyNotesWidget({ propertyId }: PropertyNotesWidgetProps) {
+export function PropertyNotesWidget({ propertyId, propertyName }: PropertyNotesWidgetProps) {
   const { notes, loading, addNote, updateNote, deleteNote } = usePropertyNotes(propertyId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const recentNotes = notes.slice(0, 3);
 
-  const handleAddNote = async (data: { noteType: string; title: string; content: string }) => {
+  const handleAddNote = async (data: { noteType: string; title: string; content: string; attachments?: NoteAttachment[] }) => {
     await addNote({
       propertyId,
       noteType: data.noteType,
       title: data.title,
       content: data.content,
+      attachments: data.attachments,
     });
   };
 
-  const handleUpdateNote = async (id: string, data: { noteType: string; title: string; content: string }) => {
+  const handleUpdateNote = async (id: string, data: { noteType: string; title: string; content: string; attachments?: NoteAttachment[] }) => {
     await updateNote(id, data);
   };
 
@@ -91,6 +94,12 @@ export function PropertyNotesWidget({ propertyId }: PropertyNotesWidgetProps) {
                       <Badge variant="outline" className="text-xs">
                         {note.noteType}
                       </Badge>
+                      {note.attachments && note.attachments.length > 0 && (
+                        <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                          <Paperclip className="h-3 w-3" />
+                          {note.attachments.length}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(note.createdAt), 'MMM d')}
                       </span>
@@ -131,6 +140,7 @@ export function PropertyNotesWidget({ propertyId }: PropertyNotesWidgetProps) {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         propertyId={propertyId}
+        propertyName={propertyName}
         notes={notes}
         loading={loading}
         onAddNote={handleAddNote}
@@ -142,6 +152,7 @@ export function PropertyNotesWidget({ propertyId }: PropertyNotesWidgetProps) {
         open={quickAddOpen}
         onOpenChange={setQuickAddOpen}
         onSubmit={handleAddNote}
+        propertyId={propertyId}
       />
     </>
   );
