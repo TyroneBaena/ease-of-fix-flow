@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Clock } from 'lucide-react';
-import { getStatusColor, getStatusDisplay } from './utils/statusUtils';
+import { getDisplayStatus, getDisplayStatusColor } from '@/utils/statusDisplayUtils';
 import { formatTimestamp } from './utils/dateUtils';
 
 interface RequestHeaderProps {
@@ -11,6 +11,7 @@ interface RequestHeaderProps {
   priority?: string;
   createdAt: string;
   title: string;
+  assignedToLandlord?: boolean;
 }
 
 const getPriorityColor = (priority: string): string => {
@@ -33,13 +34,16 @@ const getPriorityDisplay = (priority: string): string => {
   return priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
 };
 
-export const RequestHeader = ({ id, status, priority, createdAt, title }: RequestHeaderProps) => {
+export const RequestHeader = ({ id, status, priority, createdAt, title, assignedToLandlord }: RequestHeaderProps) => {
+  const displayStatus = getDisplayStatus(status, assignedToLandlord);
+  const statusColor = getDisplayStatusColor(displayStatus);
+  
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
       <div>
         <div className="flex items-center flex-wrap gap-2 mb-2">
-          <Badge className={`${getStatusColor(status)} hover:${getStatusColor(status).split(' ').find(c => c.startsWith('bg-'))}`}>
-            {getStatusDisplay(status)}
+          <Badge className={`${statusColor} hover:${statusColor.split(' ').find(c => c.startsWith('bg-'))}`}>
+            {displayStatus}
           </Badge>
           <Badge className={getPriorityColor(priority || 'medium')}>
             {getPriorityDisplay(priority || 'medium')} Priority

@@ -26,6 +26,7 @@ interface RequestInfoProps {
     assignedTo?: string;
     contractorId?: string;
     propertyId?: string;
+    assignedToLandlord?: boolean;
     attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
   onAttachmentsAdded?: () => void;
@@ -44,6 +45,7 @@ export const RequestInfo = ({ request, onAttachmentsAdded, canEdit = false }: Re
         priority={request.priority}
         createdAt={request.createdAt}
         title={request.title}
+        assignedToLandlord={request.assignedToLandlord}
       />
       
       <RequestMetadata 
