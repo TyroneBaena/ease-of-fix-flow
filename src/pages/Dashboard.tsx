@@ -211,6 +211,7 @@ import { TrialBillingAlert } from "@/components/dashboard/TrialBillingAlert";
 import { BillingWidgets } from "@/components/dashboard/BillingWidgets";
 import { PropertyManagementWidget } from "@/components/dashboard/PropertyManagementWidget";
 import { OrganizationCalendarWidget } from "@/components/dashboard/OrganizationCalendarWidget";
+import { PendingActionsWidget } from "@/components/dashboard/PendingActionsWidget";
 import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 // REMOVED: useContractorProfileMonitoring causes network congestion on every dashboard mount
@@ -375,6 +376,13 @@ const Dashboard = () => {
                 <OrganizationCalendarWidget />
               </div>
             </div>
+
+            {/* Pending Actions Widget - Only for admin/manager */}
+            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+              <div className="mb-6">
+                <PendingActionsWidget requests={userRequests} />
+              </div>
+            )}
 
             <div
               className={`grid gap-6 ${selectedRequest ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-4"}`}
