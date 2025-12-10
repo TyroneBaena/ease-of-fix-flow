@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,31 +7,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { ensureUserOrganization } from "@/services/user/tenantService";
 import { validatePassword } from "@/utils/passwordValidation";
 import logo from "@/assets/logo-light-bg.png";
 
-// Helper function to add timeout protection to async operations
-const fetchWithTimeout = async <T,>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  errorMessage: string
-): Promise<T> => {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
-  );
-  return Promise.race([promise, timeout]);
-};
+// Session storage keys for password reset tokens
+const TOKEN_STORAGE_KEY = 'password_reset_access_token';
+const REFRESH_TOKEN_STORAGE_KEY = 'password_reset_refresh_token';
+const RESET_EMAIL_STORAGE_KEY = 'password_reset_email';
+const RESET_PENDING_KEY = 'password_reset_pending';
+const FORCE_CHANGE_KEY = 'force_password_change';
 
 const SetupPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [hasSession, setHasSession] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false);
-  const [verifyingSchema, setVerifyingSchema] = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -39,61 +31,91 @@ const SetupPassword = () => {
   }>({});
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Track if we've already captured tokens to prevent double processing
+  const tokensCaptured = useRef(false);
 
+  // CRITICAL: Capture tokens IMMEDIATELY on mount, before Supabase clears the hash
   useEffect(() => {
+    if (tokensCaptured.current) return;
+    
+    const rawHash = window.location.hash;
+    console.log("🔐 SetupPassword mount - checking for tokens in URL hash");
+    
+    if (rawHash && rawHash.includes('access_token')) {
+      const hashParams = new URLSearchParams(rawHash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const tokenType = hashParams.get('type');
+      
+      if (accessToken && refreshToken) {
+        console.log("🔐 CAPTURED reset tokens before Supabase processing:", {
+          tokenType,
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken
+        });
+        
+        // Store tokens in sessionStorage IMMEDIATELY
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+        sessionStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+        sessionStorage.setItem(RESET_PENDING_KEY, 'true');
+        tokensCaptured.current = true;
+      }
+    }
+    
     // Get email from URL query parameter
     const params = new URLSearchParams(location.search);
     const emailParam = params.get("email");
     if (emailParam) {
       setEmail(emailParam);
+      sessionStorage.setItem(RESET_EMAIL_STORAGE_KEY, emailParam);
+    } else {
+      // Try to get from sessionStorage
+      const storedEmail = sessionStorage.getItem(RESET_EMAIL_STORAGE_KEY);
+      if (storedEmail) {
+        setEmail(storedEmail);
+      }
     }
+  }, [location.search]);
 
-    // Check for reset token in URL hash
-    const hasResetToken = location.hash && location.hash.includes("access_token");
-    setIsResetMode(hasResetToken);
-
-    // FALLBACK: If user arrives via password reset link and flag isn't set yet, set it
-    // Primary setting is now in UnifiedAuthContext PASSWORD_RECOVERY handler
-    if (hasResetToken && !sessionStorage.getItem('password_reset_pending')) {
-      console.log("🔐 Password reset link detected (fallback) - setting pending flag");
-      sessionStorage.setItem('password_reset_pending', 'true');
-      sessionStorage.setItem('password_reset_email', emailParam || '');
-    }
-
-    // Check if there's an active session
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const isForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
+  // Check session state and stored tokens
+  useEffect(() => {
+    const initializeState = async () => {
+      const isForcePasswordChange = sessionStorage.getItem(FORCE_CHANGE_KEY) === 'true';
+      const hasStoredTokens = !!sessionStorage.getItem(TOKEN_STORAGE_KEY);
+      const isPendingReset = sessionStorage.getItem(RESET_PENDING_KEY) === 'true';
       
-      console.log("🔍 SetupPassword session check:", {
-        hasSession: !!data.session,
-        userEmail: data.session?.user?.email,
-        expiresAt: data.session?.expires_at,
-        isForcePasswordChange,
-        isResetMode: hasResetToken
+      // Check current session
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      console.log("🔍 SetupPassword state check:", {
+        hasSession: !!sessionData?.session,
+        userEmail: sessionData?.session?.user?.email,
+        hasStoredTokens,
+        isPendingReset,
+        isForcePasswordChange
       });
       
-      setHasSession(!!data.session);
-
-      // If there's a session but navigated here via password reset
-      if (data.session && hasResetToken) {
-        console.log("Found session with reset token, ready to set new password");
+      // If we have a session and user email, use it
+      if (sessionData?.session?.user?.email && !email) {
+        setEmail(sessionData.session.user.email);
       }
       
-      // Warn if no session but force_password_change is set - may need re-login
-      if (!data.session && isForcePasswordChange) {
-        console.warn("⚠️ No session found but force_password_change is set - user may need to re-login");
+      // Determine if this is an expired/invalid link scenario:
+      // No session, no stored tokens, not force password change = expired link
+      if (!sessionData?.session && !hasStoredTokens && !isForcePasswordChange) {
+        console.warn("⚠️ No session, no stored tokens, not force change - link may be expired");
+        // Don't set expired yet - user might not have clicked the link yet
       }
     };
-
-    checkSession();
-  }, [location]);
+    
+    initializeState();
+  }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Clear previous errors
     setErrors({});
+    setLinkExpired(false);
 
     // Validate fields
     const newErrors: typeof errors = {};
@@ -102,7 +124,6 @@ const SetupPassword = () => {
       newErrors.email = "Email is missing. Please use the link from your invitation or reset email";
     }
 
-    // Validate password strength
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
       newErrors.password = passwordValidation.errors[0];
@@ -112,7 +133,6 @@ const SetupPassword = () => {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    // If there are validation errors, set them and stop
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -120,279 +140,147 @@ const SetupPassword = () => {
 
     try {
       setIsLoading(true);
-      const isForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
       
-      // FIX: Re-check current URL hash state at submission time (not rely on stale isResetMode)
-      const currentHashParams = new URLSearchParams(location.hash.substring(1));
-      const hasTokensInUrl = currentHashParams.has('access_token');
+      const isForcePasswordChange = sessionStorage.getItem(FORCE_CHANGE_KEY) === 'true';
+      const storedAccessToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+      const storedRefreshToken = sessionStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
       
-      // FIX: Check for active session FIRST before any reset token processing
-      const { data: initialSessionCheck } = await supabase.auth.getSession();
-      
-      console.log("🔐 Password submit - initial state check:", {
-        hasSessionFromState: hasSession,
-        hasSessionFromCheck: !!initialSessionCheck?.session,
-        hasTokensInUrl,
-        isResetModeState: isResetMode,
+      console.log("🔐 Password submit - checking session state:", {
         isForcePasswordChange,
-        email
+        hasStoredTokens: !!storedAccessToken
       });
 
-      // Handle password reset flow - check for tokens in URL hash
-      // FIX: Use fresh hasTokensInUrl check instead of stale isResetMode
-      if (hasTokensInUrl || isResetMode) {
-        // Extract the access token from URL hash (if not already in session)
-        const accessToken = currentHashParams.get("access_token");
-        const refreshToken = currentHashParams.get("refresh_token");
+      // Step 1: Check for existing session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("❌ Session check error:", sessionError);
+      }
+      
+      console.log("🔐 Current session state:", {
+        hasSession: !!sessionData?.session,
+        sessionEmail: sessionData?.session?.user?.email
+      });
 
-        // FIX: Check fresh session state, not stale hasSession
-        if (accessToken && refreshToken && !initialSessionCheck?.session) {
-          console.log("Found reset tokens in URL, establishing session");
-          // Set the session with the access token
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
+      // Step 2: If no session, try to restore from stored tokens
+      if (!sessionData?.session) {
+        if (storedAccessToken && storedRefreshToken) {
+          console.log("🔐 No active session - restoring from stored tokens");
+          
+          const { error: restoreError } = await supabase.auth.setSession({
+            access_token: storedAccessToken,
+            refresh_token: storedRefreshToken
           });
-
-          if (sessionError) {
-            console.error("Session error:", sessionError);
-            toast.error(`Failed to authenticate: ${sessionError.message}`);
+          
+          if (restoreError) {
+            console.error("❌ Failed to restore session from stored tokens:", restoreError);
+            // Clear invalid tokens
+            sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+            sessionStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+            sessionStorage.removeItem(RESET_PENDING_KEY);
+            
+            setLinkExpired(true);
+            toast.error("Your password reset link has expired. Please request a new one.");
             setIsLoading(false);
             return;
           }
           
-          // Update hasSession state after successful session creation
-          setHasSession(true);
-          console.log("✅ Session established from reset tokens");
-        } else if (!initialSessionCheck?.session && !accessToken) {
-          // No tokens and no session - invalid/expired reset link
-          console.error("❌ Reset mode but no tokens and no session");
-          toast.error("Password reset link is invalid or has expired. Please request a new reset link.");
+          console.log("✅ Session restored from stored tokens");
+        } else if (isForcePasswordChange) {
+          // Force password change but no session - redirect to login
+          console.error("❌ Force password change but no session - redirecting to login");
+          toast.error("Your session has expired. Please log in again with your temporary password.");
+          sessionStorage.removeItem(FORCE_CHANGE_KEY);
+          navigate(`/login?email=${encodeURIComponent(email)}`);
+          setIsLoading(false);
+          return;
+        } else {
+          // No session, no stored tokens, not force change = expired link
+          console.error("❌ No session and no stored tokens - link expired");
+          setLinkExpired(true);
+          toast.error("Password reset link has expired. Please request a new reset link.");
           setIsLoading(false);
           return;
         }
       }
 
-      // CRITICAL: Verify session exists before updating password for ALL modes
-      // FIX: Add timeout protection to prevent hanging
-      let sessionCheck;
-      try {
-        sessionCheck = await fetchWithTimeout(
-          supabase.auth.getSession(),
-          5000,
-          "Session verification timed out"
-        );
-      } catch (timeoutError) {
-        console.error("❌ Session check timed out:", timeoutError);
-        toast.error("Connection timed out. Please check your internet connection and try again.");
+      // Step 3: Verify we now have a valid session
+      const { data: verifySession } = await supabase.auth.getSession();
+      
+      if (!verifySession?.session) {
+        console.error("❌ Session verification failed after restore attempt");
+        setLinkExpired(true);
+        toast.error("Failed to establish session. Please request a new password reset link.");
         setIsLoading(false);
         return;
       }
       
-      console.log("🔐 Pre-updateUser session verification:", {
-        hasSession: !!sessionCheck?.data?.session,
-        sessionUserEmail: sessionCheck?.data?.session?.user?.email,
-        sessionExpiry: sessionCheck?.data?.session?.expires_at
+      console.log("✅ Session verified for:", verifySession.session.user.email);
+
+      // Step 4: Update the password
+      const { error: updateError, data: updateData } = await supabase.auth.updateUser({ 
+        password: password 
       });
 
-      if (!sessionCheck?.data?.session) {
-        console.error("❌ No active session found - cannot update password");
+      if (updateError) {
+        console.error("❌ Password update error:", updateError);
         
-        // For new invited users (force password change), redirect to re-login
-        if (isForcePasswordChange) {
-          toast.error("Your session has expired. Please log in again with your temporary password.");
-          // Clear the flags so they can attempt login again
-          sessionStorage.removeItem('force_password_change');
-          sessionStorage.removeItem('password_reset_email');
-          navigate(`/login?email=${encodeURIComponent(email)}`);
-          setIsLoading(false);
-          return;
+        if (updateError.message.includes("not logged in")) {
+          toast.error("Session expired. Please request a new password reset link.");
+          setLinkExpired(true);
+        } else {
+          toast.error(`Failed to update password: ${updateError.message}`);
         }
-        
-        toast.error("No valid session. Please use the link from your email or log in first.");
         setIsLoading(false);
         return;
       }
       
-      console.log("✅ Active session verified for:", sessionCheck.data.session.user.email);
-
-      // Now update the password (session should be established at this point)
-      // FIX: Add timeout protection
-      let updateResult;
-      try {
-        updateResult = await fetchWithTimeout(
-          supabase.auth.updateUser({ password: password }),
-          10000,
-          "Password update timed out"
-        );
-      } catch (timeoutError) {
-        console.error("❌ Password update timed out:", timeoutError);
-        toast.error("Password update timed out. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      const { error, data } = updateResult;
-
-      if (error) {
-        console.error("❌ Password update error:", error);
-        // If not logged in, this could be a password reset flow
-        if (error.message.includes("not logged in")) {
-          toast.error("Please sign in with your temporary password or use the reset link from your email");
-          navigate(`/login?email=${encodeURIComponent(email)}`);
-          setIsLoading(false);
-          return;
-        }
-
-        throw error;
-      }
-      
-      // Verify the update was successful
-      if (data?.user) {
-        console.log("✅ Password update confirmed for user:", data.user.id, data.user.email);
-      } else {
+      if (!updateData?.user) {
         console.error("❌ Password update returned no user data");
         toast.error("Password update may have failed. Please try again.");
         setIsLoading(false);
         return;
       }
-
-      // Get user's role and organization to determine redirect
-      // FIX: Add timeout protection to prevent hanging on profile queries
-      let profile: { role: string; organization_id: string | null } | null = null;
-      let orgMembership: { organization_id: string; role: string } | null = null;
       
-      try {
-        const profilePromise = supabase
-          .from('profiles')
-          .select('role, organization_id')
-          .eq('id', data.user.id)
-          .maybeSingle();
-        
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Profile fetch timed out")), 5000)
-        );
-        
-        const profileResult = await Promise.race([profilePromise, timeout]);
-        profile = profileResult.data;
-        console.log('User profile after password reset:', profile);
-      } catch (profileError) {
-        console.error("Profile fetch failed or timed out:", profileError);
-        // Continue anyway - password was updated successfully
-      }
+      console.log("✅ Password updated successfully for:", updateData.user.email);
 
-      try {
-        const orgPromise = supabase
-          .from('user_organizations')
-          .select('organization_id, role')
-          .eq('user_id', data.user.id)
-          .eq('is_active', true)
-          .maybeSingle();
-        
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Organization fetch timed out")), 5000)
-        );
-        
-        const orgResult = await Promise.race([orgPromise, timeout]);
-        orgMembership = orgResult.data;
-        console.log('User organization membership:', orgMembership);
-      } catch (orgError) {
-        console.error("Organization fetch failed or timed out:", orgError);
-        // Continue anyway - password was updated successfully
-      }
-
-      // Determine redirect based on role and organization
+      // Step 5: Get user profile to determine redirect
       let redirectPath = "/dashboard";
       
-      // FIX: If profile fetch failed, still allow redirect with default path
-      if (!profile) {
-        console.warn("⚠️ Profile not found, defaulting to dashboard redirect");
-        // Don't block - password was changed successfully, just redirect
-        toast.success("Password updated successfully! Redirecting...");
-        setSuccess(true);
-        
-        // Clear flags
-        sessionStorage.removeItem('password_reset_pending');
-        sessionStorage.removeItem('password_reset_email');
-        sessionStorage.removeItem('force_password_change');
-        
-        setTimeout(() => navigate("/dashboard"), 2000);
-        return;
-      }
-
-      const userRole = profile.role;
-      const hasOrganization = !!orgMembership?.organization_id;
-
-      // For password reset (existing users)
-      if (isResetMode || hasTokensInUrl) {
-        // Check if user has organization
-        if (!hasOrganization) {
-          // Users without organization after password reset = data issue
-          toast.error("Your account is not associated with an organization. Please contact support.");
-          setErrors({ email: "Account setup incomplete. Please contact support for assistance." });
-          setIsLoading(false);
-          return;
-        }
-
-        // Contractors go to contractor dashboard
-        if (userRole === 'contractor') {
-          redirectPath = "/contractor-dashboard";
-          toast.success("Password reset successful! Redirecting to contractor dashboard...");
-        } else {
-          // Admins and managers go to regular dashboard
-          toast.success("Password reset successful! Redirecting to dashboard...");
-          redirectPath = "/dashboard";
-        }
-      }
-      // For new user setup (initial password set from invitation)
-      else {
-        // New users should have been added to organization via invitation
-        if (!hasOrganization) {
-          toast.error("Organization membership not found. Please use your invitation link.");
-          setErrors({ email: "Please use the invitation link sent to your email to complete setup." });
-          setIsLoading(false);
-          return;
-        }
-
-        // Contractors go to contractor dashboard
-        if (userRole === 'contractor') {
-          redirectPath = "/contractor-dashboard";
-          toast.success("Account setup complete! Redirecting to contractor dashboard...");
-        } else {
-          // Admins and managers go to regular dashboard
-          toast.success("Account setup complete! Redirecting to dashboard...");
-          redirectPath = "/dashboard";
-        }
-      }
-
-      setSuccess(true);
-
-      // CRITICAL: Clear the password reset pending flag - user has completed setup
-      console.log("🔐 Password setup complete - clearing reset pending flags");
-      sessionStorage.removeItem('password_reset_pending');
-      sessionStorage.removeItem('password_reset_email');
-      sessionStorage.removeItem('force_password_change');
-
-      // Clear must_change_password flag in database
       try {
-        const updatePromise = supabase
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, organization_id')
+          .eq('id', updateData.user.id)
+          .maybeSingle();
+        
+        if (profile?.role === 'contractor') {
+          redirectPath = "/contractor-dashboard";
+        }
+        
+        // Clear must_change_password flag
+        await supabase
           .from('profiles')
           .update({ must_change_password: false })
-          .eq('id', data.user.id);
-        
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Database update timed out")), 5000)
-        );
-        
-        await Promise.race([updatePromise, timeout]);
-        console.log("🔐 Cleared must_change_password flag in database");
-      } catch (flagError) {
-        console.warn("Warning: Could not clear must_change_password flag:", flagError);
-        // Don't block redirect - password was changed successfully
+          .eq('id', updateData.user.id);
+          
+      } catch (profileError) {
+        console.warn("Profile fetch/update error (non-blocking):", profileError);
       }
 
-      // Redirect after a short delay
+      // Step 6: Clean up and redirect
+      console.log("🔐 Password setup complete - clearing all reset flags");
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      sessionStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      sessionStorage.removeItem(RESET_EMAIL_STORAGE_KEY);
+      sessionStorage.removeItem(RESET_PENDING_KEY);
+      sessionStorage.removeItem(FORCE_CHANGE_KEY);
+
+      setSuccess(true);
+      toast.success("Password updated successfully! Redirecting...");
+      
       setTimeout(() => navigate(redirectPath), 2000);
+      
     } catch (error: any) {
       console.error("Password setup error:", error);
       toast.error(`Failed to set password: ${error?.message || 'Unknown error'}`);
@@ -415,6 +303,16 @@ const SetupPassword = () => {
             <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
               <CheckCircle2 className="h-4 w-4 mr-2" />
               <AlertDescription>Your password has been set successfully! Redirecting to dashboard...</AlertDescription>
+            </Alert>
+          ) : linkExpired ? (
+            <Alert className="mb-4 bg-red-50 text-red-800 border-red-200">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                Your password reset link has expired or is invalid.{" "}
+                <Link to="/forgot-password" className="underline font-medium">
+                  Request a new reset link
+                </Link>
+              </AlertDescription>
             </Alert>
           ) : (
             <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
@@ -455,10 +353,14 @@ const SetupPassword = () => {
                   setPassword(e.target.value);
                   if (errors.password) setErrors({ ...errors, password: undefined });
                 }}
-                placeholder="Create a strong password"
+                placeholder="Enter new password"
                 required
+                disabled={success || linkExpired}
               />
               {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+              <p className="text-xs text-gray-500">
+                Password must be at least 8 characters with uppercase, lowercase, and special character
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -475,21 +377,25 @@ const SetupPassword = () => {
                 }}
                 placeholder="Confirm your password"
                 required
+                disabled={success || linkExpired}
               />
               {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || success || verifyingSchema}>
-              {isLoading ? "Setting Up..." : verifyingSchema ? "Configuring Account..." : "Set Password & Continue"}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || success || linkExpired}
+            >
+              {isLoading ? "Setting Password..." : "Set Password"}
             </Button>
-
-            <p className="text-sm text-center text-gray-500 mt-4">
-              Already have an account?{" "}
-              <Link to="/login" className="text-blue-500 hover:underline">
-                Sign in
-              </Link>
-            </p>
           </form>
+
+          <div className="mt-4 text-center">
+            <Link to="/login" className="text-sm text-primary hover:underline">
+              Already have a password? Sign in
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
