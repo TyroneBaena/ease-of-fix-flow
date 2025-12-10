@@ -23,6 +23,7 @@ import {
 import { ClipboardList, X, Search } from 'lucide-react';
 import { formatTimestamp } from '@/components/request/detail/utils/dateUtils';
 import { RequestEditButton } from '@/components/request/RequestEditButton';
+import { getDisplayStatus, getDisplayStatusColor, matchesStatusFilter, STATUS_FILTER_OPTIONS } from '@/utils/statusDisplayUtils';
 
 interface PropertyRequestsProps {
   requests: MaintenanceRequest[];
@@ -40,7 +41,8 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
   const filteredRequests = useMemo(() => {
     return requests.filter(request => {
       const priorityMatch = priorityFilter === 'all' || request.priority === priorityFilter;
-      const statusMatch = statusFilter === 'all' || request.status === statusFilter;
+      const assignedToLandlord = (request as any).assigned_to_landlord;
+      const statusMatch = matchesStatusFilter(statusFilter, request.status, assignedToLandlord);
       
       // Search functionality - search in issue nature and site
       const searchMatch = searchTerm === '' || 
@@ -114,11 +116,11 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      {STATUS_FILTER_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -230,12 +232,8 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
-                        request.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                        request.status === 'in_progress' || request.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {request.status}
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${getDisplayStatusColor(getDisplayStatus(request.status, (request as any).assigned_to_landlord))}`}>
+                        {getDisplayStatus(request.status, (request as any).assigned_to_landlord)}
                       </span>
                     </TableCell>
                     <TableCell>{formatTimestamp(request.reportDate || request.createdAt)}</TableCell>

@@ -8,6 +8,7 @@ import RequestsHeader from '@/components/requests/RequestsHeader';
 import RequestFilters from '@/components/requests/RequestFilters';
 import RequestList from '@/components/requests/RequestList';
 import { isWithinInterval, parseISO } from 'date-fns';
+import { matchesStatusFilter } from '@/utils/statusDisplayUtils';
 
 const AllRequests = () => {
   const { properties } = usePropertyContext();
@@ -54,7 +55,7 @@ const AllRequests = () => {
     if (statusFilter === 'all') {
       result = result.filter(request => request.status !== 'cancelled');
     } else {
-      result = result.filter(request => request.status === statusFilter);
+      result = result.filter(request => matchesStatusFilter(statusFilter, request.status, request.assigned_to_landlord));
     }
     
     if (searchTerm) {
