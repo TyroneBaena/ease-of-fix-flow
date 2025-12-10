@@ -10,6 +10,7 @@ import { Search, ArrowDown, ArrowUp, Calendar as CalendarIcon, X } from 'lucide-
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { Property } from '@/types/property';
+import { STATUS_FILTER_OPTIONS } from '@/utils/statusDisplayUtils';
 
 interface RequestFiltersProps {
   searchTerm: string;
@@ -86,12 +87,11 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
               <SelectValue placeholder="Status: All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              {STATUS_FILTER_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

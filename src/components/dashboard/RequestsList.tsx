@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { User, Clock, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
+import { getDisplayStatus, getDisplayStatusColor } from '@/utils/statusDisplayUtils';
 
 interface RequestsListProps {
   allRequests: MaintenanceRequest[];
@@ -23,19 +24,6 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
     new Map(properties.map(p => [p.id, p.name])), 
     [properties]
   );
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
-      case 'in-progress':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
-      case 'completed':
-        return 'bg-green-100 text-green-800 hover:bg-green-100';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
-    }
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -105,8 +93,8 @@ const RequestsList = ({ allRequests, onRequestSelect, selectedRequest }: Request
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Badge className={`${getStatusColor(request.status)} text-xs`}>
-                        {request.status}
+                      <Badge className={`${getDisplayStatusColor(getDisplayStatus(request.status, request.assigned_to_landlord))} text-xs`}>
+                        {getDisplayStatus(request.status, request.assigned_to_landlord)}
                       </Badge>
                       {request.priority && (
                         <Badge variant="outline" className={`${getPriorityColor(request.priority)} text-xs`}>

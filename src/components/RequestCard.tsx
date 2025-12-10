@@ -10,6 +10,7 @@ import {
   Building2
 } from 'lucide-react';
 import { MaintenanceRequest } from '@/types/maintenance';
+import { getDisplayStatus, getDisplayStatusColor } from '@/utils/statusDisplayUtils';
 
 interface RequestCardProps {
   request: MaintenanceRequest;
@@ -26,6 +27,7 @@ const arePropsEqual = (prevProps: RequestCardProps, nextProps: RequestCardProps)
   return (
     prevRequest.id === nextRequest.id &&
     prevRequest.status === nextRequest.status &&
+    prevRequest.assigned_to_landlord === nextRequest.assigned_to_landlord &&
     prevRequest.issueNature === nextRequest.issueNature &&
     prevRequest.title === nextRequest.title &&
     prevRequest.explanation === nextRequest.explanation &&
@@ -46,35 +48,6 @@ const arePropsEqual = (prevProps: RequestCardProps, nextProps: RequestCardProps)
 const RequestCard: React.FC<RequestCardProps> = ({ request, onClick, propertyName }) => {
   // Debug logging to track renders
   console.log(`🎨 RequestCard re-rendered for request: ${request.id?.substring(0, 8)}`);
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open':
-      case 'pending':
-        return 'bg-amber-100 text-amber-800';
-      case 'in-progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-  
-  const getStatusDisplay = (status: string) => {
-    switch (status) {
-      case 'open':
-        return 'Open';
-      case 'pending':
-        return 'Pending';
-      case 'in-progress':
-        return 'In Progress';
-      case 'completed':
-        return 'Completed';
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
-    }
-  };
   
   // Keep the getPriorityColor function for future use but remove its usage
   const getPriorityColor = (priority?: string) => {
@@ -110,8 +83,8 @@ const RequestCard: React.FC<RequestCardProps> = ({ request, onClick, propertyNam
         <div className="flex justify-between items-start">
           <div className="space-y-0.5 flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <Badge className={`${getStatusColor(request.status)} text-xs`}>
-                {getStatusDisplay(request.status)}
+              <Badge className={`${getDisplayStatusColor(getDisplayStatus(request.status, request.assigned_to_landlord))} text-xs`}>
+                {getDisplayStatus(request.status, request.assigned_to_landlord)}
               </Badge>
               <h3 className="font-semibold text-sm truncate">{displayTitle}</h3>
             </div>
