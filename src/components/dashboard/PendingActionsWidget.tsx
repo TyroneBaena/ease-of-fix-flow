@@ -84,12 +84,12 @@ export const PendingActionsWidget: React.FC<PendingActionsWidgetProps> = ({ requ
   };
 
   return (
-    <Card className="border-amber-200 bg-amber-50/50">
+    <Card className="border-amber-200 bg-amber-50/50 overflow-hidden">
       <CardHeader className="pb-2 pt-3 px-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <CardTitle className="text-sm font-semibold text-amber-900">
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+            <CardTitle className="text-sm font-semibold text-amber-900 truncate">
               Pending Actions
             </CardTitle>
           </div>
@@ -97,13 +97,13 @@ export const PendingActionsWidget: React.FC<PendingActionsWidgetProps> = ({ requ
             variant="ghost" 
             size="sm" 
             onClick={handleViewAll}
-            className="h-7 px-2 text-amber-700 hover:bg-amber-100"
+            className="h-7 px-2 text-amber-700 hover:bg-amber-100 flex-shrink-0"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 px-4 pb-3">
+      <CardContent className="pt-0 px-4 pb-3 min-w-0">
         {/* Compact Summary */}
         <div className="text-xs text-amber-800 mb-2">
           <span className="font-medium">{agingRequests.length}</span> aging
@@ -126,9 +126,9 @@ export const PendingActionsWidget: React.FC<PendingActionsWidgetProps> = ({ requ
               <div 
                 key={request.id}
                 onClick={() => handleRequestClick(request.id)}
-                className="flex items-center justify-between gap-2 bg-white rounded p-2 border border-amber-200 hover:border-amber-400 cursor-pointer transition-colors"
+                className="flex items-center justify-between gap-2 bg-white rounded p-2 border border-amber-200 hover:border-amber-400 cursor-pointer transition-colors min-w-0"
               >
-                <p className="text-xs font-medium text-foreground truncate flex-1">
+                <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">
                   {request.title}
                 </p>
                 <div className="flex items-center gap-1 flex-shrink-0">
