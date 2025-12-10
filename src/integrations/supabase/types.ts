@@ -475,6 +475,66 @@ export type Database = {
           },
         ]
       }
+      housemates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          first_name: string
+          id: string
+          is_archived: boolean
+          last_name: string
+          organization_id: string | null
+          personal_profile: string | null
+          property_id: string
+          rent_period: string
+          rent_utilities_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          first_name: string
+          id?: string
+          is_archived?: boolean
+          last_name: string
+          organization_id?: string | null
+          personal_profile?: string | null
+          property_id: string
+          rent_period?: string
+          rent_utilities_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          first_name?: string
+          id?: string
+          is_archived?: boolean
+          last_name?: string
+          organization_id?: string | null
+          personal_profile?: string | null
+          property_id?: string
+          rent_period?: string
+          rent_utilities_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housemates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housemates_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitation_code_usage: {
         Row: {
           id: string

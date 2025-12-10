@@ -17,6 +17,7 @@ import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard
 import { PropertyCalendarWidget } from '@/components/property/PropertyCalendarWidget';
 import { PropertyNotesWidget } from '@/components/property/PropertyNotesWidget';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
+import { HousematesTab } from '@/components/property/housemates/HousematesTab';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import DeletePropertyDialog from '@/components/property/DeletePropertyDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -225,8 +226,9 @@ const PropertyDetail = () => {
         )}
         
         <Tabs defaultValue="overview" className="mt-6">
-          <TabsList className={`grid w-full ${isTemporaryAccess ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full ${isTemporaryAccess ? 'grid-cols-2' : 'grid-cols-4'}`}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            {!isTemporaryAccess && <TabsTrigger value="housemates">Housemates</TabsTrigger>}
             {!isTemporaryAccess && <TabsTrigger value="budget">Budget Management</TabsTrigger>}
             <TabsTrigger value="requests">Maintenance Requests</TabsTrigger>
           </TabsList>
@@ -264,13 +266,12 @@ const PropertyDetail = () => {
             </div>
           </TabsContent>
           
+          <TabsContent value="housemates" className="mt-6">
+            {id && !isTemporaryAccess && <HousematesTab propertyId={id} />}
+          </TabsContent>
+          
           <TabsContent value="budget" className="mt-6">
             {id && !isTemporaryAccess && <BudgetManagement propertyId={id} />}
-            {isTemporaryAccess && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Budget management is not available with temporary access.</p>
-              </div>
-            )}
           </TabsContent>
           
           <TabsContent value="requests" className="mt-6">
