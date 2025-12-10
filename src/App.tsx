@@ -1156,34 +1156,24 @@ const queryClient = new QueryClient({
 });
 
 // Helper component for setup-password route
+// Simplified: Only handles force_password_change flow (new users and password resets)
 const SetupPasswordRoute = () => {
   const { currentUser } = useSimpleAuth();
-  const location = useLocation();
-  
-  // Check if user arrived via password reset link
-  const hasResetToken = location.hash && location.hash.includes("access_token");
-  const hasPasswordResetPending = sessionStorage.getItem('password_reset_pending') === 'true';
   const hasForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
   
-  // Debug logging to trace password reset flow
   console.log("🔐 SetupPasswordRoute check:", {
     hasCurrentUser: !!currentUser,
-    hasResetToken,
-    hasPasswordResetPending,
-    hasForcePasswordChange,
-    hash: location.hash
+    hasForcePasswordChange
   });
   
   // Allow access to SetupPassword if:
-  // 1. No currentUser, OR
-  // 2. User has reset token in URL, OR
-  // 3. Password reset is pending, OR
-  // 4. Force password change required (new invited users)
-  if (!currentUser || hasResetToken || hasPasswordResetPending || hasForcePasswordChange) {
+  // 1. No currentUser (shouldn't happen but handle gracefully), OR
+  // 2. Force password change required (new invited users or password reset)
+  if (!currentUser || hasForcePasswordChange) {
     return <SetupPassword />;
   }
   
-  // Only redirect to dashboard if truly logged in without reset in progress
+  // Redirect to dashboard if logged in without force password change
   return <Navigate to="/dashboard" replace />;
 };
 
