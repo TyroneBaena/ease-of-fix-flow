@@ -10,6 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { cn } from '@/lib/utils';
 import { CalendarEvent, CalendarEventFormData, RECURRENCE_OPTIONS, DAYS_OF_WEEK } from '@/types/calendar';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
@@ -188,7 +189,7 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {eventDate ? format(eventDate, 'PPP') : 'Pick a date'}
+                  {eventDate ? formatFullDate(eventDate) : 'Pick a date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-popover z-50" align="start">
@@ -296,7 +297,7 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {recurrenceEndDate ? format(recurrenceEndDate, 'PPP') : 'No end date'}
+                          {recurrenceEndDate ? formatFullDate(recurrenceEndDate) : 'No end date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 bg-popover z-50" align="start">

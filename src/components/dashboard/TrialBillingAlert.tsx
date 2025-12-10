@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
-import { format } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 
 export const TrialBillingAlert: React.FC = () => {
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ export const TrialBillingAlert: React.FC = () => {
     : 0;
 
   const isTrialExpiring = daysRemaining !== null && daysRemaining <= 3;
-  const trialEndDateFormatted = trialEndDate ? format(new Date(trialEndDate), 'PPP') : null;
+  const trialEndDateFormatted = trialEndDate ? formatFullDate(trialEndDate) : null;
   const displayAmount = monthlyAmount || 0;
 
   // Don't show if user has active subscription

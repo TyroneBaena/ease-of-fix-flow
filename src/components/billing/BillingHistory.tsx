@@ -8,6 +8,7 @@ import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 
 interface Invoice {
   id: string;
@@ -132,11 +133,7 @@ export const BillingHistory: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-AU', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatFullDate(dateString);
   };
 
   const formatCurrency = (amount: number) => {

@@ -10,6 +10,7 @@ import { CalendarEvent, CalendarEventFormData } from '@/types/calendar';
 import { useUserContext, useMultiOrganizationContext } from '@/contexts/UnifiedAuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { formatShortDate, formatFullDate } from '@/utils/dateFormatUtils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EventTypeFilter } from '@/components/calendar/CalendarFilters';
@@ -142,7 +143,7 @@ export const PropertyCalendarWidget: React.FC<PropertyCalendarWidgetProps> = ({
   };
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
-  const weekLabel = `${format(currentWeekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+  const weekLabel = `${formatShortDate(currentWeekStart)} - ${formatFullDate(weekEnd)}`;
 
   return (
     <>

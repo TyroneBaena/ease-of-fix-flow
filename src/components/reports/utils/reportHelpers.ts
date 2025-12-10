@@ -1,6 +1,6 @@
 
-import { format } from 'date-fns';
 import { MaintenanceRequest } from '@/types/property';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 
 // Update the function to correctly use isAdmin as a boolean value
 export function filterMaintenanceRequests(
@@ -75,11 +75,5 @@ export function getPriorityClass(priority?: string): string {
 
 // Add date formatting utility function using DD/MM/YYYY format
 export function formatDate(dateString?: string): string {
-  if (!dateString) return 'N/A';
-  try {
-    return format(new Date(dateString), 'dd/MM/yyyy');
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return dateString;
-  }
+  return formatFullDate(dateString);
 }

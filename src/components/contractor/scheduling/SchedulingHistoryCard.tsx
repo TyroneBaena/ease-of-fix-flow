@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, User, FileText } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatFullDate, formatFullDateTime } from '@/utils/dateFormatUtils';
 
 interface SchedulingHistoryItem {
   id: string;
@@ -42,7 +42,7 @@ export const SchedulingHistoryCard: React.FC<SchedulingHistoryCardProps> = ({
       <div key={index} className="text-xs text-gray-600 mb-1">
         <div className="flex items-center gap-1">
           <Calendar className="h-3 w-3" />
-          <span>{format(new Date(date.date), 'MMM dd, yyyy')}</span>
+          <span>{formatFullDate(date.date)}</span>
         </div>
         <div className="flex items-center gap-1 ml-4">
           <Clock className="h-3 w-3" />
@@ -101,7 +101,7 @@ export const SchedulingHistoryCard: React.FC<SchedulingHistoryCardProps> = ({
                   {item.action}
                 </Badge>
                 <span className="text-xs text-gray-500">
-                  {format(new Date(item.created_at), 'MMM dd, yyyy HH:mm')}
+                  {formatFullDateTime(item.created_at)}
                 </span>
               </div>
               

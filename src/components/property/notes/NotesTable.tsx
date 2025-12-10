@@ -16,7 +16,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Eye, Pencil, Trash2, ChevronDown, Paperclip } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { NoteAttachments } from './NoteAttachments';
 import { NoteExportMenu } from './NoteExportMenu';
 
@@ -113,7 +113,7 @@ export function NotesTable({ notes, propertyName, onView, onEdit, onDelete }: No
                   {note.createdByName || 'Unknown'}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  {format(new Date(note.createdAt), 'MMM d, yyyy')}
+                  {formatFullDate(note.createdAt)}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Phone, Mail, User, Calendar, DollarSign } from 'lucide-react';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { isUserAdmin } from '@/utils/userRoles';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 
 interface PropertyInfoProps {
   property: {
@@ -92,7 +93,7 @@ export const PropertyInfo: React.FC<PropertyInfoProps> = ({ property }) => {
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                   <span>
-                    Renewal Date: {property.renewalDate ? new Date(property.renewalDate).toLocaleDateString() : 'Not specified'}
+                    Renewal Date: {property.renewalDate ? formatFullDate(property.renewalDate) : 'Not specified'}
                   </span>
                 </div>
                 {isAdmin && (

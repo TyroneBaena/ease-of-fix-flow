@@ -6,6 +6,7 @@ import { Clock, User, Settings, CheckCircle, AlertCircle, FileText, DollarSign, 
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatTimestamp } from './detail/utils/dateUtils';
 import { format, parseISO } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import type { Json } from '@/integrations/supabase/types';
 
 interface ActivityLog {
@@ -50,7 +51,7 @@ const formatScheduledDates = (metadata: Json | null): string => {
   
   return scheduledDates.map(sd => {
     try {
-      const date = format(parseISO(sd.date), 'MMM d, yyyy');
+      const date = formatFullDate(sd.date);
       const startTime = formatTime(sd.startTime);
       const endTime = formatTime(sd.endTime);
       return `${date} (${startTime} - ${endTime})`;

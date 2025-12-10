@@ -6,7 +6,7 @@ import { StickyNote, Plus, ChevronRight, Paperclip } from 'lucide-react';
 import { usePropertyNotes } from '@/hooks/usePropertyNotes';
 import { PropertyNotesDialog } from './notes/PropertyNotesDialog';
 import { NoteFormDialog } from './notes/NoteFormDialog';
-import { format } from 'date-fns';
+import { formatShortDate } from '@/utils/dateFormatUtils';
 import { NoteAttachment } from '@/types/notes';
 
 interface PropertyNotesWidgetProps {
@@ -101,7 +101,7 @@ export function PropertyNotesWidget({ propertyId, propertyName }: PropertyNotesW
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(note.createdAt), 'MMM d')}
+                        {formatShortDate(note.createdAt)}
                       </span>
                     </div>
                     <p className="text-sm font-medium truncate">{note.title}</p>

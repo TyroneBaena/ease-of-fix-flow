@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building, Plus, MapPin, Phone, Mail, Calendar, DollarSign, LayoutGrid, List } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { EnhancedPropertyForm } from '@/components/property/EnhancedPropertyForm';
 
 const PropertiesContent = () => {
@@ -175,7 +176,7 @@ const PropertiesContent = () => {
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>Renewal: {new Date(property.renewalDate).toLocaleDateString()}</span>
+                        <span>Renewal: {formatFullDate(property.renewalDate)}</span>
                       </div>
                       {isAdmin && (
                         <div className="flex items-center">

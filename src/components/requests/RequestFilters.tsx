@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, ArrowDown, ArrowUp, Calendar as CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatFullDate, formatShortDate } from '@/utils/dateFormatUtils';
 import { cn } from "@/lib/utils";
 import { Property } from '@/types/property';
 import { STATUS_FILTER_OPTIONS } from '@/utils/statusDisplayUtils';
@@ -147,11 +148,11 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
                   {dateRange?.from ? (
                     dateRange.to ? (
                       <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
+                        {formatShortDate(dateRange.from)} -{" "}
+                        {formatFullDate(dateRange.to)}
                       </>
                     ) : (
-                      format(dateRange.from, "LLL dd, y")
+                      formatFullDate(dateRange.from)
                     )
                   ) : (
                     <span>Pick a date range</span>
@@ -257,8 +258,8 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
         {dateRange?.from && setDateRange && (
           <Badge variant="outline" className="bg-gray-100">
             Date: {dateRange.to ? 
-              `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}` :
-              format(dateRange.from, "MMM d")
+              `${formatShortDate(dateRange.from)} - ${formatShortDate(dateRange.to)}` :
+              formatShortDate(dateRange.from)
             }
             <Button 
               variant="ghost" 

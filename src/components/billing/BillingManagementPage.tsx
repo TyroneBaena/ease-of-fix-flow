@@ -25,6 +25,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { PropertyCountDisplay } from './PropertyCountDisplay';
 import { BillingPreview } from './BillingPreview';
 import { CancellationFlow } from './CancellationFlow';
@@ -246,7 +247,7 @@ export const BillingManagementPage: React.FC<BillingManagementPageProps> = ({ em
     : 0;
 
   const isTrialExpiring = daysRemaining !== null && daysRemaining <= 3;
-  const trialEndDateFormatted = trialEndDate ? format(new Date(trialEndDate), 'PPP') : null;
+  const trialEndDateFormatted = trialEndDate ? formatFullDate(trialEndDate) : null;
   const displayAmount = monthlyAmount || 0;
   
   // FIXED: Properly handle null states - only evaluate when data has loaded

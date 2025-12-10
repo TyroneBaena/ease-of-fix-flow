@@ -3,6 +3,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Wrench, User } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { cn } from '@/lib/utils';
 
 interface CalendarEventCardProps {
@@ -88,7 +89,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
         {showDate && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
-            <span>{format(parseISO(event.eventDate), 'MMM d, yyyy')}</span>
+            <span>{formatFullDate(event.eventDate)}</span>
           </div>
         )}
         

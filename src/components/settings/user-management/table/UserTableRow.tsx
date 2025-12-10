@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { MoreHorizontal, Pencil, Trash2, RotateCw, Key } from "lucide-react";
 
 interface UserTableRowProps {
@@ -59,7 +59,7 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
   const canEditUser = !isSelf || (isSelf && user.role === 'admin');
   
   const formattedDate = user.createdAt 
-    ? format(new Date(user.createdAt), 'MMM d, yyyy')
+    ? formatFullDate(user.createdAt)
     : 'N/A';
   
   const propertyCount = user.assignedProperties?.length || 0;

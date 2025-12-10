@@ -7,6 +7,7 @@ import { Calendar, Clock, MapPin, User, RefreshCw } from 'lucide-react';
 import { useJobScheduling } from '@/hooks/contractor/useJobScheduling';
 import { ScheduledDate } from '@/types/scheduling';
 import { format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { formatShortDate, formatFullDate } from '@/utils/dateFormatUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ScheduledJob {
@@ -140,7 +141,7 @@ export const ScheduledTimelineView: React.FC = () => {
               Previous Week
             </Button>
             <h3 className="font-medium">
-              {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+              {formatShortDate(weekStart)} - {formatFullDate(weekEnd)}
             </h3>
             <Button
               variant="outline"

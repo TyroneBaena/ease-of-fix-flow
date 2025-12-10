@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDateTimeWithSeconds } from '@/utils/dateFormatUtils';
 
 interface LoginAttempt {
   id: string;
@@ -42,11 +42,7 @@ export const RecentLoginAttempts: React.FC<RecentLoginAttemptsProps> = ({
   };
 
   const formatTimestamp = (timestamp: string) => {
-    try {
-      return format(new Date(timestamp), 'MMM dd, HH:mm:ss');
-    } catch (error) {
-      return timestamp;
-    }
+    return formatDateTimeWithSeconds(timestamp);
   };
 
   const truncateEmail = (email: string, maxLength: number = 25) => {

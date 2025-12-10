@@ -9,7 +9,7 @@ import { JobSchedulingDialog } from '../scheduling/JobSchedulingDialog';
 import { useJobScheduling } from '@/hooks/contractor/useJobScheduling';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 
 // Database schema type (snake_case)
 type DbJobSchedule = {
@@ -141,7 +141,7 @@ export const ScheduleJobCard: React.FC<ScheduleJobCardProps> = ({
                   <div key={date.id || index} className="p-3 bg-muted rounded-md">
                     <div className="flex items-center gap-2 text-sm font-medium mb-1">
                       <Clock className="h-4 w-4" />
-                      {format(new Date(date.date), 'MMM dd, yyyy')}
+                      {formatFullDate(date.date)}
                     </div>
                     <div className="text-sm text-muted-foreground ml-6">
                       {date.startTime} - {date.endTime}

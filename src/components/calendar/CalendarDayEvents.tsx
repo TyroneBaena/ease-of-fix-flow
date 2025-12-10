@@ -2,6 +2,7 @@ import React from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { CalendarEventCard } from './CalendarEventCard';
 import { format, parseISO } from 'date-fns';
+import { formatCalendarDay } from '@/utils/dateFormatUtils';
 import { CalendarDays, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,7 +38,7 @@ export const CalendarDayEvents: React.FC<CalendarDayEventsProps> = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-sm">
-          {format(date, 'EEEE, MMMM d')}
+          {formatCalendarDay(date)}
         </h3>
         {onAddEvent && (
           <Button variant="ghost" size="sm" onClick={onAddEvent}>
