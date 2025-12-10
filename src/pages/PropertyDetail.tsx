@@ -15,6 +15,7 @@ import { PropertyQuickActions } from '@/components/property/PropertyQuickActions
 import { LandlordInfoCard } from '@/components/property/LandlordInfoCard';
 import { MaintenanceSpendCard } from '@/components/property/MaintenanceSpendCard';
 import { PropertyCalendarWidget } from '@/components/property/PropertyCalendarWidget';
+import { PropertyNotesWidget } from '@/components/property/PropertyNotesWidget';
 import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import DeletePropertyDialog from '@/components/property/DeletePropertyDialog';
@@ -232,8 +233,11 @@ const PropertyDetail = () => {
           
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-6">
                 <PropertyInfo property={property} />
+                {id && !isTemporaryAccess && (currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                  <PropertyNotesWidget propertyId={id} />
+                )}
               </div>
               
               <div className="space-y-6">
