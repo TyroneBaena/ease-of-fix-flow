@@ -17,6 +17,7 @@ interface PublicRequestMetadataProps {
   contractorId?: string;
   propertyId?: string;
   propertyName?: string;
+  assignedToLandlord?: boolean;
   contractorInfo?: {
     companyName?: string;
     contactName?: string;
@@ -38,6 +39,7 @@ export const PublicRequestMetadata = ({
   contractorId,
   propertyId,
   propertyName,
+  assignedToLandlord,
   contractorInfo
 }: PublicRequestMetadataProps) => {
   return (
@@ -55,9 +57,9 @@ export const PublicRequestMetadata = ({
       <UserInfo label="Submitted By" value={submittedBy} />
       <UserInfo 
         label="Assigned To" 
-        value={assignedTo || (contractorInfo?.companyName ? contractorInfo.companyName : 'Unassigned')} 
-        isContractor={!!contractorId}
-        contractorInfo={contractorInfo || undefined}
+        value={assignedToLandlord ? 'Landlord' : (contractorInfo?.companyName || assignedTo || 'Unassigned')} 
+        isContractor={!!contractorId && !assignedToLandlord}
+        contractorInfo={!assignedToLandlord ? (contractorInfo || undefined) : undefined}
       />
     </div>
   );

@@ -19,6 +19,7 @@ interface RequestMetadataProps {
   contractorId?: string;
   propertyId?: string;
   propertyName?: string;
+  assignedToLandlord?: boolean;
 }
 
 export const RequestMetadata = ({
@@ -31,7 +32,8 @@ export const RequestMetadata = ({
   assignedTo,
   contractorId,
   propertyId,
-  propertyName
+  propertyName,
+  assignedToLandlord
 }: RequestMetadataProps) => {
   const [contractorInfo, setContractorInfo] = useState<{
     companyName?: string;
@@ -78,9 +80,9 @@ export const RequestMetadata = ({
       <UserInfo label="Submitted By" value={submittedBy} />
       <UserInfo 
         label="Assigned To" 
-        value={assignedTo || 'Unassigned'} 
-        isContractor={!!contractorId}
-        contractorInfo={contractorInfo}
+        value={assignedToLandlord ? 'Landlord' : (contractorInfo?.companyName || assignedTo || 'Unassigned')} 
+        isContractor={!!contractorId && !assignedToLandlord}
+        contractorInfo={!assignedToLandlord ? contractorInfo : undefined}
       />
     </div>
   );
