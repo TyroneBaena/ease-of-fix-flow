@@ -131,6 +131,7 @@ export type Database = {
           event_date: string
           id: string
           maintenance_request_id: string | null
+          notification_sent: boolean | null
           organization_id: string
           parent_event_id: string | null
           property_id: string | null
@@ -152,6 +153,7 @@ export type Database = {
           event_date: string
           id?: string
           maintenance_request_id?: string | null
+          notification_sent?: boolean | null
           organization_id: string
           parent_event_id?: string | null
           property_id?: string | null
@@ -173,6 +175,7 @@ export type Database = {
           event_date?: string
           id?: string
           maintenance_request_id?: string | null
+          notification_sent?: boolean | null
           organization_id?: string
           parent_event_id?: string | null
           property_id?: string | null
