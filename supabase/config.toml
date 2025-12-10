@@ -196,3 +196,6 @@ verify_jwt = false
 
 [functions.send-calendar-event-reminders]
 verify_jwt = false
+
+[functions.send-pending-request-reminders]
+verify_jwt = false
