@@ -1283,6 +1283,60 @@ export type Database = {
           },
         ]
       }
+      property_notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by_name: string | null
+          id: string
+          note_type: string
+          organization_id: string | null
+          property_id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by_name?: string | null
+          id?: string
+          note_type: string
+          organization_id?: string | null
+          property_id: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by_name?: string | null
+          id?: string
+          note_type?: string
+          organization_id?: string | null
+          property_id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_notes_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_logs: {
         Row: {
           action: string
