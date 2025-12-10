@@ -1183,11 +1183,19 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
         sessionStorage.setItem('password_reset_pending', 'true');
         sessionStorage.setItem('password_reset_email', session.user.email || '');
         
+        // Store the session tokens for later use in SetupPassword.tsx
+        sessionStorage.setItem('password_reset_access_token', session.access_token);
+        sessionStorage.setItem('password_reset_refresh_token', session.refresh_token);
+        
         // Set session but DON'T set currentUser yet - let SetupPassword handle the flow
         setSession(session);
         setLoading(false);
         
-        console.log("🔐 UnifiedAuth - Password reset pending flag set, NOT setting currentUser");
+        // ✅ CRITICAL FIX: Mark initialization as complete so the app renders
+        initialCheckDone.current = true;
+        hasCompletedInitialSetup.current = true;
+        
+        console.log("🔐 UnifiedAuth - Password reset pending flag set, initialization marked complete");
         // Don't convert user or set isSessionReady - keep user in "pending" state
         return; // Exit early - don't fall through to SIGNED_IN handling
       }
