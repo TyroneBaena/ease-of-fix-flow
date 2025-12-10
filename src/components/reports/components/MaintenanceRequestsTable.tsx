@@ -9,7 +9,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { getPriorityClass, getStatusClass, formatDate } from '../utils/reportHelpers';
+import { getPriorityClass, formatDate } from '../utils/reportHelpers';
+import { getDisplayStatus, getDisplayStatusColor } from '@/utils/statusDisplayUtils';
 
 interface MaintenanceRequestsTableProps {
   filteredRequests: MaintenanceRequest[];
@@ -35,24 +36,32 @@ const MaintenanceRequestsTable: React.FC<MaintenanceRequestsTableProps> = ({
         </TableHeader>
         <TableBody>
           {filteredRequests.length > 0 ? (
-            filteredRequests.map(request => (
-              <TableRow key={request.id}>
-                <TableCell className="font-medium">{request.issueNature || request.title}</TableCell>
-                <TableCell>{request.propertyId ? getPropertyName(request.propertyId) : 'N/A'}</TableCell>
-                <TableCell>{request.site || (request.propertyId ? getPropertyName(request.propertyId) : 'N/A')}</TableCell>
-                <TableCell>
-                  <span className={`capitalize px-2 py-1 rounded-full text-xs ${getPriorityClass(request.priority)}`}>
-                    {request.priority || 'Medium'}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className={`capitalize px-2 py-1 rounded-full text-xs ${getStatusClass(request.status)}`}>
-                    {request.status}
-                  </span>
-                </TableCell>
-                <TableCell>{formatDate(request.createdAt)}</TableCell>
-              </TableRow>
-            ))
+            filteredRequests.map(request => {
+              const displayStatus = getDisplayStatus(
+                request.status, 
+                (request as any).assigned_to_landlord ?? (request as any).assignedToLandlord
+              );
+              const statusColor = getDisplayStatusColor(displayStatus);
+              
+              return (
+                <TableRow key={request.id}>
+                  <TableCell className="font-medium">{request.issueNature || request.title}</TableCell>
+                  <TableCell>{request.propertyId ? getPropertyName(request.propertyId) : 'N/A'}</TableCell>
+                  <TableCell>{request.site || (request.propertyId ? getPropertyName(request.propertyId) : 'N/A')}</TableCell>
+                  <TableCell>
+                    <span className={`capitalize px-2 py-1 rounded-full text-xs ${getPriorityClass(request.priority)}`}>
+                      {request.priority || 'Medium'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${statusColor}`}>
+                      {displayStatus}
+                    </span>
+                  </TableCell>
+                  <TableCell>{formatDate(request.createdAt)}</TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8 text-gray-500">
