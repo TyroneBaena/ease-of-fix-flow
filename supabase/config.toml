@@ -193,3 +193,6 @@ verify_jwt = false
 
 [functions.self-service-password-reset]
 verify_jwt = false
+
+[functions.send-calendar-event-reminders]
+verify_jwt = false
