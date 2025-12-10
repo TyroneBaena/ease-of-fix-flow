@@ -11,7 +11,7 @@ import { ManageSkillsDialog } from '@/components/contractor/ManageSkillsDialog';
 import { ChangePasswordDialog } from '@/components/contractor/ChangePasswordDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 import { Star, User, Building2, Mail, Phone, MapPin, Calendar, Award, Shield, Settings, Key, Smartphone } from 'lucide-react';
 
 const ContractorProfile = () => {
@@ -259,7 +259,7 @@ const ContractorProfile = () => {
                         <span>Member Since</span>
                       </div>
                       <span className="font-medium">
-                        {contractor?.createdAt ? format(new Date(contractor.createdAt), 'MMM d, yyyy') : 'N/A'}
+                        {contractor?.createdAt ? formatFullDate(contractor.createdAt) : 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">

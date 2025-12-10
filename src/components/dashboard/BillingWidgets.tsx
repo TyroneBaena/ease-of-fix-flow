@@ -14,7 +14,7 @@ import {
 import { useSubscription } from '@/contexts/subscription/SubscriptionContext';
 import { useUnifiedAuth } from '@/contexts/UnifiedAuthContext';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { formatShortDate } from '@/utils/dateFormatUtils';
 
 export const BillingWidgets: React.FC = () => {
   const navigate = useNavigate();
@@ -139,7 +139,7 @@ export const BillingWidgets: React.FC = () => {
               : isCancelled
                 ? 'Reactivation available'
               : isTrialActive 
-                ? `Ends ${trialEndDate ? format(new Date(trialEndDate), 'MMM dd') : 'soon'}`
+                ? `Ends ${trialEndDate ? formatShortDate(trialEndDate) : 'soon'}`
                 : hasNeverStartedTrial
                   ? 'Start free trial'
                   : 'Reactivation required'

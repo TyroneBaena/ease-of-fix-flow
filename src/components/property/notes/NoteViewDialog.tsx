@@ -8,7 +8,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { PropertyNote } from '@/types/notes';
 import { NoteAttachments } from './NoteAttachments';
-import { format } from 'date-fns';
+import { formatFullDateTime } from '@/utils/dateFormatUtils';
 
 interface NoteViewDialogProps {
   open: boolean;
@@ -45,7 +45,7 @@ export function NoteViewDialog({ open, onOpenChange, note }: NoteViewDialogProps
           </div>
           <DialogTitle className="text-xl">{note.title}</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            By {note.createdByName || 'Unknown'} • {format(new Date(note.createdAt), 'MMM d, yyyy h:mm a')}
+            By {note.createdByName || 'Unknown'} • {formatFullDateTime(note.createdAt)}
           </p>
         </DialogHeader>
 

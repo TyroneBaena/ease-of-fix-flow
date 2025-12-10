@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, DollarSign } from 'lucide-react';
+import { formatFullDateTime } from '@/utils/dateFormatUtils';
 
 interface InvoiceData {
   id: string;
@@ -22,20 +23,6 @@ interface InvoiceCardProps {
 export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
   const handleDownload = () => {
     window.open(invoice.invoice_file_url, '_blank');
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return dateString;
-    }
   };
 
   return (
@@ -58,7 +45,7 @@ export const InvoiceCard = ({ invoice }: InvoiceCardProps) => {
               <p className="text-sm font-medium text-gray-500">Upload Date</p>
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3 text-gray-400" />
-                <p className="text-sm">{formatDate(invoice.uploaded_at)}</p>
+                <p className="text-sm">{formatFullDateTime(invoice.uploaded_at)}</p>
               </div>
             </div>
           </div>

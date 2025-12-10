@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Property } from '@/types/property';
 import { Button } from '@/components/ui/button';
 import { MapPin, Phone, Mail, Calendar, DollarSign } from 'lucide-react';
+import { formatFullDate } from '@/utils/dateFormatUtils';
 
 interface PropertyListItemProps {
   property: Property;
@@ -29,7 +30,7 @@ export const PropertyListItem: React.FC<PropertyListItemProps> = ({ property, is
           </div>
           <div className="text-sm text-muted-foreground truncate hidden lg:flex items-center">
             <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="truncate">{new Date(property.renewalDate).toLocaleDateString()}</span>
+            <span className="truncate">{formatFullDate(property.renewalDate)}</span>
           </div>
           {isAdmin && (
             <div className="text-sm text-muted-foreground truncate hidden lg:flex items-center">

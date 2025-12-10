@@ -6,6 +6,7 @@ import { calendarService } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
 import { useContractorAuth } from '@/contexts/contractor/ContractorAuthContext';
 import { format, addDays, startOfWeek, endOfWeek, isToday, isTomorrow, parseISO } from 'date-fns';
+import { formatShortDate, formatFullDate, formatRelativeDay } from '@/utils/dateFormatUtils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -32,7 +33,7 @@ const getDateLabel = (dateStr: string): string => {
   const date = parseISO(dateStr);
   if (isToday(date)) return 'Today';
   if (isTomorrow(date)) return 'Tomorrow';
-  return format(date, 'EEE, MMM d');
+  return formatRelativeDay(date);
 };
 
 export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> = ({ className }) => {
@@ -82,7 +83,7 @@ export const ContractorCalendarWidget: React.FC<ContractorCalendarWidgetProps> =
   };
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
-  const weekLabel = `${format(currentWeekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+  const weekLabel = `${formatShortDate(currentWeekStart)} - ${formatFullDate(weekEnd)}`;
 
   // Group events by date
   const eventsByDate = events.reduce((acc, event) => {
