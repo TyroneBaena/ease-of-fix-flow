@@ -98,10 +98,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Generate a secure temporary password (12 characters with mix of chars)
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+    // Generate a secure temporary password - safe character set (no HTML-problematic or ambiguous chars)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
     let tempPassword = '';
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 16; i++) {
       tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
