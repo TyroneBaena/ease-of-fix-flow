@@ -368,11 +368,11 @@ const Dashboard = () => {
             <DashboardHeader title="Dashboard" />
 
             {/* Top Row: Property Management & Calendar/Pending Actions Widgets */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              <div className="md:col-span-1 lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="lg:col-span-2">
                 <PropertyManagementWidget />
               </div>
-              <div className="md:col-span-1 lg:col-span-1 space-y-4">
+              <div className="lg:col-span-1 space-y-4">
                 <OrganizationCalendarWidget />
                 {/* Pending Actions Widget - Only for admin/manager */}
                 {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
