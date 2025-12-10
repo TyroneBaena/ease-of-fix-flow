@@ -367,22 +367,19 @@ const Dashboard = () => {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <DashboardHeader title="Dashboard" />
 
-            {/* Top Row: Property Management & Calendar Widget */}
+            {/* Top Row: Property Management & Calendar/Pending Actions Widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div className="lg:col-span-2">
                 <PropertyManagementWidget />
               </div>
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1 space-y-4">
                 <OrganizationCalendarWidget />
+                {/* Pending Actions Widget - Only for admin/manager */}
+                {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                  <PendingActionsWidget requests={userRequests} />
+                )}
               </div>
             </div>
-
-            {/* Pending Actions Widget - Only for admin/manager */}
-            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
-              <div className="mb-6">
-                <PendingActionsWidget requests={userRequests} />
-              </div>
-            )}
 
             <div
               className={`grid gap-6 ${selectedRequest ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-4"}`}
