@@ -77,6 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`📅 Target event date: ${targetDate}`);
 
     // Fetch events for target date that haven't had reminders sent
+    // Include contractor_id and maintenance_request_id for contractor notifications
     const { data: events, error: eventsError } = await supabase
       .from('calendar_events')
       .select(`
@@ -87,12 +88,13 @@ const handler = async (req: Request): Promise<Response> => {
         start_time,
         end_time,
         property_id,
+        contractor_id,
+        maintenance_request_id,
         organization_id,
         source_type
       `)
       .eq('event_date', targetDate)
-      .eq('notification_sent', false)
-      .not('property_id', 'is', null);
+      .eq('notification_sent', false);
 
     if (eventsError) {
       console.error('Error fetching events:', eventsError);
@@ -147,7 +149,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     };
 
-    // Create email HTML template
+    // Create email HTML template for property/manager recipients
     const createEmailHtml = (event: any, propertyData: any, recipientType: string) => `
       <!DOCTYPE html>
       <html>
@@ -191,119 +193,253 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
+    // Create contractor-specific email HTML template (green styling)
+    const createContractorEmailHtml = (event: any, propertyData: any, contractor: any) => `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Job Reminder</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+          <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">🔔 Job Reminder</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">You have a scheduled job tomorrow</p>
+          </div>
+          
+          <div style="background-color: white; padding: 25px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #059669; margin-top: 0; margin-bottom: 20px; font-size: 22px;">${event.title}</h2>
+            
+            <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #047857; font-weight: bold; width: 120px;">📆 Date:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${formatEventDate(event.event_date)}</td>
+                </tr>
+                ${event.start_time ? `
+                <tr>
+                  <td style="padding: 8px 0; color: #047857; font-weight: bold;">🕐 Time:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${formatTime(event.start_time)}${event.end_time ? ` - ${formatTime(event.end_time)}` : ''}</td>
+                </tr>
+                ` : ''}
+                ${event.description ? `
+                <tr>
+                  <td style="padding: 8px 0; color: #047857; font-weight: bold; vertical-align: top;">📝 Details:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${event.description}</td>
+                </tr>
+                ` : ''}
+              </table>
+            </div>
+
+            ${propertyData ? `
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+              <h3 style="color: #374151; margin: 0 0 15px 0; font-size: 16px;">📍 Property Details</h3>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>${propertyData.name}</strong></p>
+              <p style="margin: 5px 0; color: #6b7280;">${propertyData.address}</p>
+            </div>
+            ` : ''}
+
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${Deno.env.get('APPLICATION_URL') || 'https://housinghub.app'}${event.maintenance_request_id ? `/contractor/jobs/${event.maintenance_request_id}` : '/contractor-schedule'}" 
+                 style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                View Job Details
+              </a>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
+            <p style="margin: 5px 0;">HousingHub - Property Management Made Simple</p>
+            <p style="margin: 5px 0;">This is an automated job reminder notification.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
     // Process each event
     for (const event of events) {
       console.log(`📅 Processing event: "${event.title}" (ID: ${event.id})`);
 
-      // Fetch property details
-      const { data: propertyData, error: propertyError } = await supabase
-        .from('properties')
-        .select('name, address, email, practice_leader_email, organization_id')
-        .eq('id', event.property_id)
-        .single();
-
-      if (propertyError || !propertyData) {
-        console.error(`Failed to fetch property for event ${event.id}:`, propertyError);
-        continue;
-      }
-
+      let propertyData: any = null;
       const sentEmails = new Set<string>();
 
-      // 1. Send to property contact email
-      if (propertyData.email) {
-        const hasPreference = await hasEmailNotificationsEnabled(propertyData.email);
-        if (hasPreference && !sentEmails.has(propertyData.email)) {
-          console.log(`  → Sending email to property contact: ${propertyData.email}`);
-          try {
-            await resend.emails.send({
-              from: 'HousingHub <notifications@housinghub.app>',
-              to: [propertyData.email],
-              subject: `📅 Reminder: ${event.title} - Tomorrow`,
-              html: createEmailHtml(event, propertyData, 'property contact'),
-            });
-            sentEmails.add(propertyData.email);
-            totalEmailsSent++;
-            await delay(600);
-          } catch (emailError) {
-            console.error(`Failed to send email to ${propertyData.email}:`, emailError);
+      // Fetch property details if property_id exists
+      if (event.property_id) {
+        const { data: propData, error: propertyError } = await supabase
+          .from('properties')
+          .select('name, address, email, practice_leader_email, organization_id')
+          .eq('id', event.property_id)
+          .single();
+
+        if (propertyError) {
+          console.error(`Failed to fetch property for event ${event.id}:`, propertyError);
+        } else {
+          propertyData = propData;
+        }
+      }
+
+      // Only send property/manager notifications if we have property data
+      if (propertyData) {
+        // 1. Send to property contact email
+        if (propertyData.email) {
+          const hasPreference = await hasEmailNotificationsEnabled(propertyData.email);
+          if (hasPreference && !sentEmails.has(propertyData.email)) {
+            console.log(`  → Sending email to property contact: ${propertyData.email}`);
+            try {
+              await resend.emails.send({
+                from: 'HousingHub <notifications@housinghub.app>',
+                to: [propertyData.email],
+                subject: `📅 Reminder: ${event.title} - Tomorrow`,
+                html: createEmailHtml(event, propertyData, 'property contact'),
+              });
+              sentEmails.add(propertyData.email);
+              totalEmailsSent++;
+              await delay(600);
+            } catch (emailError) {
+              console.error(`Failed to send email to ${propertyData.email}:`, emailError);
+            }
+          }
+        }
+
+        // 2. Send to practice leader
+        if (propertyData.practice_leader_email && !sentEmails.has(propertyData.practice_leader_email)) {
+          const hasPreference = await hasEmailNotificationsEnabled(propertyData.practice_leader_email);
+          if (hasPreference) {
+            console.log(`  → Sending email to practice leader: ${propertyData.practice_leader_email}`);
+            try {
+              await resend.emails.send({
+                from: 'HousingHub <notifications@housinghub.app>',
+                to: [propertyData.practice_leader_email],
+                subject: `📅 Reminder: ${event.title} - Tomorrow`,
+                html: createEmailHtml(event, propertyData, 'practice leader'),
+              });
+              sentEmails.add(propertyData.practice_leader_email);
+              totalEmailsSent++;
+              await delay(600);
+            } catch (emailError) {
+              console.error(`Failed to send email to ${propertyData.practice_leader_email}:`, emailError);
+            }
+          }
+        }
+
+        // 3. Find and notify assigned managers
+        const { data: assignedManagers, error: managersError } = await supabase
+          .from('profiles')
+          .select('id, email, name, notification_settings')
+          .eq('role', 'manager')
+          .eq('organization_id', event.organization_id)
+          .contains('assigned_properties', [event.property_id]);
+
+        if (managersError) {
+          console.error('Error fetching assigned managers:', managersError);
+        }
+
+        if (assignedManagers && assignedManagers.length > 0) {
+          console.log(`  → Found ${assignedManagers.length} assigned manager(s)`);
+          
+          for (const manager of assignedManagers) {
+            // Send email if not already sent
+            if (!sentEmails.has(manager.email)) {
+              const hasEmailPref = await hasEmailNotificationsEnabled(manager.email);
+              if (hasEmailPref) {
+                console.log(`    → Sending email to manager: ${manager.email}`);
+                try {
+                  await resend.emails.send({
+                    from: 'HousingHub <notifications@housinghub.app>',
+                    to: [manager.email],
+                    subject: `📅 Reminder: ${event.title} - Tomorrow`,
+                    html: createEmailHtml(event, propertyData, 'assigned property manager'),
+                  });
+                  sentEmails.add(manager.email);
+                  totalEmailsSent++;
+                  await delay(600);
+                } catch (emailError) {
+                  console.error(`Failed to send email to manager ${manager.email}:`, emailError);
+                }
+              }
+            }
+
+            // Create in-app notification
+            const hasAppPref = await hasAppNotificationsEnabled(manager.id);
+            if (hasAppPref) {
+              try {
+                await supabase.from('notifications').insert({
+                  user_id: manager.id,
+                  title: '📅 Event Reminder',
+                  message: `Reminder: "${event.title}" is scheduled for tomorrow at ${propertyData.name}`,
+                  type: 'info',
+                  link: `/properties/${event.property_id}`,
+                  organization_id: event.organization_id
+                });
+                totalNotificationsCreated++;
+                console.log(`    → Created in-app notification for manager: ${manager.name}`);
+              } catch (notifError) {
+                console.error(`Failed to create notification for manager ${manager.id}:`, notifError);
+              }
+            }
           }
         }
       }
 
-      // 2. Send to practice leader
-      if (propertyData.practice_leader_email && !sentEmails.has(propertyData.practice_leader_email)) {
-        const hasPreference = await hasEmailNotificationsEnabled(propertyData.practice_leader_email);
-        if (hasPreference) {
-          console.log(`  → Sending email to practice leader: ${propertyData.practice_leader_email}`);
-          try {
-            await resend.emails.send({
-              from: 'HousingHub <notifications@housinghub.app>',
-              to: [propertyData.practice_leader_email],
-              subject: `📅 Reminder: ${event.title} - Tomorrow`,
-              html: createEmailHtml(event, propertyData, 'practice leader'),
-            });
-            sentEmails.add(propertyData.practice_leader_email);
-            totalEmailsSent++;
-            await delay(600);
-          } catch (emailError) {
-            console.error(`Failed to send email to ${propertyData.practice_leader_email}:`, emailError);
-          }
-        }
-      }
-
-      // 3. Find and notify assigned managers
-      const { data: assignedManagers, error: managersError } = await supabase
-        .from('profiles')
-        .select('id, email, name, notification_settings')
-        .eq('role', 'manager')
-        .eq('organization_id', event.organization_id)
-        .contains('assigned_properties', [event.property_id]);
-
-      if (managersError) {
-        console.error('Error fetching assigned managers:', managersError);
-      }
-
-      if (assignedManagers && assignedManagers.length > 0) {
-        console.log(`  → Found ${assignedManagers.length} assigned manager(s)`);
+      // 4. Notify assigned contractor (if any)
+      if (event.contractor_id) {
+        console.log(`  → Processing contractor notification for contractor_id: ${event.contractor_id}`);
         
-        for (const manager of assignedManagers) {
-          // Send email if not already sent
-          if (!sentEmails.has(manager.email)) {
-            const hasEmailPref = await hasEmailNotificationsEnabled(manager.email);
+        // Fetch contractor details
+        const { data: contractor, error: contractorError } = await supabase
+          .from('contractors')
+          .select('id, user_id, email, contact_name, company_name')
+          .eq('id', event.contractor_id)
+          .single();
+
+        if (contractorError) {
+          console.error(`Failed to fetch contractor ${event.contractor_id}:`, contractorError);
+        } else if (contractor) {
+          console.log(`  → Found contractor: ${contractor.contact_name || contractor.company_name} (${contractor.email})`);
+          
+          // Send email to contractor if not already sent and preference enabled
+          if (contractor.email && !sentEmails.has(contractor.email)) {
+            const hasEmailPref = await hasEmailNotificationsEnabled(contractor.email);
             if (hasEmailPref) {
-              console.log(`    → Sending email to manager: ${manager.email}`);
+              console.log(`    → Sending job reminder email to contractor: ${contractor.email}`);
               try {
                 await resend.emails.send({
                   from: 'HousingHub <notifications@housinghub.app>',
-                  to: [manager.email],
-                  subject: `📅 Reminder: ${event.title} - Tomorrow`,
-                  html: createEmailHtml(event, propertyData, 'assigned property manager'),
+                  to: [contractor.email],
+                  subject: `🔔 Job Reminder: ${event.title} - Tomorrow`,
+                  html: createContractorEmailHtml(event, propertyData, contractor),
                 });
-                sentEmails.add(manager.email);
+                sentEmails.add(contractor.email);
                 totalEmailsSent++;
                 await delay(600);
               } catch (emailError) {
-                console.error(`Failed to send email to manager ${manager.email}:`, emailError);
+                console.error(`Failed to send email to contractor ${contractor.email}:`, emailError);
               }
             }
           }
 
-          // Create in-app notification
-          const hasAppPref = await hasAppNotificationsEnabled(manager.id);
-          if (hasAppPref) {
-            try {
-              await supabase.from('notifications').insert({
-                user_id: manager.id,
-                title: '📅 Event Reminder',
-                message: `Reminder: "${event.title}" is scheduled for tomorrow at ${propertyData.name}`,
-                type: 'info',
-                link: `/properties/${event.property_id}`,
-                organization_id: event.organization_id
-              });
-              totalNotificationsCreated++;
-              console.log(`    → Created in-app notification for manager: ${manager.name}`);
-            } catch (notifError) {
-              console.error(`Failed to create notification for manager ${manager.id}:`, notifError);
+          // Create in-app notification for contractor
+          if (contractor.user_id) {
+            const hasAppPref = await hasAppNotificationsEnabled(contractor.user_id);
+            if (hasAppPref) {
+              try {
+                const notificationLink = event.maintenance_request_id 
+                  ? `/contractor/jobs/${event.maintenance_request_id}` 
+                  : '/contractor-schedule';
+                
+                await supabase.from('notifications').insert({
+                  user_id: contractor.user_id,
+                  title: '🔔 Job Reminder',
+                  message: `Reminder: "${event.title}" is scheduled for tomorrow${propertyData ? ` at ${propertyData.name}` : ''}`,
+                  type: 'info',
+                  link: notificationLink,
+                  organization_id: event.organization_id
+                });
+                totalNotificationsCreated++;
+                console.log(`    → Created in-app notification for contractor: ${contractor.contact_name || contractor.company_name}`);
+              } catch (notifError) {
+                console.error(`Failed to create notification for contractor ${contractor.user_id}:`, notifError);
+              }
             }
           }
         }
