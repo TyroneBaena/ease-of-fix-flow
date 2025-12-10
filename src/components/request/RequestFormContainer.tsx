@@ -20,11 +20,15 @@ export const RequestFormContainer = () => {
   
   // Use appropriate context based on public/private access
   let properties: any[] = [];
+  let publicHousemates: { id: string; firstName: string; lastName: string }[] | undefined;
+  
   try {
     if (isPublic) {
-      const { properties: publicProperties } = usePublicPropertyContext();
+      const { properties: publicProperties, housemates } = usePublicPropertyContext();
       properties = publicProperties;
+      publicHousemates = housemates;
       console.log('🔍 [DEBUG] RequestFormContainer - Using public properties:', properties.length);
+      console.log('🔍 [DEBUG] RequestFormContainer - Using public housemates:', housemates?.length || 0);
     } else {
       const { properties: privateProperties } = usePropertyContext();
       properties = privateProperties;
@@ -209,7 +213,9 @@ export const RequestFormContainer = () => {
               attemptedFix: attemptedFix || 'None attempted',
               priority: priority || 'medium', // Use default if empty
               budgetCategoryId: budgetCategoryId || null,
-              attachments: attachments
+              attachments: attachments,
+              isParticipantRelated: isParticipantRelated || false,
+              participantName: isParticipantRelated ? participantName : 'N/A'
             })
           });
 
@@ -339,6 +345,7 @@ export const RequestFormContainer = () => {
         removeFile={removeFile}
         isUploading={isUploading}
         showPhotoError={showPhotoError}
+        publicHousemates={publicHousemates}
       />
       
       <RequestFormActions 

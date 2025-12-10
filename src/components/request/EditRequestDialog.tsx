@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { MaintenanceRequest } from '@/types/maintenance';
 import { useEditRequest } from '@/hooks/useEditRequest';
+import { useHousemates } from '@/hooks/useHousemates';
 
 interface EditRequestDialogProps {
   open: boolean;
@@ -17,6 +17,10 @@ interface EditRequestDialogProps {
   onRequestUpdated: () => void;
 }
 
+const formatParticipantName = (firstName: string, lastName: string): string => {
+  return `${firstName} ${lastName.charAt(0)}.`;
+};
+
 export const EditRequestDialog = ({ 
   open, 
   onOpenChange, 
@@ -24,6 +28,7 @@ export const EditRequestDialog = ({
   onRequestUpdated 
 }: EditRequestDialogProps) => {
   const { updateRequest, isUpdating } = useEditRequest();
+  const { housemates, fetchHousemates } = useHousemates();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -39,6 +44,16 @@ export const EditRequestDialog = ({
     reportDate: '',
     submittedBy: ''
   });
+
+  const [selectedHousemateOption, setSelectedHousemateOption] = useState<string>('');
+  const [manualParticipantEntry, setManualParticipantEntry] = useState(false);
+
+  // Fetch housemates when request property changes
+  useEffect(() => {
+    if (request?.propertyId && open) {
+      fetchHousemates(request.propertyId, false);
+    }
+  }, [request?.propertyId, open, fetchHousemates]);
 
   // Initialize form data when request changes
   useEffect(() => {
@@ -60,6 +75,22 @@ export const EditRequestDialog = ({
     }
   }, [request]);
 
+  // Initialize housemate selection from existing participant name
+  useEffect(() => {
+    if (formData.participantName && housemates.length > 0) {
+      const matchingHousemate = housemates.find(h => 
+        formatParticipantName(h.firstName, h.lastName) === formData.participantName
+      );
+      if (matchingHousemate) {
+        setSelectedHousemateOption(matchingHousemate.id);
+        setManualParticipantEntry(false);
+      } else if (formData.participantName && formData.participantName !== 'N/A') {
+        setSelectedHousemateOption('other');
+        setManualParticipantEntry(true);
+      }
+    }
+  }, [formData.participantName, housemates]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -76,6 +107,21 @@ export const EditRequestDialog = ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleHousemateSelect = (selectedValue: string) => {
+    setSelectedHousemateOption(selectedValue);
+    
+    if (selectedValue === 'other') {
+      setManualParticipantEntry(true);
+      handleInputChange('participantName', '');
+    } else {
+      setManualParticipantEntry(false);
+      const selectedHousemate = housemates.find(h => h.id === selectedValue);
+      if (selectedHousemate) {
+        handleInputChange('participantName', formatParticipantName(selectedHousemate.firstName, selectedHousemate.lastName));
+      }
+    }
   };
 
   return (
@@ -183,20 +229,56 @@ export const EditRequestDialog = ({
             <Switch
               id="isParticipantRelated"
               checked={formData.isParticipantRelated}
-              onCheckedChange={(checked) => handleInputChange('isParticipantRelated', checked)}
+              onCheckedChange={(checked) => {
+                handleInputChange('isParticipantRelated', checked);
+                if (!checked) {
+                  handleInputChange('participantName', '');
+                  setSelectedHousemateOption('');
+                  setManualParticipantEntry(false);
+                }
+              }}
             />
             <Label htmlFor="isParticipantRelated">Participant Related</Label>
           </div>
 
           {formData.isParticipantRelated && (
-            <div>
-              <Label htmlFor="participantName">Participant Name</Label>
-              <Input
-                id="participantName"
-                value={formData.participantName}
-                onChange={(e) => handleInputChange('participantName', e.target.value)}
-                required
-              />
+            <div className="space-y-2">
+              <Label>Participant Name</Label>
+              {housemates.length > 0 ? (
+                <div className="space-y-2">
+                  <Select value={selectedHousemateOption} onValueChange={handleHousemateSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a housemate or enter manually" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {housemates.map((housemate) => (
+                        <SelectItem key={housemate.id} value={housemate.id}>
+                          {housemate.firstName} {housemate.lastName}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="other">Other (enter manually)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {manualParticipantEntry && (
+                    <Input
+                      id="participantName"
+                      value={formData.participantName}
+                      onChange={(e) => handleInputChange('participantName', e.target.value)}
+                      placeholder="Enter participant name (e.g., James L.)"
+                      required
+                    />
+                  )}
+                </div>
+              ) : (
+                <Input
+                  id="participantName"
+                  value={formData.participantName}
+                  onChange={(e) => handleInputChange('participantName', e.target.value)}
+                  placeholder="Enter participant name (e.g., James L.)"
+                  required
+                />
+              )}
             </div>
           )}
 
