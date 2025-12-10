@@ -11,6 +11,18 @@ import { ensureUserOrganization } from "@/services/user/tenantService";
 import { validatePassword } from "@/utils/passwordValidation";
 import logo from "@/assets/logo-light-bg.png";
 
+// Helper function to add timeout protection to async operations
+const fetchWithTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<T> => {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+  );
+  return Promise.race([promise, timeout]);
+};
+
 const SetupPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -110,21 +122,31 @@ const SetupPassword = () => {
       setIsLoading(true);
       const isForcePasswordChange = sessionStorage.getItem('force_password_change') === 'true';
       
-      console.log("🔐 Password change attempt:", {
-        isResetMode,
+      // FIX: Re-check current URL hash state at submission time (not rely on stale isResetMode)
+      const currentHashParams = new URLSearchParams(location.hash.substring(1));
+      const hasTokensInUrl = currentHashParams.has('access_token');
+      
+      // FIX: Check for active session FIRST before any reset token processing
+      const { data: initialSessionCheck } = await supabase.auth.getSession();
+      
+      console.log("🔐 Password submit - initial state check:", {
+        hasSessionFromState: hasSession,
+        hasSessionFromCheck: !!initialSessionCheck?.session,
+        hasTokensInUrl,
+        isResetModeState: isResetMode,
         isForcePasswordChange,
-        hasSession,
         email
       });
 
       // Handle password reset flow - check for tokens in URL hash
-      if (isResetMode) {
+      // FIX: Use fresh hasTokensInUrl check instead of stale isResetMode
+      if (hasTokensInUrl || isResetMode) {
         // Extract the access token from URL hash (if not already in session)
-        const hashParams = new URLSearchParams(location.hash.substring(1)); // Remove the leading '#'
-        const accessToken = hashParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token");
+        const accessToken = currentHashParams.get("access_token");
+        const refreshToken = currentHashParams.get("refresh_token");
 
-        if (accessToken && refreshToken && !hasSession) {
+        // FIX: Check fresh session state, not stale hasSession
+        if (accessToken && refreshToken && !initialSessionCheck?.session) {
           console.log("Found reset tokens in URL, establishing session");
           // Set the session with the access token
           const { error: sessionError } = await supabase.auth.setSession({
@@ -135,28 +157,45 @@ const SetupPassword = () => {
           if (sessionError) {
             console.error("Session error:", sessionError);
             toast.error(`Failed to authenticate: ${sessionError.message}`);
+            setIsLoading(false);
             return;
           }
           
           // Update hasSession state after successful session creation
           setHasSession(true);
-        } else if (!hasSession) {
-          // No tokens and no session - invalid reset link
+          console.log("✅ Session established from reset tokens");
+        } else if (!initialSessionCheck?.session && !accessToken) {
+          // No tokens and no session - invalid/expired reset link
+          console.error("❌ Reset mode but no tokens and no session");
           toast.error("Password reset link is invalid or has expired. Please request a new reset link.");
+          setIsLoading(false);
           return;
         }
       }
 
       // CRITICAL: Verify session exists before updating password for ALL modes
-      const { data: sessionCheck } = await supabase.auth.getSession();
+      // FIX: Add timeout protection to prevent hanging
+      let sessionCheck;
+      try {
+        sessionCheck = await fetchWithTimeout(
+          supabase.auth.getSession(),
+          5000,
+          "Session verification timed out"
+        );
+      } catch (timeoutError) {
+        console.error("❌ Session check timed out:", timeoutError);
+        toast.error("Connection timed out. Please check your internet connection and try again.");
+        setIsLoading(false);
+        return;
+      }
       
       console.log("🔐 Pre-updateUser session verification:", {
-        hasSession: !!sessionCheck?.session,
-        sessionUserEmail: sessionCheck?.session?.user?.email,
-        sessionExpiry: sessionCheck?.session?.expires_at
+        hasSession: !!sessionCheck?.data?.session,
+        sessionUserEmail: sessionCheck?.data?.session?.user?.email,
+        sessionExpiry: sessionCheck?.data?.session?.expires_at
       });
 
-      if (!sessionCheck?.session) {
+      if (!sessionCheck?.data?.session) {
         console.error("❌ No active session found - cannot update password");
         
         // For new invited users (force password change), redirect to re-login
@@ -166,19 +205,34 @@ const SetupPassword = () => {
           sessionStorage.removeItem('force_password_change');
           sessionStorage.removeItem('password_reset_email');
           navigate(`/login?email=${encodeURIComponent(email)}`);
+          setIsLoading(false);
           return;
         }
         
         toast.error("No valid session. Please use the link from your email or log in first.");
+        setIsLoading(false);
         return;
       }
       
-      console.log("✅ Active session verified for:", sessionCheck.session.user.email);
+      console.log("✅ Active session verified for:", sessionCheck.data.session.user.email);
 
       // Now update the password (session should be established at this point)
-      const { error, data } = await supabase.auth.updateUser({
-        password: password,
-      });
+      // FIX: Add timeout protection
+      let updateResult;
+      try {
+        updateResult = await fetchWithTimeout(
+          supabase.auth.updateUser({ password: password }),
+          10000,
+          "Password update timed out"
+        );
+      } catch (timeoutError) {
+        console.error("❌ Password update timed out:", timeoutError);
+        toast.error("Password update timed out. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      const { error, data } = updateResult;
 
       if (error) {
         console.error("❌ Password update error:", error);
@@ -186,6 +240,7 @@ const SetupPassword = () => {
         if (error.message.includes("not logged in")) {
           toast.error("Please sign in with your temporary password or use the reset link from your email");
           navigate(`/login?email=${encodeURIComponent(email)}`);
+          setIsLoading(false);
           return;
         }
 
@@ -198,33 +253,70 @@ const SetupPassword = () => {
       } else {
         console.error("❌ Password update returned no user data");
         toast.error("Password update may have failed. Please try again.");
+        setIsLoading(false);
         return;
       }
 
       // Get user's role and organization to determine redirect
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, organization_id')
-        .eq('id', data.user.id)
-        .maybeSingle();
+      // FIX: Add timeout protection to prevent hanging on profile queries
+      let profile: { role: string; organization_id: string | null } | null = null;
+      let orgMembership: { organization_id: string; role: string } | null = null;
+      
+      try {
+        const profilePromise = supabase
+          .from('profiles')
+          .select('role, organization_id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Profile fetch timed out")), 5000)
+        );
+        
+        const profileResult = await Promise.race([profilePromise, timeout]);
+        profile = profileResult.data;
+        console.log('User profile after password reset:', profile);
+      } catch (profileError) {
+        console.error("Profile fetch failed or timed out:", profileError);
+        // Continue anyway - password was updated successfully
+      }
 
-      console.log('User profile after password reset:', profile);
-
-      // Check if user has organization membership
-      const { data: orgMembership } = await supabase
-        .from('user_organizations')
-        .select('organization_id, role')
-        .eq('user_id', data.user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      console.log('User organization membership:', orgMembership);
+      try {
+        const orgPromise = supabase
+          .from('user_organizations')
+          .select('organization_id, role')
+          .eq('user_id', data.user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Organization fetch timed out")), 5000)
+        );
+        
+        const orgResult = await Promise.race([orgPromise, timeout]);
+        orgMembership = orgResult.data;
+        console.log('User organization membership:', orgMembership);
+      } catch (orgError) {
+        console.error("Organization fetch failed or timed out:", orgError);
+        // Continue anyway - password was updated successfully
+      }
 
       // Determine redirect based on role and organization
       let redirectPath = "/dashboard";
       
+      // FIX: If profile fetch failed, still allow redirect with default path
       if (!profile) {
-        toast.error("Profile not found. Please contact support.");
+        console.warn("⚠️ Profile not found, defaulting to dashboard redirect");
+        // Don't block - password was changed successfully, just redirect
+        toast.success("Password updated successfully! Redirecting...");
+        setSuccess(true);
+        
+        // Clear flags
+        sessionStorage.removeItem('password_reset_pending');
+        sessionStorage.removeItem('password_reset_email');
+        sessionStorage.removeItem('force_password_change');
+        
+        setTimeout(() => navigate("/dashboard"), 2000);
         return;
       }
 
@@ -232,12 +324,13 @@ const SetupPassword = () => {
       const hasOrganization = !!orgMembership?.organization_id;
 
       // For password reset (existing users)
-      if (isResetMode) {
+      if (isResetMode || hasTokensInUrl) {
         // Check if user has organization
         if (!hasOrganization) {
           // Users without organization after password reset = data issue
           toast.error("Your account is not associated with an organization. Please contact support.");
           setErrors({ email: "Account setup incomplete. Please contact support for assistance." });
+          setIsLoading(false);
           return;
         }
 
@@ -257,6 +350,7 @@ const SetupPassword = () => {
         if (!hasOrganization) {
           toast.error("Organization membership not found. Please use your invitation link.");
           setErrors({ email: "Please use the invitation link sent to your email to complete setup." });
+          setIsLoading(false);
           return;
         }
 
@@ -281,23 +375,28 @@ const SetupPassword = () => {
 
       // Clear must_change_password flag in database
       try {
-        await supabase
+        const updatePromise = supabase
           .from('profiles')
           .update({ must_change_password: false })
           .eq('id', data.user.id);
+        
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Database update timed out")), 5000)
+        );
+        
+        await Promise.race([updatePromise, timeout]);
         console.log("🔐 Cleared must_change_password flag in database");
       } catch (flagError) {
         console.warn("Warning: Could not clear must_change_password flag:", flagError);
+        // Don't block redirect - password was changed successfully
       }
 
       // Redirect after a short delay
       setTimeout(() => navigate(redirectPath), 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Password setup error:", error);
-      toast.error(`Failed to set password: ${error.message}`);
-    } finally {
+      toast.error(`Failed to set password: ${error?.message || 'Unknown error'}`);
       setIsLoading(false);
-      setVerifyingSchema(false);
     }
   };
 
