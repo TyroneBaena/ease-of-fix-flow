@@ -8,8 +8,11 @@ interface NoteAttachmentsProps {
   compact?: boolean;
 }
 
-export function NoteAttachments({ attachments, compact = false }: NoteAttachmentsProps) {
-  if (!attachments || attachments.length === 0) return null;
+export function NoteAttachments({ attachments: rawAttachments, compact = false }: NoteAttachmentsProps) {
+  // Defensive array check
+  const attachments = Array.isArray(rawAttachments) ? rawAttachments : [];
+  
+  if (attachments.length === 0) return null;
 
   const getFileIcon = (type: string) => {
     if (type.startsWith('image/')) return ImageIcon;

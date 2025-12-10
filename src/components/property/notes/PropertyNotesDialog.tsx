@@ -11,8 +11,8 @@ import { PropertyNote, NoteAttachment } from '@/types/notes';
 import { NotesTable } from './NotesTable';
 import { NoteFormDialog } from './NoteFormDialog';
 import { DeleteNoteDialog } from './DeleteNoteDialog';
+import { NoteViewDialog } from './NoteViewDialog';
 import { NotesFilter } from './NotesFilter';
-import { NotesExportButton } from './NotesExportButton';
 
 interface PropertyNotesDialogProps {
   open: boolean;
@@ -39,8 +39,10 @@ export function PropertyNotesDialog({
 }: PropertyNotesDialogProps) {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<PropertyNote | null>(null);
   const [deletingNote, setDeletingNote] = useState<PropertyNote | null>(null);
+  const [viewingNote, setViewingNote] = useState<PropertyNote | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -56,6 +58,11 @@ export function PropertyNotesDialog({
       return matchesSearch && matchesType;
     });
   }, [notes, searchQuery, typeFilter]);
+
+  const handleView = (note: PropertyNote) => {
+    setViewingNote(note);
+    setViewDialogOpen(true);
+  };
 
   const handleEdit = (note: PropertyNote) => {
     setEditingNote(note);
@@ -94,6 +101,11 @@ export function PropertyNotesDialog({
     if (!open) setEditingNote(null);
   };
 
+  const handleViewDialogClose = (open: boolean) => {
+    setViewDialogOpen(open);
+    if (!open) setViewingNote(null);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,13 +113,10 @@ export function PropertyNotesDialog({
           <DialogHeader>
             <div className="flex items-center justify-between gap-4">
               <DialogTitle>Property Notes</DialogTitle>
-              <div className="flex items-center gap-2">
-                <NotesExportButton notes={filteredNotes} propertyName={propertyName} />
-                <Button onClick={() => setFormDialogOpen(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Note
-                </Button>
-              </div>
+              <Button onClick={() => setFormDialogOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Note
+              </Button>
             </div>
           </DialogHeader>
           <div className="py-2">
@@ -128,6 +137,8 @@ export function PropertyNotesDialog({
             ) : (
               <NotesTable
                 notes={filteredNotes}
+                propertyName={propertyName}
+                onView={handleView}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />
@@ -142,6 +153,12 @@ export function PropertyNotesDialog({
         onSubmit={handleFormSubmit}
         editingNote={editingNote}
         propertyId={propertyId}
+      />
+
+      <NoteViewDialog
+        open={viewDialogOpen}
+        onOpenChange={handleViewDialogClose}
+        note={viewingNote}
       />
 
       <DeleteNoteDialog
