@@ -15,12 +15,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Pencil, Trash2, ChevronDown, Paperclip } from 'lucide-react';
+import { Eye, Pencil, Trash2, ChevronDown, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 import { NoteAttachments } from './NoteAttachments';
+import { NoteExportMenu } from './NoteExportMenu';
 
 interface NotesTableProps {
   notes: PropertyNote[];
+  propertyName: string;
+  onView: (note: PropertyNote) => void;
   onEdit: (note: PropertyNote) => void;
   onDelete: (note: PropertyNote) => void;
 }
@@ -38,7 +41,7 @@ const getNoteTypeBadgeVariant = (type: string): "default" | "secondary" | "destr
   }
 };
 
-export function NotesTable({ notes, onEdit, onDelete }: NotesTableProps) {
+export function NotesTable({ notes, propertyName, onView, onEdit, onDelete }: NotesTableProps) {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
   if (notes.length === 0) {
@@ -70,12 +73,13 @@ export function NotesTable({ notes, onEdit, onDelete }: NotesTableProps) {
           <TableHead className="hidden md:table-cell w-[80px]">Files</TableHead>
           <TableHead className="hidden md:table-cell">Created By</TableHead>
           <TableHead className="hidden sm:table-cell w-[120px]">Date</TableHead>
-          <TableHead className="w-[100px] text-right">Actions</TableHead>
+          <TableHead className="w-[160px] text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {notes.map((note) => {
-          const hasAttachments = note.attachments && note.attachments.length > 0;
+          const attachments = Array.isArray(note.attachments) ? note.attachments : [];
+          const hasAttachments = attachments.length > 0;
           const isExpanded = expandedNotes.has(note.id);
 
           return (
@@ -98,7 +102,7 @@ export function NotesTable({ notes, onEdit, onDelete }: NotesTableProps) {
                       <CollapsibleTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 gap-1">
                           <Paperclip className="h-3 w-3" />
-                          <span>{note.attachments!.length}</span>
+                          <span>{attachments.length}</span>
                           <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </Button>
                       </CollapsibleTrigger>
@@ -116,11 +120,20 @@ export function NotesTable({ notes, onEdit, onDelete }: NotesTableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => onView(note)}
+                      aria-label="View note"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => onEdit(note)}
                       aria-label="Edit note"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    <NoteExportMenu note={note} propertyName={propertyName} />
                     <Button
                       variant="ghost"
                       size="icon"
@@ -135,7 +148,7 @@ export function NotesTable({ notes, onEdit, onDelete }: NotesTableProps) {
               {hasAttachments && isExpanded && (
                 <TableRow>
                   <TableCell colSpan={6} className="bg-muted/30 py-3">
-                    <NoteAttachments attachments={note.attachments!} />
+                    <NoteAttachments attachments={attachments} />
                   </TableCell>
                 </TableRow>
               )}

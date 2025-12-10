@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { PropertyNote, NoteAttachment } from '@/types/notes';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from '@/lib/toast';
+import { Json } from '@/integrations/supabase/types';
 
 interface UsePropertyNotesResult {
   notes: PropertyNote[];
@@ -39,19 +40,33 @@ export function usePropertyNotes(propertyId: string): UsePropertyNotesResult {
 
       if (fetchError) throw fetchError;
 
-      const transformedNotes: PropertyNote[] = (data || []).map(note => ({
-        id: note.id,
-        propertyId: note.property_id,
-        organizationId: note.organization_id,
-        userId: note.user_id,
-        noteType: note.note_type,
-        title: note.title,
-        content: note.content,
-        createdByName: note.created_by_name,
-        createdAt: note.created_at,
-        updatedAt: note.updated_at,
-        attachments: (note.attachments as unknown as NoteAttachment[]) || [],
-      }));
+      const transformedNotes: PropertyNote[] = (data || []).map(note => {
+        // Defensive parsing for attachments - handle both array and string formats
+        let parsedAttachments: NoteAttachment[] = [];
+        if (Array.isArray(note.attachments)) {
+          parsedAttachments = note.attachments as unknown as NoteAttachment[];
+        } else if (typeof note.attachments === 'string' && note.attachments) {
+          try {
+            parsedAttachments = JSON.parse(note.attachments);
+          } catch {
+            parsedAttachments = [];
+          }
+        }
+
+        return {
+          id: note.id,
+          propertyId: note.property_id,
+          organizationId: note.organization_id,
+          userId: note.user_id,
+          noteType: note.note_type,
+          title: note.title,
+          content: note.content,
+          createdByName: note.created_by_name,
+          createdAt: note.created_at,
+          updatedAt: note.updated_at,
+          attachments: parsedAttachments,
+        };
+      });
 
       setNotes(transformedNotes);
     } catch (err) {
@@ -81,7 +96,7 @@ export function usePropertyNotes(propertyId: string): UsePropertyNotesResult {
         title: note.title,
         content: note.content,
         created_by_name: currentUser.name,
-        attachments: JSON.stringify(note.attachments || []),
+        attachments: (note.attachments || []) as unknown as Json,
       };
 
       const { error: insertError } = await supabase
@@ -105,7 +120,7 @@ export function usePropertyNotes(propertyId: string): UsePropertyNotesResult {
       if (updates.noteType !== undefined) updateData.note_type = updates.noteType;
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.content !== undefined) updateData.content = updates.content;
-      if (updates.attachments !== undefined) updateData.attachments = JSON.stringify(updates.attachments);
+      if (updates.attachments !== undefined) updateData.attachments = updates.attachments as unknown as Json;
 
       const { error: updateError } = await supabase
         .from('property_notes')

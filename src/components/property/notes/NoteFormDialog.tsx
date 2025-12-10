@@ -41,7 +41,8 @@ export function NoteFormDialog({ open, onOpenChange, onSubmit, editingNote, prop
       setNoteType(editingNote.noteType);
       setTitle(editingNote.title);
       setContent(editingNote.content);
-      setAttachments(editingNote.attachments || []);
+      // Defensive array check for attachments
+      setAttachments(Array.isArray(editingNote.attachments) ? editingNote.attachments : []);
     } else {
       setNoteType('General');
       setTitle('');

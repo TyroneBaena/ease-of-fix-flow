@@ -12,12 +12,15 @@ interface AttachmentUploaderProps {
 }
 
 export function AttachmentUploader({
-  attachments,
+  attachments: rawAttachments,
   onAttachmentsChange,
   propertyId,
 }: AttachmentUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  
+  // Defensive array check
+  const attachments = Array.isArray(rawAttachments) ? rawAttachments : [];
 
   const uploadFile = async (file: File): Promise<NoteAttachment | null> => {
     const fileExt = file.name.split('.').pop();
