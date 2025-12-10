@@ -382,9 +382,9 @@ const Dashboard = () => {
             </div>
 
             <div
-              className={`grid gap-6 ${selectedRequest ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-4"}`}
+              className={`grid gap-6 ${selectedRequest ? "grid-cols-1 lg:grid-cols-4" : "grid-cols-1"}`}
             >
-              <div className={`space-y-6 ${selectedRequest ? "lg:col-span-3" : "lg:col-span-3"}`}>
+              <div className={`space-y-6 ${selectedRequest ? "lg:col-span-3" : ""}`}>
                 <StatsOverview
                   key={`stats-${userRequests.length}-${userRequests.filter((r) => r.status === "pending").length}`}
                   requestsData={userRequests}
