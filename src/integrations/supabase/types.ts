@@ -865,6 +865,7 @@ export type Database = {
           landlord_assigned_at: string | null
           landlord_assigned_by: string | null
           landlord_notes: string | null
+          last_reminder_sent_at: string | null
           location: string
           organization_id: string | null
           participant_name: string | null
@@ -904,6 +905,7 @@ export type Database = {
           landlord_assigned_at?: string | null
           landlord_assigned_by?: string | null
           landlord_notes?: string | null
+          last_reminder_sent_at?: string | null
           location: string
           organization_id?: string | null
           participant_name?: string | null
@@ -943,6 +945,7 @@ export type Database = {
           landlord_assigned_at?: string | null
           landlord_assigned_by?: string | null
           landlord_notes?: string | null
+          last_reminder_sent_at?: string | null
           location?: string
           organization_id?: string | null
           participant_name?: string | null
