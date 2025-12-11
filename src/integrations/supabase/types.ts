@@ -1171,7 +1171,7 @@ export type Database = {
           rent_amount: number | null
           rent_period: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           address: string
@@ -1189,7 +1189,7 @@ export type Database = {
           rent_amount?: number | null
           rent_period?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           address?: string
@@ -1207,7 +1207,7 @@ export type Database = {
           rent_amount?: number | null
           rent_period?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
