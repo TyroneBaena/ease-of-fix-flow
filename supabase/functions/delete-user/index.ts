@@ -70,7 +70,79 @@ serve(async (req: Request) => {
       }
     }
     
-    // 1. Delete from profiles (cascades to most other tables via user_id FK)
+    // 1. Update maintenance_requests to NULL out user_id (preserves request history)
+    const { error: maintenanceError } = await supabaseClient
+      .from('maintenance_requests')
+      .update({ user_id: null })
+      .eq('user_id', userId);
+
+    if (maintenanceError) {
+      console.warn("Warning updating maintenance_requests:", maintenanceError);
+    }
+    console.log(`Nullified user_id in maintenance_requests for user ${userId}`);
+
+    // 2. Update properties to NULL out user_id (preserves property data)
+    const { error: propertiesError } = await supabaseClient
+      .from('properties')
+      .update({ user_id: null })
+      .eq('user_id', userId);
+
+    if (propertiesError) {
+      console.warn("Warning updating properties:", propertiesError);
+    }
+    console.log(`Nullified user_id in properties for user ${userId}`);
+
+    // 3. Delete from notifications
+    const { error: notificationsError } = await supabaseClient
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId);
+
+    if (notificationsError) {
+      console.warn("Warning deleting notifications:", notificationsError);
+    }
+
+    // 4. Delete from comments
+    const { error: commentsError } = await supabaseClient
+      .from('comments')
+      .delete()
+      .eq('user_id', userId);
+
+    if (commentsError) {
+      console.warn("Warning deleting comments:", commentsError);
+    }
+
+    // 5. Delete from temporary_sessions
+    const { error: sessionsError } = await supabaseClient
+      .from('temporary_sessions')
+      .delete()
+      .eq('user_id', userId);
+
+    if (sessionsError) {
+      console.warn("Warning deleting temporary_sessions:", sessionsError);
+    }
+
+    // 6. Delete from security_events
+    const { error: securityError } = await supabaseClient
+      .from('security_events')
+      .delete()
+      .eq('user_id', userId);
+
+    if (securityError) {
+      console.warn("Warning deleting security_events:", securityError);
+    }
+
+    // 7. Delete from contractors
+    const { error: contractorsError } = await supabaseClient
+      .from('contractors')
+      .delete()
+      .eq('user_id', userId);
+
+    if (contractorsError) {
+      console.warn("Warning deleting contractors:", contractorsError);
+    }
+
+    // 8. Delete from profiles
     const { error: profileError } = await supabaseClient
       .from('profiles')
       .delete()
@@ -118,7 +190,18 @@ serve(async (req: Request) => {
     
     console.log(`Subscriber deleted for user ${userId}`);
     
-    // 5. Now delete the auth user
+    // Update organizations created_by to NULL (preserves org data)
+    const { error: orgError } = await supabaseClient
+      .from('organizations')
+      .update({ created_by: null })
+      .eq('created_by', userId);
+    
+    if (orgError) {
+      console.warn("Warning updating organizations:", orgError);
+    }
+    console.log(`Nullified created_by in organizations for user ${userId}`);
+    
+    // Now delete the auth user
     const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
     
     if (authError) {
