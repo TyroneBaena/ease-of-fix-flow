@@ -16,10 +16,15 @@ interface AgingRequest {
   daysOld: number;
 }
 
+interface StaleRequest {
+  request: MaintenanceRequest;
+  daysSinceUpdate: number;
+}
+
 export const PendingActionsWidget: React.FC<PendingActionsWidgetProps> = ({ requests }) => {
   const navigate = useNavigate();
 
-  const { agingRequests, highPriorityCount, breakdown } = useMemo(() => {
+  const { agingRequests, highPriorityCount, breakdown, staleRequests } = useMemo(() => {
     const now = new Date();
     const pendingOrOpen = requests.filter(
       r => r.status === 'pending' || r.status === 'open'
@@ -48,15 +53,29 @@ export const PendingActionsWidget: React.FC<PendingActionsWidgetProps> = ({ requ
       days14plus: aging.filter(a => a.daysOld >= 14).length
     };
 
+    // NEW: Track "stale" requests - in-progress/assigned but no updates in 7+ days
+    const stale: StaleRequest[] = requests
+      .filter(r => 
+        r.status === 'in-progress' && 
+        (r.contractorId || r.assigned_to_landlord)
+      )
+      .map(request => ({
+        request,
+        daysSinceUpdate: differenceInDays(now, new Date(request.updatedAt || request.createdAt)),
+      }))
+      .filter(item => item.daysSinceUpdate >= 7)
+      .sort((a, b) => b.daysSinceUpdate - a.daysSinceUpdate);
+
     return {
       agingRequests: aging,
       highPriorityCount: highPriority,
-      breakdown
+      breakdown,
+      staleRequests: stale
     };
   }, [requests]);
 
   // Don't render if there are no pending actions
-  if (agingRequests.length === 0 && highPriorityCount === 0) {
+  if (agingRequests.length === 0 && highPriorityCount === 0 && staleRequests.length === 0) {
     return null;
   }
 
@@ -147,6 +166,36 @@ export const PendingActionsWidget: React.FC<PendingActionsWidgetProps> = ({ requ
               </p>
             )}
           </div>
+        )}
+
+        {/* Stale Requests Section - in-progress but no updates in 7+ days */}
+        {staleRequests.length > 0 && (
+          <>
+            <div className="text-xs text-amber-800 mt-2 pt-2 border-t border-amber-200">
+              <span className="font-medium text-orange-700">{staleRequests.length}</span> stale (no updates 7+ days)
+            </div>
+            <div className="space-y-1.5 mt-2">
+              {staleRequests.slice(0, 2).map(({ request, daysSinceUpdate }) => (
+                <div 
+                  key={request.id}
+                  onClick={() => handleRequestClick(request.id)}
+                  className="flex items-center justify-between gap-2 bg-white rounded p-2 border border-orange-200 hover:border-orange-400 cursor-pointer transition-colors min-w-0"
+                >
+                  <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">
+                    {request.title}
+                  </p>
+                  <Badge className="bg-orange-100 text-orange-700 text-[10px] px-1.5 py-0" variant="outline">
+                    {daysSinceUpdate}d stale
+                  </Badge>
+                </div>
+              ))}
+              {staleRequests.length > 2 && (
+                <p className="text-[10px] text-orange-600 text-center">
+                  +{staleRequests.length - 2} more
+                </p>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
