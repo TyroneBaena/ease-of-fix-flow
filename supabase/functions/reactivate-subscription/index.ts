@@ -115,28 +115,70 @@ serve(async (req) => {
         throw new Error('Cannot reactivate with zero properties');
       }
       
-      const product = await stripe.products.create({
-        name: `Property Management - ${propertyCount} properties`,
-        description: `Property management billing for ${propertyCount} properties at $29 AUD each`
+      // Create or get reusable Stripe product for property management
+      let product;
+      const existingProducts = await stripe.products.list({
+        limit: 1,
+        active: true,
       });
       
+      // Reuse existing product or create new one
+      if (existingProducts.data.length > 0 && existingProducts.data[0].name === 'Property Management') {
+        product = existingProducts.data[0];
+        console.log(`[REACTIVATE-SUBSCRIPTION] Reusing existing product ${product.id}`);
+      } else {
+        product = await stripe.products.create({
+          name: 'Property Management',
+          description: 'Monthly subscription based on number of managed properties',
+          metadata: {
+            type: 'property_management',
+          },
+        });
+        console.log(`[REACTIVATE-SUBSCRIPTION] Created new product ${product.id}`);
+      }
+
+      // Create metered price for usage-based billing
+      const price = await stripe.prices.create({
+        product: product.id,
+        currency: "aud",
+        recurring: {
+          interval: "month",
+          usage_type: "metered", // Enables usage-based billing
+          aggregate_usage: "last_during_period", // Use last reported value
+        },
+        billing_scheme: "per_unit",
+        unit_amount: 2900, // $29 per property in cents
+        metadata: {
+          type: 'property_count_metered',
+        },
+      });
+
+      // Create metered subscription
       subscription = await stripe.subscriptions.create({
         customer: subscriber.stripe_customer_id,
+        items: [{ price: price.id }],
         default_payment_method: paymentMethod.id,
-        items: [{
-          price_data: {
-            currency: 'aud',
-            product: product.id,
-            unit_amount: monthlyAmount,
-            recurring: { interval: 'month' }
-          },
-          quantity: 1
-        }],
+        collection_method: 'charge_automatically',
         metadata: {
+          user_id: user.id,
           property_count: propertyCount.toString(),
-          supabase_user_id: user.id,
-        }
+          reactivated_from_suspension: 'true',
+        },
       });
+
+      // Report initial usage for the current property count
+      if (subscription.items.data.length > 0) {
+        const subscriptionItemId = subscription.items.data[0].id;
+        await stripe.subscriptionItems.createUsageRecord(
+          subscriptionItemId,
+          {
+            quantity: propertyCount,
+            timestamp: Math.floor(Date.now() / 1000),
+            action: 'set',
+          }
+        );
+        console.log(`[REACTIVATE-SUBSCRIPTION] Reported initial usage: ${propertyCount} properties`);
+      }
       
       console.log(`[REACTIVATE-SUBSCRIPTION] New subscription created`);
       
