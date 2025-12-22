@@ -59,11 +59,14 @@ const AllRequests = () => {
     }
     
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       result = result.filter(request => {
         const title = request.title || request.issueNature || '';
         const description = request.description || request.explanation || '';
-        return title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-               description.toLowerCase().includes(searchTerm.toLowerCase());
+        const requestId = request.id || '';
+        return title.toLowerCase().includes(searchLower) || 
+               description.toLowerCase().includes(searchLower) ||
+               requestId.toLowerCase().includes(searchLower);
       });
     }
     

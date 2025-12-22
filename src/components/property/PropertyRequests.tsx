@@ -44,10 +44,12 @@ export const PropertyRequests: React.FC<PropertyRequestsProps> = ({ requests, pr
       const assignedToLandlord = (request as any).assigned_to_landlord;
       const statusMatch = matchesStatusFilter(statusFilter, request.status, assignedToLandlord);
       
-      // Search functionality - search in issue nature and site
+      // Search functionality - search in issue nature, site, and request ID
+      const searchLower = searchTerm.toLowerCase();
       const searchMatch = searchTerm === '' || 
-        (request.issueNature || request.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (request.site || request.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+        (request.issueNature || request.title || '').toLowerCase().includes(searchLower) ||
+        (request.site || request.category || '').toLowerCase().includes(searchLower) ||
+        (request.id || '').toLowerCase().includes(searchLower);
       
       return priorityMatch && statusMatch && searchMatch;
     });
