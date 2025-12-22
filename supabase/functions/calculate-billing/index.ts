@@ -7,7 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * @deprecated This function is deprecated and will be removed in a future version.
+ * Use calculate-billing-metered instead, which supports proper usage-based billing.
+ * This function creates fixed-price subscriptions which can cause billing sync issues.
+ */
+
 serve(async (req) => {
+  console.warn("[CALCULATE-BILLING] DEPRECATED - Use calculate-billing-metered instead");
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

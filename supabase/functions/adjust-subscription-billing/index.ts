@@ -7,6 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * AUDIT FUNCTION: Monthly Billing Adjustment Check
+ * 
+ * This function audits active subscriptions to verify billing amounts match property counts.
+ * It does NOT make changes to Stripe subscriptions - use fix-subscription-billing for repairs.
+ * 
+ * For metered subscriptions, billing is handled automatically via usage records.
+ * This function helps identify any subscriptions that may need migration to metered billing.
+ */
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,12 +33,12 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    console.log("[ADJUST-BILLING] Starting monthly billing adjustment check");
+    console.log("[ADJUST-BILLING] Starting subscription audit (read-only)");
 
     // Get all active subscriptions
     const { data: activeSubscriptions, error: fetchError } = await supabase
       .from("subscribers")
-      .select("user_id, email, active_properties_count, stripe_subscription_id, stripe_customer_id")
+      .select("user_id, email, active_properties_count, stripe_subscription_id, stripe_customer_id, organization_id")
       .eq("subscribed", true)
       .eq("is_cancelled", false)
       .not("stripe_subscription_id", "is", null);
@@ -38,152 +48,92 @@ serve(async (req) => {
       throw fetchError;
     }
 
-    console.log(`[ADJUST-BILLING] Found ${activeSubscriptions?.length || 0} active subscriptions`);
+    console.log(`[ADJUST-BILLING] Found ${activeSubscriptions?.length || 0} active subscriptions to audit`);
 
-    const adjustments = [];
+    const auditResults = [];
 
     for (const subscriber of activeSubscriptions || []) {
       try {
         const currentPropertyCount = subscriber.active_properties_count || 0;
         const expectedMonthlyAmount = currentPropertyCount * 29;
 
-        console.log(`[ADJUST-BILLING] Checking ${subscriber.email}: ${currentPropertyCount} properties = $${expectedMonthlyAmount}/month`);
-
-        // For testing purposes, simulate the check without calling Stripe
-        // In production, this would retrieve the actual subscription from Stripe
-        
-        if (currentPropertyCount === 0) {
-          console.log(`[ADJUST-BILLING] ${subscriber.email} has 0 properties - would cancel subscription`);
-          adjustments.push({
-            email: subscriber.email,
-            status: 'would_cancel',
-            property_count: 0,
-            note: 'Would cancel subscription (0 properties)'
-          });
-        } else {
-          // Simulate checking current Stripe amount (would be from Stripe API in production)
-          const simulatedCurrentAmount = expectedMonthlyAmount; // Assume it matches for testing
-          
-          if (simulatedCurrentAmount === expectedMonthlyAmount) {
-            console.log(`[ADJUST-BILLING] ${subscriber.email}: No adjustment needed`);
-            adjustments.push({
-              email: subscriber.email,
-              status: 'no_change_needed',
-              property_count: currentPropertyCount,
-              current_amount: expectedMonthlyAmount,
-              note: 'Current billing matches property count'
-            });
-          } else {
-            console.log(`[ADJUST-BILLING] ${subscriber.email}: Would adjust from $${simulatedCurrentAmount} to $${expectedMonthlyAmount}`);
-            adjustments.push({
-              email: subscriber.email,
-              status: 'would_adjust',
-              old_amount: simulatedCurrentAmount,
-              new_amount: expectedMonthlyAmount,
-              property_count: currentPropertyCount,
-              note: 'Would update Stripe subscription amount'
-            });
-          }
-        }
-
-        /* Production code - uncomment when ready for live Stripe integration:
-        // Get current subscription from Stripe
+        // Get subscription details from Stripe
         const subscription = await stripe.subscriptions.retrieve(subscriber.stripe_subscription_id);
         
         if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-          console.log(`[ADJUST-BILLING] Skipping ${subscriber.email} - subscription not active`);
-          continue;
-        }
-
-        const currentPropertyCount = subscriber.active_properties_count || 0;
-        const currentMonthlyAmount = currentPropertyCount * 29;
-
-        // Get current price from subscription
-        const currentItem = subscription.items.data[0];
-        const currentPrice = currentItem.price;
-        const currentAmount = (currentPrice.unit_amount || 0) / 100;
-
-        // Check if adjustment is needed
-        if (currentAmount === currentMonthlyAmount) {
-          console.log(`[ADJUST-BILLING] No adjustment needed for ${subscriber.email}`);
-          adjustments.push({
+          auditResults.push({
             email: subscriber.email,
-            status: 'no_change_needed',
+            organization_id: subscriber.organization_id,
+            status: 'inactive_subscription',
+            stripe_status: subscription.status,
             property_count: currentPropertyCount,
+            note: 'Subscription not active in Stripe'
           });
           continue;
         }
 
-        console.log(`[ADJUST-BILLING] Adjusting billing for ${subscriber.email} from $${currentAmount} to $${currentMonthlyAmount}`);
-
-        if (currentPropertyCount === 0) {
-          await stripe.subscriptions.cancel(subscriber.stripe_subscription_id);
-          await supabase
-            .from("subscribers")
-            .update({
-              subscribed: false,
-              is_cancelled: true,
-              cancellation_date: new Date().toISOString(),
-              subscription_status: 'canceled',
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", subscriber.user_id);
-
-          adjustments.push({
+        // Check if this is a metered subscription
+        const subscriptionItem = subscription.items.data[0];
+        const isMetered = subscriptionItem?.price?.recurring?.usage_type === 'metered';
+        
+        if (isMetered) {
+          auditResults.push({
             email: subscriber.email,
-            status: 'cancelled_no_properties',
-            property_count: 0,
+            organization_id: subscriber.organization_id,
+            status: 'metered_ok',
+            property_count: currentPropertyCount,
+            expected_amount: expectedMonthlyAmount,
+            is_metered: true,
+            note: 'Metered subscription - billing handled via usage records'
           });
-          continue;
+        } else {
+          // Fixed-price subscription - needs migration
+          const currentAmount = (subscriptionItem?.price?.unit_amount || 0) / 100;
+          const billingMatches = currentAmount === expectedMonthlyAmount;
+          
+          auditResults.push({
+            email: subscriber.email,
+            organization_id: subscriber.organization_id,
+            status: billingMatches ? 'fixed_price_matches' : 'fixed_price_mismatch',
+            property_count: currentPropertyCount,
+            current_amount: currentAmount,
+            expected_amount: expectedMonthlyAmount,
+            is_metered: false,
+            needs_migration: true,
+            note: 'Fixed-price subscription - should migrate to metered billing'
+          });
         }
-
-        // Create new product and price
-        const product = await stripe.products.create({
-          name: `Property Management - ${currentPropertyCount} ${currentPropertyCount === 1 ? 'Property' : 'Properties'}`,
-          description: `Subscription for ${currentPropertyCount} managed ${currentPropertyCount === 1 ? 'property' : 'properties'}`,
-        });
-
-        const newPrice = await stripe.prices.create({
-          product: product.id,
-          unit_amount: currentMonthlyAmount * 100,
-          currency: "aud",
-          recurring: { interval: "month" },
-        });
-
-        await stripe.subscriptions.update(subscriber.stripe_subscription_id, {
-          items: [{
-            id: currentItem.id,
-            price: newPrice.id,
-          }],
-          proration_behavior: 'create_prorations',
-        });
-
-        adjustments.push({
-          email: subscriber.email,
-          status: 'adjusted',
-          old_amount: currentAmount,
-          new_amount: currentMonthlyAmount,
-          property_count: currentPropertyCount,
-        });
-        */
 
       } catch (error) {
-        console.error(`[ADJUST-BILLING] Failed to check ${subscriber.email}:`, error);
-        adjustments.push({
+        console.error(`[ADJUST-BILLING] Failed to audit ${subscriber.email}:`, error);
+        auditResults.push({
           email: subscriber.email,
+          organization_id: subscriber.organization_id,
           status: 'error',
           error: error.message,
         });
       }
     }
 
-    console.log(`[ADJUST-BILLING] Processed ${adjustments.length} billing checks`);
+    // Summary statistics
+    const summary = {
+      total: auditResults.length,
+      metered_ok: auditResults.filter(r => r.status === 'metered_ok').length,
+      fixed_price_matches: auditResults.filter(r => r.status === 'fixed_price_matches').length,
+      fixed_price_mismatch: auditResults.filter(r => r.status === 'fixed_price_mismatch').length,
+      needs_migration: auditResults.filter(r => r.needs_migration).length,
+      inactive: auditResults.filter(r => r.status === 'inactive_subscription').length,
+      errors: auditResults.filter(r => r.status === 'error').length,
+    };
+
+    console.log(`[ADJUST-BILLING] Audit complete:`, summary);
 
     return new Response(
       JSON.stringify({
         success: true,
-        adjustments_processed: adjustments.length,
-        details: adjustments,
+        summary,
+        details: auditResults,
+        note: "This is a read-only audit. Use fix-subscription-billing to repair issues."
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
