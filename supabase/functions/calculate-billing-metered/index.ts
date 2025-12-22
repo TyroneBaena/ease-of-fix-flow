@@ -190,8 +190,38 @@ serve(async (req) => {
       // Verify this is a metered price
       const price = await stripe.prices.retrieve(subscriptionItem.price.id);
       if (price.recurring?.usage_type !== 'metered') {
-        log('Warning: Subscription is not metered', { priceId: price.id });
-        throw new Error('Subscription must use metered billing. Please contact support.');
+        log('Warning: Subscription is not metered - requires migration', { 
+          priceId: price.id,
+          subscriptionId: subscriber.stripe_subscription_id,
+          userId: user.id
+        });
+        
+        // Update local database count anyway
+        const { error: updateError } = await supabase
+          .from('subscribers')
+          .update({
+            active_properties_count: actualCount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          log('Error updating property count', { error: updateError.message });
+        }
+
+        // Return warning but don't throw - allow the app to continue working
+        return new Response(
+          JSON.stringify({
+            success: true,
+            property_count: actualCount,
+            monthly_amount: monthlyAmount,
+            currency: 'AUD',
+            metered_billing: false,
+            requires_migration: true,
+            warning: 'Subscription is using fixed billing instead of metered. Your billing may not reflect current property count. Please contact support to migrate your subscription.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Report current usage with 'set' action to replace previous value
