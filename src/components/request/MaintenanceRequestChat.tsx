@@ -29,7 +29,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   const [searchParams] = useSearchParams();
   const propertyIdParam = propPropertyId || searchParams.get('propertyId');
   
-  const { messages, isLoading, isReady, formData, sendMessage, resetChat } = useMaintenanceChat();
+  const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat();
   const { uploadFiles, isUploading } = useFileUpload();
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useSimpleAuth();
@@ -47,12 +47,10 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Start conversation on mount
+  // Initialize chat with AI greeting on mount
   useEffect(() => {
-    if (messages.length === 0) {
-      sendMessage('Hi, I need to report a maintenance issue.');
-    }
-  }, []);
+    initializeChat();
+  }, [initializeChat]);
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;

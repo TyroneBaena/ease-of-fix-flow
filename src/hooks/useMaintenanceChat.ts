@@ -23,6 +23,7 @@ interface UseMaintenanceChatReturn {
   formData: MaintenanceFormData | null;
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
+  initializeChat: () => void;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-maintenance-request`;
@@ -183,6 +184,15 @@ export function useMaintenanceChat(): UseMaintenanceChatReturn {
     setFormData(null);
   }, []);
 
+  const initializeChat = useCallback(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        role: 'assistant',
+        content: "Hi! I'm here to help you report a maintenance issue. What's the problem you'd like to report?"
+      }]);
+    }
+  }, [messages.length]);
+
   return {
     messages,
     isLoading,
@@ -190,5 +200,6 @@ export function useMaintenanceChat(): UseMaintenanceChatReturn {
     formData,
     sendMessage,
     resetChat,
+    initializeChat,
   };
 }
