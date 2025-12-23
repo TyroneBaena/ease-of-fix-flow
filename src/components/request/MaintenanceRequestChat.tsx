@@ -10,7 +10,7 @@ import { useMaintenanceChat, MaintenanceFormData } from '@/hooks/useMaintenanceC
 import { RequestFormAttachments } from './RequestFormAttachments';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { usePropertyContext } from '@/contexts/property/PropertyContext';
-import { usePublicPropertyContext } from '@/contexts/property/PublicPropertyProvider';
+import { usePublicPropertyContextSafe } from '@/contexts/property/PublicPropertyProvider';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance/MaintenanceRequestContext';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,8 +36,10 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   
   // Get properties based on public/private context
   const privatePropertyContext = usePropertyContext();
-  const publicPropertyContext = usePublicPropertyContext();
-  const properties = isPublic ? publicPropertyContext.properties : privatePropertyContext.properties;
+  const publicPropertyContext = usePublicPropertyContextSafe();
+  const properties = (isPublic && publicPropertyContext) 
+    ? publicPropertyContext.properties 
+    : privatePropertyContext.properties;
   
   const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat();
   const { uploadFiles, isUploading } = useFileUpload();
