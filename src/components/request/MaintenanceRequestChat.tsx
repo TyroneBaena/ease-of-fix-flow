@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, Loader2, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Send, Bot, User, Loader2, CheckCircle2, RotateCcw, Building } from 'lucide-react';
 import { useMaintenanceChat, MaintenanceFormData } from '@/hooks/useMaintenanceChat';
 import { RequestFormAttachments } from './RequestFormAttachments';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -15,6 +15,8 @@ import { useMaintenanceRequestContext } from '@/contexts/maintenance/Maintenance
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface MaintenanceRequestChatProps {
   propertyId?: string;
@@ -27,7 +29,15 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const propertyIdParam = propPropertyId || searchParams.get('propertyId');
+  const propertyIdFromUrl = propPropertyId || searchParams.get('propertyId');
+  
+  // Property selection state
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(propertyIdFromUrl || '');
+  
+  // Get properties based on public/private context
+  const privatePropertyContext = usePropertyContext();
+  const publicPropertyContext = usePublicPropertyContext();
+  const properties = isPublic ? publicPropertyContext.properties : privatePropertyContext.properties;
   
   const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat();
   const { uploadFiles, isUploading } = useFileUpload();
@@ -42,15 +52,21 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // The effective property ID (from URL/prop or user selection)
+  const effectivePropertyId = propertyIdFromUrl || selectedPropertyId;
+  const selectedProperty = properties.find(p => p.id === effectivePropertyId);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Initialize chat with AI greeting on mount
+  // Initialize chat with AI greeting only when property is selected
   useEffect(() => {
-    initializeChat();
-  }, [initializeChat]);
+    if (effectivePropertyId && messages.length === 0) {
+      initializeChat();
+    }
+  }, [effectivePropertyId, messages.length, initializeChat]);
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -103,7 +119,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
       return;
     }
 
-    if (!propertyIdParam) {
+    if (!effectivePropertyId) {
       toast.error('Property not selected. Please try again.');
       return;
     }
@@ -127,7 +143,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
         // Public submission via edge function
         const { data, error } = await supabase.functions.invoke('submit-public-maintenance-request', {
           body: {
-            propertyId: propertyIdParam,
+            propertyId: effectivePropertyId,
             title: formData.issueNature,
             description: formData.explanation,
             location: formData.location,
@@ -150,7 +166,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
       } else {
         // Authenticated submission
         const requestData = {
-          propertyId: propertyIdParam,
+          propertyId: effectivePropertyId,
           title: formData.issueNature,
           description: formData.explanation,
           location: formData.location,
@@ -189,19 +205,70 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     { label: 'Reported by', value: formData.submittedBy },
   ] : [];
 
+  // Property selector UI if no property is selected
+  if (!effectivePropertyId) {
+    return (
+      <div className="flex flex-col h-[600px] max-h-[70vh]">
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <div className="w-full max-w-md space-y-4">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Building className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold">Select a Property</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose the property where the maintenance issue is located
+              </p>
+            </div>
+            
+            {properties.length === 0 ? (
+              <div className="p-4 border rounded-md bg-amber-50 text-amber-800">
+                <div className="flex items-center">
+                  <Building className="h-5 w-5 mr-2" />
+                  <p className="font-medium">No properties available</p>
+                </div>
+                <p className="mt-1 text-sm">
+                  You need to add properties first before creating maintenance requests.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="property-select">Property</Label>
+                <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                  <SelectTrigger id="property-select">
+                    <SelectValue placeholder="Select property..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties.map((property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[600px] max-h-[70vh]">
-      {/* Header with collected fields */}
-      {collectedFields.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
-          {collectedFields.map((field, i) => (
-            <Badge key={i} variant="secondary" className="text-xs">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              {field.label}: {field.value}
-            </Badge>
-          ))}
-        </div>
-      )}
+      {/* Header with selected property and collected fields */}
+      <div className="flex flex-wrap gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
+        <Badge variant="outline" className="text-xs">
+          <Building className="h-3 w-3 mr-1" />
+          {selectedProperty?.name || 'Property'}
+        </Badge>
+        {collectedFields.map((field, i) => (
+          <Badge key={i} variant="secondary" className="text-xs">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            {field.label}: {field.value}
+          </Badge>
+        ))}
+      </div>
 
       {/* Messages area */}
       <ScrollArea className="flex-1 pr-4">
