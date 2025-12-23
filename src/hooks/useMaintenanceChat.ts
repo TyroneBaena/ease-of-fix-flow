@@ -7,6 +7,7 @@ export interface ChatMessage {
 }
 
 export interface MaintenanceFormData {
+  propertyId: string;
   issueNature: string;
   explanation: string;
   location: string;
@@ -14,6 +15,11 @@ export interface MaintenanceFormData {
   attemptedFix: string;
   isParticipantRelated?: boolean;
   participantName?: string;
+}
+
+interface Property {
+  id: string;
+  name: string;
 }
 
 interface UseMaintenanceChatReturn {
@@ -28,7 +34,7 @@ interface UseMaintenanceChatReturn {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-maintenance-request`;
 
-export function useMaintenanceChat(): UseMaintenanceChatReturn {
+export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -49,7 +55,10 @@ export function useMaintenanceChat(): UseMaintenanceChatReturn {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ 
+          messages: updatedMessages,
+          properties: properties.map(p => ({ id: p.id, name: p.name })),
+        }),
       });
 
       if (!response.ok) {
@@ -131,13 +140,17 @@ export function useMaintenanceChat(): UseMaintenanceChatReturn {
                 setFormData(extractedData);
                 setIsReady(true);
                 
+                // Find property name for display
+                const propertyName = properties.find(p => p.id === extractedData.propertyId)?.name || extractedData.propertyId;
+                
                 // Add a confirmation message
                 const confirmMsg = `Great! I've collected all the information:\n\n` +
-                  `**Issue:** ${extractedData.issueNature}\n` +
-                  `**Location:** ${extractedData.location}\n` +
-                  `**Description:** ${extractedData.explanation}\n` +
-                  `**Reported by:** ${extractedData.submittedBy}\n` +
-                  `**Attempted fix:** ${extractedData.attemptedFix}\n\n` +
+                  `Property: ${propertyName}\n` +
+                  `Issue: ${extractedData.issueNature}\n` +
+                  `Location: ${extractedData.location}\n` +
+                  `Description: ${extractedData.explanation}\n` +
+                  `Reported by: ${extractedData.submittedBy}\n` +
+                  `Attempted fix: ${extractedData.attemptedFix}\n\n` +
                   `Please upload at least one photo of the issue, then click "Submit Request" to complete your report.`;
                 updateAssistant(confirmMsg);
               } catch (e) {
@@ -175,7 +188,7 @@ export function useMaintenanceChat(): UseMaintenanceChatReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [messages]);
+  }, [messages, properties]);
 
   const resetChat = useCallback(() => {
     setMessages([]);
@@ -188,7 +201,7 @@ export function useMaintenanceChat(): UseMaintenanceChatReturn {
     if (messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: "Hi! I'm here to help you report a maintenance issue. What's the problem you'd like to report?"
+        content: "Hi! I'm here to help you report a maintenance issue. Which property is this issue at?"
       }]);
     }
   }, [messages.length]);
