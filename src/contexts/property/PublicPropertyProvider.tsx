@@ -117,3 +117,8 @@ export const usePublicPropertyContext = () => {
   }
   return context;
 };
+
+// Safe version that returns null instead of throwing when outside provider
+export const usePublicPropertyContextSafe = () => {
+  return useContext(PublicPropertyContext);
+};
