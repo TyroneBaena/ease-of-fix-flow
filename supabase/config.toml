@@ -202,3 +202,6 @@ verify_jwt = false
 
 [functions.fix-subscription-billing]
 verify_jwt = false
+
+[functions.chat-maintenance-request]
+verify_jwt = false

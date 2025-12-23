@@ -1,0 +1,150 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const SYSTEM_PROMPT = `You are a helpful maintenance request assistant for a property management system. Your job is to help users report maintenance issues by collecting the required information through friendly conversation.
+
+REQUIRED INFORMATION TO COLLECT:
+1. issueNature - A brief title for the issue (5 words or less, e.g., "Leaking kitchen tap", "Broken bedroom window")
+2. explanation - A detailed description of the problem (what's happening, how long, how severe)
+3. location - Where in the property the issue is (e.g., "Master bedroom", "Kitchen", "Bathroom")
+4. submittedBy - The name of the person reporting the issue
+5. attemptedFix - What they've tried to fix it themselves, or "None" if nothing
+
+OPTIONAL INFORMATION:
+6. isParticipantRelated - Boolean, whether the issue was caused by or related to a resident/participant
+7. participantName - If participant-related, which participant
+
+CONVERSATION GUIDELINES:
+- Be friendly, helpful, and conversational
+- Ask ONE question at a time to avoid overwhelming the user
+- If an answer is vague or unclear, ask for clarification
+- Acknowledge what they've told you before asking the next question
+- When you have enough information, summarize what you've collected and ask if it's correct
+- Keep responses concise (2-3 sentences max)
+
+WHEN YOU HAVE ALL REQUIRED INFORMATION:
+Call the prepare_maintenance_request function with the collected data. This signals that the form is ready for photo upload and submission.
+
+START THE CONVERSATION:
+If this is the first message, greet the user and ask what maintenance issue they'd like to report.`;
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { messages } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log("Processing chat request with", messages?.length || 0, "messages");
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...messages,
+        ],
+        stream: true,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "prepare_maintenance_request",
+              description: "Called when all required information has been collected from the user. This prepares the maintenance request for photo upload and submission.",
+              parameters: {
+                type: "object",
+                properties: {
+                  issueNature: { 
+                    type: "string", 
+                    description: "Brief title for the issue, 5 words or less" 
+                  },
+                  explanation: { 
+                    type: "string", 
+                    description: "Detailed description of the problem" 
+                  },
+                  location: { 
+                    type: "string", 
+                    description: "Where in the property the issue is located" 
+                  },
+                  submittedBy: { 
+                    type: "string", 
+                    description: "Name of the person reporting the issue" 
+                  },
+                  attemptedFix: { 
+                    type: "string", 
+                    description: "What they tried to fix it, or 'None'" 
+                  },
+                  isParticipantRelated: { 
+                    type: "boolean",
+                    description: "Whether the issue is related to a participant/resident"
+                  },
+                  participantName: { 
+                    type: "string",
+                    description: "Name of the participant if issue is participant-related"
+                  }
+                },
+                required: ["issueNature", "explanation", "location", "submittedBy", "attemptedFix"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI service credits exhausted. Please contact support." }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: "AI service error" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log("Streaming response from AI gateway");
+
+    return new Response(response.body, {
+      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+    });
+
+  } catch (error) {
+    console.error("Chat function error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
