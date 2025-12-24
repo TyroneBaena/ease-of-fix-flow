@@ -34,6 +34,52 @@ interface UseMaintenanceChatReturn {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-maintenance-request`;
 
+// Validation for extracted form data
+function validateFormData(data: MaintenanceFormData, properties: Property[]): string | null {
+  // Check propertyId exists in properties list
+  const propertyExists = properties.some(p => p.id === data.propertyId);
+  if (!propertyExists) {
+    return "The property couldn't be matched. Please clarify which property this is for.";
+  }
+
+  // Check required fields are not empty or placeholder-like
+  const placeholderPatterns = [
+    /^\[.*\]$/,           // [placeholder]
+    /^test$/i,            // test
+    /^example$/i,         // example
+    /^n\/a$/i,            // n/a
+    /^placeholder$/i,     // placeholder
+    /^unknown$/i,         // unknown
+    /^tbd$/i,             // tbd
+  ];
+
+  const requiredFields: (keyof MaintenanceFormData)[] = [
+    'issueNature', 'explanation', 'location', 'submittedBy', 'attemptedFix'
+  ];
+
+  for (const field of requiredFields) {
+    const value = data[field];
+    if (typeof value !== 'string') continue;
+    
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return `Missing ${field}. Please provide this information.`;
+    }
+    
+    // Check for placeholder patterns
+    if (placeholderPatterns.some(pattern => pattern.test(trimmed))) {
+      return `The ${field} looks like a placeholder. Please provide the actual information.`;
+    }
+  }
+
+  // Check explanation has reasonable length
+  if (data.explanation.trim().split(/\s+/).length < 3) {
+    return "The description is too brief. Please provide more details about the issue.";
+  }
+
+  return null; // Valid
+}
+
 export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +93,10 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
     setIsLoading(true);
 
     let assistantContent = '';
+    
+    // Determine mode: if user types SUBMIT, use extract mode
+    const isSubmitRequest = content.trim().toUpperCase() === 'SUBMIT';
+    const mode = isSubmitRequest ? 'extract' : 'chat';
 
     try {
       const response = await fetch(CHAT_URL, {
@@ -58,6 +108,7 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
         body: JSON.stringify({ 
           messages: updatedMessages,
           properties: properties.map(p => ({ id: p.id, name: p.name })),
+          mode,
         }),
       });
 
@@ -122,8 +173,8 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
               updateAssistant(assistantContent + delta.content);
             }
 
-            // Handle tool calls
-            if (delta?.tool_calls?.[0]) {
+            // Handle tool calls - ONLY process in extract mode
+            if (mode === 'extract' && delta?.tool_calls?.[0]) {
               isToolCall = true;
               const toolCall = delta.tool_calls[0];
               if (toolCall.function?.arguments) {
@@ -131,30 +182,42 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
               }
             }
 
-            // Check for finish reason
+            // Check for finish reason - ONLY process tool calls in extract mode
             const finishReason = parsed.choices?.[0]?.finish_reason;
-            if (finishReason === 'tool_calls' && toolCallArgs) {
+            if (mode === 'extract' && finishReason === 'tool_calls' && toolCallArgs) {
               try {
                 const extractedData = JSON.parse(toolCallArgs) as MaintenanceFormData;
                 console.log('Form data extracted:', extractedData);
-                setFormData(extractedData);
-                setIsReady(true);
                 
-                // Find property name for display
-                const propertyName = properties.find(p => p.id === extractedData.propertyId)?.name || extractedData.propertyId;
+                // Validate the extracted data
+                const validationError = validateFormData(extractedData, properties);
                 
-                // Add a confirmation message
-                const confirmMsg = `Great! I've collected all the information:\n\n` +
-                  `Property: ${propertyName}\n` +
-                  `Issue: ${extractedData.issueNature}\n` +
-                  `Location: ${extractedData.location}\n` +
-                  `Description: ${extractedData.explanation}\n` +
-                  `Reported by: ${extractedData.submittedBy}\n` +
-                  `Attempted fix: ${extractedData.attemptedFix}\n\n` +
-                  `Please upload at least one photo of the issue, then click "Submit Request" to complete your report.`;
-                updateAssistant(confirmMsg);
+                if (validationError) {
+                  // Validation failed - show error message, don't set ready
+                  console.log('Validation failed:', validationError);
+                  updateAssistant(validationError + "\n\nPlease provide the missing information and type SUBMIT again when ready.");
+                } else {
+                  // Validation passed - set form data and ready state
+                  setFormData(extractedData);
+                  setIsReady(true);
+                  
+                  // Find property name for display
+                  const propertyName = properties.find(p => p.id === extractedData.propertyId)?.name || extractedData.propertyId;
+                  
+                  // Add a confirmation message
+                  const confirmMsg = `Great! I've collected all the information:\n\n` +
+                    `Property: ${propertyName}\n` +
+                    `Issue: ${extractedData.issueNature}\n` +
+                    `Location: ${extractedData.location}\n` +
+                    `Description: ${extractedData.explanation}\n` +
+                    `Reported by: ${extractedData.submittedBy}\n` +
+                    `Attempted fix: ${extractedData.attemptedFix}\n\n` +
+                    `Please upload at least one photo of the issue, then click "Submit Request" to complete your report.`;
+                  updateAssistant(confirmMsg);
+                }
               } catch (e) {
                 console.error('Failed to parse tool call arguments:', e);
+                updateAssistant("I had trouble processing your request. Please try typing SUBMIT again.");
               }
             }
           } catch {
