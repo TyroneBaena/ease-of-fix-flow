@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRequestForm } from "@/hooks/useRequestForm";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { usePropertyContext } from "@/contexts/property/PropertyContext";
-import { usePublicPropertyContext } from "@/contexts/property/PublicPropertyProvider";
+import { usePublicPropertyContextSafe } from "@/contexts/property/PublicPropertyProvider";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { toast } from "sonner";
@@ -18,26 +18,18 @@ export const RequestFormContainer = () => {
   const propertyIdParam = searchParams.get('propertyId');
   const isPublic = searchParams.get('public') === 'true';
   
-  // Use appropriate context based on public/private access
-  let properties: any[] = [];
-  let publicHousemates: { id: string; firstName: string; lastName: string }[] | undefined;
+  // Call hooks unconditionally at top level (React Rules of Hooks)
+  const privatePropertyContext = usePropertyContext();
+  const publicPropertyContext = usePublicPropertyContextSafe();
   
-  try {
-    if (isPublic) {
-      const { properties: publicProperties, housemates } = usePublicPropertyContext();
-      properties = publicProperties;
-      publicHousemates = housemates;
-      console.log('🔍 [DEBUG] RequestFormContainer - Using public properties:', properties.length);
-      console.log('🔍 [DEBUG] RequestFormContainer - Using public housemates:', housemates?.length || 0);
-    } else {
-      const { properties: privateProperties } = usePropertyContext();
-      properties = privateProperties;
-      console.log('🔍 [DEBUG] RequestFormContainer - Using private properties:', properties.length);
-    }
-  } catch (error) {
-    console.log('⚠️ [DEBUG] RequestFormContainer - Context not available:', error);
-    properties = [];
-  }
+  // Conditionally use values based on public/private access
+  const properties = (isPublic && publicPropertyContext) 
+    ? publicPropertyContext.properties 
+    : privatePropertyContext.properties;
+    
+  const publicHousemates = (isPublic && publicPropertyContext) 
+    ? publicPropertyContext.housemates 
+    : undefined;
   
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useUserContext();
