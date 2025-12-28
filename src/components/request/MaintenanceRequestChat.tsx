@@ -15,6 +15,13 @@ import { useMaintenanceRequestContext } from '@/contexts/maintenance/Maintenance
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface MaintenanceRequestChatProps {
   propertyId?: string;
@@ -29,6 +36,10 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   const [searchParams] = useSearchParams();
   const propertyIdFromUrl = propPropertyId || searchParams.get('propertyId');
   
+  // Property selection state - for the step before chat starts
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
+  
   // Get properties based on public/private context
   const privatePropertyContext = usePropertyContext();
   const publicPropertyContext = usePublicPropertyContextSafe();
@@ -36,8 +47,19 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     ? publicPropertyContext.properties 
     : privatePropertyContext.properties;
   
-  // Pass properties to the chat hook so AI can ask about them
-  const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat(properties);
+  // Auto-select property for public users with URL param
+  useEffect(() => {
+    if (isPublic && propertyIdFromUrl) {
+      setSelectedPropertyId(propertyIdFromUrl);
+      setHasStartedChat(true); // Auto-start chat for public QR users
+    }
+  }, [isPublic, propertyIdFromUrl]);
+  
+  // Pass properties and selected property to the chat hook
+  const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat(
+    properties,
+    selectedPropertyId || undefined
+  );
   const { uploadFiles, isUploading } = useFileUpload();
   const { addRequestToProperty } = useMaintenanceRequestContext();
   const { currentUser } = useSimpleAuth();
@@ -50,8 +72,8 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // The effective property ID - from URL prop OR extracted from AI conversation
-  const effectivePropertyId = propertyIdFromUrl || formData?.propertyId;
+  // The effective property ID - from selection OR extracted from AI conversation
+  const effectivePropertyId = selectedPropertyId || formData?.propertyId;
   const selectedProperty = properties.find(p => p.id === effectivePropertyId);
 
   // Auto-scroll to bottom when new messages arrive
@@ -59,12 +81,21 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Initialize chat with AI greeting
+  // Initialize chat with AI greeting when chat has started
   useEffect(() => {
-    if (messages.length === 0) {
+    if (hasStartedChat && messages.length === 0) {
       initializeChat();
     }
-  }, [messages.length, initializeChat]);
+  }, [hasStartedChat, messages.length, initializeChat]);
+
+  // Handle starting the chat after property selection
+  const handleStartChat = () => {
+    if (!selectedPropertyId) {
+      toast.error('Please select a property first.');
+      return;
+    }
+    setHasStartedChat(true);
+  };
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -206,6 +237,53 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     { label: 'Reported by', value: formData.submittedBy },
   ].filter(f => f.value) : [];
 
+  // Property selection screen (shown for authenticated users before chat starts)
+  if (!hasStartedChat && !isPublic) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] max-h-[50vh] space-y-6 p-6">
+        <div className="flex-shrink-0 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Building className="h-8 w-8 text-primary" />
+        </div>
+        
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold">Select a Property</h3>
+          <p className="text-sm text-muted-foreground">
+            Choose the property this maintenance request is for
+          </p>
+        </div>
+        
+        <div className="w-full max-w-sm space-y-4">
+          <Select value={selectedPropertyId || ''} onValueChange={setSelectedPropertyId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a property..." />
+            </SelectTrigger>
+            <SelectContent className="bg-background border">
+              {properties.map((property) => (
+                <SelectItem key={property.id} value={property.id}>
+                  {property.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Button 
+            onClick={handleStartChat} 
+            disabled={!selectedPropertyId}
+            className="w-full"
+          >
+            Start Chat
+          </Button>
+        </div>
+        
+        {properties.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center">
+            No properties available. Please add a property first.
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[600px] max-h-[70vh]">
       {/* Header with collected fields */}
@@ -278,7 +356,11 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
           <div className="flex gap-3 mt-4">
             <Button
               variant="outline"
-              onClick={resetChat}
+              onClick={() => {
+                resetChat();
+                setHasStartedChat(false);
+                setSelectedPropertyId(null);
+              }}
               disabled={isSubmitting || isUploading}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
