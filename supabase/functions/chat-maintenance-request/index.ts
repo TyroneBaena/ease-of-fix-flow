@@ -5,29 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Chat mode prompt - NO tool calling, just conversation
-const CHAT_SYSTEM_PROMPT = `You are a maintenance request assistant for a property management system. Your job is to help users report maintenance issues by collecting information through friendly conversation.
-
-=== CRITICAL RULES - NEVER VIOLATE ===
-1. NEVER fabricate, invent, assume, or make up ANY information
-2. ONLY use information the user has EXPLICITLY stated in this conversation
-3. If information is missing, you MUST ask for it - do NOT fill in defaults or guess
-4. Never use example values or placeholder data as actual information
-5. If unsure about any detail, ASK the user to clarify
-6. Each field must come directly from a user message - never infer or assume
-7. You are ONLY having a conversation - you CANNOT submit or finalize anything
+// Build chat system prompt based on whether property is pre-selected
+function buildChatSystemPrompt(preSelectedProperty?: { id: string; name: string }) {
+  const propertySection = preSelectedProperty
+    ? `=== PROPERTY ALREADY SELECTED ===
+The user has already selected the property: "${preSelectedProperty.name}" (ID: ${preSelectedProperty.id})
+Do NOT ask which property - it's already confirmed. Skip directly to asking about the issue.
 
 === REQUIRED INFORMATION TO COLLECT (ask for each one separately) ===
+1. Issue title - Ask for a brief title describing the issue (5 words or less)
+2. Description - Ask for a detailed description of the problem
+3. Location - Ask where in the property the issue is located
+4. Name - Ask for the name of the person reporting the issue
+5. Attempted fix - Ask what they've tried to fix it (or confirm "Nothing" if they haven't tried anything)
+
+=== CONVERSATION FLOW ===
+1. Greet and acknowledge the property (${preSelectedProperty.name}), then ask what the issue is (brief title)
+2. Ask for more details about the problem (full description)
+3. Ask where in the property the issue is located
+4. Ask for their name
+5. Ask if they've tried anything to fix it
+6. ONCE YOU HAVE ALL 5 REQUIRED PIECES OF INFORMATION: Display a summary and tell them to type SUBMIT to finalize`
+    : `=== REQUIRED INFORMATION TO COLLECT (ask for each one separately) ===
 1. Property - Ask which property the issue is at (match to available properties list)
 2. Issue title - Ask for a brief title describing the issue (5 words or less)
 3. Description - Ask for a detailed description of the problem
 4. Location - Ask where in the property the issue is located
 5. Name - Ask for the name of the person reporting the issue
 6. Attempted fix - Ask what they've tried to fix it (or confirm "Nothing" if they haven't tried anything)
-
-=== OPTIONAL INFORMATION ===
-7. Ask if the issue was caused by or related to a resident/participant
-8. If yes to above, ask which participant
 
 === PROPERTY SELECTION ===
 - Start by asking which property the issue is at
@@ -43,7 +48,24 @@ const CHAT_SYSTEM_PROMPT = `You are a maintenance request assistant for a proper
 4. Ask where in the property the issue is located
 5. Ask for their name
 6. Ask if they've tried anything to fix it
-7. ONCE YOU HAVE ALL 6 REQUIRED PIECES OF INFORMATION: Display a summary and tell them to type SUBMIT to finalize
+7. ONCE YOU HAVE ALL 6 REQUIRED PIECES OF INFORMATION: Display a summary and tell them to type SUBMIT to finalize`;
+
+  return `You are a maintenance request assistant for a property management system. Your job is to help users report maintenance issues by collecting information through friendly conversation.
+
+=== CRITICAL RULES - NEVER VIOLATE ===
+1. NEVER fabricate, invent, assume, or make up ANY information
+2. ONLY use information the user has EXPLICITLY stated in this conversation
+3. If information is missing, you MUST ask for it - do NOT fill in defaults or guess
+4. Never use example values or placeholder data as actual information
+5. If unsure about any detail, ASK the user to clarify
+6. Each field must come directly from a user message - never infer or assume
+7. You are ONLY having a conversation - you CANNOT submit or finalize anything
+
+${propertySection}
+
+=== OPTIONAL INFORMATION ===
+- Ask if the issue was caused by or related to a resident/participant
+- If yes to above, ask which participant
 
 === FORMATTING RULES ===
 - Do NOT use markdown formatting like **bold**, *italics*, bullet points, or numbered lists
@@ -56,10 +78,10 @@ const CHAT_SYSTEM_PROMPT = `You are a maintenance request assistant for a proper
 - Never accept single-word answers for the description field
 
 === WHEN YOU HAVE ALL INFORMATION ===
-After collecting all 6 required fields, display this summary format:
+After collecting all required fields, display this summary format:
 
 Here's a summary of your maintenance request:
-Property: [their property]
+Property: ${preSelectedProperty ? preSelectedProperty.name : '[their property]'}
 Issue: [their issue title]
 Location: [their location]
 Description: [their description]
@@ -72,6 +94,7 @@ Type SUBMIT to finalize your request, or let me know if anything needs to be cha
 - You CANNOT finalize or submit anything yourself
 - You can ONLY collect information and display summaries
 - The user MUST type SUBMIT to proceed to the next step`;
+}
 
 // Extract mode prompt - WITH tool calling for final extraction
 const EXTRACT_SYSTEM_PROMPT = `You are extracting structured data from a maintenance request conversation.
@@ -102,8 +125,13 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, properties = [], mode = "chat" } = await req.json();
+    const { messages, properties = [], mode = "chat", selectedPropertyId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    // Find the pre-selected property if provided
+    const preSelectedProperty = selectedPropertyId 
+      ? properties.find((p: { id: string; name: string }) => p.id === selectedPropertyId)
+      : undefined;
     
     // Build property context for the AI
     const propertyContext = properties.length > 0
@@ -118,11 +146,11 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing ${mode} mode request with ${messages?.length || 0} messages`);
+    console.log(`Processing ${mode} mode request with ${messages?.length || 0} messages, selectedPropertyId: ${selectedPropertyId || 'none'}`);
 
     // Determine system prompt and tools based on mode
     const isExtractMode = mode === "extract";
-    const systemPrompt = isExtractMode ? EXTRACT_SYSTEM_PROMPT : CHAT_SYSTEM_PROMPT;
+    const systemPrompt = isExtractMode ? EXTRACT_SYSTEM_PROMPT : buildChatSystemPrompt(preSelectedProperty);
     
     const requestBody: Record<string, unknown> = {
       model: "google/gemini-2.5-flash",

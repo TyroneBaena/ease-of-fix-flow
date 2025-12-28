@@ -80,11 +80,17 @@ function validateFormData(data: MaintenanceFormData, properties: Property[]): st
   return null; // Valid
 }
 
-export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceChatReturn {
+export function useMaintenanceChat(
+  properties: Property[] = [], 
+  selectedPropertyId?: string
+): UseMaintenanceChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [formData, setFormData] = useState<MaintenanceFormData | null>(null);
+
+  // Get selected property name
+  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
 
   const sendMessage = useCallback(async (content: string) => {
     const userMessage: ChatMessage = { role: 'user', content };
@@ -109,6 +115,7 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
           messages: updatedMessages,
           properties: properties.map(p => ({ id: p.id, name: p.name })),
           mode,
+          selectedPropertyId, // Pass the pre-selected property
         }),
       });
 
@@ -187,6 +194,12 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
             if (mode === 'extract' && finishReason === 'tool_calls' && toolCallArgs) {
               try {
                 const extractedData = JSON.parse(toolCallArgs) as MaintenanceFormData;
+                
+                // If property was pre-selected, override with that
+                if (selectedPropertyId) {
+                  extractedData.propertyId = selectedPropertyId;
+                }
+                
                 console.log('Form data extracted:', extractedData);
                 
                 // Validate the extracted data
@@ -251,7 +264,7 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
     } finally {
       setIsLoading(false);
     }
-  }, [messages, properties]);
+  }, [messages, properties, selectedPropertyId]);
 
   const resetChat = useCallback(() => {
     setMessages([]);
@@ -262,12 +275,17 @@ export function useMaintenanceChat(properties: Property[] = []): UseMaintenanceC
 
   const initializeChat = useCallback(() => {
     if (messages.length === 0) {
+      // Customize greeting based on whether property is pre-selected
+      const greeting = selectedProperty
+        ? `Hi! I'm here to help you report a maintenance issue for ${selectedProperty.name}. What issue are you experiencing?`
+        : "Hi! I'm here to help you report a maintenance issue. Which property is this issue at?";
+      
       setMessages([{
         role: 'assistant',
-        content: "Hi! I'm here to help you report a maintenance issue. Which property is this issue at?"
+        content: greeting
       }]);
     }
-  }, [messages.length]);
+  }, [messages.length, selectedProperty]);
 
   return {
     messages,
