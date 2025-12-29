@@ -225,7 +225,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
         if (error) throw error;
 
         toast.success('Maintenance request submitted successfully!');
-        navigate(`/request-submitted?id=${data.requestId}&public=true`);
+        navigate(`/request-submitted?id=${data.requestId}&propertyId=${propertyIdToUse}&public=true`);
       } else {
         // Authenticated submission
         const requestData = {
