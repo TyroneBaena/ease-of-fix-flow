@@ -163,7 +163,7 @@ export const RequestDetailSidebar = ({
 
           {/* AI Responsibility Suggestion - Only for rented properties */}
           {isRentedProperty && canEditRequests && (
-            <ResponsibilitySuggestionCard request={request} />
+            <ResponsibilitySuggestionCard request={request} onSaved={onRefreshData} />
           )}
 
           {canAccessContractorFeatures && !request.contractorId && (

@@ -58,4 +58,11 @@ export interface MaintenanceRequest {
   // Property info for display
   propertyAddress?: string;
   propertyName?: string;
+  // AI Responsibility Suggestion
+  aiResponsibilitySuggestion?: string | null;
+  aiResponsibilityUrgency?: string | null;
+  aiResponsibilityAssetType?: string | null;
+  aiResponsibilityReasoning?: string | null;
+  aiResponsibilityConfidence?: string | null;
+  aiResponsibilityAnalyzedAt?: string | null;
 }
