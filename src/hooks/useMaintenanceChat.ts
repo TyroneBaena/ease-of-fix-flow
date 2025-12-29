@@ -22,6 +22,11 @@ interface Property {
   name: string;
 }
 
+interface Housemate {
+  firstName: string;
+  lastName: string;
+}
+
 interface UseMaintenanceChatReturn {
   messages: ChatMessage[];
   isLoading: boolean;
@@ -82,7 +87,8 @@ function validateFormData(data: MaintenanceFormData, properties: Property[]): st
 
 export function useMaintenanceChat(
   properties: Property[] = [], 
-  selectedPropertyId?: string
+  selectedPropertyId?: string,
+  housemates: Housemate[] = []
 ): UseMaintenanceChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,6 +120,7 @@ export function useMaintenanceChat(
         body: JSON.stringify({ 
           messages: updatedMessages,
           properties: properties.map(p => ({ id: p.id, name: p.name })),
+          housemates: housemates.map(h => ({ firstName: h.firstName, lastName: h.lastName })),
           mode,
           selectedPropertyId, // Pass the pre-selected property
         }),
