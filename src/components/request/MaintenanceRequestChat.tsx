@@ -238,6 +238,29 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
         const result = await addRequestToProperty(requestData);
         
         if (result) {
+          // Send email notifications - matching the regular form behavior
+          try {
+            const { data: session } = await supabase.auth.getSession();
+            const accessToken = session.session?.access_token;
+            
+            if (accessToken && result.id) {
+              console.log('Sending email notifications for chat-submitted request:', result.id);
+              const { error: notificationError } = await supabase.functions.invoke('send-maintenance-request-notification', {
+                body: { request_id: result.id },
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              });
+              
+              if (notificationError) {
+                console.error('Notification function error:', notificationError);
+              }
+            }
+          } catch (emailError) {
+            console.error('Failed to send email notifications:', emailError);
+            // Don't block the success flow if email fails
+          }
+          
           toast.success('Maintenance request submitted successfully!');
           navigate('/requests');
         }
