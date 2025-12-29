@@ -163,7 +163,7 @@ export const ResponsibilitySuggestionCard = ({ request }: ResponsibilitySuggesti
             {/* Asset Type */}
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Asset Type</p>
-              <p className="text-sm font-medium">{result.assetType}</p>
+              <p className="text-sm font-medium">{result.assetType.toLowerCase()}</p>
             </div>
 
             {/* Reasoning */}

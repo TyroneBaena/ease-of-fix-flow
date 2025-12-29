@@ -38,15 +38,15 @@ If ANY of these are present → Respond with Landlord + URGENT:
 - Blocked only toilet in property
 
 ### Step B — ASSET TYPE CLASSIFICATION
-Classify the issue into one of:
-1. Structure/building envelope (roof, walls, ceiling, windows frame, external doors, foundations)
-2. Plumbing/water/sewer (pipes, taps, toilets, drains, hot water)
-3. Electrical/gas (wiring, switchboard, outlets, lights, gas appliances)
-4. Supplied appliance/fixture (oven, cooktop, rangehood, fixed AC/heater, dishwasher)
-5. Cosmetic/wear & tear (paint scuffs, loose handle, ageing carpet)
-6. Cleaning/housekeeping (mould spots, dirty fan, grease build-up)
-7. Pests (cockroaches, rodents, bedbugs)
-8. Outdoor/garden (lawn, weeds, trees, gutters)
+Classify the issue into one of (use lowercase in your response):
+1. structure/building envelope (roof, walls, ceiling, windows frame, external doors, foundations)
+2. plumbing/water/sewer (pipes, taps, toilets, drains, hot water)
+3. electrical/gas (wiring, switchboard, outlets, lights, gas appliances)
+4. supplied appliance/fixture (oven, cooktop, rangehood, fixed AC/heater, dishwasher)
+5. cosmetic/wear & tear (paint scuffs, loose handle, ageing carpet)
+6. cleaning/housekeeping (mould spots, dirty fan, grease build-up)
+7. pests (cockroaches, rodents, bedbugs)
+8. outdoor/garden (lawn, weeds, trees, gutters)
 
 ### Step C — CAUSE ASSESSMENT
 Determine if the issue is likely caused by:
@@ -90,8 +90,8 @@ You must respond with ONLY a valid JSON object (no markdown, no explanation outs
 {
   "responsibility": "landlord" | "tenant" | "needs_review",
   "urgency": "urgent" | "normal",
-  "assetType": "string describing the asset category",
-  "reasoning": "2-3 sentence explanation of why this determination was made",
+  "assetType": "use lowercase category name (e.g., 'pests', 'plumbing/water/sewer', 'electrical/gas')",
+  "reasoning": "Structure as: 'The reported issue is [describe issue]. Under the [specific rule/category], this falls to [party] because [reason]. Finding: [Landlord/Tenant/Needs Review] responsibility.'",
   "confidence": "high" | "medium" | "low"
 }`;
 
@@ -185,8 +185,8 @@ Based on the decision framework, determine who is responsible for this maintenan
       analysis = {
         responsibility: 'needs_review',
         urgency: 'normal',
-        assetType: 'Unknown',
-        reasoning: 'Unable to determine responsibility from the provided information. Manual review recommended.',
+        assetType: 'unknown',
+        reasoning: 'Unable to determine responsibility from the provided information. Finding: Needs Review responsibility.',
         confidence: 'low'
       };
     }
