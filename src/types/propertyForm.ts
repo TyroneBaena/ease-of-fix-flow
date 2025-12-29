@@ -17,6 +17,7 @@ export interface UsePropertyFormProps {
     rentAmount: number;
     rentPeriod: 'week' | 'month';
     landlordId?: string;
+    ownershipType?: 'sda' | 'rented' | 'owned';
   };
   onClose: () => void;
 }

@@ -42,6 +42,7 @@ export const fetchProperties = async (signal?: AbortSignal): Promise<Property[]>
     rentPeriod: (prop.rent_period as 'week' | 'month') || 'month',
     createdAt: prop.created_at,
     landlordId: prop.landlord_id || undefined,
+    ownershipType: (prop.ownership_type as 'sda' | 'rented' | 'owned') || 'rented',
   }));
 
   console.log('PropertyOperations: Formatted properties:', formattedProperties.map(p => ({ id: p.id, name: p.name })));
@@ -63,5 +64,6 @@ export const mapPropertyToSupabase = (property: Omit<Property, 'id' | 'createdAt
     rent_period: property.rentPeriod,
     user_id: userId,
     landlord_id: property.landlordId ?? null,
+    ownership_type: property.ownershipType || 'rented',
   };
 };

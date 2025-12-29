@@ -6,6 +6,7 @@ import { BasicInfoFields } from './form/BasicInfoFields';
 import { PracticeLeaderFields } from './form/PracticeLeaderFields';
 import { RentalFields } from './form/RentalFields';
 import { LandlordFields } from './form/LandlordFields';
+import { OwnershipTypeFields } from './form/OwnershipTypeFields';
 import { usePropertyForm } from '@/hooks/usePropertyForm';
 import { Property } from '@/types/property';
 
@@ -24,6 +25,7 @@ interface PropertyFormProps {
     rentAmount: number;
     rentPeriod: 'week' | 'month';
     landlordId?: string;
+    ownershipType?: 'sda' | 'rented' | 'owned';
   };
 }
 
@@ -36,6 +38,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
     handleRentPeriodChange,
     handlePracticeLeaderChange, 
     handleLandlordChange,
+    handleOwnershipTypeChange,
     handleSubmit 
   } = usePropertyForm({ existingProperty, onClose });
 
@@ -62,6 +65,11 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, existingPro
         <LandlordFields
           landlordId={form.landlordId}
           onChange={handleLandlordChange}
+        />
+
+        <OwnershipTypeFields
+          ownershipType={form.ownershipType || 'rented'}
+          onOwnershipTypeChange={handleOwnershipTypeChange}
         />
         
         <RentalFields

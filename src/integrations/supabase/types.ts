@@ -1164,6 +1164,7 @@ export type Database = {
           landlord_id: string | null
           name: string
           organization_id: string | null
+          ownership_type: string | null
           practice_leader: string
           practice_leader_email: string | null
           practice_leader_phone: string | null
@@ -1182,6 +1183,7 @@ export type Database = {
           landlord_id?: string | null
           name: string
           organization_id?: string | null
+          ownership_type?: string | null
           practice_leader: string
           practice_leader_email?: string | null
           practice_leader_phone?: string | null
@@ -1200,6 +1202,7 @@ export type Database = {
           landlord_id?: string | null
           name?: string
           organization_id?: string | null
+          ownership_type?: string | null
           practice_leader?: string
           practice_leader_email?: string | null
           practice_leader_phone?: string | null

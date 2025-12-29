@@ -185,6 +185,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     rentAmount: existingProperty?.rentAmount || 0,
     rentPeriod: existingProperty?.rentPeriod || "month",
     landlordId: existingProperty?.landlordId,
+    ownershipType: existingProperty?.ownershipType || "rented",
   });
 
   useEffect(() => {
@@ -305,6 +306,10 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
   const handleLandlordChange = (landlordId: string | null) => {
     setForm((prev) => ({ ...prev, landlordId: landlordId || undefined }));
   };
+
+  const handleOwnershipTypeChange = (value: 'sda' | 'rented' | 'owned') => {
+    setForm((prev) => ({ ...prev, ownershipType: value }));
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -367,6 +372,7 @@ export const usePropertyForm = ({ existingProperty, onClose }: UsePropertyFormPr
     handleRentPeriodChange,
     handlePracticeLeaderChange,
     handleLandlordChange,
+    handleOwnershipTypeChange,
     handleSubmit,
   };
 };
