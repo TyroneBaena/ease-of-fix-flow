@@ -42,11 +42,12 @@ Classify the issue into one of (use lowercase in your response):
 1. structure/building envelope (roof, walls, ceiling, windows frame, external doors, foundations)
 2. plumbing/water/sewer (pipes, taps, toilets, drains, hot water)
 3. electrical/gas (wiring, switchboard, outlets, lights, gas appliances)
-4. supplied appliance/fixture (oven, cooktop, rangehood, fixed AC/heater, dishwasher)
+4. supplied appliance/fixture (oven, cooktop, rangehood, fixed AC/heater, dishwasher) — ONLY if confirmed landlord-supplied
 5. cosmetic/wear & tear (paint scuffs, loose handle, ageing carpet)
 6. cleaning/housekeeping (mould spots, dirty fan, grease build-up)
 7. pests (cockroaches, rodents, bedbugs)
 8. outdoor/garden (lawn, weeds, trees, gutters)
+9. tenant-owned/personal items (furniture tenant brought, personal electronics, outdoor dining sets, BBQs, portable heaters/fans, alfresco furniture, patio sets)
 
 ### Step C — CAUSE ASSESSMENT
 Determine if the issue is likely caused by:
@@ -64,9 +65,11 @@ Determine if the issue is likely caused by:
    - Tenant if: blocked drain likely from wipes/grease/foreign objects, damaged fittings due to misuse
    - If unclear → Needs Review
 
-4) **Supplied appliances/fixtures**:
-   - Landlord if supplied with property and failure is normal wear/fault
-   - Tenant if damaged by misuse (smashed cooktop, overloaded appliance, missing parts)
+4) **Supplied appliances/fixtures** (ONLY items CONFIRMED as landlord-supplied):
+   - Landlord if: Item is clearly built-in/fixed (oven, cooktop, rangehood, fixed AC, dishwasher, fixed heater) AND failure is normal wear/fault
+   - Tenant if: Item is damaged by misuse (smashed cooktop, overloaded appliance, missing parts)
+   - ⚠️ CRITICAL: If ownership is NOT explicitly stated as landlord-supplied → return "needs_review" with medium/low confidence
+   - Include in reasoning: "Ownership needs to be confirmed - recommend checking if this item was supplied with the property."
 
 5) **Cleaning/housekeeping**:
    - Tenant by default
@@ -85,13 +88,39 @@ Determine if the issue is likely caused by:
    - Tenant if tenancy agreement says tenant maintains lawns/garden upkeep (mowing, weeding)
    - Landlord for: large tree hazards, storm damage, broken fences not tenant-caused, gutter repairs
 
+9) **Tenant-owned/personal items**:
+   - ALWAYS Tenant responsibility
+   - Common examples: outdoor furniture (tables, chairs, benches, umbrellas, alfresco sets), BBQs, portable heaters/fans, personal electronics, rugs, curtains tenant installed
+   - If item is moveable/portable and not explicitly listed as landlord-supplied → assume tenant-owned
+
+### Step E — OWNERSHIP ASSUMPTIONS (when not explicitly stated)
+
+**ASSUME LANDLORD-OWNED (built-in/fixed):**
+- Oven, cooktop, rangehood, fixed air conditioning, ducted heating
+- Dishwasher, garbage disposal, fixed exhaust fans
+- Hot water system, ceiling fans, light fixtures
+- Built-in wardrobes, fixed shelving
+
+**ASSUME TENANT-OWNED (portable/moveable):**
+- Outdoor furniture (tables, chairs, benches, dining sets, umbrellas, alfresco sets, patio furniture)
+- BBQs, portable heaters, portable fans, portable AC units
+- Freestanding furniture (beds, couches, dining tables)
+- Washing machines, dryers (unless specified in lease as landlord-supplied)
+- Personal electronics, TVs, gaming consoles
+- Any item described as "our", "my", "we bought", "personal"
+
+**NEEDS CLARIFICATION (could be either):**
+- Fridges, microwaves (sometimes supplied)
+- Window blinds, curtains (sometimes installed by tenant)
+- Washing machines in rental properties (varies by property)
+
 ## RESPONSE FORMAT
 You must respond with ONLY a valid JSON object (no markdown, no explanation outside JSON):
 {
   "responsibility": "landlord" | "tenant" | "needs_review",
   "urgency": "urgent" | "normal",
-  "assetType": "use lowercase category name (e.g., 'pests', 'plumbing/water/sewer', 'electrical/gas')",
-  "reasoning": "Structure as: 'The reported issue is [describe issue]. Under the [specific rule/category], this falls to [party] because [reason]. Finding: [Landlord/Tenant/Needs Review] responsibility.'",
+  "assetType": "use lowercase category name (e.g., 'tenant-owned/personal items', 'supplied appliance/fixture')",
+  "reasoning": "Structure as: 'The reported issue is [describe issue]. Ownership assessment: [state whether item appears landlord-supplied, tenant-owned, or unclear based on Step E guidelines]. Under the [specific rule/category], this falls to [party] because [reason]. [If ownership unclear: Recommend confirming whether this item was supplied with the property.] Finding: [Landlord/Tenant/Needs Review] responsibility.'",
   "confidence": "high" | "medium" | "low"
 }`;
 
