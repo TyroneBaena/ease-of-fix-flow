@@ -147,6 +147,11 @@ export const RequestDetailSidebar = ({
         />
       )}
 
+      {/* AI Responsibility Suggestion - Show for ALL rented properties (regardless of landlord assignment) */}
+      {isRentedProperty && canEditRequests && (
+        <ResponsibilitySuggestionCard request={request} onSaved={onRefreshData} />
+      )}
+
       {/* Contractor Assignment and Quotes - Only when not assigned to landlord */}
       {!isLandlordAssigned && (
         <>
@@ -159,11 +164,6 @@ export const RequestDetailSidebar = ({
               onOpenQuoteDialog={onOpenRequestQuoteDialog}
               onContractorAssigned={onRefreshData}
             />
-          )}
-
-          {/* AI Responsibility Suggestion - Only for rented properties */}
-          {isRentedProperty && canEditRequests && (
-            <ResponsibilitySuggestionCard request={request} onSaved={onRefreshData} />
           )}
 
           {canAccessContractorFeatures && !request.contractorId && (
