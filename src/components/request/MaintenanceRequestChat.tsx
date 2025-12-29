@@ -207,13 +207,14 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
             attachments,
             priority: 'medium',
             category: 'general',
+            reportDate: new Date().toISOString().split('T')[0],
           },
         });
 
         if (error) throw error;
 
         toast.success('Maintenance request submitted successfully!');
-        navigate(`/request-submitted?id=${data.id}&public=true`);
+        navigate(`/request-submitted?id=${data.requestId}&public=true`);
       } else {
         // Authenticated submission
         const requestData = {
