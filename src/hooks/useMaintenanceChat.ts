@@ -39,15 +39,17 @@ interface UseMaintenanceChatReturn {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-maintenance-request`;
 
-// Validation for extracted form data
+// Validation for extracted form data - provides specific, actionable feedback
 function validateFormData(data: MaintenanceFormData, properties: Property[]): string | null {
+  const issues: string[] = [];
+  
   // Check propertyId exists in properties list
   const propertyExists = properties.some(p => p.id === data.propertyId);
   if (!propertyExists) {
-    return "The property couldn't be matched. Please clarify which property this is for.";
+    issues.push("The property couldn't be matched to your available properties. Please clarify which property this is for.");
   }
 
-  // Check required fields are not empty or placeholder-like
+  // Placeholder patterns that indicate fake/test data
   const placeholderPatterns = [
     /^\[.*\]$/,           // [placeholder]
     /^test$/i,            // test
@@ -56,30 +58,68 @@ function validateFormData(data: MaintenanceFormData, properties: Property[]): st
     /^placeholder$/i,     // placeholder
     /^unknown$/i,         // unknown
     /^tbd$/i,             // tbd
+    /^asdf$/i,            // asdf
+    /^user$/i,            // user
+    /^admin$/i,           // admin
+    /^me$/i,              // me
+    /^[a-z]$/i,           // single letter
+    /^\d+$/,              // just numbers
   ];
 
-  const requiredFields: (keyof MaintenanceFormData)[] = [
-    'issueNature', 'explanation', 'location', 'submittedBy', 'attemptedFix'
-  ];
+  // Check submittedBy (name) - must be a real name
+  const name = data.submittedBy?.trim() || '';
+  if (!name) {
+    issues.push("Your name is missing. Please provide your actual name.");
+  } else if (placeholderPatterns.some(pattern => pattern.test(name))) {
+    issues.push(`"${name}" doesn't appear to be a real name. Please provide your actual full name so the property manager can contact you.`);
+  } else if (name.length < 2) {
+    issues.push("Please provide your full name (at least first name), not just initials.");
+  }
 
-  for (const field of requiredFields) {
-    const value = data[field];
-    if (typeof value !== 'string') continue;
-    
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return `Missing ${field}. Please provide this information.`;
-    }
-    
-    // Check for placeholder patterns
-    if (placeholderPatterns.some(pattern => pattern.test(trimmed))) {
-      return `The ${field} looks like a placeholder. Please provide the actual information.`;
+  // Check issueNature (title) - must be 2-5 descriptive words
+  const issueTitle = data.issueNature?.trim() || '';
+  if (!issueTitle) {
+    issues.push("The issue title is missing. Please provide a brief title like 'Kitchen tap leaking'.");
+  } else {
+    const titleWords = issueTitle.split(/\s+/).length;
+    if (titleWords < 2) {
+      issues.push(`The issue title "${issueTitle}" is too brief. Please provide a short descriptive title like "Kitchen tap leaking" or "Bathroom door broken".`);
     }
   }
 
-  // Check explanation has reasonable length
-  if (data.explanation.trim().split(/\s+/).length < 3) {
-    return "The description is too brief. Please provide more details about the issue.";
+  // Check explanation (description) - must be at least 10 words with real detail
+  const description = data.explanation?.trim() || '';
+  if (!description) {
+    issues.push("The description is missing. Please describe the issue in detail.");
+  } else {
+    const wordCount = description.split(/\s+/).length;
+    if (wordCount < 10) {
+      issues.push(`The description is too brief (${wordCount} words). Please provide at least 10-15 words explaining what's happening, how severe it is, and when it started.`);
+    }
+  }
+
+  // Check location - must be specific
+  const location = data.location?.trim() || '';
+  const vagueLocationPatterns = [/^inside$/i, /^the house$/i, /^here$/i, /^there$/i, /^home$/i];
+  if (!location) {
+    issues.push("The location is missing. Please specify which room or area the issue is in.");
+  } else if (vagueLocationPatterns.some(pattern => pattern.test(location))) {
+    issues.push(`"${location}" is too vague. Please specify the exact room or area, like "kitchen", "main bathroom", or "bedroom 2".`);
+  }
+
+  // Check attemptedFix - must have some response
+  const attemptedFix = data.attemptedFix?.trim() || '';
+  if (!attemptedFix) {
+    issues.push("Please indicate whether you've tried anything to fix the issue, or say 'Nothing' if you haven't.");
+  }
+
+  // If there are issues, return a formatted error message
+  if (issues.length > 0) {
+    const errorMessage = issues.length === 1 
+      ? issues[0]
+      : "I noticed some issues with the information:\n\n" + issues.map(i => `• ${i}`).join('\n');
+    
+    return errorMessage + "\n\nPlease provide the correct information in the chat, then type SUBMIT again.";
   }
 
   return null; // Valid
