@@ -205,3 +205,6 @@ verify_jwt = false
 
 [functions.chat-maintenance-request]
 verify_jwt = false
+
+[functions.analyze-responsibility]
+verify_jwt = false

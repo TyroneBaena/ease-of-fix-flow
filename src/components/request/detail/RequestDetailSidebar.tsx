@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RequestActions } from "@/components/request/RequestActions";
 import { QuotesList } from "@/components/request/QuotesList";
@@ -8,11 +8,12 @@ import { JobProgressCard } from "@/components/contractor/JobProgressCard";
 import { MaintenanceRequest } from "@/types/maintenance";
 import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { LandlordCommunicationCard } from "@/components/request/LandlordCommunicationCard";
+import { ResponsibilitySuggestionCard } from "@/components/request/ResponsibilitySuggestionCard";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateRequestPriority } from "@/utils/statusTransitions";
 import { toast } from "sonner";
-
+import { supabase } from "@/integrations/supabase/client";
 interface RequestDetailSidebarProps {
   request: MaintenanceRequest;
   quotes: any[];
@@ -34,12 +35,39 @@ export const RequestDetailSidebar = ({
   const { currentUser, isAdmin } = useUserContext();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
+  const [propertyOwnershipType, setPropertyOwnershipType] = useState<string | null>(null);
+
+  // Fetch property ownership type
+  useEffect(() => {
+    const fetchPropertyOwnershipType = async () => {
+      if (!request.propertyId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('ownership_type')
+          .eq('id', request.propertyId)
+          .single();
+        
+        if (!error && data) {
+          setPropertyOwnershipType(data.ownership_type);
+        }
+      } catch (err) {
+        console.error('Error fetching property ownership type:', err);
+      }
+    };
+
+    fetchPropertyOwnershipType();
+  }, [request.propertyId]);
 
   // Check if user can access contractor features (admins only, not managers)
   const canAccessContractorFeatures = isAdmin;
 
   // Check if user can edit requests (admins and managers)
   const canEditRequests = isAdmin || currentUser?.role === "manager";
+  
+  // Check if property is rented
+  const isRentedProperty = propertyOwnershipType === 'rented';
 
   const handleEditRequest = () => {
     setEditDialogOpen(true);
@@ -131,6 +159,11 @@ export const RequestDetailSidebar = ({
               onOpenQuoteDialog={onOpenRequestQuoteDialog}
               onContractorAssigned={onRefreshData}
             />
+          )}
+
+          {/* AI Responsibility Suggestion - Only for rented properties */}
+          {isRentedProperty && canEditRequests && (
+            <ResponsibilitySuggestionCard request={request} />
           )}
 
           {canAccessContractorFeatures && !request.contractorId && (
