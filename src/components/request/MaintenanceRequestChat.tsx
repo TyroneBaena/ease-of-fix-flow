@@ -37,10 +37,6 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   const [searchParams] = useSearchParams();
   const propertyIdFromUrl = propPropertyId || searchParams.get('propertyId');
   
-  // Property selection state - for the step before chat starts
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
-  const [hasStartedChat, setHasStartedChat] = useState(false);
-  
   // Get properties based on public/private context
   const privatePropertyContext = usePropertyContext();
   const publicPropertyContext = usePublicPropertyContextSafe();
@@ -48,14 +44,26 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     ? publicPropertyContext.properties 
     : privatePropertyContext.properties;
   
-  // Auto-select property when coming from URL (QR code or property page)
+  // For public flow, check if property data is loading or has error
+  const publicLoading = isPublic && publicPropertyContext?.loading;
+  const publicError = isPublic && publicPropertyContext?.error;
+  
+  // Property selection state - initialized from URL for public users
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
+    () => propertyIdFromUrl || null
+  );
+  // Auto-start chat for public users with propertyId in URL
+  const [hasStartedChat, setHasStartedChat] = useState(
+    () => isPublic && !!propertyIdFromUrl
+  );
+  
+  // Determine if property is ready (loaded and found in properties array)
+  const propertyReady = !selectedPropertyId || properties.some(p => p.id === selectedPropertyId);
+  
+  // Auto-select property when coming from URL (for authenticated users clicking from property page)
   useEffect(() => {
-    if (propertyIdFromUrl) {
+    if (propertyIdFromUrl && !isPublic) {
       setSelectedPropertyId(propertyIdFromUrl);
-      // Auto-start chat for public QR users
-      if (isPublic) {
-        setHasStartedChat(true);
-      }
     }
   }, [isPublic, propertyIdFromUrl]);
   
@@ -104,12 +112,12 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Initialize chat with AI greeting when chat has started
+  // Initialize chat with AI greeting when chat has started AND property is ready
   useEffect(() => {
-    if (hasStartedChat && messages.length === 0) {
+    if (hasStartedChat && messages.length === 0 && propertyReady) {
       initializeChat();
     }
-  }, [hasStartedChat, messages.length, initializeChat]);
+  }, [hasStartedChat, messages.length, initializeChat, propertyReady]);
 
   // Handle starting the chat after property selection
   const handleStartChat = () => {
@@ -283,6 +291,33 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     { label: 'Location', value: formData.location },
     { label: 'Reported by', value: formData.submittedBy },
   ].filter(f => f.value) : [];
+
+  // Loading state for public QR flow while property data loads
+  if (isPublic && propertyIdFromUrl && (publicLoading || !propertyReady)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] max-h-[50vh] space-y-4 p-6">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading property information...</p>
+      </div>
+    );
+  }
+
+  // Error state for public flow
+  if (isPublic && publicError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] max-h-[50vh] space-y-4 p-6">
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold text-destructive">Unable to load property</h3>
+          <p className="text-sm text-muted-foreground">
+            {publicError || 'Please try scanning the QR code again.'}
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   // Property selection screen (shown for authenticated users before chat starts)
   if (!hasStartedChat && !isPublic) {
