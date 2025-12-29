@@ -48,11 +48,14 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     ? publicPropertyContext.properties 
     : privatePropertyContext.properties;
   
-  // Auto-select property for public users with URL param
+  // Auto-select property when coming from URL (QR code or property page)
   useEffect(() => {
-    if (isPublic && propertyIdFromUrl) {
+    if (propertyIdFromUrl) {
       setSelectedPropertyId(propertyIdFromUrl);
-      setHasStartedChat(true); // Auto-start chat for public QR users
+      // Auto-start chat for public QR users
+      if (isPublic) {
+        setHasStartedChat(true);
+      }
     }
   }, [isPublic, propertyIdFromUrl]);
   

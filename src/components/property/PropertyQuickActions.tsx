@@ -21,7 +21,9 @@ export const PropertyQuickActions: React.FC<PropertyQuickActionsProps> = ({
   const { refreshPropertyCount } = useSubscription();
 
   const handleNewRequest = () => {
-    navigate(`/new-request?propertyId=${propertyId}`);
+    const baseUrl = `/new-request?propertyId=${propertyId}`;
+    const url = isTemporaryAccess ? `${baseUrl}&public=true` : baseUrl;
+    navigate(url);
     // Refresh property count when navigating to ensure billing is up to date
     refreshPropertyCount();
   };
