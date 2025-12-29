@@ -1123,6 +1123,7 @@ import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 import PublicPropertyRequests from "@/pages/PublicPropertyRequests";
 import PublicRequestDetail from "@/pages/PublicRequestDetail";
+import PublicRequestSubmitted from "@/pages/PublicRequestSubmitted";
 import QRCodeRedirect from "@/components/QRCodeRedirect";
 import AdminSyncTest from "@/pages/AdminSyncTest";
 import AdminSettings from "@/pages/AdminSettings";
@@ -1218,6 +1219,7 @@ const AppRoutes = () => {
       <Route path="/qr/:token" element={<QRCodeRedirect />} />
       <Route path="/property-requests/:id" element={<PublicPropertyRequests />} />
       <Route path="/public-request/:id" element={<PublicRequestDetail />} />
+      <Route path="/request-submitted" element={<PublicRequestSubmitted />} />
 
       {/* Organization-protected routes */}
       <Route
