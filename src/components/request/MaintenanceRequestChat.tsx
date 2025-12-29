@@ -13,6 +13,7 @@ import { usePropertyContext } from '@/contexts/property/PropertyContext';
 import { usePublicPropertyContextSafe } from '@/contexts/property/PublicPropertyProvider';
 import { useMaintenanceRequestContext } from '@/contexts/maintenance/MaintenanceRequestContext';
 import { useSimpleAuth } from '@/contexts/UnifiedAuthContext';
+import { useHousemates } from '@/hooks/useHousemates';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -55,10 +56,29 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
     }
   }, [isPublic, propertyIdFromUrl]);
   
-  // Pass properties and selected property to the chat hook
+  // Fetch housemates for the selected property (authenticated users only)
+  const { housemates, fetchHousemates } = useHousemates();
+  
+  // Get housemates from public context for public users
+  const publicHousemates = (isPublic && publicPropertyContext) 
+    ? publicPropertyContext.housemates || []
+    : [];
+  
+  // Use appropriate housemates based on context
+  const effectiveHousemates = isPublic ? publicHousemates : housemates;
+  
+  // Fetch housemates when property is selected (authenticated users)
+  useEffect(() => {
+    if (selectedPropertyId && !isPublic) {
+      fetchHousemates(selectedPropertyId, false);
+    }
+  }, [selectedPropertyId, isPublic, fetchHousemates]);
+  
+  // Pass properties, selected property, and housemates to the chat hook
   const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat(
     properties,
-    selectedPropertyId || undefined
+    selectedPropertyId || undefined,
+    effectiveHousemates.map(h => ({ firstName: h.firstName, lastName: h.lastName }))
   );
   const { uploadFiles, isUploading } = useFileUpload();
   const { addRequestToProperty } = useMaintenanceRequestContext();

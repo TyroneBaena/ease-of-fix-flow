@@ -5,8 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Build housemates context for the AI
+function buildHousematesContext(housemates: { firstName: string; lastName: string }[] = []) {
+  if (housemates.length === 0) {
+    return '\n\nHOUSEMATES/RESIDENTS AT THIS PROPERTY:\nNo housemates on file. If the user says the issue is participant-related, ask them to provide the participant\'s name.';
+  }
+  
+  const housemateList = housemates.map(h => `- ${h.firstName} ${h.lastName}`).join('\n');
+  return `\n\nHOUSEMATES/RESIDENTS AT THIS PROPERTY:\n${housemateList}`;
+}
+
 // Build chat system prompt based on whether property is pre-selected
-function buildChatSystemPrompt(preSelectedProperty?: { id: string; name: string }) {
+function buildChatSystemPrompt(
+  preSelectedProperty?: { id: string; name: string },
+  housemates: { firstName: string; lastName: string }[] = []
+) {
+  const housematesContext = buildHousematesContext(housemates);
+  
   const propertySection = preSelectedProperty
     ? `=== PROPERTY ALREADY SELECTED ===
 The user has already selected the property: "${preSelectedProperty.name}" (ID: ${preSelectedProperty.id})
@@ -18,6 +33,8 @@ Do NOT ask which property - it's already confirmed. Skip directly to asking abou
 3. Location - Ask where in the property the issue is located
 4. Name - Ask for the name of the person reporting the issue
 5. Attempted fix - Ask what they've tried to fix it (or confirm "Nothing" if they haven't tried anything)
+6. Participant-related - Ask if this issue was caused by or related to a participant/resident (Yes or No)
+7. IF participant-related is Yes: Ask which participant. Show the list of housemates if available, or ask for the name if not on the list
 
 === CONVERSATION FLOW ===
 1. Greet and acknowledge the property (${preSelectedProperty.name}), then ask what the issue is (brief title)
@@ -25,7 +42,9 @@ Do NOT ask which property - it's already confirmed. Skip directly to asking abou
 3. Ask where in the property the issue is located
 4. Ask for their name
 5. Ask if they've tried anything to fix it
-6. ONCE YOU HAVE ALL 5 REQUIRED PIECES OF INFORMATION: Display a summary and tell them to type SUBMIT to finalize`
+6. Ask "Was this issue caused by or related to a resident/participant living at the property?" (Yes or No)
+7. IF they say Yes: Ask which participant - show them the housemate names if available, or ask them to provide a name
+8. ONCE YOU HAVE ALL REQUIRED INFORMATION: Display a summary and tell them to type SUBMIT to finalize`
     : `=== REQUIRED INFORMATION TO COLLECT (ask for each one separately) ===
 1. Property - Ask which property the issue is at (match to available properties list)
 2. Issue title - Ask for a brief title describing the issue (5 words or less)
@@ -33,6 +52,8 @@ Do NOT ask which property - it's already confirmed. Skip directly to asking abou
 4. Location - Ask where in the property the issue is located
 5. Name - Ask for the name of the person reporting the issue
 6. Attempted fix - Ask what they've tried to fix it (or confirm "Nothing" if they haven't tried anything)
+7. Participant-related - Ask if this issue was caused by or related to a participant/resident (Yes or No)
+8. IF participant-related is Yes: Ask which participant. Show the list of housemates if available, or ask for the name if not on the list
 
 === PROPERTY SELECTION ===
 - Start by asking which property the issue is at
@@ -48,7 +69,9 @@ Do NOT ask which property - it's already confirmed. Skip directly to asking abou
 4. Ask where in the property the issue is located
 5. Ask for their name
 6. Ask if they've tried anything to fix it
-7. ONCE YOU HAVE ALL 6 REQUIRED PIECES OF INFORMATION: Display a summary and tell them to type SUBMIT to finalize`;
+7. Ask "Was this issue caused by or related to a resident/participant living at the property?" (Yes or No)
+8. IF they say Yes: Ask which participant - show them the housemate names if available, or ask them to provide a name
+9. ONCE YOU HAVE ALL REQUIRED INFORMATION: Display a summary and tell them to type SUBMIT to finalize`;
 
   return `You are a maintenance request assistant for a property management system. Your job is to help users report maintenance issues by collecting information through friendly conversation.
 
@@ -62,10 +85,14 @@ Do NOT ask which property - it's already confirmed. Skip directly to asking abou
 7. You are ONLY having a conversation - you CANNOT submit or finalize anything
 
 ${propertySection}
+${housematesContext}
 
-=== OPTIONAL INFORMATION ===
-- Ask if the issue was caused by or related to a resident/participant
-- If yes to above, ask which participant
+=== PARTICIPANT-RELATED QUESTION (REQUIRED) ===
+You MUST ask whether the issue was caused by or related to a participant/resident.
+- Always ask this question after collecting the attempted fix information
+- If they say YES: Ask which participant (provide the housemate list if available)
+- If they say NO: Move on to the summary
+- If no housemates are on file and they say yes, ask them to provide the participant's name
 
 === FORMATTING RULES ===
 - Do NOT use markdown formatting like **bold**, *italics*, bullet points, or numbered lists
@@ -87,6 +114,8 @@ Location: [their location]
 Description: [their description]
 Reported by: [their name]
 Attempted fix: [what they tried or "Nothing"]
+Participant-related: [Yes/No]
+${`Participant: [their participant name if applicable]`}
 
 Type SUBMIT to finalize your request, or let me know if anything needs to be changed.
 
@@ -117,7 +146,9 @@ If any required field is missing from the conversation, respond with text explai
 - explanation: The detailed description the user gave
 - location: Where in the property (as stated by user)
 - submittedBy: The user's name they provided
-- attemptedFix: What they said they tried (or "None"/"Nothing" if they said they didn't try anything)`;
+- attemptedFix: What they said they tried (or "None"/"Nothing" if they said they didn't try anything)
+- isParticipantRelated: Whether the user said the issue was caused by or related to a participant (true/false)
+- participantName: If isParticipantRelated is true, the participant's name (from housemates list or user-provided)`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -125,7 +156,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, properties = [], mode = "chat", selectedPropertyId } = await req.json();
+    const { messages, properties = [], housemates = [], mode = "chat", selectedPropertyId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     // Find the pre-selected property if provided
@@ -146,11 +177,11 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing ${mode} mode request with ${messages?.length || 0} messages, selectedPropertyId: ${selectedPropertyId || 'none'}`);
+    console.log(`Processing ${mode} mode request with ${messages?.length || 0} messages, selectedPropertyId: ${selectedPropertyId || 'none'}, housemates: ${housemates.length}`);
 
     // Determine system prompt and tools based on mode
     const isExtractMode = mode === "extract";
-    const systemPrompt = isExtractMode ? EXTRACT_SYSTEM_PROMPT : buildChatSystemPrompt(preSelectedProperty);
+    const systemPrompt = isExtractMode ? EXTRACT_SYSTEM_PROMPT : buildChatSystemPrompt(preSelectedProperty, housemates);
     
     const requestBody: Record<string, unknown> = {
       model: "google/gemini-2.5-flash",
