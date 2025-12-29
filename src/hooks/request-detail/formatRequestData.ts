@@ -140,7 +140,14 @@ export function formatRequestData(data: any): MaintenanceRequest {
     landlord_assigned_at: data.landlord_assigned_at || null,
     landlord_assigned_by: data.landlord_assigned_by || null,
     landlord_notes: data.landlord_notes || null,
-    userId: data.user_id || 'unknown-user'
+    userId: data.user_id || 'unknown-user',
+    // AI Responsibility Suggestion
+    aiResponsibilitySuggestion: data.ai_responsibility_suggestion || null,
+    aiResponsibilityUrgency: data.ai_responsibility_urgency || null,
+    aiResponsibilityAssetType: data.ai_responsibility_asset_type || null,
+    aiResponsibilityReasoning: data.ai_responsibility_reasoning || null,
+    aiResponsibilityConfidence: data.ai_responsibility_confidence || null,
+    aiResponsibilityAnalyzedAt: data.ai_responsibility_analyzed_at || null,
   };
 
   console.log('formatRequestData - FINAL formatted request attachments:', formattedRequest.attachments);

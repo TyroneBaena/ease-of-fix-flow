@@ -54,7 +54,14 @@ const transformDbToMaintenanceRequest = (dbData: any): MaintenanceRequest => {
     history: dbData.history,
     dueDate: dbData.due_date,
     assignedTo: dbData.assigned_to,
-    invoice_id: dbData.invoice_id
+    invoice_id: dbData.invoice_id,
+    // AI Responsibility Suggestion
+    aiResponsibilitySuggestion: dbData.ai_responsibility_suggestion || null,
+    aiResponsibilityUrgency: dbData.ai_responsibility_urgency || null,
+    aiResponsibilityAssetType: dbData.ai_responsibility_asset_type || null,
+    aiResponsibilityReasoning: dbData.ai_responsibility_reasoning || null,
+    aiResponsibilityConfidence: dbData.ai_responsibility_confidence || null,
+    aiResponsibilityAnalyzedAt: dbData.ai_responsibility_analyzed_at || null,
   };
 };
 

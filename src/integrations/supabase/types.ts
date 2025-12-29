@@ -843,6 +843,12 @@ export type Database = {
       }
       maintenance_requests: {
         Row: {
+          ai_responsibility_analyzed_at: string | null
+          ai_responsibility_asset_type: string | null
+          ai_responsibility_confidence: string | null
+          ai_responsibility_reasoning: string | null
+          ai_responsibility_suggestion: string | null
+          ai_responsibility_urgency: string | null
           assigned_at: string | null
           assigned_to: string | null
           assigned_to_landlord: boolean | null
@@ -883,6 +889,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_responsibility_analyzed_at?: string | null
+          ai_responsibility_asset_type?: string | null
+          ai_responsibility_confidence?: string | null
+          ai_responsibility_reasoning?: string | null
+          ai_responsibility_suggestion?: string | null
+          ai_responsibility_urgency?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
           assigned_to_landlord?: boolean | null
@@ -923,6 +935,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_responsibility_analyzed_at?: string | null
+          ai_responsibility_asset_type?: string | null
+          ai_responsibility_confidence?: string | null
+          ai_responsibility_reasoning?: string | null
+          ai_responsibility_suggestion?: string | null
+          ai_responsibility_urgency?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
           assigned_to_landlord?: boolean | null
