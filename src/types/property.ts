@@ -13,6 +13,7 @@ export interface Property {
   rentPeriod: 'week' | 'month';
   createdAt: string;
   landlordId?: string; // references public.landlords.id
+  ownershipType?: 'sda' | 'rented' | 'owned';
 }
 
 export interface MaintenanceRequest {
