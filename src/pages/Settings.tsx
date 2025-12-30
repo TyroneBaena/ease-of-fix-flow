@@ -276,6 +276,7 @@ import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
 import ActivityTracker from "@/components/security/ActivityTracker";
+import PublicLinkActivityTracker from "@/components/security/PublicLinkActivityTracker";
 import { Users, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -422,6 +423,12 @@ const Settings = () => {
                   <div className="pt-6">
                     <h3 className="text-lg font-semibold mb-4">App Usage Activity</h3>
                     <ActivityTracker />
+                  </div>
+
+                  {/* Public Link Activity Tracker */}
+                  <div className="pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Public Link Activity</h3>
+                    <PublicLinkActivityTracker />
                   </div>
 
                   <Alert>

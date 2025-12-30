@@ -165,6 +165,25 @@ serve(async (req) => {
       housematesCount: transformedHousemates.length
     });
 
+    // Log public link access (non-blocking)
+    try {
+      const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const userAgent = req.headers.get('user-agent') || 'unknown';
+      
+      await supabase.from('public_link_access_logs').insert({
+        organization_id: propertyData.organization_id,
+        property_id: propertyId,
+        property_name: propertyData.name,
+        access_type: 'page_view',
+        ip_address: clientIp,
+        user_agent: userAgent,
+        metadata: { source: 'qr_code_or_direct_link' }
+      });
+      console.log('📊 Public link access logged');
+    } catch (logError) {
+      console.error('Failed to log public link access (non-blocking):', logError);
+    }
+
     return new Response(
       JSON.stringify({
         property: transformedProperty,
