@@ -21,6 +21,7 @@ export interface User {
   organization_id?: string; // Organization ID for multi-tenancy
   session_organization_id?: string; // Current session organization
   createdAt: string;
+  lastLoginAt?: string; // Last login timestamp from security_events
   notificationSettings?: NotificationSettings;
   unreadNotifications?: number; // Count of unread notifications
 }

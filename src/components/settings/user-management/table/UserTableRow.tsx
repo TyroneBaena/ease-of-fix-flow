@@ -36,6 +36,7 @@ const arePropsEqual = (prevProps: UserTableRowProps, nextProps: UserTableRowProp
     prevUser.email === nextUser.email &&
     prevUser.role === nextUser.role &&
     prevUser.createdAt === nextUser.createdAt &&
+    prevUser.lastLoginAt === nextUser.lastLoginAt &&
     JSON.stringify(prevUser.assignedProperties) === JSON.stringify(nextUser.assignedProperties) &&
     prevProps.currentUserId === nextProps.currentUserId &&
     prevProps.isLoading === nextProps.isLoading
@@ -61,6 +62,10 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
   const formattedDate = user.createdAt 
     ? formatFullDate(user.createdAt)
     : 'N/A';
+  
+  const formattedLastLogin = user.lastLoginAt 
+    ? formatFullDate(user.lastLoginAt)
+    : 'Never';
   
   const propertyCount = user.assignedProperties?.length || 0;
   
@@ -93,6 +98,7 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
         )}
       </TableCell>
       <TableCell>{formattedDate}</TableCell>
+      <TableCell className={!user.lastLoginAt ? "text-muted-foreground" : ""}>{formattedLastLogin}</TableCell>
       <TableCell className="text-right">
         <DropdownMenu 
           modal={false} 
