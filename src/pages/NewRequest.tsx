@@ -33,8 +33,8 @@ const NewRequest = () => {
     setShowBanner(false);
   };
 
-  // Default to AI chat for public users, form for authenticated users
-  const defaultTab = isPublic ? 'chat' : 'form';
+  // Always default to AI chat for all users (form still available as tab for authenticated users)
+  const defaultTab = 'chat';
 
   return (
     <div className="min-h-screen bg-gray-50">
