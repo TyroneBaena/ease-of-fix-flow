@@ -91,7 +91,7 @@ const NewRequest = () => {
                 Faster
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="form">Form</TabsTrigger>
+            {!isPublic && <TabsTrigger value="form">Form</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="chat">
@@ -102,13 +102,15 @@ const NewRequest = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="form">
-            <Card className="shadow-sm">
-              <CardContent className="p-6">
-                <RequestForm />
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {!isPublic && (
+            <TabsContent value="form">
+              <Card className="shadow-sm">
+                <CardContent className="p-6">
+                  <RequestForm />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
