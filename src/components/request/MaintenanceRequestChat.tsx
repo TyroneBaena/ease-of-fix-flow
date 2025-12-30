@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface MaintenanceRequestChatProps {
   propertyId?: string;
@@ -86,7 +94,17 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   }, [selectedPropertyId, isPublic, fetchHousemates]);
   
   // Pass properties, selected property, and housemates to the chat hook
-  const { messages, isLoading, isReady, formData, sendMessage, resetChat, initializeChat } = useMaintenanceChat(
+  const { 
+    messages, 
+    isLoading, 
+    isReady, 
+    formData, 
+    sendMessage, 
+    resetChat, 
+    initializeChat,
+    showFrustratedPopup,
+    dismissFrustratedPopup,
+  } = useMaintenanceChat(
     properties,
     selectedPropertyId || undefined,
     effectiveHousemates.map(h => ({ firstName: h.firstName, lastName: h.lastName }))
@@ -370,6 +388,23 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
 
   return (
     <div className="flex flex-col h-[600px] max-h-[70vh]">
+      {/* Frustrated assistant popup */}
+      <Dialog open={showFrustratedPopup} onOpenChange={dismissFrustratedPopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Hello?!?!</DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Are you reading the question? I've asked for this information a few times now. 
+              Please read my message carefully and provide the information I'm asking for!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={dismissFrustratedPopup}>
+              Okay, I'll read more carefully!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Header with collected fields */}
       {collectedFields.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4 p-3 bg-muted/50 rounded-lg">
