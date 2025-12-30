@@ -13,6 +13,30 @@ const ROUTE_TO_PAGE_NAME: Record<string, string> = {
   '/admin/users': 'admin_users',
   '/admin/contractors': 'admin_contractors',
   '/admin/timeline': 'scheduled_timeline',
+  // Contractor portal routes
+  '/contractor': 'contractor_dashboard',
+  '/contractor/jobs': 'contractor_jobs',
+  '/contractor/profile': 'contractor_profile',
+  '/contractor/schedule': 'contractor_schedule',
+  '/contractor/settings': 'contractor_settings',
+};
+
+const getPageName = (pathname: string): string => {
+  // Check static mapping first
+  if (ROUTE_TO_PAGE_NAME[pathname]) {
+    return ROUTE_TO_PAGE_NAME[pathname];
+  }
+  
+  // Handle dynamic contractor routes
+  if (pathname.startsWith('/contractor/job/')) {
+    return 'contractor_job_detail';
+  }
+  if (pathname.startsWith('/contractor/quote-submission/')) {
+    return 'contractor_quote_submission';
+  }
+  
+  // Fallback: convert path to snake_case
+  return pathname.replace(/^\//, '').replace(/\//g, '_') || 'home';
 };
 
 export const ActivityTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,10 +47,7 @@ export const ActivityTrackingProvider: React.FC<{ children: React.ReactNode }> =
   useEffect(() => {
     // Only track if path changed
     if (location.pathname !== lastPathRef.current) {
-      // Get mapped page name or use the pathname itself
-      const pageName = ROUTE_TO_PAGE_NAME[location.pathname] || 
-        location.pathname.replace(/^\//, '').replace(/\//g, '_') || 'home';
-      
+      const pageName = getPageName(location.pathname);
       trackPageView(pageName);
       lastPathRef.current = location.pathname;
     }
