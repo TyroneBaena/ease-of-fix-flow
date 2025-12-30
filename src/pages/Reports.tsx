@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import BulkInvoiceDownload from '@/components/reports/BulkInvoiceDownload';
+import ReportsOverview from '@/components/reports/overview/ReportsOverview';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { usePropertyContext } from '@/contexts/property';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -95,10 +96,7 @@ const Reports = () => {
           )}
           
           <TabsContent value="overview">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Reports Overview</h2>
-              <p className="text-gray-500">Additional reports will be available in future updates.</p>
-            </Card>
+            <ReportsOverview key={`overview-${refreshKey}`} />
           </TabsContent>
         </Tabs>
       </main>
