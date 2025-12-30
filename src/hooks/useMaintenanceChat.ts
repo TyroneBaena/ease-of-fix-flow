@@ -27,6 +27,16 @@ interface Housemate {
   lastName: string;
 }
 
+interface PreviousRequest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  location: string;
+  created_at: string;
+}
+
 interface UseMaintenanceChatReturn {
   messages: ChatMessage[];
   isLoading: boolean;
@@ -149,7 +159,8 @@ function validateFormData(data: MaintenanceFormData, properties: Property[]): st
 export function useMaintenanceChat(
   properties: Property[] = [], 
   selectedPropertyId?: string,
-  housemates: Housemate[] = []
+  housemates: Housemate[] = [],
+  previousRequests: PreviousRequest[] = []
 ): UseMaintenanceChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -184,8 +195,16 @@ export function useMaintenanceChat(
           messages: updatedMessages,
           properties: properties.map(p => ({ id: p.id, name: p.name })),
           housemates: housemates.map(h => ({ firstName: h.firstName, lastName: h.lastName })),
+          previousRequests: previousRequests.map(r => ({
+            title: r.title,
+            description: r.description?.substring(0, 100),
+            category: r.category,
+            status: r.status,
+            location: r.location,
+            created_at: r.created_at,
+          })),
           mode,
-          selectedPropertyId, // Pass the pre-selected property
+          selectedPropertyId,
         }),
       });
 
@@ -348,7 +367,7 @@ export function useMaintenanceChat(
         setNonAnswerCount(0);
       }
     }
-  }, [messages, properties, selectedPropertyId]);
+  }, [messages, properties, selectedPropertyId, previousRequests]);
 
   const resetChat = useCallback(() => {
     setMessages([]);
