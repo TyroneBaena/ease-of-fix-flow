@@ -37,6 +37,16 @@ interface MaintenanceRequestChatProps {
   isPublic?: boolean;
 }
 
+interface PreviousRequest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  location: string;
+  created_at: string;
+}
+
 export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({ 
   propertyId: propPropertyId,
   isPublic = false 
@@ -92,8 +102,43 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
       fetchHousemates(selectedPropertyId, false);
     }
   }, [selectedPropertyId, isPublic, fetchHousemates]);
+
+  // Fetch previous maintenance requests for context (authenticated users only)
+  const [previousRequests, setPreviousRequests] = useState<PreviousRequest[]>([]);
   
-  // Pass properties, selected property, and housemates to the chat hook
+  useEffect(() => {
+    // Skip for public users - RLS won't allow access anyway
+    if (!selectedPropertyId || isPublic) {
+      setPreviousRequests([]);
+      return;
+    }
+    
+    const fetchPreviousRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('maintenance_requests')
+          .select('id, title, description, category, status, location, created_at')
+          .eq('property_id', selectedPropertyId)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (error) {
+          console.error('Error fetching previous requests:', error);
+          setPreviousRequests([]);
+          return;
+        }
+        
+        setPreviousRequests(data || []);
+      } catch (err) {
+        console.error('Failed to fetch previous requests:', err);
+        setPreviousRequests([]);
+      }
+    };
+    
+    fetchPreviousRequests();
+  }, [selectedPropertyId, isPublic]);
+  
+  // Pass properties, selected property, housemates, and previous requests to the chat hook
   const { 
     messages, 
     isLoading, 
@@ -107,7 +152,8 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
   } = useMaintenanceChat(
     properties,
     selectedPropertyId || undefined,
-    effectiveHousemates.map(h => ({ firstName: h.firstName, lastName: h.lastName }))
+    effectiveHousemates.map(h => ({ firstName: h.firstName, lastName: h.lastName })),
+    previousRequests
   );
   const { uploadFiles, isUploading } = useFileUpload();
   const { addRequestToProperty } = useMaintenanceRequestContext();

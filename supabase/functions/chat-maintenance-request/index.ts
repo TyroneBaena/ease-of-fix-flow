@@ -15,6 +15,42 @@ function buildHousematesContext(housemates: { firstName: string; lastName: strin
   return `\n\nHOUSEMATES/RESIDENTS AT THIS PROPERTY:\n${housemateList}`;
 }
 
+// Build property history context for the AI
+function buildHistoryContext(previousRequests: { 
+  title: string; 
+  description?: string; 
+  category: string; 
+  status: string; 
+  location: string; 
+  created_at: string; 
+}[] = []) {
+  if (previousRequests.length === 0) {
+    return '';
+  }
+  
+  const historyList = previousRequests.map(r => {
+    const date = new Date(r.created_at).toLocaleDateString('en-AU', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    return `- ${date}: "${r.title}" (${r.category}) - Status: ${r.status}, Location: ${r.location}`;
+  }).join('\n');
+  
+  return `
+
+=== PROPERTY MAINTENANCE HISTORY (Last ${previousRequests.length} requests) ===
+${historyList}
+
+=== HOW TO USE THIS HISTORY ===
+- You may briefly acknowledge if you notice relevant past issues (e.g., "I see there was a plumbing issue reported recently...")
+- If user reports similar issue to recent history, ask: "Is this related to the [category] issue from [date], or is this a new problem?"
+- Use history to ask more informed follow-up questions
+- DO NOT assume anything based on history - always confirm with the user
+- This is context only - still collect ALL required information for the new request
+- Keep references brief and natural - don't list out the history to the user`;
+}
+
 // Build chat system prompt based on whether property is pre-selected
 function buildChatSystemPrompt(
   preSelectedProperty?: { id: string; name: string },
@@ -284,7 +320,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, properties = [], housemates = [], mode = "chat", selectedPropertyId } = await req.json();
+    const { messages, properties = [], housemates = [], previousRequests = [], mode = "chat", selectedPropertyId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     // Find the pre-selected property if provided
@@ -305,11 +341,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing ${mode} mode request with ${messages?.length || 0} messages, selectedPropertyId: ${selectedPropertyId || 'none'}, housemates: ${housemates.length}`);
+    console.log(`Processing ${mode} mode request with ${messages?.length || 0} messages, selectedPropertyId: ${selectedPropertyId || 'none'}, housemates: ${housemates.length}, previousRequests: ${previousRequests.length}`);
 
     // Determine system prompt and tools based on mode
     const isExtractMode = mode === "extract";
-    const systemPrompt = isExtractMode ? EXTRACT_SYSTEM_PROMPT : buildChatSystemPrompt(preSelectedProperty, housemates);
+    const historyContext = isExtractMode ? '' : buildHistoryContext(previousRequests);
+    const systemPrompt = isExtractMode 
+      ? EXTRACT_SYSTEM_PROMPT 
+      : buildChatSystemPrompt(preSelectedProperty, housemates) + historyContext;
     
     const requestBody: Record<string, unknown> = {
       model: "google/gemini-2.5-flash",
