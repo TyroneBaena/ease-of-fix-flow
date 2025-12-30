@@ -30,6 +30,15 @@ interface LifecycleMetrics {
   assignedCount: number;
 }
 
+interface ContractorStats {
+  id: string;
+  name: string;
+  totalAssigned: number;
+  completedCount: number;
+  completionRate: number;
+  avgResponseTime: number;
+}
+
 interface OverviewStats {
   loading: boolean;
   error: string | null;
@@ -37,6 +46,7 @@ interface OverviewStats {
   topProperties: PropertyStats[];
   timeInsights: TimeInsights;
   lifecycleMetrics: LifecycleMetrics;
+  contractorStats: ContractorStats[];
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -48,6 +58,7 @@ export const useOverviewStats = (): OverviewStats => {
   const [requests, setRequests] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
+  const [contractors, setContractors] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,7 +73,7 @@ export const useOverviewStats = (): OverviewStats => {
         
         let requestsQuery = supabase
           .from('maintenance_requests')
-          .select('id, created_at, property_id, assigned_at, status')
+          .select('id, created_at, property_id, assigned_at, status, contractor_id')
           .gte('created_at', sixMonthsAgo.toISOString());
 
         // Apply role-based filtering
@@ -70,23 +81,26 @@ export const useOverviewStats = (): OverviewStats => {
           requestsQuery = requestsQuery.in('property_id', currentUser.assignedProperties);
         }
 
-        const [requestsResult, propertiesResult, logsResult] = await Promise.all([
+        const [requestsResult, propertiesResult, logsResult, contractorsResult] = await Promise.all([
           requestsQuery,
           supabase.from('properties').select('id, name'),
           supabase
             .from('activity_logs')
             .select('request_id, action_type, created_at')
             .eq('action_type', 'job_completed')
-            .gte('created_at', sixMonthsAgo.toISOString())
+            .gte('created_at', sixMonthsAgo.toISOString()),
+          supabase.from('contractors').select('id, company_name, contact_name')
         ]);
 
         if (requestsResult.error) throw requestsResult.error;
         if (propertiesResult.error) throw propertiesResult.error;
         if (logsResult.error) throw logsResult.error;
+        if (contractorsResult.error) throw contractorsResult.error;
 
         setRequests(requestsResult.data || []);
         setProperties(propertiesResult.data || []);
         setActivityLogs(logsResult.data || []);
+        setContractors(contractorsResult.data || []);
       } catch (err: any) {
         console.error('Error fetching overview stats:', err);
         setError(err.message || 'Failed to load overview statistics');
@@ -242,12 +256,75 @@ export const useOverviewStats = (): OverviewStats => {
     };
   }, [requests, activityLogs]);
 
+  const contractorStats = useMemo((): ContractorStats[] => {
+    // Create a map of completion times from activity logs
+    const completionMap = new Map<string, Date>();
+    activityLogs.forEach(log => {
+      if (log.action_type === 'job_completed' && log.request_id) {
+        completionMap.set(log.request_id, new Date(log.created_at));
+      }
+    });
+
+    // Group requests by contractor
+    const contractorMap = new Map<string, { assigned: any[], completed: any[] }>();
+    
+    requests.forEach(req => {
+      if (req.contractor_id) {
+        if (!contractorMap.has(req.contractor_id)) {
+          contractorMap.set(req.contractor_id, { assigned: [], completed: [] });
+        }
+        const data = contractorMap.get(req.contractor_id)!;
+        data.assigned.push(req);
+        if (completionMap.has(req.id)) {
+          data.completed.push({ ...req, completedAt: completionMap.get(req.id) });
+        }
+      }
+    });
+
+    // Create contractor name map
+    const contractorNames = new Map(
+      contractors.map(c => [c.id, c.company_name || c.contact_name])
+    );
+
+    // Calculate stats for each contractor
+    return Array.from(contractorMap.entries())
+      .map(([id, data]) => {
+        const totalAssigned = data.assigned.length;
+        const completedCount = data.completed.length;
+        const completionRate = totalAssigned > 0 ? (completedCount / totalAssigned) * 100 : 0;
+
+        // Calculate avg response time (from assigned_at to completion)
+        const responseTimes = data.completed
+          .filter(req => req.assigned_at)
+          .map(req => {
+            const assigned = new Date(req.assigned_at).getTime();
+            const completed = req.completedAt.getTime();
+            return (completed - assigned) / (1000 * 60 * 60); // hours
+          });
+        const avgResponseTime = responseTimes.length > 0
+          ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+          : 0;
+
+        return {
+          id,
+          name: contractorNames.get(id) || 'Unknown',
+          totalAssigned,
+          completedCount,
+          completionRate,
+          avgResponseTime
+        };
+      })
+      .filter(c => c.totalAssigned > 0)
+      .sort((a, b) => b.totalAssigned - a.totalAssigned);
+  }, [requests, activityLogs, contractors]);
+
   return {
     loading,
     error,
     monthlyTrends,
     topProperties,
     timeInsights,
-    lifecycleMetrics
+    lifecycleMetrics,
+    contractorStats
   };
 };
