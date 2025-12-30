@@ -136,6 +136,29 @@ serve(async (req) => {
 
     console.log('✅ Maintenance request submitted successfully:', newRequest.id);
 
+    // Log public request submission (non-blocking)
+    try {
+      const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const userAgent = req.headers.get('user-agent') || 'unknown';
+      
+      await supabase.from('public_link_access_logs').insert({
+        organization_id: propertyData.organization_id,
+        property_id: propertyId,
+        property_name: null,
+        access_type: 'request_submitted',
+        ip_address: clientIp,
+        user_agent: userAgent,
+        metadata: { 
+          request_id: newRequest.id,
+          submitted_by: submittedBy,
+          submission_method: submissionMethod || 'public_form'
+        }
+      });
+      console.log('📊 Public request submission logged');
+    } catch (logError) {
+      console.error('Failed to log public submission (non-blocking):', logError);
+    }
+
     // Send email notifications (practice leader, property contact, and create in-app notifications)
     try {
       console.log('📧 Triggering email notifications for request:', newRequest.id);

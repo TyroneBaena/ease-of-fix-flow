@@ -1471,6 +1471,42 @@ export type Database = {
           },
         ]
       }
+      public_link_access_logs: {
+        Row: {
+          access_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          organization_id: string
+          property_id: string
+          property_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id: string
+          property_id: string
+          property_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string
+          property_id?: string
+          property_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       quote_logs: {
         Row: {
           action: string
