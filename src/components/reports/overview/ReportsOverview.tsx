@@ -2,6 +2,7 @@ import { useOverviewStats } from './hooks/useOverviewStats';
 import RequestTrendsChart from './RequestTrendsChart';
 import TopPropertiesChart from './TopPropertiesChart';
 import TimeBasedInsights from './TimeBasedInsights';
+import LifecycleDurationChart from './LifecycleDurationChart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
@@ -14,11 +15,12 @@ const LoadingSkeleton = () => (
       <Skeleton className="h-[280px]" />
       <Skeleton className="h-[280px]" />
     </div>
+    <Skeleton className="h-[320px] w-full" />
   </div>
 );
 
 const ReportsOverview = () => {
-  const { loading, error, monthlyTrends, topProperties, timeInsights } = useOverviewStats();
+  const { loading, error, monthlyTrends, topProperties, timeInsights, lifecycleMetrics } = useOverviewStats();
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -63,6 +65,9 @@ const ReportsOverview = () => {
         <TopPropertiesChart data={topProperties} />
         <TimeBasedInsights data={timeInsights} />
       </div>
+
+      {/* Lifecycle Duration Chart */}
+      <LifecycleDurationChart data={lifecycleMetrics} />
     </div>
   );
 };

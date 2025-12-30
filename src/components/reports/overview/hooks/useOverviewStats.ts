@@ -22,12 +22,21 @@ interface TimeInsights {
   peakDays: { day: string; count: number }[];
 }
 
+interface LifecycleMetrics {
+  avgTimeToAssign: number;
+  avgTimeToComplete: number;
+  avgTotalResolution: number;
+  completedCount: number;
+  assignedCount: number;
+}
+
 interface OverviewStats {
   loading: boolean;
   error: string | null;
   monthlyTrends: MonthlyTrend[];
   topProperties: PropertyStats[];
   timeInsights: TimeInsights;
+  lifecycleMetrics: LifecycleMetrics;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -37,6 +46,7 @@ export const useOverviewStats = (): OverviewStats => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requests, setRequests] = useState<any[]>([]);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
 
   useEffect(() => {
@@ -52,7 +62,7 @@ export const useOverviewStats = (): OverviewStats => {
         
         let requestsQuery = supabase
           .from('maintenance_requests')
-          .select('id, created_at, property_id')
+          .select('id, created_at, property_id, assigned_at, status')
           .gte('created_at', sixMonthsAgo.toISOString());
 
         // Apply role-based filtering
@@ -60,16 +70,23 @@ export const useOverviewStats = (): OverviewStats => {
           requestsQuery = requestsQuery.in('property_id', currentUser.assignedProperties);
         }
 
-        const [requestsResult, propertiesResult] = await Promise.all([
+        const [requestsResult, propertiesResult, logsResult] = await Promise.all([
           requestsQuery,
-          supabase.from('properties').select('id, name')
+          supabase.from('properties').select('id, name'),
+          supabase
+            .from('activity_logs')
+            .select('request_id, action_type, created_at')
+            .eq('action_type', 'job_completed')
+            .gte('created_at', sixMonthsAgo.toISOString())
         ]);
 
         if (requestsResult.error) throw requestsResult.error;
         if (propertiesResult.error) throw propertiesResult.error;
+        if (logsResult.error) throw logsResult.error;
 
         setRequests(requestsResult.data || []);
         setProperties(propertiesResult.data || []);
+        setActivityLogs(logsResult.data || []);
       } catch (err: any) {
         console.error('Error fetching overview stats:', err);
         setError(err.message || 'Failed to load overview statistics');
@@ -173,11 +190,64 @@ export const useOverviewStats = (): OverviewStats => {
     return { thisMonth, lastMonth, thisWeek, lastWeek, peakDays };
   }, [requests]);
 
+  const lifecycleMetrics = useMemo((): LifecycleMetrics => {
+    // Calculate time to assign (for requests that have assigned_at)
+    const assignedRequests = requests.filter(req => req.assigned_at);
+    const timeToAssignValues = assignedRequests.map(req => {
+      const created = new Date(req.created_at).getTime();
+      const assigned = new Date(req.assigned_at).getTime();
+      return (assigned - created) / (1000 * 60 * 60); // hours
+    });
+    const avgTimeToAssign = timeToAssignValues.length > 0
+      ? timeToAssignValues.reduce((a, b) => a + b, 0) / timeToAssignValues.length
+      : 0;
+
+    // Create a map of completion times from activity logs
+    const completionMap = new Map<string, Date>();
+    activityLogs.forEach(log => {
+      if (log.action_type === 'job_completed' && log.request_id) {
+        completionMap.set(log.request_id, new Date(log.created_at));
+      }
+    });
+
+    // Calculate time to complete (from assigned_at to job_completed)
+    const completedRequests = requests.filter(req => 
+      req.assigned_at && completionMap.has(req.id)
+    );
+    const timeToCompleteValues = completedRequests.map(req => {
+      const assigned = new Date(req.assigned_at).getTime();
+      const completed = completionMap.get(req.id)!.getTime();
+      return (completed - assigned) / (1000 * 60 * 60); // hours
+    });
+    const avgTimeToComplete = timeToCompleteValues.length > 0
+      ? timeToCompleteValues.reduce((a, b) => a + b, 0) / timeToCompleteValues.length
+      : 0;
+
+    // Calculate total resolution time (from created_at to job_completed)
+    const totalResolutionValues = completedRequests.map(req => {
+      const created = new Date(req.created_at).getTime();
+      const completed = completionMap.get(req.id)!.getTime();
+      return (completed - created) / (1000 * 60 * 60); // hours
+    });
+    const avgTotalResolution = totalResolutionValues.length > 0
+      ? totalResolutionValues.reduce((a, b) => a + b, 0) / totalResolutionValues.length
+      : 0;
+
+    return {
+      avgTimeToAssign,
+      avgTimeToComplete,
+      avgTotalResolution,
+      completedCount: completedRequests.length,
+      assignedCount: assignedRequests.length
+    };
+  }, [requests, activityLogs]);
+
   return {
     loading,
     error,
     monthlyTrends,
     topProperties,
-    timeInsights
+    timeInsights,
+    lifecycleMetrics
   };
 };
