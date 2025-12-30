@@ -54,6 +54,7 @@ const UserTable: React.FC<UserTableProps> = ({
             <TableHead>Role</TableHead>
             <TableHead>Properties</TableHead>
             <TableHead>Joined</TableHead>
+            <TableHead>Last Logged In</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -72,7 +73,7 @@ const UserTable: React.FC<UserTableProps> = ({
           ))}
           {users.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                 No users found
               </TableCell>
             </TableRow>

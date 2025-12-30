@@ -108,6 +108,29 @@ export async function fetchAllUsers(isSessionReady: boolean = true): Promise<Use
   }
 
   console.log("📋 Found users in organization:", profiles?.length || 0);
+
+  // Fetch last login times from security_events
+  const userIds = (profiles || []).map(p => p.id);
+  let lastLoginMap: Record<string, string> = {};
+  
+  if (userIds.length > 0) {
+    const { data: loginEvents, error: loginError } = await supabase
+      .from('security_events')
+      .select('user_id, created_at')
+      .eq('event_type', 'login_success')
+      .eq('organization_id', userOrgId)
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false });
+    
+    if (!loginError && loginEvents) {
+      // Get the most recent login per user
+      loginEvents.forEach(event => {
+        if (event.user_id && !lastLoginMap[event.user_id]) {
+          lastLoginMap[event.user_id] = event.created_at;
+        }
+      });
+    }
+  }
   
   const mappedUsers = (profiles || []).map(profile => ({
     id: profile.id,
@@ -116,7 +139,8 @@ export async function fetchAllUsers(isSessionReady: boolean = true): Promise<Use
     role: profile.role as UserRole || 'manager',
     assignedProperties: profile.assigned_properties || [],
     organization_id: profile.organization_id || undefined,
-    createdAt: profile.created_at || ''
+    createdAt: profile.created_at || '',
+    lastLoginAt: lastLoginMap[profile.id] || undefined
   }));
   
   console.log("📋 Mapped users with assigned properties:");
