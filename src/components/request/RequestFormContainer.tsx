@@ -207,7 +207,8 @@ export const RequestFormContainer = () => {
               budgetCategoryId: budgetCategoryId || null,
               attachments: attachments,
               isParticipantRelated: isParticipantRelated || false,
-              participantName: isParticipantRelated ? participantName : 'N/A'
+              participantName: isParticipantRelated ? participantName : 'N/A',
+              submissionMethod: 'public_form'
             })
           });
 
@@ -255,7 +256,8 @@ export const RequestFormContainer = () => {
           propertyId,
           userId: currentUser!.id.toString(),
           user_id: currentUser!.id.toString(),
-          attachments: attachments
+          attachments: attachments,
+          submissionMethod: 'form' as const
         };
 
         console.log('RequestForm - Request data being sent to addRequestToProperty:', requestData);

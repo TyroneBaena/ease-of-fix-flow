@@ -39,6 +39,13 @@ interface ContractorStats {
   avgResponseTime: number;
 }
 
+interface SubmissionMethodStats {
+  form: number;
+  ai_assistant: number;
+  public_form: number;
+  public_ai_assistant: number;
+}
+
 interface OverviewStats {
   loading: boolean;
   error: string | null;
@@ -47,6 +54,7 @@ interface OverviewStats {
   timeInsights: TimeInsights;
   lifecycleMetrics: LifecycleMetrics;
   contractorStats: ContractorStats[];
+  submissionMethodStats: SubmissionMethodStats;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -73,7 +81,7 @@ export const useOverviewStats = (): OverviewStats => {
         
         let requestsQuery = supabase
           .from('maintenance_requests')
-          .select('id, created_at, property_id, assigned_at, status, contractor_id')
+          .select('id, created_at, property_id, assigned_at, status, contractor_id, submission_method')
           .gte('created_at', sixMonthsAgo.toISOString());
 
         // Apply role-based filtering
@@ -318,6 +326,27 @@ export const useOverviewStats = (): OverviewStats => {
       .sort((a, b) => b.totalAssigned - a.totalAssigned);
   }, [requests, activityLogs, contractors]);
 
+  const submissionMethodStats = useMemo((): SubmissionMethodStats => {
+    const stats: SubmissionMethodStats = {
+      form: 0,
+      ai_assistant: 0,
+      public_form: 0,
+      public_ai_assistant: 0
+    };
+
+    requests.forEach(req => {
+      const method = req.submission_method || 'form';
+      if (method in stats) {
+        stats[method as keyof SubmissionMethodStats]++;
+      } else {
+        // Default to form for legacy requests without submission_method
+        stats.form++;
+      }
+    });
+
+    return stats;
+  }, [requests]);
+
   return {
     loading,
     error,
@@ -325,6 +354,7 @@ export const useOverviewStats = (): OverviewStats => {
     topProperties,
     timeInsights,
     lifecycleMetrics,
-    contractorStats
+    contractorStats,
+    submissionMethodStats
   };
 };

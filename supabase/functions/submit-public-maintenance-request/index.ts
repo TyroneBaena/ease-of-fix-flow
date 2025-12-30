@@ -30,7 +30,8 @@ serve(async (req) => {
       budgetCategoryId,
       attachments,
       isParticipantRelated,
-      participantName
+      participantName,
+      submissionMethod
     } = requestData;
 
     // Validate required fields - category is optional for public submissions
@@ -115,6 +116,7 @@ serve(async (req) => {
         submitted_by: submittedBy,
         budget_category_id: budgetCategoryId,
         attachments: attachments || null,
+        submission_method: submissionMethod || 'public_form',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

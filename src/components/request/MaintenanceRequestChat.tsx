@@ -219,6 +219,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
             priority: 'medium',
             category: 'general',
             reportDate: new Date().toISOString().split('T')[0],
+            submissionMethod: 'public_ai_assistant'
           },
         });
 
@@ -245,6 +246,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
           category: 'general',
           userId: currentUser?.id || '',
           reportDate: new Date().toISOString().split('T')[0],
+          submissionMethod: 'ai_assistant' as const
         };
 
         const result = await addRequestToProperty(requestData);

@@ -275,6 +275,7 @@ import { BillingManagementPage } from "@/components/billing/BillingManagementPag
 import { useSecurityAnalytics } from "@/hooks/useSecurityAnalytics";
 import { SecurityMetricsCard } from "@/components/security/SecurityMetricsCard";
 import { RecentLoginAttempts } from "@/components/security/RecentLoginAttempts";
+import ActivityTracker from "@/components/security/ActivityTracker";
 import { Users, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -416,6 +417,12 @@ const Settings = () => {
                   </div>
 
                   <RecentLoginAttempts attempts={metrics.recentLoginAttempts} loading={securityLoading} />
+
+                  {/* App Activity Tracker */}
+                  <div className="pt-6">
+                    <h3 className="text-lg font-semibold mb-4">App Usage Activity</h3>
+                    <ActivityTracker />
+                  </div>
 
                   <Alert>
                     <AlertDescription>

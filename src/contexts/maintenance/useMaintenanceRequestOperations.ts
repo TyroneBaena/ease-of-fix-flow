@@ -121,7 +121,8 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
         issue_nature: requestData.issueNature || '',
         explanation: requestData.explanation || '',
         report_date: requestData.reportDate || '',
-        attachments: requestData.attachments // This should be the uploaded files array
+        attachments: requestData.attachments, // This should be the uploaded files array
+        submission_method: requestData.submissionMethod || 'form'
       };
 
       console.log('useMaintenanceRequestOperations - Data prepared for database insertion:', insertData);

@@ -4,6 +4,7 @@ import TopPropertiesChart from './TopPropertiesChart';
 import TimeBasedInsights from './TimeBasedInsights';
 import LifecycleDurationChart from './LifecycleDurationChart';
 import ContractorPerformanceChart from './ContractorPerformanceChart';
+import SubmissionMethodChart from './SubmissionMethodChart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
@@ -22,7 +23,7 @@ const LoadingSkeleton = () => (
 );
 
 const ReportsOverview = () => {
-  const { loading, error, monthlyTrends, topProperties, timeInsights, lifecycleMetrics, contractorStats } = useOverviewStats();
+  const { loading, error, monthlyTrends, topProperties, timeInsights, lifecycleMetrics, contractorStats, submissionMethodStats } = useOverviewStats();
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -67,6 +68,9 @@ const ReportsOverview = () => {
         <TopPropertiesChart data={topProperties} />
         <TimeBasedInsights data={timeInsights} />
       </div>
+
+      {/* Submission Methods Chart */}
+      <SubmissionMethodChart data={submissionMethodStats} />
 
       {/* Lifecycle Duration Chart */}
       <LifecycleDurationChart data={lifecycleMetrics} />

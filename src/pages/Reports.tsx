@@ -11,12 +11,19 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { useActivityTracking } from '@/hooks/useActivityTracking';
 
 const Reports = () => {
   const { currentUser, loading: userLoading, isAdmin } = useUserContext();
   const { loading: propertiesLoading, loadingFailed } = usePropertyContext();
+  const { trackPageView } = useActivityTracking();
   const [activeTab, setActiveTab] = useState("maintenance");
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Track page view
+  useEffect(() => {
+    trackPageView('reports');
+  }, [trackPageView]);
   
   // Force refresh of reports data
   const handleRefresh = useCallback(() => {

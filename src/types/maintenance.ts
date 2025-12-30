@@ -65,4 +65,6 @@ export interface MaintenanceRequest {
   aiResponsibilityReasoning?: string | null;
   aiResponsibilityConfidence?: string | null;
   aiResponsibilityAnalyzedAt?: string | null;
+  // Submission method tracking
+  submissionMethod?: 'form' | 'ai_assistant' | 'public_form' | 'public_ai_assistant';
 }
