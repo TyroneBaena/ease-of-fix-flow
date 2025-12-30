@@ -32,7 +32,18 @@ const PAGE_LABELS: Record<string, string> = {
   properties: 'Properties',
   settings: 'Settings',
   calendar: 'Calendar',
-  new_request: 'New Request'
+  new_request: 'New Request',
+  admin_users: 'Admin - Users',
+  admin_contractors: 'Admin - Contractors',
+  scheduled_timeline: 'Scheduled Timeline',
+  // Contractor portal pages
+  contractor_dashboard: 'Contractor Dashboard',
+  contractor_jobs: 'Contractor Jobs',
+  contractor_job_detail: 'Job Details',
+  contractor_quote_submission: 'Quote Submission',
+  contractor_profile: 'Contractor Profile',
+  contractor_schedule: 'Contractor Schedule',
+  contractor_settings: 'Contractor Settings',
 };
 
 const FEATURE_LABELS: Record<string, string> = {
