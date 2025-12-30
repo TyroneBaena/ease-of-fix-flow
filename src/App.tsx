@@ -1139,6 +1139,7 @@ import ContractorSettings from "@/pages/contractor/ContractorSettings";
 import QuoteSubmission from "@/pages/contractor/QuoteSubmission";
 import { ContractorAuthProvider } from "@/contexts/contractor/ContractorAuthContext";
 import { ContractorRouteGuard } from "@/components/contractor/ContractorRouteGuard";
+import { ActivityTrackingProvider } from "@/components/ActivityTrackingProvider";
 
 // React Query setup - v79.1: Fixed aggressive refetching causing API freezes
 const queryClient = new QueryClient({
@@ -1480,8 +1481,10 @@ const App: React.FC = () => {
                 <MaintenanceRequestProvider>
                   <PropertyProvider>
                     <ContractorProvider>
-                      <AppRoutes />
-                      <Toaster />
+                      <ActivityTrackingProvider>
+                        <AppRoutes />
+                        <Toaster />
+                      </ActivityTrackingProvider>
                     </ContractorProvider>
                   </PropertyProvider>
                 </MaintenanceRequestProvider>
