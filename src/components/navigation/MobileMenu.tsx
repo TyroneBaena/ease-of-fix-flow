@@ -134,10 +134,15 @@ export const MobileMenu = () => {
                 <p className="text-xs text-gray-400">Role: {currentUser?.role}</p>
               </div>
             </div>
-            <Button className="w-full bg-blue-500 hover:bg-blue-600">
-              <Plus className="mr-2 h-4 w-4" />
-              New Request
-            </Button>
+            <SheetClose asChild>
+              <Button 
+                className="w-full bg-blue-500 hover:bg-blue-600"
+                onClick={() => navigate('/new-request')}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Request
+              </Button>
+            </SheetClose>
             <Button 
               variant="outline" 
               className="w-full mt-2"
