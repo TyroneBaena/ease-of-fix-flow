@@ -35,7 +35,28 @@ interface UseMaintenanceChatReturn {
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
   initializeChat: () => void;
+  showFrustratedPopup: boolean;
+  dismissFrustratedPopup: () => void;
 }
+
+// Patterns that indicate the AI is re-asking for information
+const RE_ASK_PATTERNS = [
+  /could you give me a brief title/i,
+  /please provide your actual name/i,
+  /what's your (actual )?name/i,
+  /which room or area/i,
+  /please be (more )?specific/i,
+  /provide more detail/i,
+  /at least \d+-\d+ words/i,
+  /doesn't appear to be a real name/i,
+  /is too brief/i,
+  /is too vague/i,
+  /please describe/i,
+  /can you tell me more/i,
+  /could you clarify/i,
+  /what exactly is/i,
+  /where exactly/i,
+];
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-maintenance-request`;
 
@@ -134,6 +155,8 @@ export function useMaintenanceChat(
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [formData, setFormData] = useState<MaintenanceFormData | null>(null);
+  const [nonAnswerCount, setNonAnswerCount] = useState(0);
+  const [showFrustratedPopup, setShowFrustratedPopup] = useState(false);
 
   // Get selected property name
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
@@ -310,6 +333,20 @@ export function useMaintenanceChat(
       toast.error('Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
+      
+      // Check if AI is re-asking for information (frustration detection)
+      if (assistantContent && RE_ASK_PATTERNS.some(pattern => pattern.test(assistantContent))) {
+        setNonAnswerCount(prev => {
+          const newCount = prev + 1;
+          if (newCount >= 4) {
+            setShowFrustratedPopup(true);
+          }
+          return newCount;
+        });
+      } else if (assistantContent) {
+        // User provided a good answer, reset count
+        setNonAnswerCount(0);
+      }
     }
   }, [messages, properties, selectedPropertyId]);
 
@@ -318,6 +355,12 @@ export function useMaintenanceChat(
     setIsLoading(false);
     setIsReady(false);
     setFormData(null);
+    setNonAnswerCount(0);
+    setShowFrustratedPopup(false);
+  }, []);
+
+  const dismissFrustratedPopup = useCallback(() => {
+    setShowFrustratedPopup(false);
   }, []);
 
   const initializeChat = useCallback(() => {
@@ -342,5 +385,7 @@ export function useMaintenanceChat(
     sendMessage,
     resetChat,
     initializeChat,
+    showFrustratedPopup,
+    dismissFrustratedPopup,
   };
 }
