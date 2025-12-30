@@ -65,6 +65,50 @@ export type Database = {
           },
         ]
       }
+      app_activity_logs: {
+        Row: {
+          created_at: string | null
+          event_name: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_name: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_name?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_activity_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -883,6 +927,7 @@ export type Database = {
           report_date: string | null
           site: string | null
           status: string
+          submission_method: string | null
           submitted_by: string | null
           title: string
           updated_at: string
@@ -929,6 +974,7 @@ export type Database = {
           report_date?: string | null
           site?: string | null
           status?: string
+          submission_method?: string | null
           submitted_by?: string | null
           title: string
           updated_at?: string
@@ -975,6 +1021,7 @@ export type Database = {
           report_date?: string | null
           site?: string | null
           status?: string
+          submission_method?: string | null
           submitted_by?: string | null
           title?: string
           updated_at?: string
