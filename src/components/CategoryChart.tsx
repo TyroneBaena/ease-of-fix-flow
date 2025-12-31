@@ -10,9 +10,8 @@ interface CategoryChartProps {
 const CategoryChart: React.FC<CategoryChartProps> = ({ requests = [] }) => {
   // Calculate category counts from AI issue types or fallback to category
   const categoryCountsMap = requests.reduce((acc, request) => {
-    // Prefer ai_issue_type if available, otherwise use category
-    const rawCategory = (request as any).aiIssueType || 
-                        (request as any).ai_issue_type || 
+    // Prefer aiIssueType if available, otherwise use category
+    const rawCategory = request.aiIssueType || 
                         request.category || 
                         'uncategorized';
     

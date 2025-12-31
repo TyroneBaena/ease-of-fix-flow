@@ -4,6 +4,46 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
 import { useCallback } from 'react';
 
+// Helper function to categorize request using AI (fire and forget)
+const categorizeRequest = async (requestId: string, title: string, description: string, location: string) => {
+  try {
+    console.log('📊 AI Categorization - Starting for request:', requestId);
+    
+    const { data, error } = await supabase.functions.invoke('categorize-request', {
+      body: { title, description, location }
+    });
+
+    if (error) {
+      console.error('📊 AI Categorization - Error calling edge function:', error);
+      return;
+    }
+
+    if (data?.issueType) {
+      console.log('📊 AI Categorization - Result:', data);
+      
+      // Update the request with AI categorization
+      const { error: updateError } = await supabase
+        .from('maintenance_requests')
+        .update({
+          ai_issue_type: data.issueType,
+          ai_issue_tags: data.issueTags || [],
+          ai_affected_area: data.affectedArea,
+          ai_categorized_at: new Date().toISOString(),
+          ai_category_confidence: data.confidence || 'medium'
+        })
+        .eq('id', requestId);
+
+      if (updateError) {
+        console.error('📊 AI Categorization - Error updating request:', updateError);
+      } else {
+        console.log('📊 AI Categorization - Successfully updated request with AI data');
+      }
+    }
+  } catch (error) {
+    console.error('📊 AI Categorization - Unexpected error:', error);
+  }
+};
+
 export const useMaintenanceRequestOperations = (currentUser: any) => {
   
   const fetchRequests = useCallback(async (signal?: AbortSignal) => {
@@ -144,6 +184,11 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       console.log('useMaintenanceRequestOperations - Database insert successful');
       console.log('useMaintenanceRequestOperations - Returned data from database:', data);
       console.log('useMaintenanceRequestOperations - Returned attachments from database:', data?.attachments);
+
+      // Auto-categorize the request using AI (fire and forget - don't block request creation)
+      if (data?.id) {
+        categorizeRequest(data.id, insertData.title, insertData.description, insertData.location);
+      }
 
       return data;
     } catch (error) {
