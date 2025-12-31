@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import BulkInvoiceDownload from '@/components/reports/BulkInvoiceDownload';
 import ReportsOverview from '@/components/reports/overview/ReportsOverview';
+import BulkCategorizationButton from '@/components/reports/BulkCategorizationButton';
 import { useUserContext } from '@/contexts/UnifiedAuthContext';
 import { usePropertyContext } from '@/contexts/property';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -73,7 +74,10 @@ const Reports = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold mb-6">Reports</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Reports</h1>
+          {isAdmin && <BulkCategorizationButton onComplete={handleRefresh} />}
+        </div>
         
         <Tabs defaultValue="maintenance" onValueChange={setActiveTab} value={activeTab}>
           <TabsList className="mb-4">
