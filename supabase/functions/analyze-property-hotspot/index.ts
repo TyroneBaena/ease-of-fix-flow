@@ -214,7 +214,7 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.4,
-        max_tokens: 1000
+        max_completion_tokens: 1000
       }),
     });
 
