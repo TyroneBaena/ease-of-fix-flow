@@ -209,10 +209,9 @@ import RequestsList from "@/components/dashboard/RequestsList";
 import { RequestDetailSidebar } from "@/components/dashboard/RequestDetailSidebar";
 import { TrialBillingAlert } from "@/components/dashboard/TrialBillingAlert";
 import { BillingWidgets } from "@/components/dashboard/BillingWidgets";
-import { PropertyManagementWidget } from "@/components/dashboard/PropertyManagementWidget";
 import { OrganizationCalendarWidget } from "@/components/dashboard/OrganizationCalendarWidget";
 import { PendingActionsWidget } from "@/components/dashboard/PendingActionsWidget";
-import PropertyHotspotsWidget from "@/components/dashboard/PropertyHotspotsWidget";
+import PropertyHealthWidget from "@/components/dashboard/PropertyHotspotsWidget";
 import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 // REMOVED: useContractorProfileMonitoring causes network congestion on every dashboard mount
@@ -368,17 +367,13 @@ const Dashboard = () => {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <DashboardHeader title="Dashboard" />
 
-            {/* Top Row: Property Management & Calendar/Pending Actions Widgets */}
+            {/* Top Row: Property Health & Calendar/Pending Actions Widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div className="lg:col-span-2">
-                <PropertyManagementWidget />
+                <PropertyHealthWidget />
               </div>
               <div className="lg:col-span-1 space-y-4">
                 <OrganizationCalendarWidget />
-                {/* Property Hotspots Widget - Only for admin/manager */}
-                {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
-                  <PropertyHotspotsWidget />
-                )}
                 {/* Pending Actions Widget - Only for admin/manager */}
                 {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
                   <PendingActionsWidget requests={userRequests} />
