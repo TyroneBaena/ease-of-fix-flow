@@ -4,6 +4,8 @@ import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from '@/lib/toast';
 import { useCallback } from 'react';
 
+const ANALYSIS_THRESHOLD = 5; // Trigger re-analysis after this many new requests
+
 // Helper function to categorize request using AI (fire and forget)
 const categorizeRequest = async (requestId: string, title: string, description: string, location: string) => {
   try {
@@ -41,6 +43,59 @@ const categorizeRequest = async (requestId: string, title: string, description: 
     }
   } catch (error) {
     console.error('📊 AI Categorization - Unexpected error:', error);
+  }
+};
+
+// Helper function to check and trigger property analysis if needed
+const checkAndTriggerPropertyAnalysis = async (propertyId: string | null | undefined) => {
+  if (!propertyId) return;
+  
+  try {
+    // Check if property has an existing insight
+    const { data: insight } = await supabase
+      .from('property_insights')
+      .select('updated_at, insight_data')
+      .eq('property_id', propertyId)
+      .eq('insight_type', 'hotspot_analysis')
+      .maybeSingle();
+
+    // Count requests since last analysis (or all requests if no insight)
+    let requestsSinceAnalysis = 0;
+    if (insight?.updated_at) {
+      const { count } = await supabase
+        .from('maintenance_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('property_id', propertyId)
+        .gte('created_at', insight.updated_at);
+      requestsSinceAnalysis = count || 0;
+    } else {
+      // No insight - count all requests
+      const { count } = await supabase
+        .from('maintenance_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('property_id', propertyId);
+      requestsSinceAnalysis = count || 0;
+    }
+
+    console.log(`📊 Property ${propertyId}: ${requestsSinceAnalysis} requests since last analysis`);
+
+    // Trigger analysis if threshold met
+    if (requestsSinceAnalysis >= ANALYSIS_THRESHOLD) {
+      console.log(`🔄 Triggering background analysis for property ${propertyId}`);
+      
+      // Fire and forget - don't block request creation
+      supabase.functions.invoke('analyze-property-hotspot', {
+        body: { propertyId }
+      }).then(({ error }) => {
+        if (error) {
+          console.error('Background property analysis failed:', error);
+        } else {
+          console.log(`✅ Background property analysis complete for ${propertyId}`);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error checking property analysis:', error);
   }
 };
 
@@ -188,6 +243,9 @@ export const useMaintenanceRequestOperations = (currentUser: any) => {
       // Auto-categorize the request using AI (fire and forget - don't block request creation)
       if (data?.id) {
         categorizeRequest(data.id, insertData.title, insertData.description, insertData.location);
+        
+        // Check if property needs re-analysis based on threshold
+        checkAndTriggerPropertyAnalysis(insertData.property_id);
       }
 
       return data;

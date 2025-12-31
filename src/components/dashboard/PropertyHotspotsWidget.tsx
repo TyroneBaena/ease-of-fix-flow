@@ -32,6 +32,8 @@ interface PropertyHealthItem {
   lastAnalyzed: string | null;
   topIssue?: string;
   hasInsight: boolean;
+  requestsSinceAnalysis: number;
+  isStale: boolean;
 }
 
 const PropertyHealthWidget: React.FC = () => {
@@ -65,51 +67,78 @@ const PropertyHealthWidget: React.FC = () => {
 
       if (insightsError) throw insightsError;
 
-      // Get request counts per property
-      const { data: requestCounts, error: countError } = await supabase
+      // Get request counts per property (total and since last analysis)
+      const { data: allRequests, error: requestsError } = await supabase
         .from('maintenance_requests')
-        .select('property_id')
+        .select('property_id, created_at')
         .not('property_id', 'is', null);
 
-      if (countError) throw countError;
-
-      // Count requests per property
-      const countMap = new Map<string, number>();
-      requestCounts?.forEach(req => {
-        if (req.property_id) {
-          countMap.set(req.property_id, (countMap.get(req.property_id) || 0) + 1);
-        }
-      });
+      if (requestsError) throw requestsError;
 
       // Map insights by property_id
       const insightMap = new Map(
         insights?.map(i => [i.property_id, i]) || []
       );
 
+      // Count requests per property (total and since last analysis)
+      const countMap = new Map<string, { total: number; sinceLast: number }>();
+      allRequests?.forEach(req => {
+        if (req.property_id) {
+          const insight = insightMap.get(req.property_id);
+          const current = countMap.get(req.property_id) || { total: 0, sinceLast: 0 };
+          current.total++;
+          
+          // Count requests since last analysis
+          if (insight?.updated_at && new Date(req.created_at) > new Date(insight.updated_at)) {
+            current.sinceLast++;
+          } else if (!insight) {
+            current.sinceLast = current.total; // All requests are "new" if no analysis
+          }
+          
+          countMap.set(req.property_id, current);
+        }
+      });
+
       // Build health items for all properties
       const healthItems: PropertyHealthItem[] = properties.map(property => {
         const insight = insightMap.get(property.id);
         const insightData = insight?.insight_data as unknown as PropertyInsightData | undefined;
+        const counts = countMap.get(property.id) || { total: 0, sinceLast: 0 };
+        
+        // Calculate staleness
+        let isStale = false;
+        if (insight?.updated_at) {
+          const daysSinceAnalysis = Math.floor((Date.now() - new Date(insight.updated_at).getTime()) / (1000 * 60 * 60 * 24));
+          isStale = daysSinceAnalysis >= 7 && counts.sinceLast > 0;
+        }
         
         return {
           id: property.id,
           name: property.name,
           address: property.address,
           riskLevel: insightData?.riskLevel || null,
-          requestCount: countMap.get(property.id) || 0,
+          requestCount: counts.total,
           lastAnalyzed: insight?.updated_at || null,
           topIssue: insightData?.recurringIssues?.[0]?.category,
-          hasInsight: !!insight
+          hasInsight: !!insight,
+          requestsSinceAnalysis: counts.sinceLast,
+          isStale
         };
       });
 
-      // Sort: critical first, then high, then unanalyzed with requests, then by request count
+      // Sort: critical first, then high, then stale/unanalyzed with requests, then by request count
       healthItems.sort((a, b) => {
         const riskOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-        const aRisk = a.riskLevel ? riskOrder[a.riskLevel] ?? 4 : (a.requestCount > 0 ? 2.5 : 5);
-        const bRisk = b.riskLevel ? riskOrder[b.riskLevel] ?? 4 : (b.requestCount > 0 ? 2.5 : 5);
         
-        if (aRisk !== bRisk) return aRisk - bRisk;
+        // Stale insights should be prioritized higher
+        const aEffectiveRisk = a.riskLevel 
+          ? (a.isStale ? Math.max(0, riskOrder[a.riskLevel] - 0.5) : riskOrder[a.riskLevel]) 
+          : (a.requestCount > 0 ? 2.5 : 5);
+        const bEffectiveRisk = b.riskLevel 
+          ? (b.isStale ? Math.max(0, riskOrder[b.riskLevel] - 0.5) : riskOrder[b.riskLevel]) 
+          : (b.requestCount > 0 ? 2.5 : 5);
+        
+        if (aEffectiveRisk !== bEffectiveRisk) return aEffectiveRisk - bEffectiveRisk;
         return b.requestCount - a.requestCount;
       });
 
@@ -130,22 +159,33 @@ const PropertyHealthWidget: React.FC = () => {
   };
 
   const handleAnalyzeAll = () => {
+    // Prioritize: stale > unanalyzed > all with requests
+    const staleProperties = propertyHealth.filter(p => p.isStale);
     const unanalyzedWithRequests = propertyHealth.filter(p => !p.hasInsight && p.requestCount > 0);
-    if (unanalyzedWithRequests.length === 0) {
-      // If all with requests are analyzed, re-analyze all
+    
+    if (staleProperties.length > 0) {
+      analyzeAllProperties(staleProperties.map(p => ({ id: p.id, name: p.name })));
+    } else if (unanalyzedWithRequests.length > 0) {
+      analyzeAllProperties(unanalyzedWithRequests.map(p => ({ id: p.id, name: p.name })));
+    } else {
       const allWithRequests = propertyHealth.filter(p => p.requestCount > 0);
       analyzeAllProperties(allWithRequests.map(p => ({ id: p.id, name: p.name })));
-    } else {
-      analyzeAllProperties(unanalyzedWithRequests.map(p => ({ id: p.id, name: p.name })));
     }
   };
 
-  const getRiskIcon = (riskLevel: string | null, hasInsight: boolean, requestCount: number) => {
+  const getRiskIcon = (property: PropertyHealthItem) => {
+    const { riskLevel, hasInsight, requestCount, isStale } = property;
+    
     if (!hasInsight) {
       if (requestCount > 0) {
         return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
       }
       return <Building2 className="h-4 w-4 text-muted-foreground" />;
+    }
+    
+    // Show warning icon for stale insights
+    if (isStale) {
+      return <RefreshCw className="h-4 w-4 text-yellow-500" />;
     }
     
     switch (riskLevel) {
@@ -162,12 +202,23 @@ const PropertyHealthWidget: React.FC = () => {
     }
   };
 
-  const getRiskBadge = (riskLevel: string | null, hasInsight: boolean, requestCount: number) => {
+  const getRiskBadge = (property: PropertyHealthItem) => {
+    const { riskLevel, hasInsight, requestCount, isStale, requestsSinceAnalysis } = property;
+    
     if (!hasInsight) {
       if (requestCount > 0) {
         return <Badge variant="outline" className="text-xs">Not Analyzed</Badge>;
       }
       return <Badge variant="outline" className="text-xs text-muted-foreground">No Requests</Badge>;
+    }
+    
+    // Show stale badge with new request count
+    if (isStale) {
+      return (
+        <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300">
+          +{requestsSinceAnalysis} new
+        </Badge>
+      );
     }
     
     return (
@@ -182,7 +233,8 @@ const PropertyHealthWidget: React.FC = () => {
     total: propertyHealth.length,
     analyzed: propertyHealth.filter(p => p.hasInsight).length,
     highRisk: propertyHealth.filter(p => p.riskLevel === 'high' || p.riskLevel === 'critical').length,
-    needsAnalysis: propertyHealth.filter(p => !p.hasInsight && p.requestCount > 0).length
+    needsAnalysis: propertyHealth.filter(p => !p.hasInsight && p.requestCount > 0).length,
+    stale: propertyHealth.filter(p => p.isStale).length
   };
 
   if (loading || propertiesLoading) {
@@ -243,20 +295,26 @@ const PropertyHealthWidget: React.FC = () => {
           </div>
           
           {/* Quick Stats */}
-          <div className="flex gap-4 mt-3 text-sm">
+          <div className="flex flex-wrap gap-4 mt-3 text-sm">
             {stats.highRisk > 0 && (
               <div className="flex items-center gap-1.5 text-destructive">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 <span>{stats.highRisk} High Risk</span>
               </div>
             )}
+            {stats.stale > 0 && (
+              <div className="flex items-center gap-1.5 text-yellow-600">
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>{stats.stale} Outdated</span>
+              </div>
+            )}
             {stats.needsAnalysis > 0 && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <AlertCircle className="h-3.5 w-3.5" />
-                <span>{stats.needsAnalysis} Need Analysis</span>
+                <span>{stats.needsAnalysis} Unanalyzed</span>
               </div>
             )}
-            {stats.highRisk === 0 && stats.needsAnalysis === 0 && stats.analyzed > 0 && (
+            {stats.highRisk === 0 && stats.needsAnalysis === 0 && stats.stale === 0 && stats.analyzed > 0 && (
               <div className="flex items-center gap-1.5 text-green-600">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>All properties healthy</span>
@@ -282,15 +340,18 @@ const PropertyHealthWidget: React.FC = () => {
             </div>
           )}
           
-          {/* Analyze All Button */}
-          {!analyzing && stats.needsAnalysis > 0 && (
+          {/* Analyze Button - shows for stale or unanalyzed properties */}
+          {!analyzing && (stats.stale > 0 || stats.needsAnalysis > 0) && (
             <Button 
               variant="outline" 
               className="w-full justify-center gap-2"
               onClick={handleAnalyzeAll}
             >
               <RefreshCw className="h-4 w-4" />
-              Analyze {stats.needsAnalysis} Properties
+              {stats.stale > 0 
+                ? `Update ${stats.stale} Outdated`
+                : `Analyze ${stats.needsAnalysis} Properties`
+              }
             </Button>
           )}
 
@@ -321,21 +382,23 @@ const PropertyHealthWidget: React.FC = () => {
                   onClick={() => navigate(`/properties/${property.id}`)}
                 >
                   <div className="flex items-center gap-3">
-                    {getRiskIcon(property.riskLevel, property.hasInsight, property.requestCount)}
+                    {getRiskIcon(property)}
                     <div className="text-left">
                       <p className="font-medium text-sm">{property.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {property.topIssue 
-                          ? `Top: ${property.topIssue}` 
-                          : property.requestCount > 0 
-                            ? `${property.requestCount} requests`
-                            : property.address.substring(0, 35) + (property.address.length > 35 ? '...' : '')
+                        {property.isStale
+                          ? `${property.requestsSinceAnalysis} new since analysis`
+                          : property.topIssue 
+                            ? `Top: ${property.topIssue}` 
+                            : property.requestCount > 0 
+                              ? `${property.requestCount} requests`
+                              : property.address.substring(0, 35) + (property.address.length > 35 ? '...' : '')
                         }
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {getRiskBadge(property.riskLevel, property.hasInsight, property.requestCount)}
+                    {getRiskBadge(property)}
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </Button>
