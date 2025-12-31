@@ -1429,6 +1429,57 @@ export type Database = {
           },
         ]
       }
+      property_insights: {
+        Row: {
+          created_at: string
+          id: string
+          insight_data: Json
+          insight_type: string
+          organization_id: string
+          period_end: string | null
+          period_start: string | null
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insight_data?: Json
+          insight_type: string
+          organization_id: string
+          period_end?: string | null
+          period_start?: string | null
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insight_data?: Json
+          insight_type?: string
+          organization_id?: string
+          period_end?: string | null
+          period_start?: string | null
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_insights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_insights_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_notes: {
         Row: {
           attachments: Json | null
