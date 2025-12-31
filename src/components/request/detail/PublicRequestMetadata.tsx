@@ -11,13 +11,13 @@ interface PublicRequestMetadataProps {
   participantName?: string;
   location: string;
   reportDate: string;
-  site: string;
   submittedBy: string;
   assignedTo?: string;
   contractorId?: string;
   propertyId?: string;
   propertyName?: string;
   assignedToLandlord?: boolean;
+  aiIssueType?: string | null;
   contractorInfo?: {
     companyName?: string;
     contactName?: string;
@@ -33,13 +33,13 @@ export const PublicRequestMetadata = ({
   participantName,
   location,
   reportDate,
-  site,
   submittedBy,
   assignedTo,
   contractorId,
   propertyId,
   propertyName,
   assignedToLandlord,
+  aiIssueType,
   contractorInfo
 }: PublicRequestMetadataProps) => {
   return (
@@ -52,7 +52,7 @@ export const PublicRequestMetadata = ({
       <PropertyInfo propertyId={propertyId} propertyName={propertyName} />
       <LocationInfo location={location} />
       <DateInfo reportDate={reportDate} />
-      <SiteInfo site={site} />
+      <SiteInfo aiIssueType={aiIssueType} />
       
       <UserInfo label="Submitted By" value={submittedBy} />
       <UserInfo 

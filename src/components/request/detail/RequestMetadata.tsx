@@ -13,13 +13,13 @@ interface RequestMetadataProps {
   participantName?: string;
   location: string;
   reportDate: string;
-  site: string;
   submittedBy: string;
   assignedTo?: string;
   contractorId?: string;
   propertyId?: string;
   propertyName?: string;
   assignedToLandlord?: boolean;
+  aiIssueType?: string | null;
 }
 
 export const RequestMetadata = ({
@@ -27,13 +27,13 @@ export const RequestMetadata = ({
   participantName,
   location,
   reportDate,
-  site,
   submittedBy,
   assignedTo,
   contractorId,
   propertyId,
   propertyName,
-  assignedToLandlord
+  assignedToLandlord,
+  aiIssueType
 }: RequestMetadataProps) => {
   const [contractorInfo, setContractorInfo] = useState<{
     companyName?: string;
@@ -75,7 +75,7 @@ export const RequestMetadata = ({
       <PropertyInfo propertyId={propertyId} propertyName={propertyName} />
       <LocationInfo location={location} />
       <DateInfo reportDate={reportDate} />
-      <SiteInfo site={site} />
+      <SiteInfo aiIssueType={aiIssueType} />
       
       <UserInfo label="Submitted By" value={submittedBy} />
       <UserInfo 
