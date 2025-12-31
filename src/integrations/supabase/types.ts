@@ -887,6 +887,11 @@ export type Database = {
       }
       maintenance_requests: {
         Row: {
+          ai_affected_area: string | null
+          ai_categorized_at: string | null
+          ai_category_confidence: string | null
+          ai_issue_tags: string[] | null
+          ai_issue_type: string | null
           ai_responsibility_analyzed_at: string | null
           ai_responsibility_asset_type: string | null
           ai_responsibility_confidence: string | null
@@ -934,6 +939,11 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_affected_area?: string | null
+          ai_categorized_at?: string | null
+          ai_category_confidence?: string | null
+          ai_issue_tags?: string[] | null
+          ai_issue_type?: string | null
           ai_responsibility_analyzed_at?: string | null
           ai_responsibility_asset_type?: string | null
           ai_responsibility_confidence?: string | null
@@ -981,6 +991,11 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_affected_area?: string | null
+          ai_categorized_at?: string | null
+          ai_category_confidence?: string | null
+          ai_issue_tags?: string[] | null
+          ai_issue_type?: string | null
           ai_responsibility_analyzed_at?: string | null
           ai_responsibility_asset_type?: string | null
           ai_responsibility_confidence?: string | null
