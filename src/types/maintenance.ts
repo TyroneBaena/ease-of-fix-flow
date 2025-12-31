@@ -65,6 +65,12 @@ export interface MaintenanceRequest {
   aiResponsibilityReasoning?: string | null;
   aiResponsibilityConfidence?: string | null;
   aiResponsibilityAnalyzedAt?: string | null;
+  // AI Categorization
+  aiIssueType?: string | null;
+  aiIssueTags?: string[] | null;
+  aiAffectedArea?: string | null;
+  aiCategorizedAt?: string | null;
+  aiCategoryConfidence?: string | null;
   // Submission method tracking
   submissionMethod?: 'form' | 'ai_assistant' | 'public_form' | 'public_ai_assistant';
 }
