@@ -201,22 +201,43 @@ ${JSON.stringify(formattedRequests, null, 2)}
 
 Provide a comprehensive analysis identifying patterns, systemic issues, and actionable recommendations.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const makeAIRequest = async (includeOptionalParams = false) => {
+      const requestBody: Record<string, unknown> = {
         model: 'openai/gpt-5-mini',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.4,
         max_completion_tokens: 1000
-      }),
-    });
+      };
+      
+      return fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+    };
+
+    let response = await makeAIRequest();
+    
+    // Retry once if we get an unsupported parameter error
+    if (response.status === 400) {
+      const errorText = await response.text();
+      console.error('AI Gateway 400 error (first attempt):', errorText);
+      
+      if (errorText.includes('Unsupported') || errorText.includes('not supported')) {
+        console.log('Retrying AI request with minimal parameters...');
+        response = await makeAIRequest(false);
+      } else {
+        return new Response(
+          JSON.stringify({ error: 'AI service configuration error' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
