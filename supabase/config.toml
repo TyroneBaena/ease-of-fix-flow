@@ -208,3 +208,9 @@ verify_jwt = false
 
 [functions.analyze-responsibility]
 verify_jwt = false
+
+[functions.categorize-request]
+verify_jwt = true
+
+[functions.analyze-property-hotspot]
+verify_jwt = true
