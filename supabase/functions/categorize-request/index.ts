@@ -111,7 +111,7 @@ Location: ${location || 'Not specified'}`;
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 200
+        max_completion_tokens: 200
       }),
     });
 
