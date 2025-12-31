@@ -86,11 +86,25 @@ const PropertyInsightsCard: React.FC<PropertyInsightsCardProps> = ({
         throw new Error(response.error.message || 'Analysis failed');
       }
 
-      toast.success('Property analysis complete');
+      // Check if the response indicates AI was unavailable (fallback response)
+      const data = response.data;
+      if (data?.analysisStatus === 'ai_unavailable') {
+        toast.warning('AI analysis temporarily unavailable. Basic insights saved - please retry later.');
+      } else {
+        toast.success('Property analysis complete');
+      }
+      
       await fetchInsight();
     } catch (error: any) {
       console.error('Error analyzing property:', error);
-      toast.error(error.message || 'Failed to analyze property');
+      // More user-friendly error messages
+      if (error.message?.includes('Rate limit')) {
+        toast.error('Analysis rate limit reached. Please wait a moment and try again.');
+      } else if (error.message?.includes('FunctionsFetchError')) {
+        toast.error('Analysis service temporarily unavailable. Please try again.');
+      } else {
+        toast.error(error.message || 'Failed to analyze property');
+      }
     } finally {
       setAnalyzing(false);
     }

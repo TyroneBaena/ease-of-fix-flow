@@ -2,6 +2,9 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Version stamp for deployment verification
+const FUNCTION_VERSION = "2025-01-01_v2_no_temp";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -77,6 +80,8 @@ interface PropertyAnalysisRequest {
 }
 
 serve(async (req) => {
+  console.log(`[analyze-property-hotspot] FUNCTION_VERSION: ${FUNCTION_VERSION}`);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -201,16 +206,19 @@ ${JSON.stringify(formattedRequests, null, 2)}
 
 Provide a comprehensive analysis identifying patterns, systemic issues, and actionable recommendations.`;
 
-    const makeAIRequest = async (includeOptionalParams = false) => {
-      const requestBody: Record<string, unknown> = {
-        model: 'openai/gpt-5-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ],
-        max_completion_tokens: 1000
-      };
-      
+    // Build minimal request body (no temperature, no top_p - these cause errors with some models)
+    const requestBody: Record<string, unknown> = {
+      model: 'openai/gpt-5-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt }
+      ],
+      max_completion_tokens: 1000
+    };
+
+    console.log(`[analyze-property-hotspot] AI request payload keys: ${Object.keys(requestBody).join(', ')}`);
+
+    const makeAIRequest = async () => {
       return fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -223,26 +231,41 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
 
     let response = await makeAIRequest();
     
-    // Retry once if we get an unsupported parameter error
-    if (response.status === 400) {
-      const errorText = await response.text();
-      console.error('AI Gateway 400 error (first attempt):', errorText);
-      
-      if (errorText.includes('Unsupported') || errorText.includes('not supported')) {
-        console.log('Retrying AI request with minimal parameters...');
-        response = await makeAIRequest(false);
-      } else {
-        return new Response(
-          JSON.stringify({ error: 'AI service configuration error' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+    // Helper to create fallback response when AI fails
+    const createFallbackAnalysis = (reason: string) => ({
+      recurringIssues: [],
+      systemicProblems: [],
+      recommendations: [{
+        action: 'Retry analysis later',
+        priority: 'medium',
+        reasoning: 'AI analysis temporarily unavailable. Please try again in a few minutes.'
+      }],
+      riskLevel: 'unknown',
+      summary: `AI analysis temporarily unavailable (${reason}). The system has ${requests.length} maintenance requests to analyze. Please retry shortly.`,
+      requestsAnalyzed: requests.length,
+      analysisStatus: 'ai_unavailable'
+    });
 
+    // Handle errors with detailed logging
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      let errorDetails = { status: response.status, message: errorText };
       
+      // Try to parse error for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetails = {
+          status: response.status,
+          message: errorJson.error?.message || errorText,
+          type: errorJson.error?.type,
+          param: errorJson.error?.param,
+          code: errorJson.error?.code
+        };
+      } catch { /* keep original errorDetails */ }
+      
+      console.error('[analyze-property-hotspot] AI Gateway error:', JSON.stringify(errorDetails));
+      
+      // For rate limits, return specific message
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
@@ -250,9 +273,34 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
         );
       }
       
+      // For other errors, return fallback analysis instead of hard failure
+      console.log('[analyze-property-hotspot] Returning fallback analysis due to AI error');
+      const fallbackAnalysis = createFallbackAnalysis('service error');
+      
+      // Store the fallback insight
+      const { data: profile } = await supabase.auth.getUser();
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', profile.user?.id)
+        .single();
+
+      if (userProfile?.organization_id) {
+        await supabase.from('property_insights').upsert({
+          property_id: propertyId,
+          organization_id: userProfile.organization_id,
+          insight_type: 'hotspot_analysis',
+          insight_data: fallbackAnalysis,
+          period_start: oneYearAgo.toISOString(),
+          period_end: new Date().toISOString()
+        }, {
+          onConflict: 'property_id,insight_type'
+        });
+      }
+
       return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(fallbackAnalysis),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

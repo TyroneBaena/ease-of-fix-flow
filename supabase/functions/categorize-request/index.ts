@@ -1,6 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Version stamp for deployment verification
+const FUNCTION_VERSION = "2025-01-01_v2_no_temp";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -65,6 +68,8 @@ interface CategorizationResponse {
 }
 
 serve(async (req) => {
+  console.log(`[categorize-request] FUNCTION_VERSION: ${FUNCTION_VERSION}`);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -98,16 +103,19 @@ Location: ${location || 'Not specified'}`;
 
     console.log('Categorizing request:', { title, description: description?.substring(0, 100) });
 
+    // Build minimal request body (no temperature, no top_p - these cause errors with some models)
+    const requestBody: Record<string, unknown> = {
+      model: 'openai/gpt-5-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt }
+      ],
+      max_completion_tokens: 200
+    };
+
+    console.log(`[categorize-request] AI request payload keys: ${Object.keys(requestBody).join(', ')}`);
+
     const makeAIRequest = async () => {
-      const requestBody: Record<string, unknown> = {
-        model: 'openai/gpt-5-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ],
-        max_completion_tokens: 200
-      };
-      
       return fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -120,25 +128,24 @@ Location: ${location || 'Not specified'}`;
 
     let response = await makeAIRequest();
     
-    // Retry once if we get an unsupported parameter error
-    if (response.status === 400) {
-      const errorText = await response.text();
-      console.error('AI Gateway 400 error (first attempt):', errorText);
-      
-      if (errorText.includes('Unsupported') || errorText.includes('not supported')) {
-        console.log('Retrying AI request with minimal parameters...');
-        response = await makeAIRequest();
-      } else {
-        return new Response(
-          JSON.stringify({ error: 'AI service configuration error' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
+    // Handle errors with detailed logging
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      let errorDetails = { status: response.status, message: errorText };
+      
+      // Try to parse error for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetails = {
+          status: response.status,
+          message: errorJson.error?.message || errorText,
+          type: errorJson.error?.type,
+          param: errorJson.error?.param,
+          code: errorJson.error?.code
+        };
+      } catch { /* keep original errorDetails */ }
+      
+      console.error('[categorize-request] AI Gateway error:', JSON.stringify(errorDetails));
       
       if (response.status === 429) {
         return new Response(
@@ -147,9 +154,18 @@ Location: ${location || 'Not specified'}`;
         );
       }
       
+      // Return fallback categorization instead of hard failure
+      console.log('[categorize-request] Returning fallback categorization due to AI error');
+      const fallbackCategorization: CategorizationResponse = {
+        issueType: 'general_other',
+        issueTags: [],
+        affectedArea: location || 'unknown',
+        confidence: 'low'
+      };
+      
       return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(fallbackCategorization),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
