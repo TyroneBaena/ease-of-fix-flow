@@ -1,18 +1,31 @@
-
 import React from 'react';
-import { Tag } from 'lucide-react';
+import { Brain } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface SiteInfoProps {
-  site: string;
+  aiIssueType?: string | null;
 }
 
-export const SiteInfo = ({ site }: SiteInfoProps) => {
+const formatIssueType = (issueType: string): string => {
+  return issueType
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+export const SiteInfo = ({ aiIssueType }: SiteInfoProps) => {
   return (
     <div className="flex items-center">
-      <Tag className="h-4 w-4 text-gray-500 mr-2" />
+      <Brain className="h-4 w-4 text-muted-foreground mr-2" />
       <div>
-        <p className="text-xs text-gray-500">Site</p>
-        <p className="font-medium">{site}</p>
+        <p className="text-xs text-muted-foreground">Issue Type</p>
+        {aiIssueType ? (
+          <Badge variant="secondary" className="font-medium">
+            {formatIssueType(aiIssueType)}
+          </Badge>
+        ) : (
+          <p className="text-sm text-muted-foreground">Uncategorized</p>
+        )}
       </div>
     </div>
   );

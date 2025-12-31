@@ -16,7 +16,6 @@ interface PublicRequestInfoProps {
     explanation: string;
     location: string;
     reportDate: string;
-    site: string;
     submittedBy: string;
     status: string;
     priority?: string;
@@ -25,6 +24,7 @@ interface PublicRequestInfoProps {
     contractorId?: string;
     propertyId?: string;
     assignedToLandlord?: boolean;
+    aiIssueType?: string | null;
     attachments?: Array<{ url: string; name?: string; type?: string }> | null;
   };
   propertyName?: string;
@@ -54,13 +54,13 @@ export const PublicRequestInfo = ({ request, propertyName, contractorInfo }: Pub
         participantName={request.participantName}
         location={request.location}
         reportDate={request.reportDate}
-        site={request.site}
         submittedBy={request.submittedBy}
         assignedTo={request.assignedTo}
         contractorId={request.contractorId}
         propertyId={request.propertyId}
         propertyName={propertyName}
         assignedToLandlord={request.assignedToLandlord}
+        aiIssueType={request.aiIssueType}
         contractorInfo={contractorInfo}
       />
       

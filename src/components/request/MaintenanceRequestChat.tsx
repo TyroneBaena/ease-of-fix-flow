@@ -298,7 +298,7 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
           title: formData.issueNature,
           description: formData.explanation,
           location: formData.location,
-          site: formData.location,
+          site: '',
           submittedBy: formData.submittedBy,
           attemptedFix: formData.attemptedFix,
           issueNature: formData.issueNature,
