@@ -212,6 +212,7 @@ import { BillingWidgets } from "@/components/dashboard/BillingWidgets";
 import { PropertyManagementWidget } from "@/components/dashboard/PropertyManagementWidget";
 import { OrganizationCalendarWidget } from "@/components/dashboard/OrganizationCalendarWidget";
 import { PendingActionsWidget } from "@/components/dashboard/PendingActionsWidget";
+import PropertyHotspotsWidget from "@/components/dashboard/PropertyHotspotsWidget";
 import { useUserContext } from "@/contexts/UnifiedAuthContext";
 import { useMaintenanceRequestContext } from "@/contexts/maintenance";
 // REMOVED: useContractorProfileMonitoring causes network congestion on every dashboard mount
@@ -374,6 +375,10 @@ const Dashboard = () => {
               </div>
               <div className="lg:col-span-1 space-y-4">
                 <OrganizationCalendarWidget />
+                {/* Property Hotspots Widget - Only for admin/manager */}
+                {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                  <PropertyHotspotsWidget />
+                )}
                 {/* Pending Actions Widget - Only for admin/manager */}
                 {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
                   <PendingActionsWidget requests={userRequests} />

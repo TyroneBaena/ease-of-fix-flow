@@ -20,6 +20,7 @@ import { BudgetManagement } from '@/components/property/BudgetManagement';
 import { HousematesTab } from '@/components/property/housemates/HousematesTab';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import DeletePropertyDialog from '@/components/property/DeletePropertyDialog';
+import PropertyInsightsCard from '@/components/property/PropertyInsightsCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog,
@@ -255,6 +256,13 @@ const PropertyDetail = () => {
                   />
                 )}
                 <LandlordInfoCard landlordId={property?.landlordId} />
+                {id && !isTemporaryAccess && (currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                  <PropertyInsightsCard 
+                    propertyId={id}
+                    propertyName={property?.name}
+                    propertyAddress={property?.address}
+                  />
+                )}
                 {id && (
                   <PropertyQuickActions
                     propertyId={id}
