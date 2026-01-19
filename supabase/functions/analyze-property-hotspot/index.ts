@@ -308,10 +308,33 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
     const aiResponse = data.choices?.[0]?.message?.content;
 
     if (!aiResponse) {
-      console.error('No response from AI');
+      console.error('[analyze-property-hotspot] No content in AI response, returning fallback');
+      const fallbackAnalysis = createFallbackAnalysis('empty response');
+      
+      // Store the fallback insight
+      const { data: profile } = await supabase.auth.getUser();
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', profile.user?.id)
+        .single();
+
+      if (userProfile?.organization_id) {
+        await supabase.from('property_insights').upsert({
+          property_id: propertyId,
+          organization_id: userProfile.organization_id,
+          insight_type: 'hotspot_analysis',
+          insight_data: fallbackAnalysis,
+          period_start: oneYearAgo.toISOString(),
+          period_end: new Date().toISOString()
+        }, {
+          onConflict: 'property_id,insight_type'
+        });
+      }
+
       return new Response(
-        JSON.stringify({ error: 'No response from AI service' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(fallbackAnalysis),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
