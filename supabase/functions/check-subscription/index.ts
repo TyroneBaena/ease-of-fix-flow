@@ -143,19 +143,27 @@ serve(async (req) => {
       log("No active or trialing subscription");
     }
 
-    await supabase.from("subscribers").upsert(
-      {
-        email: user.email,
-        user_id: user.id,
-        stripe_customer_id: customerId,
-        subscribed,
-        subscription_tier: subscriptionTier,
-        subscription_end: subscriptionEnd,
-        is_trial_active: false,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
+    // CRITICAL: When syncing with Stripe, also reset cancellation flags if subscription is active
+    const upsertData: Record<string, unknown> = {
+      email: user.email,
+      user_id: user.id,
+      stripe_customer_id: customerId,
+      subscribed,
+      subscription_tier: subscriptionTier,
+      subscription_end: subscriptionEnd,
+      is_trial_active: false,
+      updated_at: new Date().toISOString(),
+    };
+
+    // If Stripe shows an active subscription, clear any stale cancellation flags
+    if (subscribed && activeOrTrial) {
+      upsertData.is_cancelled = false;
+      upsertData.cancellation_date = null;
+      upsertData.subscription_status = activeOrTrial.status;
+      log("Clearing cancellation flags for active subscription");
+    }
+
+    await supabase.from("subscribers").upsert(upsertData, { onConflict: "user_id" });
 
     return new Response(
       JSON.stringify({
