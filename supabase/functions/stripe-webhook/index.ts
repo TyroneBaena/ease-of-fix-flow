@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
             .single();
 
           if (subscriber) {
+            // CRITICAL: Reset cancellation status when payment succeeds
             await supabase
               .from('subscribers')
               .update({
@@ -103,11 +104,17 @@ Deno.serve(async (req) => {
                 failed_payment_count: 0,
                 last_payment_attempt: new Date().toISOString(),
                 last_billing_date: new Date().toISOString(),
+                subscribed: true,
+                is_cancelled: false,
+                cancellation_date: null,
                 updated_at: new Date().toISOString(),
               })
               .eq('stripe_customer_id', invoice.customer);
 
-            log('Updated subscriber after successful payment', { subscriberId: subscriber.id });
+            log('Updated subscriber after successful payment', { 
+              subscriberId: subscriber.id,
+              resetCancellation: true 
+            });
           }
         }
         break;
@@ -179,22 +186,32 @@ Deno.serve(async (req) => {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        log('Subscription updated', { subscriptionId: subscription.id, status: subscription.status });
+        const isActive = subscription.status === 'active';
+        log('Subscription updated', { subscriptionId: subscription.id, status: subscription.status, isActive });
 
         if (typeof subscription.customer === 'string') {
+          // CRITICAL: Reset cancellation status when subscription becomes active
+          const updateData: Record<string, unknown> = {
+            subscribed: isActive,
+            subscription_status: subscription.status,
+            next_billing_date: subscription.current_period_end 
+              ? new Date(subscription.current_period_end * 1000).toISOString() 
+              : null,
+            updated_at: new Date().toISOString(),
+          };
+
+          // Only reset cancellation fields if subscription is active
+          if (isActive) {
+            updateData.is_cancelled = false;
+            updateData.cancellation_date = null;
+          }
+
           await supabase
             .from('subscribers')
-            .update({
-              subscribed: subscription.status === 'active',
-              subscription_status: subscription.status,
-              next_billing_date: subscription.current_period_end 
-                ? new Date(subscription.current_period_end * 1000).toISOString() 
-                : null,
-              updated_at: new Date().toISOString(),
-            })
+            .update(updateData)
             .eq('stripe_customer_id', subscription.customer);
 
-          log('Updated subscription status');
+          log('Updated subscription status', { isActive, resetCancellation: isActive });
         }
         break;
       }
