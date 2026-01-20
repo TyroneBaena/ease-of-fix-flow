@@ -232,6 +232,7 @@ serve(async (req) => {
     }
 
     // Update subscriber record to end trial and activate paid subscription
+    // CRITICAL: Reset cancellation flags on upgrade to prevent stale state
     const { error: updateError } = await supabase
       .from('subscribers')
       .update({
@@ -239,6 +240,9 @@ serve(async (req) => {
         subscription_tier: 'paid',
         stripe_subscription_id: newSubscription.id,
         is_trial_active: false,
+        is_cancelled: false,
+        cancellation_date: null,
+        subscription_status: 'active',
         last_billing_date: new Date().toISOString(),
         next_billing_date: new Date(newSubscription.current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()

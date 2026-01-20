@@ -150,12 +150,14 @@ serve(async (req) => {
     const nextBillingDate = new Date();
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
-    // Update subscriber record
+    // Update subscriber record - CRITICAL: Reset cancellation flags on upgrade
     const { error: updateError } = await supabase
       .from("subscribers")
       .update({
         subscribed: true,
         is_trial_active: false,
+        is_cancelled: false,
+        cancellation_date: null,
         subscription_status: "active",
         stripe_customer_id: stripeCustomerId,
         stripe_subscription_id: subscription.id,
