@@ -44,6 +44,7 @@ const PropertyHealthWidget: React.FC = () => {
   const { currentUser } = useUserContext();
   const { canCreateProperty, handleRestrictedAction } = usePropertyAccessControl();
   const { analyzing, progress, analyzeAllProperties } = usePropertyAnalysis();
+  const [prevAnalyzing, setPrevAnalyzing] = useState(false);
   
   const isAdmin = currentUser?.role === 'admin';
 
@@ -54,6 +55,19 @@ const PropertyHealthWidget: React.FC = () => {
       setLoading(false);
     }
   }, [properties, propertiesLoading]);
+
+  // Refresh data after analysis completes
+  useEffect(() => {
+    if (prevAnalyzing && !analyzing) {
+      // Analysis just finished - refresh after a short delay
+      const timer = setTimeout(() => {
+        console.log('[PropertyHealthWidget] Analysis complete, refreshing data...');
+        fetchPropertyHealth();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    setPrevAnalyzing(analyzing);
+  }, [analyzing]);
 
   const fetchPropertyHealth = async () => {
     try {

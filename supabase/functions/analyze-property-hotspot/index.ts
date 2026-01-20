@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Version stamp for deployment verification
-const FUNCTION_VERSION = "2025-01-20_v3_gemini_model";
+const FUNCTION_VERSION = "2025-01-20_v4_fixed_auth";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,6 +79,40 @@ interface PropertyAnalysisRequest {
   propertyAddress?: string;
 }
 
+// Helper to store insight in database
+async function storeInsight(
+  supabase: ReturnType<typeof createClient>,
+  propertyId: string,
+  organizationId: string,
+  analysis: Record<string, unknown>,
+  periodStart: string,
+  periodEnd: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error: upsertError } = await supabase.from('property_insights').upsert({
+      property_id: propertyId,
+      organization_id: organizationId,
+      insight_type: 'hotspot_analysis',
+      insight_data: analysis,
+      period_start: periodStart,
+      period_end: periodEnd
+    }, {
+      onConflict: 'property_id,insight_type'
+    });
+
+    if (upsertError) {
+      console.error('Error storing insight:', upsertError);
+      return { success: false, error: upsertError.message };
+    }
+    
+    console.log('✅ Insight stored successfully for property:', propertyId);
+    return { success: true };
+  } catch (err) {
+    console.error('Exception storing insight:', err);
+    return { success: false, error: String(err) };
+  }
+}
+
 serve(async (req) => {
   console.log(`[analyze-property-hotspot] FUNCTION_VERSION: ${FUNCTION_VERSION}`);
   
@@ -97,31 +131,92 @@ serve(async (req) => {
       );
     }
 
-    // Get auth token from request
+    // Get auth token from request - CRITICAL FIX: Extract and validate token properly
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[analyze-property-hotspot] Missing or invalid Authorization header');
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase client
+    const token = authHeader.replace('Bearer ', '');
+    console.log(`[analyze-property-hotspot] Token present, length: ${token.length}`);
+
+    // Create Supabase clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Client for user validation (with token)
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+    
+    // Validate user by passing token explicitly
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
+    
+    if (userError || !userData?.user) {
+      console.error('[analyze-property-hotspot] Auth validation failed:', userError?.message || 'No user returned');
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = userData.user.id;
+    console.log(`[analyze-property-hotspot] User authenticated: ${userId.substring(0, 8)}...`);
+
+    // Client for data operations (with auth header for RLS)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
+
+    // Service client for storage (bypasses RLS for upsert)
+    const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user's organization
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.error('[analyze-property-hotspot] Profile fetch error:', profileError);
+    }
+
+    let organizationId = userProfile?.organization_id;
+    
+    // Fallback: try to get org from the property itself
+    if (!organizationId) {
+      console.log('[analyze-property-hotspot] No org from profile, checking property...');
+      const { data: propData } = await supabase
+        .from('properties')
+        .select('organization_id')
+        .eq('id', propertyId)
+        .single();
+      
+      if (propData?.organization_id) {
+        organizationId = propData.organization_id;
+        console.log(`[analyze-property-hotspot] Got org from property: ${organizationId.substring(0, 8)}...`);
+      }
+    } else {
+      console.log(`[analyze-property-hotspot] Organization: ${organizationId.substring(0, 8)}...`);
+    }
 
     // Fetch maintenance requests for this property (last 12 months)
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const periodStart = oneYearAgo.toISOString();
+    const periodEnd = new Date().toISOString();
 
     const { data: requests, error: fetchError } = await supabase
       .from('maintenance_requests')
       .select('id, title, description, location, category, status, priority, created_at, ai_issue_type, ai_issue_tags')
       .eq('property_id', propertyId)
-      .gte('created_at', oneYearAgo.toISOString())
+      .gte('created_at', periodStart)
       .order('created_at', { ascending: false });
 
     if (fetchError) {
@@ -149,31 +244,11 @@ serve(async (req) => {
         requestsAnalyzed: 0
       };
 
-      // Store the insight
-      const { data: profile } = await supabase.auth.getUser();
-      if (profile?.user?.id) {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('id', profile.user.id)
-          .single();
-
-        if (userProfile?.organization_id) {
-          const { error: upsertError } = await supabase.from('property_insights').upsert({
-            property_id: propertyId,
-            organization_id: userProfile.organization_id,
-            insight_type: 'hotspot_analysis',
-            insight_data: emptyAnalysis,
-            period_start: oneYearAgo.toISOString(),
-            period_end: new Date().toISOString()
-          }, {
-            onConflict: 'property_id,insight_type'
-          });
-          if (upsertError) console.error('Error storing empty insight:', upsertError);
-          else console.log('Empty insight stored successfully for property:', propertyId);
-        }
+      // Store insight if we have org
+      if (organizationId) {
+        await storeInsight(supabaseService, propertyId, organizationId, emptyAnalysis, periodStart, periodEnd);
       } else {
-        console.warn('No authenticated user, cannot store empty insight');
+        console.warn('[analyze-property-hotspot] Cannot store insight - no organization_id');
       }
 
       return new Response(
@@ -255,7 +330,7 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
     // Handle errors with detailed logging
     if (!response.ok) {
       const errorText = await response.text();
-      let errorDetails = { status: response.status, message: errorText };
+      let errorDetails: Record<string, unknown> = { status: response.status, message: errorText };
       
       // Try to parse error for more details
       try {
@@ -284,30 +359,8 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
       const fallbackAnalysis = createFallbackAnalysis('service error');
       
       // Store the fallback insight
-      const { data: profile } = await supabase.auth.getUser();
-      if (profile?.user?.id) {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('id', profile.user.id)
-          .single();
-
-        if (userProfile?.organization_id) {
-          const { error: upsertError } = await supabase.from('property_insights').upsert({
-            property_id: propertyId,
-            organization_id: userProfile.organization_id,
-            insight_type: 'hotspot_analysis',
-            insight_data: fallbackAnalysis,
-            period_start: oneYearAgo.toISOString(),
-            period_end: new Date().toISOString()
-          }, {
-            onConflict: 'property_id,insight_type'
-          });
-          if (upsertError) console.error('Error storing fallback insight:', upsertError);
-          else console.log('Fallback insight stored for property:', propertyId);
-        }
-      } else {
-        console.warn('No authenticated user, cannot store fallback insight');
+      if (organizationId) {
+        await storeInsight(supabaseService, propertyId, organizationId, fallbackAnalysis, periodStart, periodEnd);
       }
 
       return new Response(
@@ -332,30 +385,8 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
       const fallbackAnalysis = createFallbackAnalysis('empty response');
       
       // Store the fallback insight
-      const { data: profile } = await supabase.auth.getUser();
-      if (profile?.user?.id) {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('id', profile.user.id)
-          .single();
-
-        if (userProfile?.organization_id) {
-          const { error: upsertError } = await supabase.from('property_insights').upsert({
-            property_id: propertyId,
-            organization_id: userProfile.organization_id,
-            insight_type: 'hotspot_analysis',
-            insight_data: fallbackAnalysis,
-            period_start: oneYearAgo.toISOString(),
-            period_end: new Date().toISOString()
-          }, {
-            onConflict: 'property_id,insight_type'
-          });
-          if (upsertError) console.error('Error storing fallback insight:', upsertError);
-          else console.log('Fallback insight stored for property:', propertyId);
-        }
-      } else {
-        console.warn('No authenticated user, cannot store fallback insight');
+      if (organizationId) {
+        await storeInsight(supabaseService, propertyId, organizationId, fallbackAnalysis, periodStart, periodEnd);
       }
 
       return new Response(
@@ -387,40 +418,13 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
     analysis.requestsAnalyzed = requests.length;
 
     // Store the insight in the database
-    const { data: profile } = await supabase.auth.getUser();
-    if (profile?.user?.id) {
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', profile.user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-      }
-
-      if (userProfile?.organization_id) {
-        const { error: upsertError } = await supabase.from('property_insights').upsert({
-          property_id: propertyId,
-          organization_id: userProfile.organization_id,
-          insight_type: 'hotspot_analysis',
-          insight_data: analysis,
-          period_start: oneYearAgo.toISOString(),
-          period_end: new Date().toISOString()
-        }, {
-          onConflict: 'property_id,insight_type'
-        });
-
-        if (upsertError) {
-          console.error('Error storing insight:', upsertError);
-        } else {
-          console.log('✅ Insight stored successfully for property:', propertyId);
-        }
-      } else {
-        console.warn('No organization_id found for user, cannot store insight');
+    if (organizationId) {
+      const result = await storeInsight(supabaseService, propertyId, organizationId, analysis, periodStart, periodEnd);
+      if (!result.success) {
+        console.error('[analyze-property-hotspot] Storage failed:', result.error);
       }
     } else {
-      console.warn('No authenticated user found, cannot store insight');
+      console.warn('[analyze-property-hotspot] Cannot store insight - no organization_id resolved');
     }
 
     console.log('Analysis complete:', { riskLevel: analysis.riskLevel, requestsAnalyzed: analysis.requestsAnalyzed });
