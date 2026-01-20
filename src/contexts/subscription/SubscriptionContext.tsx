@@ -125,7 +125,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           is_cancelled,
           trial_end_date,
           active_properties_count,
-          payment_method_id
+          payment_method_id,
+          subscription_status
         `)
         .eq("organization_id", currentOrganization.id)
         .maybeSingle();
@@ -154,7 +155,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setSubscriptionTier((row as any)?.subscription_tier ?? null);
       setSubscriptionEnd((row as any)?.subscription_end ?? null);
       setIsTrialActive((row as any)?.is_trial_active ?? false);
-      setIsCancelled((row as any)?.is_cancelled ?? false);
+      
+      // GUARDRAIL: Prevent showing cancelled banner when subscription_status is active
+      // This handles DB inconsistencies where is_cancelled might be true but Stripe says active
+      const dbIsCancelled = (row as any)?.is_cancelled ?? false;
+      const dbSubscriptionStatus = (row as any)?.subscription_status ?? null;
+      const effectiveIsCancelled = dbIsCancelled && dbSubscriptionStatus !== 'active';
+      setIsCancelled(effectiveIsCancelled);
+      
+      // Log if guardrail is activated
+      if (dbIsCancelled && dbSubscriptionStatus === 'active') {
+        console.warn('⚠️ GUARDRAIL: DB shows is_cancelled=true but subscription_status=active. Displaying as NOT cancelled.');
+      }
+      
       setTrialEndDate((row as any)?.trial_end_date ?? null);
       setPropertyCount((row as any)?.active_properties_count ?? 0);
       setHasPaymentMethod(!!((row as any)?.payment_method_id));
