@@ -158,12 +158,14 @@ serve(async (req) => {
         const currentPeriodStart = new Date(subscription.current_period_start * 1000);
         const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
 
-        // Update subscriber record
+        // Update subscriber record - CRITICAL: Reset cancellation flags on conversion
         await supabase
           .from("subscribers")
           .update({
             is_trial_active: false,
             subscribed: true,
+            is_cancelled: false,
+            cancellation_date: null,
             subscription_status: subscription.status,
             stripe_subscription_id: subscription.id,
             last_billing_date: currentPeriodStart.toISOString(),
