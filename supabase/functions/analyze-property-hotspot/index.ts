@@ -151,23 +151,29 @@ serve(async (req) => {
 
       // Store the insight
       const { data: profile } = await supabase.auth.getUser();
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', profile.user?.id)
-        .single();
+      if (profile?.user?.id) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', profile.user.id)
+          .single();
 
-      if (userProfile?.organization_id) {
-        await supabase.from('property_insights').upsert({
-          property_id: propertyId,
-          organization_id: userProfile.organization_id,
-          insight_type: 'hotspot_analysis',
-          insight_data: emptyAnalysis,
-          period_start: oneYearAgo.toISOString(),
-          period_end: new Date().toISOString()
-        }, {
-          onConflict: 'property_id,insight_type'
-        });
+        if (userProfile?.organization_id) {
+          const { error: upsertError } = await supabase.from('property_insights').upsert({
+            property_id: propertyId,
+            organization_id: userProfile.organization_id,
+            insight_type: 'hotspot_analysis',
+            insight_data: emptyAnalysis,
+            period_start: oneYearAgo.toISOString(),
+            period_end: new Date().toISOString()
+          }, {
+            onConflict: 'property_id,insight_type'
+          });
+          if (upsertError) console.error('Error storing empty insight:', upsertError);
+          else console.log('Empty insight stored successfully for property:', propertyId);
+        }
+      } else {
+        console.warn('No authenticated user, cannot store empty insight');
       }
 
       return new Response(
@@ -279,23 +285,29 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
       
       // Store the fallback insight
       const { data: profile } = await supabase.auth.getUser();
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', profile.user?.id)
-        .single();
+      if (profile?.user?.id) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', profile.user.id)
+          .single();
 
-      if (userProfile?.organization_id) {
-        await supabase.from('property_insights').upsert({
-          property_id: propertyId,
-          organization_id: userProfile.organization_id,
-          insight_type: 'hotspot_analysis',
-          insight_data: fallbackAnalysis,
-          period_start: oneYearAgo.toISOString(),
-          period_end: new Date().toISOString()
-        }, {
-          onConflict: 'property_id,insight_type'
-        });
+        if (userProfile?.organization_id) {
+          const { error: upsertError } = await supabase.from('property_insights').upsert({
+            property_id: propertyId,
+            organization_id: userProfile.organization_id,
+            insight_type: 'hotspot_analysis',
+            insight_data: fallbackAnalysis,
+            period_start: oneYearAgo.toISOString(),
+            period_end: new Date().toISOString()
+          }, {
+            onConflict: 'property_id,insight_type'
+          });
+          if (upsertError) console.error('Error storing fallback insight:', upsertError);
+          else console.log('Fallback insight stored for property:', propertyId);
+        }
+      } else {
+        console.warn('No authenticated user, cannot store fallback insight');
       }
 
       return new Response(
@@ -321,23 +333,29 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
       
       // Store the fallback insight
       const { data: profile } = await supabase.auth.getUser();
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', profile.user?.id)
-        .single();
+      if (profile?.user?.id) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', profile.user.id)
+          .single();
 
-      if (userProfile?.organization_id) {
-        await supabase.from('property_insights').upsert({
-          property_id: propertyId,
-          organization_id: userProfile.organization_id,
-          insight_type: 'hotspot_analysis',
-          insight_data: fallbackAnalysis,
-          period_start: oneYearAgo.toISOString(),
-          period_end: new Date().toISOString()
-        }, {
-          onConflict: 'property_id,insight_type'
-        });
+        if (userProfile?.organization_id) {
+          const { error: upsertError } = await supabase.from('property_insights').upsert({
+            property_id: propertyId,
+            organization_id: userProfile.organization_id,
+            insight_type: 'hotspot_analysis',
+            insight_data: fallbackAnalysis,
+            period_start: oneYearAgo.toISOString(),
+            period_end: new Date().toISOString()
+          }, {
+            onConflict: 'property_id,insight_type'
+          });
+          if (upsertError) console.error('Error storing fallback insight:', upsertError);
+          else console.log('Fallback insight stored for property:', propertyId);
+        }
+      } else {
+        console.warn('No authenticated user, cannot store fallback insight');
       }
 
       return new Response(
@@ -370,28 +388,39 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
 
     // Store the insight in the database
     const { data: profile } = await supabase.auth.getUser();
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', profile.user?.id)
-      .single();
+    if (profile?.user?.id) {
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', profile.user.id)
+        .single();
 
-    if (userProfile?.organization_id) {
-      const { error: upsertError } = await supabase.from('property_insights').upsert({
-        property_id: propertyId,
-        organization_id: userProfile.organization_id,
-        insight_type: 'hotspot_analysis',
-        insight_data: analysis,
-        period_start: oneYearAgo.toISOString(),
-        period_end: new Date().toISOString()
-      }, {
-        onConflict: 'property_id,insight_type'
-      });
-
-      if (upsertError) {
-        console.error('Error storing insight:', upsertError);
-        // Don't fail the request, just log the error
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
       }
+
+      if (userProfile?.organization_id) {
+        const { error: upsertError } = await supabase.from('property_insights').upsert({
+          property_id: propertyId,
+          organization_id: userProfile.organization_id,
+          insight_type: 'hotspot_analysis',
+          insight_data: analysis,
+          period_start: oneYearAgo.toISOString(),
+          period_end: new Date().toISOString()
+        }, {
+          onConflict: 'property_id,insight_type'
+        });
+
+        if (upsertError) {
+          console.error('Error storing insight:', upsertError);
+        } else {
+          console.log('✅ Insight stored successfully for property:', propertyId);
+        }
+      } else {
+        console.warn('No organization_id found for user, cannot store insight');
+      }
+    } else {
+      console.warn('No authenticated user found, cannot store insight');
     }
 
     console.log('Analysis complete:', { riskLevel: analysis.riskLevel, requestsAnalyzed: analysis.requestsAnalyzed });
