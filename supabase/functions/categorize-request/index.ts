@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Version stamp for deployment verification
-const FUNCTION_VERSION = "2025-01-01_v2_no_temp";
+const FUNCTION_VERSION = "2025-01-20_v3_gemini_model";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,7 +105,7 @@ Location: ${location || 'Not specified'}`;
 
     // Build minimal request body (no temperature, no top_p - these cause errors with some models)
     const requestBody: Record<string, unknown> = {
-      model: 'openai/gpt-5-mini',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
@@ -170,13 +170,27 @@ Location: ${location || 'Not specified'}`;
     }
 
     const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content;
+    
+    // Log raw response for debugging
+    console.log('[categorize-request] Raw AI response:', JSON.stringify(data, null, 2).substring(0, 500));
+    
+    // Handle multiple response formats from different AI models
+    const aiResponse = data.choices?.[0]?.message?.content 
+      || data.content?.[0]?.text  // Gemini sometimes uses this format
+      || data.text  // Another fallback format
+      || null;
 
     if (!aiResponse) {
-      console.error('No response from AI');
+      console.error('[categorize-request] No content in AI response, returning fallback. Response structure:', Object.keys(data));
+      const fallbackCategorization: CategorizationResponse = {
+        issueType: 'general_other',
+        issueTags: [],
+        affectedArea: location || 'unknown',
+        confidence: 'low'
+      };
       return new Response(
-        JSON.stringify({ error: 'No response from AI service' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(fallbackCategorization),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
