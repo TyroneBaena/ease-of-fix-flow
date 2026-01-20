@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Version stamp for deployment verification
-const FUNCTION_VERSION = "2025-01-01_v2_no_temp";
+const FUNCTION_VERSION = "2025-01-20_v3_gemini_model";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -208,7 +208,7 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
 
     // Build minimal request body (no temperature, no top_p - these cause errors with some models)
     const requestBody: Record<string, unknown> = {
-      model: 'openai/gpt-5-mini',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
@@ -305,10 +305,18 @@ Provide a comprehensive analysis identifying patterns, systemic issues, and acti
     }
 
     const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content;
+    
+    // Log raw response for debugging
+    console.log('[analyze-property-hotspot] Raw AI response:', JSON.stringify(data, null, 2).substring(0, 1000));
+    
+    // Handle multiple response formats from different AI models
+    const aiResponse = data.choices?.[0]?.message?.content 
+      || data.content?.[0]?.text  // Gemini sometimes uses this format
+      || data.text  // Another fallback format
+      || null;
 
     if (!aiResponse) {
-      console.error('[analyze-property-hotspot] No content in AI response, returning fallback');
+      console.error('[analyze-property-hotspot] No content in AI response, returning fallback. Response structure:', Object.keys(data));
       const fallbackAnalysis = createFallbackAnalysis('empty response');
       
       // Store the fallback insight
