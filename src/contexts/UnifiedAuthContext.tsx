@@ -487,14 +487,14 @@ export const UnifiedAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Import auth cleanup utilities
       const { performRobustSignOut } = await import("@/utils/authCleanup");
 
-      // Perform robust sign out with timeout
+      // v38.0 PERFORMANCE: Reduced timeout from 5s to 2s - sufficient for local cleanup
       const signOutPromise = performRobustSignOut(supabase);
       const timeoutPromise = new Promise(
         (resolve) =>
           setTimeout(() => {
             console.warn("🔐 UnifiedAuth - Sign out timeout, forcing cleanup");
             resolve(true);
-          }, 5000), // 5 second timeout
+          }, 2000), // 2 second timeout (was 5s)
       );
 
       await Promise.race([signOutPromise, timeoutPromise]);
