@@ -100,32 +100,32 @@ function validateFormData(data: MaintenanceFormData, properties: Property[]): st
   // Check submittedBy (name) - must be a real name
   const name = data.submittedBy?.trim() || '';
   if (!name) {
-    issues.push("Your name is missing. Please provide your actual name.");
+    issues.push("Please provide your full name so we can follow up on this request.");
   } else if (placeholderPatterns.some(pattern => pattern.test(name))) {
-    issues.push(`"${name}" doesn't appear to be a real name. Please provide your actual full name so the property manager can contact you.`);
+    issues.push("Please provide your full name so the property manager can contact you about this request.");
   } else if (name.length < 2) {
-    issues.push("Please provide your full name (at least first name), not just initials.");
+    issues.push("Please provide your full name so we can follow up on this request.");
   }
 
   // Check issueNature (title) - must be 2-5 descriptive words
   const issueTitle = data.issueNature?.trim() || '';
   if (!issueTitle) {
-    issues.push("The issue title is missing. Please provide a brief title like 'Kitchen tap leaking'.");
+    issues.push("Please provide a brief descriptive title for the issue (e.g., \"Kitchen tap leaking\" or \"Heater not working\").");
   } else {
     const titleWords = issueTitle.split(/\s+/).length;
     if (titleWords < 2) {
-      issues.push(`The issue title "${issueTitle}" is too brief. Please provide a short descriptive title like "Kitchen tap leaking" or "Bathroom door broken".`);
+      issues.push("Please provide a brief descriptive title for the issue (e.g., \"Kitchen tap leaking\" or \"Heater not working\").");
     }
   }
 
   // Check explanation (description) - must be at least 10 words with real detail
   const description = data.explanation?.trim() || '';
   if (!description) {
-    issues.push("The description is missing. Please describe the issue in detail.");
+    issues.push("Please provide a more detailed description of the issue, including what's happening, when it started, and any impact it's having.");
   } else {
     const wordCount = description.split(/\s+/).length;
     if (wordCount < 10) {
-      issues.push(`The description is too brief (${wordCount} words). Please provide at least 10-15 words explaining what's happening, how severe it is, and when it started.`);
+      issues.push("Please provide a more detailed description of the issue, including what's happening, when it started, and any impact it's having.");
     }
   }
 
@@ -133,9 +133,9 @@ function validateFormData(data: MaintenanceFormData, properties: Property[]): st
   const location = data.location?.trim() || '';
   const vagueLocationPatterns = [/^inside$/i, /^the house$/i, /^here$/i, /^there$/i, /^home$/i];
   if (!location) {
-    issues.push("The location is missing. Please specify which room or area the issue is in.");
+    issues.push("Please specify the exact room or area where this issue is located (e.g., \"kitchen\", \"main bathroom\", \"bedroom 2\").");
   } else if (vagueLocationPatterns.some(pattern => pattern.test(location))) {
-    issues.push(`"${location}" is too vague. Please specify the exact room or area, like "kitchen", "main bathroom", or "bedroom 2".`);
+    issues.push("Please specify the exact room or area where this issue is located (e.g., \"kitchen\", \"main bathroom\", \"bedroom 2\").");
   }
 
   // Check attemptedFix - must have some response
@@ -306,15 +306,16 @@ export function useMaintenanceChat(
                   // Find property name for display
                   const propertyName = properties.find(p => p.id === extractedData.propertyId)?.name || extractedData.propertyId;
                   
-                  // Add a confirmation message
-                  const confirmMsg = `Great! I've collected all the information:\n\n` +
-                    `Property: ${propertyName}\n` +
-                    `Issue: ${extractedData.issueNature}\n` +
-                    `Location: ${extractedData.location}\n` +
-                    `Description: ${extractedData.explanation}\n` +
-                    `Reported by: ${extractedData.submittedBy}\n` +
-                    `Attempted fix: ${extractedData.attemptedFix}\n\n` +
-                    `Please upload at least one photo of the issue, then click "Submit Request" to complete your report.`;
+                  // Add a confirmation message with professional formatting
+                  const confirmMsg = `I've collected all the information for your maintenance request:\n\n` +
+                    `📍 Property: ${propertyName}\n` +
+                    `🔧 Issue: ${extractedData.issueNature}\n` +
+                    `📍 Location: ${extractedData.location}\n` +
+                    `📝 Description: ${extractedData.explanation}\n` +
+                    `👤 Reported by: ${extractedData.submittedBy}\n` +
+                    `🛠️ Attempted fix: ${extractedData.attemptedFix}\n` +
+                    (extractedData.isParticipantRelated ? `👥 Participant involved: ${extractedData.participantName || 'Yes'}\n` : '') +
+                    `\nPlease upload at least one photo of the issue, then click "Submit Request" to complete your report.`;
                   updateAssistant(confirmMsg);
                 }
               } catch (e) {
