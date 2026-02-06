@@ -40,7 +40,6 @@ let _supabase: SupabaseClient<Database> | null = null;
  */
 export function getSupabaseClient(): SupabaseClient<Database> {
   if (!_supabase) {
-    console.log("🔧 v60.0 - Creating SINGLE Supabase client with cookie-based persistence");
     _supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: false, // ✅ CRITICAL: Disable localStorage - use cookies instead
@@ -48,7 +47,6 @@ export function getSupabaseClient(): SupabaseClient<Database> {
         detectSessionInUrl: true, // ✅ Handle email confirmation links
       },
     });
-    console.log("✅ v60.0 - Supabase client created with cookie-based persistence");
   }
   return _supabase;
 }

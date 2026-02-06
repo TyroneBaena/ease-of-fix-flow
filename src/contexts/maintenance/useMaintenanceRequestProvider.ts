@@ -5,12 +5,10 @@ import { useMaintenanceRequestOperations } from "./useMaintenanceRequestOperatio
 import { formatRequestData } from "@/hooks/request-detail/formatRequestData";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { devLog } from "@/lib/devLogger";
 
 /**
- * v84.0 COMPREHENSIVE FIX: Retry pattern with stabilized dependencies
- * - Uses waitForSessionReadyWithRetry to handle cancelled waiters during rapid tab switches
- * - Passes sessionVersion as targetVersion for proper coordination
- * - Stabilized useCallback to prevent duplicate fetches
+ * v86.0 PERFORMANCE: Removed excessive logging, using devLog for essential traces only
  */
 export const useMaintenanceRequestProvider = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
@@ -22,15 +20,12 @@ export const useMaintenanceRequestProvider = () => {
 
   const inFlightVersionRef = useRef<number | null>(null);
 
-  // v84.1 FIX: Infinite retry with in-flight tracking to prevent duplicate fetches
+  // v86.0: Simplified loading with reduced logging
   const loadRequests = useCallback(
     async (targetVersion: number) => {
       const userId = currentUser?.id;
 
-      console.log(`🔧 v84.1 - MaintenanceRequest: Starting fetch for version ${targetVersion}`, { hasUser: !!userId });
-
       if (!userId) {
-        console.log("🔧 v84.1 - MaintenanceRequest: No user, skipping");
         setLoading(false);
         return [];
       }
@@ -38,33 +33,27 @@ export const useMaintenanceRequestProvider = () => {
       setLoading(true);
 
       try {
-        // v84.1 FIX: Infinite retry until session settles
-        // Keep retrying with exponential backoff until we get a successful session
+        // Wait for session with retry
         let attempt = 1;
         let isReady = false;
 
         while (!isReady) {
-          const delay = Math.min(500 * Math.pow(2, attempt - 1), 5000); // Cap at 5s
-          console.log(`🔧 v84.1 - MaintenanceRequest: Attempt ${attempt} for version ${targetVersion}`);
-
-          isReady = await waitForSessionReady(targetVersion, 10000);
+          const delay = Math.min(500 * Math.pow(1.5, attempt - 1), 3000); // Faster backoff, capped at 3s
+          isReady = await waitForSessionReady(targetVersion, 3000); // Reduced from 10s to 3s
 
           if (!isReady) {
-            console.log(`🔧 v84.1 - MaintenanceRequest: Retry ${attempt} failed, waiting ${delay}ms...`);
+            devLog(`MaintenanceRequest: Retry ${attempt}...`);
             await new Promise((resolve) => setTimeout(resolve, delay));
             attempt++;
           }
         }
 
-        console.log(`🔧 v84.1 - MaintenanceRequest: Session ready after ${attempt} attempts, fetching...`);
         const fetchedRequests = await fetchRequests();
-
-        console.log(`✅ v84.1 - Maintenance requests fetched: ${fetchedRequests?.length || 0}`);
 
         if (fetchedRequests && fetchedRequests.length > 0) {
           const formattedRequests = fetchedRequests.map((request) => formatRequestData(request));
           setRequests(formattedRequests);
-          inFlightVersionRef.current = null; // Clear in-flight marker
+          inFlightVersionRef.current = null;
           return formattedRequests;
         } else {
           setRequests([]);
@@ -72,7 +61,7 @@ export const useMaintenanceRequestProvider = () => {
           return [];
         }
       } catch (error) {
-        console.error("❌ v84.1 - Error loading requests:", error);
+        console.error("Error loading maintenance requests:", error);
         setRequests([]);
         inFlightVersionRef.current = null;
         return [];
@@ -84,34 +73,23 @@ export const useMaintenanceRequestProvider = () => {
   );
 
   useEffect(() => {
-    console.log("🔧 v85.0 - MaintenanceRequest: useEffect triggered", {
-      hasUser: !!currentUser?.id,
-      sessionVersion,
-      inFlight: inFlightVersionRef.current,
-    });
-
     if (!currentUser?.id) {
-      console.log("🔧 v85.0 - MaintenanceRequest: No user, clearing requests");
       setRequests([]);
       setLoading(false);
       inFlightVersionRef.current = null;
       return;
     }
 
-    // v84.1 FIX: Mark version as in-flight BEFORE starting fetch
-    // This prevents duplicate fetches from React StrictMode double-mounting
+    // Prevent duplicate fetches from React StrictMode
     if (inFlightVersionRef.current === sessionVersion) {
-      console.log(`🔧 v85.0 - MaintenanceRequest: Already fetching version ${sessionVersion}, skipping`);
       return;
     }
 
-    console.log(`🔧 v85.0 - MaintenanceRequest: Fetching for version ${sessionVersion}`);
-    inFlightVersionRef.current = sessionVersion; // Mark as in-flight BEFORE fetch starts
+    inFlightVersionRef.current = sessionVersion;
     loadRequests(sessionVersion);
 
-    // Real-time subscription for INSERT/DELETE (UPDATE handled by manual refresh)
+    // Real-time subscription for INSERT/DELETE/UPDATE
     const channelName = `maintenance_requests_${currentUser.id}`;
-    console.log("🔌 v85.0 REAL-TIME: Setting up subscription");
     
     const channel = supabase
       .channel(channelName)
@@ -123,7 +101,7 @@ export const useMaintenanceRequestProvider = () => {
           table: "maintenance_requests",
         },
         (payload) => {
-          console.log("🔄 v85.0 REAL-TIME: Event:", payload.eventType);
+          devLog("MaintenanceRequest realtime:", payload.eventType);
 
           if (payload.eventType === "INSERT" && payload.new) {
             const formattedRequest = formatRequestData(payload.new);
@@ -133,7 +111,6 @@ export const useMaintenanceRequestProvider = () => {
               return [formattedRequest, ...prev];
             });
           } else if (payload.eventType === "UPDATE" && payload.new) {
-            // UPDATE handled by manual refresh in useEditRequest
             const formattedRequest = formatRequestData(payload.new);
             setRequests((prev) => prev.map((r) => 
               r.id === formattedRequest.id ? formattedRequest : r
@@ -146,7 +123,6 @@ export const useMaintenanceRequestProvider = () => {
       .subscribe();
 
     return () => {
-      console.log("🔌 v85.0 REAL-TIME: Cleaning up");
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, sessionVersion, loadRequests]);
@@ -160,8 +136,6 @@ export const useMaintenanceRequestProvider = () => {
 
   const addRequestToProperty = useCallback(
     async (requestData: Omit<MaintenanceRequest, "id" | "status" | "createdAt" | "updatedAt">) => {
-      console.log("🆕 addRequestToProperty - Starting");
-
       const requestWithDefaults = {
         ...requestData,
         site: requestData.site || requestData.category || "Unknown",
@@ -185,8 +159,6 @@ export const useMaintenanceRequestProvider = () => {
         });
 
         toast.success("Maintenance request added successfully!");
-        // Note: Navigation handled by component after receiving response
-
         return formattedNewRequest;
       }
       return null;
@@ -201,7 +173,7 @@ export const useMaintenanceRequestProvider = () => {
       getRequestsForProperty,
       addRequestToProperty,
       loadRequests,
-      sessionVersion, // Export sessionVersion for context to use
+      sessionVersion,
     }),
     [requests, loading, getRequestsForProperty, addRequestToProperty, loadRequests, sessionVersion],
   );
