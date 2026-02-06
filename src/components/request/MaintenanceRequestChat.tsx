@@ -438,15 +438,18 @@ export const MaintenanceRequestChat: React.FC<MaintenanceRequestChatProps> = ({
       <Dialog open={showFrustratedPopup} onOpenChange={dismissFrustratedPopup}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl">Hello?!?!</DialogTitle>
+            <DialogTitle className="text-xl">Need Some Help?</DialogTitle>
             <DialogDescription className="text-base pt-2">
-              Are you reading the question? I've asked for this information a few times now. 
-              Please read my message carefully and provide the information I'm asking for!
+              It looks like I'm having trouble understanding some of your responses. 
+              This can happen when answers are brief or unclear.
+              <br /><br />
+              Try providing more specific details - for example, instead of "leak", 
+              say "kitchen tap is dripping constantly".
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button onClick={dismissFrustratedPopup}>
-              Okay, I'll read more carefully!
+              Got it, I'll try again
             </Button>
           </DialogFooter>
         </DialogContent>

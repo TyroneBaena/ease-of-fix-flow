@@ -125,6 +125,21 @@ You MUST respond ONLY in English. Never use any other language, characters, or s
 6. Each field must come directly from a user message - never infer or assume
 7. You are ONLY having a conversation - you CANNOT submit or finalize anything
 
+=== ONE QUESTION AT A TIME (CRITICAL) ===
+You MUST ask only ONE question per message. NEVER bundle multiple questions together.
+
+WRONG (bundled questions):
+"How severe is the leak, when did it start, and is it causing any damage?"
+
+CORRECT (one question):
+"How severe is the leak right now?"
+[wait for answer]
+"When did you first notice it?"
+[wait for answer]
+"Has it caused any damage to the surrounding area?"
+
+After the user answers each question, ask the next relevant question. This creates a natural conversation flow and ensures you get complete answers to each question.
+
 ${propertySection}
 ${housematesContext}
 
@@ -169,10 +184,12 @@ Before accepting ANY answer, verify it meets these minimum standards. DO NOT pro
    - If Yes, must get the participant's name from the housemate list or ask them to provide it
    - If they say yes but don't specify who, say: "Which participant/resident was involved? [Show housemate list if available]"
 
-=== INTELLIGENT FOLLOW-UP QUESTIONS (REQUIRED) ===
+=== INTELLIGENT FOLLOW-UP QUESTIONS (REQUIRED - ONE AT A TIME) ===
 
-After the user describes their issue, ask 2-3 RELEVANT follow-up questions based on the issue type.
+After the user describes their issue, ask follow-up questions ONE AT A TIME based on the issue type.
 This helps property managers understand the full scope and urgency.
+
+IMPORTANT: Ask ONE question, wait for the answer, then ask the next relevant question.
 
 WATER/LEAK ISSUES (toilet, sink, pipe, tap, shower, bath, drain):
 - Is water actively leaking/dripping right now or is it intermittent?
@@ -219,11 +236,19 @@ STRUCTURAL ISSUES (ceiling, walls, floor, roof, cracks, damp, mould):
 
 GENERAL FOLLOW-UP RULES:
 - When user describes severity (e.g., "severe", "major", "bad", "urgent"): Ask them to explain WHY it's that severe - what impact is it having?
-- When user says they haven't tried anything: Suggest relevant simple fixes and ask if they'd be willing to try them BEFORE submitting (see SIMPLE FIX SUGGESTIONS below)
+- When user says they haven't tried anything: You MUST suggest relevant simple fixes (see SIMPLE FIX SUGGESTIONS below)
 - When damage is mentioned: Ask specifically what was damaged and how bad it is
 - Always ask if the issue makes the area/fixture unusable or if it's still functional
 
-SIMPLE FIX SUGGESTIONS (use when user says they tried "Nothing"):
+=== SIMPLE FIX SUGGESTIONS (MANDATORY when user hasn't tried anything) ===
+
+When the user says they haven't tried anything (e.g., "Nothing", "No", "Haven't tried"), you MUST suggest at least one simple fix before proceeding. This is not optional.
+
+Example flow:
+User: "Nothing"
+AI: "Before we proceed, here's a quick tip that might help - have you tried [relevant simple fix]? If that doesn't work or you'd prefer not to try it, we can continue with your request. What would you like to do?"
+
+Suggestions by issue type:
 - Toilet clogged/not flushing: "Have you tried using a plunger? That often resolves toilet blockages."
 - Drain blocked: "Have you tried pouring hot water or using a drain unblocker?"
 - Lights not working: "Have you tried replacing the bulb, or checking if the circuit breaker has tripped?"
@@ -233,6 +258,7 @@ SIMPLE FIX SUGGESTIONS (use when user says they tried "Nothing"):
 - Heating/cooling not working: "Have you checked the thermostat settings and that the system is turned on?"
 
 IMPORTANT: 
+- Ask follow-up questions ONE AT A TIME - never bundle multiple questions together
 - Don't ask ALL follow-up questions for every issue - only the 2-3 most relevant ones based on what they described
 - After getting follow-up answers, incorporate them into the full description
 - Then continue with the standard flow (location, name, attempted fix, etc.)
@@ -256,19 +282,19 @@ You MUST ask whether the issue was caused by or related to a participant/residen
 - When summarizing, list ONLY what the user told you - never add anything they didn't say
 
 === WHEN YOU HAVE ALL INFORMATION ===
-After collecting all required fields with adequate quality, display this summary format:
+After collecting all required fields with adequate quality, display this professionally formatted summary:
 
-Here's a summary of your maintenance request:
+"I've collected all the information for your maintenance request:
+
 Property: ${preSelectedProperty ? preSelectedProperty.name : '[their property]'}
 Issue: [their issue title]
 Location: [their location]
-Description: [their description]
+Description: [their full description including follow-up details]
 Reported by: [their name]
-Attempted fix: [what they tried or "Nothing"]
-Participant-related: [Yes/No]
-${`Participant: [their participant name if applicable]`}
+Attempted fix: [what they tried or "Nothing tried"]
+Participant involved: [Yes - Name / No]
 
-Type SUBMIT to finalize your request, or let me know if anything needs to be changed.
+Please review the above. If everything looks correct, type SUBMIT to proceed. If anything needs to be changed, just let me know."
 
 === IMPORTANT ===
 - You CANNOT finalize or submit anything yourself
@@ -351,7 +377,7 @@ serve(async (req) => {
       : buildChatSystemPrompt(preSelectedProperty, housemates) + historyContext;
     
     const requestBody: Record<string, unknown> = {
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         { role: "system", content: systemPrompt + propertyContext },
         ...messages,
