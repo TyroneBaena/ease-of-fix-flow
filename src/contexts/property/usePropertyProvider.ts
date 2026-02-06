@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Property } from '@/types/property';
 import { supabase } from '@/lib/supabase';
@@ -7,9 +6,10 @@ import { useUnifiedAuth } from '../UnifiedAuthContext';
 import { PropertyContextType } from './PropertyContextTypes';
 import { fetchProperties } from './propertyOperations';
 import { canUserAccessProperty } from '@/utils/userRoles';
+import { devLog } from '@/lib/devLogger';
 
 /**
- * v78.0: SIMPLIFIED - Pure data fetching, no complex refresh logic
+ * v86.0 PERFORMANCE: Removed verbose logging, using devLog for essential traces
  */
 export const usePropertyProvider = (): PropertyContextType => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -27,15 +27,7 @@ export const usePropertyProvider = (): PropertyContextType => {
     const { isSessionReady: sessionReady, currentUser: user } = authStateRef.current;
     const userId = user?.id;
     
-    console.log('v78.0 - PropertyProvider: fetchAndSetProperties', { sessionReady, hasUser: !!userId });
-    
-    if (!sessionReady) {
-      console.log('v78.0 - PropertyProvider: Waiting for session ready...');
-      return;
-    }
-    
-    if (!userId) {
-      console.log('v78.0 - PropertyProvider: No user, skipping');
+    if (!sessionReady || !userId) {
       return;
     }
 
@@ -43,7 +35,6 @@ export const usePropertyProvider = (): PropertyContextType => {
     setLoadingFailed(false);
 
     try {
-      console.log('v78.0 - PropertyProvider: Fetching properties...');
       const formattedProperties = await fetchProperties();
       
       // Filter properties based on user role and assigned properties
@@ -51,11 +42,10 @@ export const usePropertyProvider = (): PropertyContextType => {
         canUserAccessProperty(user, property.id)
       );
       
-      console.log('✅ v78.0 - Properties fetched:', formattedProperties.length, 
-                  'Visible to user:', filteredProperties.length);
+      devLog('Properties fetched:', formattedProperties.length, 'Visible:', filteredProperties.length);
       setProperties(filteredProperties);
     } catch (err) {
-      console.error('❌ v78.0 - Error fetching properties:', err);
+      console.error('Error fetching properties:', err);
       toast.error('Failed to load properties');
       setLoadingFailed(true);
     } finally {
@@ -64,15 +54,11 @@ export const usePropertyProvider = (): PropertyContextType => {
   }, []);
 
   useEffect(() => {
-    console.log('PropertyProvider: useEffect triggered');
-    
     if (!isSessionReady) {
-      console.log('PropertyProvider: Waiting for session ready...');
       return;
     }
     
     if (!currentUser?.id) {
-      console.log('PropertyProvider: No user, clearing properties');
       setProperties([]);
       setLoading(false);
       setLoadingFailed(false);
@@ -82,7 +68,6 @@ export const usePropertyProvider = (): PropertyContextType => {
     
     // Only fetch if user ID changed
     if (lastFetchedUserIdRef.current === currentUser.id) {
-      console.log('PropertyProvider: User unchanged, skipping fetch');
       return;
     }
     
@@ -95,8 +80,6 @@ export const usePropertyProvider = (): PropertyContextType => {
     if (!currentUser?.id || !isSessionReady) {
       return;
     }
-
-    console.log('PropertyProvider: Setting up realtime subscription');
     
     const channel = supabase
       .channel('properties-changes')
@@ -107,15 +90,14 @@ export const usePropertyProvider = (): PropertyContextType => {
           schema: 'public',
           table: 'properties'
         },
-        (payload) => {
-          console.log('PropertyProvider: Properties changed, refetching', payload);
+        () => {
+          devLog('Properties changed, refetching');
           fetchAndSetProperties();
         }
       )
       .subscribe();
 
     return () => {
-      console.log('PropertyProvider: Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, isSessionReady, fetchAndSetProperties]);
