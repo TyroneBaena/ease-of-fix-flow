@@ -5,26 +5,21 @@
 
 export const cleanupAuthState = () => {
   try {
-    // Remove standard auth tokens
-    localStorage.removeItem('supabase.auth.token');
+    // v38.0 PERFORMANCE: Batch localStorage operations for efficiency
+    const localStorageKeysToRemove = Object.keys(localStorage).filter(
+      (key) => key.startsWith('supabase.auth.') || key.includes('sb-')
+    );
+    localStorageKeysToRemove.forEach((key) => localStorage.removeItem(key));
     
-    // Remove all Supabase auth keys from localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Remove from sessionStorage if in use
+    // Batch sessionStorage operations
     if (typeof sessionStorage !== 'undefined') {
-      Object.keys(sessionStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          sessionStorage.removeItem(key);
-        }
-      });
+      const sessionStorageKeysToRemove = Object.keys(sessionStorage).filter(
+        (key) => key.startsWith('supabase.auth.') || key.includes('sb-')
+      );
+      sessionStorageKeysToRemove.forEach((key) => sessionStorage.removeItem(key));
     }
     
-    // CRITICAL v36.1: Also clear cookie backup to prevent restoration
+    // Clear cookie backup
     try {
       document.cookie = "sb-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     } catch (cookieError) {

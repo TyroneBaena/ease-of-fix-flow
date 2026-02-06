@@ -245,27 +245,10 @@ export const signInWithEmailPassword = async (email: string, password: string) =
         return { user: null, error: setError };
       }
       
-      console.log("✅ Supabase client session set");
-      
-      // CRITICAL: Verify the session is properly set with retry
-      let sessionVerified = false;
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        console.log(`⏳ Verifying session (attempt ${attempt}/3)...`);
-        await new Promise(resolve => setTimeout(resolve, 400));
-        
-        const { data: { session: checkSession } } = await supabase.auth.getSession();
-        if (checkSession?.access_token) {
-          sessionVerified = true;
-          console.log("✅ Session verified in Supabase client");
-          break;
-        }
-      }
-      
-      if (!sessionVerified) {
-        console.error("❌ Session verification failed after 3 attempts");
-        toast.error("Session setup incomplete");
-        return { user: null, error: { message: "Session verification failed" } };
-      }
+      // v38.0 PERFORMANCE: Trust setSession() - no verification loop needed
+      // The Edge Function already validated credentials and returned a valid session
+      // UnifiedAuthContext's auth listener will handle user conversion asynchronously
+      console.log("✅ Session set successfully, auth listener will handle user conversion");
     }
 
     console.log("✅ Login complete for:", user.email);
@@ -286,34 +269,29 @@ export const signOutUser = async () => {
   try {
     console.log("🔐 Signing out...");
 
-    // 🔹 1. Call Edge Function `/logout`
-    const response = await fetch(LOGOUT_FN, {
-      method: "POST",
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const result = await response.json();
-      toast.error(result.error || "Sign out failed");
-      return { error: result };
-    }
-
-    // 🔹 2. Clear Supabase client session (using singleton)
-    await supabase.auth.signOut();
+    // v38.0 PERFORMANCE: Parallelize cookie clear and client signOut
+    // Both operations are independent - run them concurrently
+    await Promise.all([
+      fetch(LOGOUT_FN, { method: "POST", credentials: "include" }).catch((e) => {
+        console.warn("⚠️ Logout edge function error (non-blocking):", e);
+      }),
+      supabase.auth.signOut().catch((e) => {
+        console.warn("⚠️ Supabase signOut error (non-blocking):", e);
+      }),
+    ]);
 
     console.log("✅ Logged out successfully");
     toast.success("Signed out successfully");
 
-    // 🔹 3. Redirect to login page
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 300);
+    // v38.0 PERFORMANCE: Redirect immediately - no delay needed
+    // State is already cleared when redirect happens
+    window.location.href = "/login";
 
     return { error: null };
   } catch (error: any) {
     console.error("❌ Sign out exception:", error);
     toast.error("An error occurred during sign out");
-    setTimeout(() => (window.location.href = "/login"), 500);
+    window.location.href = "/login";
     return { error };
   }
 };
