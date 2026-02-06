@@ -1,222 +1,248 @@
 
-# Security Hardening Plan for Housing Hub
+# Performance Optimization Plan for Housing Hub
 
 ## Executive Summary
-This plan addresses all identified security issues while preserving existing functionality. The fixes are organized by priority and impact, with careful consideration for not breaking any current features.
+This plan implements three key performance optimizations to significantly improve app loading time and runtime efficiency:
+
+1. **Code Splitting** - Lazy-load routes to reduce initial bundle size by ~60%
+2. **Production Logging Removal** - Strip debug console statements to reduce overhead
+3. **App.tsx Cleanup** - Remove ~1000 lines of dead commented code
 
 ---
 
-## Phase 1: Database Function Security (High Priority)
-**Risk: SQL Injection via Mutable Search Path**
+## Phase 1: Route-Based Code Splitting (High Impact)
 
-Five database functions lack explicit `search_path` settings, making them vulnerable to search path manipulation attacks.
+### Current Problem
+All 35+ pages are bundled together and loaded upfront. This means:
+- Users download the entire application even if they only visit 2-3 pages
+- Initial JavaScript bundle is unnecessarily large
+- Slower Time to Interactive (TTI)
 
-### Functions to Fix:
-| Function | Risk Level |
-|----------|------------|
-| `audit_user_role_changes` | Medium - Trigger function |
-| `get_appropriate_user_role` | Low - Returns static value |
-| `initialize_property_counts` | Medium - Modifies data |
-| `is_first_user_signup` | Low - Returns static value |
-| `update_updated_at_column` | Low - Simple trigger |
+### Solution
+Implement `React.lazy()` with `Suspense` for route-based code splitting.
 
-### Implementation:
-Create SQL migration to recreate each function with `SET search_path TO 'public'`:
+### Implementation
 
-```text
-For each function, add:
-  SET search_path TO 'public'
-after SECURITY DEFINER (if present)
+**File: `src/App.tsx`**
+
+Replace static imports with lazy imports for all page components:
+
+```typescript
+// BEFORE (current - loads everything upfront)
+import Dashboard from "@/pages/Dashboard";
+import Settings from "@/pages/Settings";
+import Properties from "@/pages/Properties";
+// ... 30+ more imports
+
+// AFTER (lazy - loads on demand)
+const Dashboard = React.lazy(() => import("@/pages/Dashboard"));
+const Settings = React.lazy(() => import("@/pages/Settings"));
+const Properties = React.lazy(() => import("@/pages/Properties"));
+// ... etc
 ```
 
-**Example fix for `update_updated_at_column`:**
-```sql
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path TO 'public'
-AS $function$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$function$;
-```
+Add a loading fallback component:
 
-**Impact:** None on existing functionality - functions behave identically.
-
----
-
-## Phase 2: RLS Policy Hardening (Medium Priority)
-
-### Issue 2A: Security Events INSERT Policy Too Permissive
-**Current:** `WITH CHECK (true)` allows any user (including `anon`) to insert security events.
-
-**Risk:** Attackers could flood the security_events table with fake entries or manipulate logs.
-
-**Fix:** Restrict to service role or authenticated users only:
-
-```sql
--- Drop the overly permissive policy
-DROP POLICY IF EXISTS "System can insert security events" ON public.security_events;
-
--- Create restricted policy - only authenticated users can insert their own events
-CREATE POLICY "Authenticated users can insert security events"
-ON public.security_events
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  user_id IS NULL OR user_id = auth.uid()
+```typescript
+const PageLoader = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
 );
-
--- Service role (edge functions) can insert any events - no policy needed, 
--- service role bypasses RLS
 ```
 
-**Impact:** Edge functions using service role key continue working. Client-side logging (if any) now requires authentication.
+Wrap `AppRoutes` content with Suspense:
 
-### Issue 2B: Email Relay Keys - Add Anonymous Denial
-**Current:** Only SELECT policy exists for authenticated recipients.
+```typescript
+const AppRoutes = () => {
+  // ... existing auth checks ...
 
-**Risk:** No explicit denial for anonymous users on INSERT/UPDATE/DELETE.
-
-**Fix:** Add explicit denial policy for anonymous access:
-
-```sql
-CREATE POLICY "Deny public access to email relay keys"
-ON public.email_relay_keys
-FOR ALL
-TO anon
-USING (false)
-WITH CHECK (false);
+  return (
+    <React.Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* All existing routes */}
+      </Routes>
+    </React.Suspense>
+  );
+};
 ```
 
-**Impact:** None - anonymous users already can't access due to no policies granting access.
+### Pages to Lazy Load (28 pages)
+| Category | Pages |
+|----------|-------|
+| Auth | Login, Signup, SignupStatus, ForgotPassword, SetupPassword, EmailConfirm |
+| Core | Dashboard, Settings, Properties, PropertyDetail, AllRequests, NewRequest, RequestDetail, Reports, Notifications |
+| Public | PublicPropertyRequests, PublicRequestDetail, PublicRequestSubmitted |
+| Contractor | ContractorDashboard, ContractorJobs, ContractorJobDetail, ContractorProfile, ContractorSchedule, ContractorSettings, ContractorNotifications, QuoteSubmission |
+| Admin | AdminSettings, AdminSyncTest, Onboarding |
+
+### Impact
+- **Initial bundle size**: Reduced by ~60%
+- **Time to Interactive**: Improved by 1-2 seconds
+- **Route transitions**: ~100ms delay (acceptable, code loads in background)
 
 ---
 
-## Phase 3: Address Security Scan Findings
+## Phase 2: Production Console Log Stripping (Medium Impact)
 
-### Issue 3A: Profiles Table Security (False Positive - Already Fixed)
-The security scan flagged the profiles table, but review shows:
-- `Deny public access to profiles` policy with `USING (false)` correctly blocks anonymous access
-- `Users can view only their own profile` restricts authenticated users
-- `Admins and managers can view organization profiles` has proper org-based restrictions
+### Current Problem
+The codebase has **1,376+ console statements** across context files, including:
+- `UnifiedAuthContext.tsx`: Heavy debugging with version markers (`v79.2`, `v97.3`, etc.)
+- `MaintenanceRequestContext.tsx`: Debug logs at file load and every render
+- `SubscriptionContext.tsx`: Extensive state logging
+- `SimpleAuthContext.tsx`: Auth flow logging
 
-**Action:** Mark this finding as resolved/ignored with explanation - no code changes needed.
+These cause:
+- Performance overhead on every operation
+- Browser console pollution
+- Potential information leakage
 
-### Issue 3B: Admin User List View (Already Fixed)
-Review shows `security_invoker=true` is already set on `admin_user_list` view, meaning it inherits RLS from the `profiles` table.
+### Solution
+Add Vite's `esbuild.drop` configuration to strip console statements in production.
 
-**Action:** Mark this finding as resolved/ignored - no code changes needed.
+### Implementation
+
+**File: `vite.config.ts`**
+
+```typescript
+export default defineConfig(({ mode }) => ({
+  // ... existing config ...
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
+}));
+```
+
+### Benefits
+- Zero console statements in production builds
+- No code changes required
+- Development logs preserved
+- Smaller production bundle
+
+### Alternative: Targeted Removal
+If some console statements should remain (e.g., critical errors), we could instead:
+1. Keep `console.error` by using: `drop: ['debugger']` plus custom plugin
+2. Create a logger utility that no-ops in production
+
+**Recommendation**: Use full `console` drop since error tracking is handled by Sentry.
 
 ---
 
-## Phase 4: Role Security Verification
+## Phase 3: App.tsx Cleanup (Code Quality)
 
-### Current Architecture Assessment
-The application uses a dual-role system:
-1. **`profiles.role`** - Legacy role column (text, NOT NULL)
-2. **`user_roles` table** - Proper role system with `app_role` enum
+### Current Problem
+`src/App.tsx` is **1,500 lines** with:
+- ~1,000 lines of commented-out dead code (lines 1-1082)
+- 6+ versions of the same routing structure preserved as "history"
+- Active code is only lines 1083-1500
 
-**Current Code Behavior:**
-- `UnifiedAuthContext` fetches role from `profiles.role` (line 384)
-- Falls back to organization-based roles from `user_organizations.role`
-- `has_role()` function correctly uses `user_roles` table
+### Solution
+Remove all commented-out code, keeping only the active implementation.
 
-**Potential Issue:** The `profiles.role` column could be exploited if RLS policies don't prevent users from updating their own role.
+### Implementation
 
-### Verification Required:
-Review profile UPDATE policies to ensure users cannot modify their own `role` column.
+**File: `src/App.tsx`**
 
-**Current UPDATE policy:**
-```sql
-"Users can update their own profile" 
-WITH CHECK (id = auth.uid())
-```
+Delete lines 1-1082 (all commented code) and keep only lines 1083-1500.
 
-This allows updating ANY column including `role`. 
-
-### Recommended Fix - Option A (Database Trigger):
-Create a trigger to prevent role modification via profiles table:
-
-```sql
-CREATE OR REPLACE FUNCTION prevent_role_self_update()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-BEGIN
-  -- If role is being changed and user is updating their own profile
-  IF NEW.role IS DISTINCT FROM OLD.role AND NEW.id = auth.uid() THEN
-    -- Check if current user is NOT an admin in user_roles
-    IF NOT EXISTS (
-      SELECT 1 FROM user_roles 
-      WHERE user_id = auth.uid() AND role = 'admin'
-    ) THEN
-      RAISE EXCEPTION 'Users cannot modify their own role';
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$function$;
-
-CREATE TRIGGER prevent_role_self_update_trigger
-BEFORE UPDATE ON profiles
-FOR EACH ROW
-EXECUTE FUNCTION prevent_role_self_update();
-```
-
-**Impact:** Prevents privilege escalation. Admins can still update roles.
+### Impact
+- File size: 1,500 lines reduced to ~420 lines (72% reduction)
+- Improved maintainability and readability
+- Faster IDE performance when editing
 
 ---
 
-## Phase 5: Documentation Updates for Manual Actions
+## Phase 4: Vite Build Optimization (Enhancement)
 
-These items require manual action in Supabase Dashboard (cannot be automated):
+### Current Problem
+Default Vite configuration doesn't optimize for large React apps.
 
-### 5A: Enable Leaked Password Protection
-**Location:** [Auth Providers Settings](https://supabase.com/dashboard/project/ltjlswzrdgtoddyqmydo/auth/providers)
-**Action:** Enable "Check for leaked passwords" toggle
-**Time:** 2 minutes
+### Solution
+Add chunk splitting configuration.
 
-### 5B: Upgrade Postgres Version
-**Location:** [Infrastructure Settings](https://supabase.com/dashboard/project/ltjlswzrdgtoddyqmydo/settings/infrastructure)
-**Action:** Click "Upgrade" to apply security patches
-**Time:** 10-15 minutes (includes brief downtime)
+### Implementation
+
+**File: `vite.config.ts`**
+
+```typescript
+export default defineConfig(({ mode }) => ({
+  // ... existing config ...
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunk for stable caching
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          'vendor-charts': ['recharts'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increase warning limit for vendor chunks
+  },
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
+}));
+```
+
+### Benefits
+- Vendor libraries cached separately (users don't re-download React on app updates)
+- Better HTTP caching
+- Parallel chunk loading
 
 ---
 
 ## Implementation Summary
 
-| Phase | Files/Resources Changed | Risk | Impact on Features |
-|-------|------------------------|------|-------------------|
-| Phase 1 | SQL Migration (5 functions) | Low | None |
-| Phase 2A | SQL Migration (1 policy) | Low | None if using service role |
-| Phase 2B | SQL Migration (1 policy) | Low | None |
-| Phase 3 | Security findings update | None | None |
-| Phase 4 | SQL Migration (1 trigger) | Medium | Blocks role self-modification |
-| Phase 5 | Manual dashboard actions | Low | None |
+| Phase | Files Changed | Risk | Impact |
+|-------|--------------|------|--------|
+| Phase 1: Code Splitting | `src/App.tsx` | Low | High - 60% smaller initial bundle |
+| Phase 2: Console Stripping | `vite.config.ts` | Low | Medium - cleaner production, minor perf boost |
+| Phase 3: App.tsx Cleanup | `src/App.tsx` | None | Code quality improvement |
+| Phase 4: Build Optimization | `vite.config.ts` | Low | Medium - better caching |
+
+---
+
+## What This Does NOT Change
+
+- No changes to business logic or functionality
+- No changes to routing structure or guards
+- No changes to context providers or data flow
+- No changes to UI components
+- No changes to authentication flow
+- Development experience unchanged (logs still work locally)
 
 ---
 
 ## Testing Plan
 
 After implementation:
-1. Verify all authenticated features still work (login, data access, CRUD operations)
-2. Test that anonymous users cannot access protected tables
-3. Verify admin role management still functions correctly
-4. Confirm security events are still being logged by edge functions
-5. Run security scan to verify all issues are resolved
+1. **Development**: Verify console logs still appear during development
+2. **Production Build**: Run `npm run build` and verify:
+   - No console statements in output
+   - Multiple chunk files generated (code splitting working)
+   - Smaller main bundle size
+3. **Navigation Test**: Visit each major route and verify lazy loading works
+4. **Load Time Test**: Compare initial load time before/after
+5. **Functionality Test**: Verify all protected routes still work correctly
 
 ---
 
-## Rollback Plan
+## Expected Results
 
-Each SQL migration will include corresponding rollback statements:
-- Functions: Recreate without `SET search_path`
-- Policies: Recreate original policies
-- Trigger: `DROP TRIGGER IF EXISTS prevent_role_self_update_trigger`
+### Before Optimization
+- Initial bundle: ~2-3 MB (estimated)
+- Time to Interactive: 3-5 seconds
+- Console noise: 50+ messages on page load
 
-All changes are additive or cosmetic (search_path) and can be safely reversed.
+### After Optimization  
+- Initial bundle: ~800 KB - 1 MB
+- Time to Interactive: 1-2 seconds
+- Console noise: 0 messages in production
+
+### Maintenance Benefits
+- App.tsx: Clean, readable code
+- Faster builds and IDE performance
+- Better browser caching = faster repeat visits
